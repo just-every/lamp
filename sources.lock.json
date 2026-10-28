@@ -4588,7 +4588,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history-led.ts": {
-      "sha256": "d0bfc5d122f9363f5f4e9fcece48ee03a2b635cf381c876e95ede2c4ce96ae4a",
+      "sha256": "a1f4a21af5554f629823648916a9be75445f3151e1b2ded99ab0d0e7f6da9d06",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history.ts": {
@@ -4616,7 +4616,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/regions.ts": {
-      "sha256": "43b9191938327587322eb4f152a724cf1e1407caad78e6cf1ea288e0fcc884c8",
+      "sha256": "7383d03344fa9d933a8b4eaa9730e9a189053488c22bef32b148b29379fb8327",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/script.js": {

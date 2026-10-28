@@ -1,3 +1,4 @@
+import { groupComponentsByHeading } from "../../../shared/component-order";
 import type { PublicSnapshotModel } from "../renderer";
 import { mostSevereState, type ComponentState } from "../../../shared/domain";
 import { publicComponentOrder } from "../../../shared/component-order";
@@ -98,7 +99,8 @@ export function regionsPage(model: PublicSnapshotModel, parts: TemplateParts) {
   const map = `<section class="rg-regions wrap" aria-labelledby="regions-title" data-live="map"><h2 id="regions-title" class="sr-only">Regions</h2>${regionsMap(model)}${filters(groups)}</section>`;
   const current = [...history.open.map((incident) => openIncidentEntry(incident, model, parts)), ...history.maintenance.map((item) => maintenanceEntry(item, model))].join("");
   const past = history.resolved.map((incident) => resolvedEntry(incident, model)).join("");
-  const table = `<section class="rg-components" aria-labelledby="components-title" data-live="components"><h2 id="components-title">Components</h2><p class="sr-only" data-region-count aria-live="polite">Showing all ${plural(components.length, "component")}</p><div class="rg-thead" aria-hidden="true"><span>Component</span><span>Status</span><span>${model.theme.historyDays}-day uptime</span></div><div class="rg-rows">${components.map((component) => componentRow(component, groups)).join("")}</div><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>`;
+  const rows = model.theme.groupsCollapsed ? groupComponentsByHeading(components).map(([heading, members]) => `<details class="theme-component-group"><summary>${escapeHtml(heading)}</summary>${members.map(component => componentRow(component, groups)).join("")}</details>`).join("") : components.map(component => componentRow(component, groups)).join("");
+  const table = `<section class="rg-components" aria-labelledby="components-title" data-live="components"><h2 id="components-title">Components</h2><p class="sr-only" data-region-count aria-live="polite">Showing all ${plural(components.length, "component")}</p><div class="rg-thead" aria-hidden="true"><span>Component</span><span>Status</span><span>${model.theme.historyDays}-day uptime</span></div><div class="rg-rows">${rows}</div><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>`;
   const lower = `<div class="rg-lower wrap"><section class="rg-current" aria-labelledby="history-title" data-live="current"><h2 id="history-title">History</h2>${current ? `<ol class="tl-list">${current}</ol>` : ""}</section>${table}<section class="rg-past" aria-labelledby="past-title" data-live="past"><h2 id="past-title" class="sr-only">Resolved incidents</h2>${past ? `<ol class="tl-list">${past}</ol>` : ""}${quietLine(history, "tpl-quiet")}</section></div>`;
   return `${head}${parts.slot("status-page.header.after.v1")}${status}${map}${lower}`;
 }

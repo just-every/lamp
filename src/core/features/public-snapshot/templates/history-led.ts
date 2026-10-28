@@ -1,3 +1,4 @@
+import { groupComponentsByHeading } from "../../../shared/component-order";
 import type { PublicSnapshotModel } from "../renderer";
 import type { PublicIncident } from "../record-markup";
 import { publicComponentOrder } from "../../../shared/component-order";
@@ -35,7 +36,7 @@ export function historyLedStyles(model: PublicSnapshotModel) {
   const columns = Array.from({ length: REPORTING_DAYS }, (_, index) => `.hm-track .d${index + 1}{grid-column-start:${index + 1};--column:${index}}`).join("");
   const reach = Array.from({ length: MAX_REACH + 1 }, (_, index) => `.reach-${index}{--reach:${index}}`).join("");
   const days = heatmapDays(model);
-  return `${columns}${reach}${days ? axisStyles(days) : ""}`;
+  return `${columns}${reach}${days ? axisStyles(days) : ""}${model.theme.historyDays === REPORTING_DAYS ? "" : `body.lamp-public .hm-cells,body.lamp-public .hm-callouts,body.lamp-public .hm-axis{grid-template-columns:repeat(${days?.length ?? model.theme.historyDays},minmax(0,1fr))}`}`;
 }
 
 function overallUptime(components: Component[]) {
@@ -151,11 +152,16 @@ function incidentGroups(model: PublicSnapshotModel, parts: TemplateParts, shown:
 function componentList(model: PublicSnapshotModel) {
   const components = publicComponentOrder(model.visibleComponents);
   if (!components.length) return "";
-  const rows = components.map((component) => {
+  const renderedRows = components.map((component) => {
     const tone = toneOf(component.state);
     return `<details class="up-row"><summary><span class="up-dot tone-${tone}" aria-hidden="true"></span><span class="up-name">${escapeHtml(component.name)}</span><span class="up-state tone-${tone}">${escapeHtml(component.state)}</span><span class="up-pct">${escapeHtml(uptimeValue(component.uptime))}</span>${lineIcon("chevron", "up-chevron")}</summary><div class="up-detail"><p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "up-bar", false)}${componentNote(component)}</div></details>`;
-  }).join("");
-  return `<section class="up-components" aria-labelledby="list-title" data-live="list"><h2 id="list-title">Components</h2><div class="up-rows">${rows}</div></section>`;
+  });
+  const rows = renderedRows.join("");
+  const content = model.theme.groupsCollapsed ? groupComponentsByHeading(components).map(([heading, members]) => {
+    const memberIds = new Set(members.map(member => member.id));
+    return `<details class="theme-component-group"><summary>${escapeHtml(heading)}</summary>${components.flatMap((component, index) => memberIds.has(component.id) ? [renderedRows[index]] : []).join("")}</details>`;
+  }).join("") : rows;
+  return `<section class="up-components" aria-labelledby="list-title" data-live="list"><h2 id="list-title">Components</h2><div class="up-rows">${content}</div></section>`;
 }
 
 export function historyLedPage(model: PublicSnapshotModel, parts: TemplateParts) {
