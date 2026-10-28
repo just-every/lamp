@@ -64,5 +64,6 @@ export const mailProviderWebhookEvents = sqliteTable("mail_provider_webhook_even
   claimedAt: text("claimed_at"),
   appliedAt: text("applied_at"),
   deliveryId: text("delivery_id").references(() => notificationDeliveries.id),
+  reportDeliveryId: text("report_delivery_id"),
   createdAt: text("created_at").notNull(),
 }, (table) => [index("mail_provider_webhook_events_pending_idx").on(table.providerMessageId, table.appliedAt, table.claimedAt)]);

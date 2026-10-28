@@ -72,6 +72,7 @@ export function createSubscriberTransitions(binding: D1Database): SubscriberTran
         ...(confirmationAllowance ? [binding.prepare("DELETE FROM subscriber_confirmation_attempts WHERE email_hash = ?").bind(confirmationAllowance)] : []),
         binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = 'unsubscribed', deactivated_at = ?, updated_at = ? WHERE id = ?")
           .bind(now, now, permission.subscriberId),
+        binding.prepare("UPDATE incident_subscriptions SET ended_at=COALESCE(ended_at,?),final_event_id=NULL WHERE subscriber_id=?").bind(now,permission.subscriberId),
         binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL")
           .bind(now, now, permission.subscriberId),
       ]);

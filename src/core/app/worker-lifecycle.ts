@@ -35,7 +35,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     const changes = await Promise.allSettled([
       runtime.services.metrics.runDue(scheduledAt),
       runtime.services.trafficAlerts.run(scheduledAt),
-      runtime.services.subscribers.expirePending(),
+      runtime.services.subscribers.expirePending(scheduledAt),
       expireHeldSorrySubscribers(bindings.DB, scheduledAt),
       runtime.services.pageExport.expireHeld(scheduledAt),
       runtime.services.incidents.publishDue(),
