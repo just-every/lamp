@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -110,6 +111,10 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     panel = await settings();
     await expect(panel.getByRole('listitem').filter({ hasText: accountName })).toBeVisible();
     await inspect('390px Settings social accounts');
+    await page.goto(`${origin}/app/incidents/new`); await operatorHydrated(page);
+    await newIncidentForm(page).moreOptions();
+    await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
+    await inspect('390px new incident social selector');
     await page.goto(incidentUrl); await operatorHydrated(page); await composer.moreOptions();
     await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
     await inspect('390px composer social selector');
@@ -119,7 +124,7 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     await expect(panel.getByText(`${accountName} removed.`, { exact: true })).toBeVisible();
     await expect(panel.getByRole('listitem').filter({ hasText: accountName })).toHaveCount(0);
     assert.deepEqual(errors, [], 'social screens have no page or hydration errors');
-    diagnostic('INTEG-002 browser: Settings, incident composer and maintenance scheduling at 1440 and 390 have no horizontal overflow or serious/critical accessibility findings; account removed through Settings. No screenshots or private sign-in links retained.');
+    diagnostic('INTEG-002 browser: Settings, incident composer and maintenance scheduling at 1440 and 390 have no horizontal overflow or serious/critical accessibility findings; account removed through Settings. Screens retained under ./test-results/social; private sign-in links are never retained.');
     await context.close();
     async function maintenanceChoice(width) {
       await page.goto(`${origin}/app/maintenance`); await operatorHydrated(page);
@@ -131,6 +136,8 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no horizontal overflow`);
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
       assert.deepEqual(axe.violations.filter(violation => ['serious', 'critical'].includes(violation.impact)).map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target) })), [], `${name}: accessibility`);
+      await mkdir('./test-results/social', { recursive: true });
+      await page.screenshot({ path: `./test-results/social/${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`, fullPage: true });
     }
   } finally { await browser.close(); }
 }

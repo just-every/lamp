@@ -119,15 +119,19 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
       return { status: response.status, body: text ? JSON.parse(text) : null, text };
     };
     const post = (path, body = {}) => api(path, { method: "POST", body: JSON.stringify(body) });
-    const linkRequest = await post("/auth/magic-link", { email: "synthetic-lamp-owner@example.test" });
-    assert.ok(linkRequest.status >= 200 && linkRequest.status < 300, linkRequest.text);
-    const ownerMail = await eventuallyFollowUp(() => messages.find(message => message.to.includes("synthetic-lamp-owner@example.test")), Boolean, "owner sign-in mail crosses the real Resend serializer");
-    const token = new URL(ownerMail.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get("token");
-    const confirmed = await request("/auth/confirm", { method: "POST", body: JSON.stringify({ token }) });
-    assert.equal(confirmed.status, 303, await confirmed.clone().text());
-    cookie = confirmed.headers.get("set-cookie").split(";")[0];
+    async function signIn() {
+      const before = messages.length;
+      const linkRequest = await post("/auth/magic-link", { email: "synthetic-lamp-owner@example.test" });
+      assert.ok(linkRequest.status >= 200 && linkRequest.status < 300, linkRequest.text);
+      const ownerMail = await eventuallyFollowUp(() => messages.slice(before).find(message => message.to.includes("synthetic-lamp-owner@example.test")), Boolean, "owner sign-in mail crosses the real Resend serializer");
+      const token = new URL(ownerMail.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get("token");
+      const confirmed = await request("/auth/confirm", { method: "POST", body: JSON.stringify({ token }) });
+      assert.equal(confirmed.status, 303, await confirmed.clone().text());
+      cookie = confirmed.headers.get("set-cookie").split(";")[0];
+    }
+    await signIn();
     return {
-      runtime, db, execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests,
+      runtime, db, execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests, signIn,
       recoverWebhook() { webhookOutage = false; },
       async close() { try { await runtime.dispose(); } finally { await rm(state, { recursive: true, force: true }); } },
     };

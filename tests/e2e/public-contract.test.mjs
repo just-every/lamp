@@ -572,9 +572,44 @@ test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-l
   await (async () => {
   await uploadTestLogo();
   await updateSettings({ widgetAllowedOrigins: [pageUrl] });
-  const [page, logo, favicon, og, widget] = await Promise.all([
+  t.diagnostic("PAGE-012 — inherited brand kinds refuse stored artifacts through signed-in requests");
+  const kinds = ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"];
+  let imageContentType;
+  for (const kind of ["mark", "favicon", "social"]) {
+    const response = await appFetch(`/api/app/page-settings/brand/${kind}`);
+    assert.equal(response.status, 200, kind);
+    assert.match(response.headers.get("content-type"), /^image\//);
+    imageContentType ??= response.headers.get("content-type");
+    await response.arrayBuffer();
+  }
+  const { getPlatformProxy } = await import("wrangler");
+  const platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(testStatePath, "v3") }, remoteBindings: false });
+  const keys = [];
+  try {
+    const pointer = await (await platform.env.SNAPSHOTS.get("snapshots/current.json")).json();
+    for (const kind of kinds) {
+      const key = `snapshots/${pointer.version}/${String(Reflect.get({}, kind))}`;
+      keys.push(key);
+      await platform.env.SNAPSHOTS.put(key, "<svg><title>synthetic-lamp-204</title></svg>", { httpMetadata: { contentType: imageContentType } });
+    }
+    for (const kind of kinds) {
+      const response = await appFetch(`/api/app/page-settings/brand/${kind}`);
+      const body = await response.text();
+      t.diagnostic(JSON.stringify({ kind, status: response.status, body }));
+      assert.equal(response.status, 404, kind);
+      assert.doesNotMatch(body, /binding|stack|native code|synthetic-lamp-204/i, kind);
+    }
+  } finally {
+    await platform.env.SNAPSHOTS.delete(keys);
+    await platform.dispose();
+  }
+  const [page, logo, favicon, og, widget, brandLogo] = await Promise.all([
     fetch(`${pageUrl}/`), fetch(`${pageUrl}/assets/logo`), fetch(`${pageUrl}/assets/favicon.svg`), fetch(`${pageUrl}/assets/og.svg`), fetch(`${pageUrl}/widget.js`),
+    appFetch("/api/app/page-settings/brand/logo"),
   ]);
+  assert.equal(brandLogo.status, 200);
+  assert.equal(brandLogo.headers.get("content-type"), logo.headers.get("content-type"));
+  assert.deepEqual(new Uint8Array(await brandLogo.arrayBuffer()), new Uint8Array(await logo.arrayBuffer()));
   assert.equal(logo.headers.get("content-type"), "image/png");
   assert.equal(logo.headers.get("content-disposition"), "attachment");
   const pageHtml = await page.text();
@@ -790,8 +825,8 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   assert.match(html, /Maximum valid public state note for component 001/, "the capacity fixture includes a visible 250-character note");
   const marksPerComponent = [...html.matchAll(/class="uptime-mark /g)].length / 200;
   assert.ok(marksPerComponent >= 90 && marksPerComponent <= 91, "daily marks cover the exact trailing 90-day interval, including its partial boundary day");
-  // Each built-in template publishes the same record within the same budget; Regions map draws 14 regions over it.
-  const regions = ["North America", "Europe", "Tokyo", "Asia-Pacific", "South America", "Africa", "us-east-1", "eu-west-2", "ap-southeast-2", "Middle East", "India", "Canada", "Frankfurt", "Moon Base One"];
+  // Each built-in template publishes the same record within the same budget; Regions map keeps unknown region names as filters.
+  const regions = ["North America", "Europe", "Tokyo", "Asia-Pacific", "South America", "Africa", "us-east-1", "eu-west-2", "ap-southeast-2", "Middle East", "India", "Canada", "Frankfurt", "Moon Base One", "constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"];
   executeLocalSql(`UPDATE components SET region = CASE CAST(substr(id, 6) AS INTEGER) % ${regions.length} ${regions.map((region, index) => `WHEN ${index} THEN '${region}'`).join(" ")} END WHERE id LIKE 'bulk-%'`);
   for (const template of ["calm", "uptime", "regions"]) {
     await updateSettings({ template });
@@ -803,6 +838,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       await new Promise(resolve => setTimeout(resolve, 100));
     } while (performance.now() < deadline);
     assert.ok(shown.includes(`data-template="${template}"`), `the public page shows ${template}`);
+    assert.doesNotMatch(shown, /NaN|native code/, "unknown region names never become map coordinates");
     assert.equal((shown.match(/data-metric-chart=/g)??[]).length,10,`${template} retains every performance chart`);
     const templateBytes = gzipSync(Buffer.from(shown)).byteLength;
     t.diagnostic(`UPTIME-008 PAGE-003 ${template}: ten charts and 200 populated components: ${templateBytes} bytes gzipped`);
