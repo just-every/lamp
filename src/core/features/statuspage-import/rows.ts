@@ -271,7 +271,7 @@ function mapIncidentSubscriber(subscriber: SourceSubscriber, incident: Row | und
   if (snapshot.destinations.has(destination) && snapshot.destinations.get(destination) !== id) return skip("This address already follows this incident here.");
   snapshot.destinations.set(destination, id);
   return { kind: "subscriber", sourceId, value: { tables: {
-    subscribers: [{ id, channel: "email", destination, contact_email: null, state: "pending", selection_mode: "all", token_hash: sha256(`statuspage-import-subscriber:${sourceId}:${email}`), deactivation_reason: null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
+    subscribers: [{ id, channel: "email", destination, contact_email: null, state: "pending", selection_mode: "all", event_kinds_json: '["incidents"]', preferences_set: 1, token_hash: sha256(`statuspage-import-subscriber:${sourceId}:${email}`), deactivation_reason: null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
     subscriber_components: [],
     incident_subscriptions: [{ subscriber_id: id, incident_id: incident.id, destination: email, include_report: snapshot.incidentIncludeReport === false ? 0 : 1, resolution_at: null, resolution_delivered_at: null, ended_at: null, final_event_id: null, created_at: asOf }],
   } }, accounting: [{ kind: "subscriber", sourceId, name: "Incident email subscriber", outcome: "imported", reason: "Pending until they confirm the owner's explicit invitation; follows this unresolved incident only, with no replay of past updates." }] };

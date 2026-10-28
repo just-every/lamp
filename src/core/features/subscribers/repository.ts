@@ -196,7 +196,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // cannot outlive an operator-initiated subscriber deletion. Only this
       // subscriber's own envelopes are rewritten; alert text never carries an
       // address, and another person's address may contain this one.
-      const redactions = personalValues.flatMap((value) => ["notification_deliveries", "component_notification_deliveries"].map((table): D1Sql => ({
+      const redactions = personalValues.flatMap((value) => ["notification_deliveries", "component_notification_deliveries", "report_notification_deliveries"].map((table): D1Sql => ({
         sql: `UPDATE ${table} SET mail_payload_json = replace(mail_payload_json, ?, ?) WHERE subscriber_id = ? AND mail_payload_json IS NOT NULL`,
         params: [value, replacement, subscriberId],
       })));
@@ -219,7 +219,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       if ((await subjectsInCustody(binding, [subject])).length) {
         await retireSubscriberCustody(binding, subject, [...native, ...imported], [audit], { principalId: operatorId ?? "lamp:incident-follow-expiry", authority: operatorId
           ? { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [operatorId] }
-          : { sql: "EXISTS(SELECT 1 FROM incident_subscriptions WHERE subscriber_id=? AND ended_at<=?)", params: [subscriberId,new Date(Date.parse(now)-24*60*60*1000).toISOString()] } });
+          : { sql: "EXISTS(SELECT 1 FROM incident_subscriptions WHERE subscriber_id=? AND ended_at<=?) OR EXISTS(SELECT 1 FROM subscribers WHERE id=? AND destination='deleted:'||id)", params: [subscriberId,now,subscriberId] } });
         return;
       }
       await binding.batch([...native, audit].map((statement) => binding.prepare(statement.sql).bind(...statement.params ?? [])));

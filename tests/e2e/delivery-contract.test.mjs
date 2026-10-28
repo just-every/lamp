@@ -1,3 +1,4 @@
+import { incidentFollowFlow } from "./helpers/incident-follow-flow.mjs";
 import { smsBrowserRuntime } from "./helpers/sms-browser-runtime.mjs";
 import { smsSubscriberFlow } from "./helpers/sms-subscriber-flow.mjs";
 import { mailSettingsBrowserFlow } from "./helpers/mail-settings-browser-flow.mjs";
@@ -34,7 +35,7 @@ let statePath;
 
 before(async () => {
   // Build before opening the middleware ModuleRunner: both own optimizer state.
-  execFileSync("pnpm",["run","build:app"],{stdio:"pipe"});
+  execFileSync("pnpm",["run","build:app"],{stdio:"inherit"});
   statePath = await mkdtemp(join(tmpdir(), "lamp-delivery-d1-"));
   vite=await createServer({configFile:false,appType:"custom",cacheDir:join(statePath,"vite-cache"),server:{middlewareMode:true}});
   ({ createSubscribersService } = await vite.ssrLoadModule("/src/core/features/subscribers/service.ts"));
@@ -216,7 +217,8 @@ test("HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscri
 
 
 
-test("SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
+test("SUB-019 SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
+  await incidentFollowFlow();
   await smsSubscriberFlow();
   await smsBrowserRuntime();
   await subscriberAddFlow();

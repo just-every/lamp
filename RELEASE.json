@@ -186,6 +186,10 @@
     {
       "id": "0067_incident_subscriptions.sql",
       "buyerSteps": "Apply after 0066. Adds incident-only subscription lifetimes and a default-on report preference. Existing subscriber identities, destinations, tokens, selections and delivery history remain unchanged; incident subscriptions reuse confirmation, capacity, erasure and native archive mechanisms."
+    },
+    {
+      "id": "0068_incident_report_deliveries.sql",
+      "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
     }
   ],
   "breaking": false,

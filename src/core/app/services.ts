@@ -120,7 +120,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       ...responders.publicationStatements(input),
       ...(input.channels.includes("social") ? social.publicationStatements(input) : []),
       ...sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt,ordinaryEnabled:input.channels.includes("sms")}),
-      ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
+      ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), followChannels: [...allowedIncidentChannels], queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
     ],
   }, extensions.updateReviewPolicy,

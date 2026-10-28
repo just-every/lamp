@@ -12,6 +12,7 @@ export interface NotificationPublicationInput {
   maintenanceId?: string | null;
   componentIds: readonly string[];
   channels: readonly DeliveryChannel[];
+  followChannels?: readonly DeliveryChannel[];
   queuedAt: string;
   recipientScope?: "eligible" | "previous";
   previousEventIds?: readonly string[];
@@ -23,7 +24,8 @@ export interface NotificationPublicationInput {
  * same all-or-nothing batch; the unique event index makes retries idempotent.
  */
 export function notificationPublicationStatements(binding: D1Database, input: NotificationPublicationInput): D1PreparedStatement[] {
-  const channels = [...new Set(input.eventType === "maintenance-notice" ? input.channels : [...input.channels, "email" as const, "webhook" as const])];
+  const followChannels: readonly DeliveryChannel[] = input.followChannels ?? ["email", "webhook"];
+  const channels = [...new Set(input.eventType === "maintenance-notice" ? input.channels : [...input.channels, ...followChannels])];
   if (!channels.length) return [];
   const requiresPublishedNotice = input.eventType === "maintenance-notice";
   const componentPlaceholders = input.componentIds.length ? input.componentIds.map(() => "?").join(", ") : "NULL";
@@ -50,17 +52,18 @@ export function notificationPublicationStatements(binding: D1Database, input: No
     const previousPlaceholders = input.previousEventIds?.length ? input.previousEventIds.map(() => "?").join(", ") : "NULL";
     const eventPreference = eventPreferenceSql(input.eventType === "maintenance-notice" ? "maintenance" : "incidents");
     const threshold = input.eventType === "maintenance-notice" ? "1" : incidentThresholdSql("(SELECT incident_id FROM follow_event)");
-    const follow = input.eventType === "maintenance-notice" ? "0" : incidentFollowRecipientSql("(SELECT incident_id FROM follow_event)", "(SELECT event_at FROM follow_event)", input.eventType === "incident-report");
+    const follow = input.eventType === "maintenance-notice" || !followChannels.includes(channel) ? "0" : incidentFollowRecipientSql("(SELECT incident_id FROM follow_event)", "(SELECT event_at FROM follow_event)", input.eventType === "incident-report");
     const chosenChannel = input.channels.includes(channel) ? "1" : "0";
     const source = usePrevious
       ? `notification_deliveries previous JOIN subscriber_directory s ON s.id = previous.subscriber_id WHERE previous.notification_event_id IN (${previousPlaceholders}) AND previous.channel = ? AND s.state = 'active'`
       : `subscriber_directory s WHERE s.state = 'active' AND s.channel = ?`;
     const query = `
       WITH follow_event AS (SELECT ${input.eventType === "maintenance-notice" ? "NULL" : `(SELECT incident_id FROM ${input.eventType === "incident-update" ? "incident_updates" : "incident_reports"} WHERE id=?)`} AS incident_id, ? AS event_at${input.eventType === "incident-update" ? `, NOT EXISTS(SELECT 1 FROM incident_updates historical WHERE historical.incident_id=(SELECT incident_id FROM incident_updates WHERE id=?) AND historical.is_retroactive=1) AS live` : ""})
-      INSERT OR IGNORE INTO notification_deliveries
+      INSERT INTO ${input.eventType === "incident-report" ? "report_notification_deliveries" : "notification_deliveries"}
         (id, subscriber_id, incident_update_id, incident_report_id, maintenance_id, channel, outcome, queued_at, outcome_at, created_at, updated_at, notification_event_id, notification_event_type)
       SELECT upper(substr(hex(randomblob(16)), 1, 26)), s.id, ?, ?, ?, ?, 'queued', ?, NULL, ?, ?, ?, ?
       FROM ${source} AND ((${ordinarySubscriptionSql()} AND ${chosenChannel} AND ${usePrevious ? "1" : `(${selection})`} AND ${eventPreference} AND ${threshold}) OR (${follow}${input.eventType === "incident-update" ? " AND (SELECT live FROM follow_event)" : ""}))${requiresPublishedNotice ? " AND EXISTS (SELECT 1 FROM maintenance_notices published_notice WHERE published_notice.id = ?)" : ""}
+      ON CONFLICT DO NOTHING
     `;
     statements.push(binding.prepare(query).bind(
       ...(input.eventType === "maintenance-notice" ? [] : [input.incidentUpdateId ?? input.incidentReportId ?? null]),

@@ -38,6 +38,7 @@ export function createIncidentSubscriptionService(repository:SubscriberRepositor
       const mail=options.mail(),from=await options.from(),name=await options.pageName();
       const destination=input.channel==="email"?normalizeEmail(input.email):input.destination;
       const requestedRecipient=input.channel==="email"?destination:normalizeEmail(input.contactEmail);
+      await repository.deleteExpiredPending(new Date(Date.now()-72*60*60*1000).toISOString(),0);
       let row=await repository.incidents.find(input.incidentId,input.channel,destination);
       const wasActive=row?.state==="active";
       if(!row || row.state==="deactivated") {
@@ -52,7 +53,7 @@ export function createIncidentSubscriptionService(repository:SubscriberRepositor
       if(!recipient)throw new Error("Incident subscriber contact is unavailable.");
       // Imported pending recipients can be invited only by the owner's explicit
       // import action, just like the native shared intake.
-      if(subscriber.state==="pending" && await repository.intake.has(subscriber.id))return incident;
+      if(subscriber.state==="pending" && (await repository.intake.has(subscriber.id) || await repository.incidents.awaitsImportInvitation(subscriber.id)))return incident;
       const now=nowIso();
       const key=wasActive
         ? `management-subscription:${subscriber.id}:${subscriber.createdAt}`
@@ -64,8 +65,8 @@ export function createIncidentSubscriptionService(repository:SubscriberRepositor
       const unsubscribeUrl=new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`,origin).href;
       if(subscriber.state==="active") {
         await options.send(mail,row.id,wasActive?"already-subscribed":"subscribed",{
-          from,to:recipient,subject:`${name}: Following ${incident.reference}`,
-          text:`Following ${incident.reference} only. Manage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}`,
+          from,to:recipient,subject:wasActive?`You are already subscribed to ${name}`:`${name}: Following ${incident.reference}`,
+          text:wasActive?`You are already subscribed to ${name}. Manage this subscription: ${manageUrl}`:`Following ${incident.reference} only. Manage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}`,
           headers:{"Auto-Submitted":"auto-generated"},idempotencyKey:`incident-subscribed/${row.id}/${now}`,
         });
         return incident;

@@ -202,7 +202,7 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
     for (let page = 1; page <= maxPages; page++) {
       const url = new URL(`/v1/pages/${input.pageId}/incidents/${incidentId}/subscribers`, origin);
       url.searchParams.set("page", String(page));
-      url.searchParams.set("limit", String(perPage));
+      url.searchParams.set("per_page", String(perPage));
       const response = await fetcher(url, { method: "GET", redirect: "manual", headers: { Authorization: `OAuth ${input.apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
       if (!response.ok) throw new Error(`Statuspage answered ${response.status} for incident subscribers.`);
       const rows = JSON.parse(bounded(await response.text())) as unknown;

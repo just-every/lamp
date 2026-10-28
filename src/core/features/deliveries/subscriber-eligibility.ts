@@ -1,3 +1,5 @@
+import { publicIncidentSubscriptionSql } from "../subscribers/incident-visibility";
+
 /** Eligibility belongs to the committed recipient set, before any provider call. */
 export function eventPreferenceSql(kind: "incidents" | "maintenance" | "components", subscriber = "s") {
   return `EXISTS (SELECT 1 FROM json_each(${subscriber}.event_kinds_json) preference WHERE preference.value = '${kind}')`;
@@ -17,6 +19,7 @@ export function incidentFollowRecipientSql(incident: string, at: string, report:
   return `EXISTS(SELECT 1 FROM incident_subscriptions incident_follow WHERE incident_follow.subscriber_id=${subscriber}.id
     AND incident_follow.incident_id=${incident} AND incident_follow.ended_at IS NULL
     AND incident_follow.created_at<=${at}${report?" AND incident_follow.include_report=1":""}
+    AND EXISTS(SELECT 1 FROM incidents followed_incident WHERE followed_incident.id=incident_follow.incident_id AND ${publicIncidentSubscriptionSql("followed_incident")})
     AND (incident_follow.resolution_at IS NULL OR incident_follow.resolution_at>strftime('%Y-%m-%dT%H:%M:%fZ',${at},'-30 days')))`;
 }
 
@@ -25,6 +28,7 @@ export function incidentFollowRecipientSql(incident: string, at: string, report:
 export function incidentFinalDeliverySql(event: string, subscriber="s") {
   return `EXISTS(SELECT 1 FROM incident_subscriptions incident_follow WHERE incident_follow.subscriber_id=${subscriber}.id
     AND incident_follow.ended_at IS NOT NULL AND incident_follow.final_event_id=${event}
+    AND EXISTS(SELECT 1 FROM incidents followed_incident WHERE followed_incident.id=incident_follow.incident_id AND ${publicIncidentSubscriptionSql("followed_incident")})
     AND ${subscriber}.deactivation_reason='incident-follow-ended'
     AND incident_follow.ended_at>strftime('%Y-%m-%dT%H:%M:%fZ','now','-24 hours')
     AND ${subscriber}.destination NOT LIKE 'deleted:%')`;
@@ -33,6 +37,7 @@ export function incidentFinalDeliverySql(event: string, subscriber="s") {
 export function incidentDispatchAllowedSql(event: string, incident: string, subscriber="s") {
   return `(${ordinarySubscriptionSql(subscriber)} OR EXISTS(SELECT 1 FROM incident_subscriptions incident_follow
     WHERE incident_follow.subscriber_id=${subscriber}.id AND incident_follow.incident_id=${incident}
+      AND EXISTS(SELECT 1 FROM incidents followed_incident WHERE followed_incident.id=incident_follow.incident_id AND ${publicIncidentSubscriptionSql("followed_incident")})
       AND incident_follow.ended_at IS NULL
       AND (incident_follow.resolution_at IS NULL OR incident_follow.resolution_at>strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days')))
     OR ${incidentFinalDeliverySql(event,subscriber)})`;

@@ -46,7 +46,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
     const appOrigin = `http://127.0.0.1:${appPort}`;
     runtime = new Miniflare(convertV4MiniflareOptions({
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
-      port: appPort, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
+      port: appPort, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
       bindings: {
         LAMP_PAGE_HOST: pageHost, LAMP_APP_HOST: "127.0.0.1",
         AUTH_ORIGIN: appOrigin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: "synthetic-lamp-owner@example.test",
