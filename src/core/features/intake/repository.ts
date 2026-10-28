@@ -167,6 +167,14 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         ),?),?,?,?,?,?,?,?`)
         .bind(receipt.id, receipt.sourceId, receipt.requestHash, receipt.deduplicationKey, receipt.sourceId, receipt.deduplicationKey, incident?.id ?? receipt.incidentId, receipt.state, receipt.receivedAt, receipt.recoveredAt, receipt.payloadJson, receipt.error, receipt.createdAt, receipt.updatedAt));
 
+      // A published execution must still receive recovery work after its rule
+      // has been edited to draft. Retain that work with the accepted receipt.
+      statements.push(binding.prepare(`INSERT OR IGNORE INTO alert_rule_work(receipt_id,source_version)
+        SELECT ?,source.updated_at FROM alert_sources source WHERE source.id=? AND EXISTS(
+          SELECT 1 FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id
+          WHERE rule.source_id=source.id AND run.firing_update_id IS NOT NULL AND run.released_at IS NULL)`)
+        .bind(receipt.id,receipt.sourceId));
+
       for (const componentId of componentIds ?? []) statements.push(binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,created_at,updated_at,published_at)
         SELECT ?,r.incident_id,c.id,c.name,'Major outage','Primary',?,?,NULL FROM alert_receipts r JOIN components c ON c.id = ?
         WHERE r.id = ? AND r.incident_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM incident_components ic WHERE ic.incident_id = r.incident_id AND ic.component_id = c.id)`)

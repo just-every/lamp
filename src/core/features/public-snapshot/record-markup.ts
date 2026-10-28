@@ -19,7 +19,7 @@ export interface PublicIncident {
   openedAt: string;
   resolvedAt: string | null;
   components: string[];
-  updates: Array<{ automationAttribution?: string | null; componentChanges?: PublishedIncidentComponentChange[]; id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
+  updates: Array<{ componentChanges?: PublishedIncidentComponentChange[]; id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
   report: { summary: string; timeline: string; cause: string; remediation: string; publishedAt: string } | null;
 }
 
@@ -54,7 +54,7 @@ export function updateMarkup(incident: PublicIncident, update: PublicIncident["u
   const fields = rendered.public.fields.map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${field.instant ? timestamp(field.instant, timezone) : renderUpdateHtml(field.value)}</dd></div>`).join("");
   const isResolutionTime = incident.lifecycle === "Resolved" && update.lifecycle === "Resolved" && update.publishedAt === incident.resolvedAt;
   const published = isResolutionTime ? `Resolved at ${timestamp(update.publishedAt, timezone)}` : timestamp(update.publishedAt, timezone);
-  return `<article class="update"><div class="update-head"><strong>${escapeHtml(rendered.public.lifecycle)}</strong><span>${published}</span></div><dl>${fields}</dl>${update.automationAttribution ? `<p class="incident-meta">${escapeHtml(update.automationAttribution)}</p>` : ""}</article>`;
+  return `<article class="update"><div class="update-head"><strong>${escapeHtml(rendered.public.lifecycle)}</strong><span>${published}</span></div><dl>${fields}</dl></article>`;
 }
 
 export function incidentMarkup(incident: PublicIncident, timezone: string, maximumUpdates?: number, label = "Incident", heading: TitleHeading = "h3") {

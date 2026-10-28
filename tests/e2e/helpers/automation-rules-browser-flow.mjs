@@ -21,7 +21,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
   const saved = await post("/api/app/incident-templates", templateInput);
   assert.equal(saved.status, 201, saved.text);
   const template = saved.body.template;
-  const browser = await chromium.launch({ headless: true, ...(process.env.LAMP_CHROMIUM_PATH ? { executablePath: process.env.LAMP_CHROMIUM_PATH } : {}), args: ["--no-sandbox"] });
+  const browser = await chromium.launch({ headless: true, ...(process.env.LAMP_CHROMIUM_PATH ? { executablePath: process.env.LAMP_CHROMIUM_PATH } : {}), args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.addCookies(cookie.split("; ").map(pair => ({ name: pair.slice(0, pair.indexOf("=")), value: pair.slice(pair.indexOf("=") + 1), url: origin })));
@@ -90,6 +90,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     await page.goto(`${publicOrigin}/incidents/${automated.reference}`);
     await page.getByText(templateInput.customerImpact, { exact: false }).first().waitFor();
     assert.ok(!(await page.locator("body").innerText()).includes(alert.alert_title));
+    assert.ok(!(await page.locator("body").innerText()).includes(rule.approvedByName), "public updates omit the approving operator");
     await audit("public automatic update");
     if (proof) await captureBoth("public-update", () => page.screenshot.bind(page));
     await page.goto(`${origin}/app/incidents/${automated.id}`); await operatorHydrated(page);
@@ -99,6 +100,25 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     assert.ok(internal.includes("Prepared API availability") && internal.includes(receipt.receiptId), "the internal incident view identifies the rule and triggering alert");
     await audit("automatic incident timeline");
     if (proof) await captureBoth("internal-timeline", () => timeline.screenshot.bind(timeline));
+    await page.goto(`${origin}/app/settings#alerts`); await operatorHydrated(page);
+    await rules.getByRole("button", { name: `Edit rule ${rule.name}`, exact: true }).click();
+    await rules.getByLabel("Rule name", { exact: true }).fill(`${rule.name} renamed`);
+    const savedEdit = page.waitForResponse(response => response.request().method() === "PUT" && response.url().includes(`/intake/rules/${source.id}/${target.id}`));
+    await rules.getByRole("button", { name: "Save rule", exact: true }).click();
+    assert.equal((await savedEdit).status(), 200);
+    for (const body of [{ ...alert, repeatedDelivery: 1 }, { ...alert, alert_transition: "Recovered" }]) {
+      const result = await fetch(source.endpointUrl, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${source.token}` }, body: JSON.stringify(body) });
+      assert.equal(result.status, 202, await result.clone().text());
+    }
+    const episodes = (await api("/api/app/intake/rule-runs")).body.runs.filter(row => row.ruleId === rule.id);
+    assert.equal(episodes.length, 1, "renaming the firing rule keeps a single automatic incident");
+    const recovered = (await api(`/api/app/incidents/${automated.id}`)).body.incident;
+    assert.equal(recovered.lifecycle, "Resolved");
+    assert.equal(recovered.updates.length, 2);
+    await page.goto(`${publicOrigin}/incidents/${automated.reference}`);
+    await page.getByText(persistedTemplate.resolvedUpdate.customerImpact, { exact: false }).first().waitFor();
+    assert.ok(!(await page.locator("body").innerText()).includes(rule.approvedByName), "public recovery omits the approving operator");
+    if (proof) await captureBoth("public-edited-recovered", () => page.screenshot.bind(page));
     const broken = await api(`/api/app/incident-templates/${template.id}`, { method: "PUT", body: JSON.stringify({ resolvedUpdate: null }) });
     assert.equal(broken.status, 200, broken.text);
     const degraded = await fetch(source.endpointUrl, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${source.token}` }, body: JSON.stringify({ ...alert, alert_cycle_key: "prepared-api-broken-cycle" }) });
@@ -117,7 +137,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     async function captureBoth(name, capture) {
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-        await capture()({ path: `${proof}/${width}-${name}.png`, ...(name === "public-update" ? { fullPage: true } : {}) });
+        await capture()({ path: `${proof}/${width}-${name}.png`, ...(name.startsWith("public-") ? { fullPage: true } : {}) });
       }
       await page.setViewportSize({ width: 1440, height: 1000 });
     }

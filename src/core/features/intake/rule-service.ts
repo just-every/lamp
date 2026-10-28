@@ -21,7 +21,7 @@ function assertAutomationTemplate(template:IncidentTemplate|null):asserts templa
 
 export function createAlertRuleService(repository:ReturnType<typeof createAlertRuleRepository>,incidents:IncidentsService,onPublicDataChanged:()=>Promise<void>, work: { repository: ReturnType<typeof createRuleWorkRepository>; findSource:(sourceId:string)=>Promise<AlertSourceRow|null> }) {
   async function apply(source:AlertSourceRow,receiptId:string,sourceIncidentId:string|null,payload:unknown,receivedAt:string) {
-      const rules=(await repository.list()).filter(rule=>rule.sourceId===source.id && rule.mode!=='draft');
+      const rules=(await repository.list()).filter(rule=>rule.sourceId===source.id);
       for(const rule of rules) {
         const members=ruleEvidence(source,rule.componentId,payload);if(!members.length)continue;
         // A concurrent recovery can close the private intake draft before a
@@ -29,29 +29,37 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
         // matching active rule execution, even without an open intake draft.
         const episodeIncidentId=sourceIncidentId ?? await repository.findActiveEvidenceIncident(rule.id,members.map(member=>member.fingerprint));
         if(!episodeIncidentId)continue;
+        let run=await repository.findRun(rule.id,episodeIncidentId);
+        if(rule.mode==='draft' && !run?.firingUpdateId)continue;
+        const previousEvidence=run?.releasedAt ? await repository.active(rule.id,episodeIncidentId) : null;
         await repository.recordEvidence(rule,episodeIncidentId,receiptId,receivedAt,members);
         const evidence=await repository.active(rule.id,episodeIncidentId);
-        let run=await repository.findRun(rule.id,episodeIncidentId);
         if(!evidence.active && !run)continue;
         if (run?.releasedAt) {
-          // A ruled component may fire again while another component keeps its
-          // intake group open. A later receipt starts a new episode; redelivery
-          // of an earlier receipt never reopens a released claim or publication.
-          if (!evidence.active || receivedAt <= run.releasedAt) continue;
+          // Recovery clears the previous firing evidence before another episode
+          // can start. An edit that releases a firing run does not clear it.
+          if (!evidence.active || previousEvidence?.active || receivedAt <= run.releasedAt) continue;
           run = null;
         }
-        if (rule.degradationReason) {
+        let executionRule=rule;
+        let attribution=`rule ${rule.name}, approved by ${rule.approvedByName}`;
+        if(run?.firingUpdateId) {
+          const approval=await repository.publicationApproval(rule.id,run.firingUpdateId);
+          executionRule={...rule,...approval.input,templateId:approval.input.templateId ?? null,approvedByOperatorId:approval.operatorId,degradationReason:null};
+          attribution=approval.attribution;
+        }
+        if (executionRule.degradationReason) {
           if (run && !evidence.active && await repository.claim(rule,run,receiptId,nowIso(),true,source.updatedAt)) await onPublicDataChanged();
           continue;
         }
         let template:IncidentTemplate|null=null;
-        if(rule.mode==='claim-and-publish') {
-          template=rule.templateId?(await incidents.listTemplates()).find(row=>row.id===rule.templateId) ?? null:null;
+        if(executionRule.mode==='claim-and-publish') {
+          template=executionRule.templateId?(await incidents.listTemplates()).find(row=>row.id===executionRule.templateId) ?? null:null;
           try {assertAutomationTemplate(template);} catch(cause) {await repository.degrade(rule,`${cause instanceof Error?cause.message:'The template is invalid.'} Review the template and save this rule again to resume.`,receiptId,nowIso());if(run && !evidence.active){if(await repository.claim(rule,run,receiptId,nowIso(),true,source.updatedAt))await onPublicDataChanged();}continue;}
         }
-        run ??= await repository.ensureRun(rule,episodeIncidentId,receiptId,nowIso(),template?.title.trim() || template?.name || rule.name);
+        run ??= await repository.ensureRun(executionRule,episodeIncidentId,receiptId,nowIso(),template?.title.trim() || template?.name || rule.name);
         if(run.releasedAt)continue;
-        if(rule.mode==='claim') {
+        if(executionRule.mode==='claim') {
           if(await repository.claim(rule,run,receiptId,nowIso(),!evidence.active,source.updatedAt))await onPublicDataChanged();
           continue;
         }
@@ -74,11 +82,11 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
           lifecycle:phase==='recovery'?'Resolved':template.lifecycle,
           affectedAudience:wording.affectedAudience,customerImpact:wording.customerImpact,whatStillWorks:wording.whatStillWorks,details:wording.details,
           nextUpdateAt:phase==='recovery'?null:new Date(Date.now()+template.nextUpdateOffsetMinutes!*60_000).toISOString(),
-        },rule.approvedByOperatorId,`${incident.draft?.id ?? '-'}:${incident.updates.length}`);
+        },executionRule.approvedByOperatorId,`${incident.draft?.id ?? '-'}:${incident.updates.length}`);
         if(!draft)throw new Error('The rule draft could not be saved.');
-        const update=await incidents.publish(run.incidentId,rule.approvedByOperatorId,{
+        const update=await incidents.publish(run.incidentId,executionRule.approvedByOperatorId,{
           channels:template.channels,expectedVersion:`${draft.id}:${incident.updates.length}`,
-          automation:{sourceId:source.id,sourceVersion:source.updatedAt,runId:run.id,ruleId:rule.id,phase,receiptId,ruleVersion:rule.updatedAt,templateId:template.id,templateVersion:template.updatedAt,attribution:`rule ${rule.name}, approved by ${rule.approvedByName}`},
+          automation:{sourceId:source.id,sourceVersion:source.updatedAt,runId:run.id,ruleId:rule.id,phase,receiptId,ruleVersion:rule.updatedAt,templateId:template.id,templateVersion:template.updatedAt,attribution},
         });
         if(!update)throw new Error('The rule update could not be published.');
         await incidents.finishPublication(update);

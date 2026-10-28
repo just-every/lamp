@@ -1,7 +1,7 @@
 import { createUlid } from "../../shared/ids";
 import { allocateReference } from "../../shared/references/repository";
 import { currentStateHistoryStatement } from "../components/state-history-repository";
-import type { RuleView, RuleRun, AlertRuleInput, RuleAutomationPublication } from "./rule-schema";
+import { alertRuleSchema, type RuleView, type RuleRun, type AlertRuleInput, type RuleAutomationPublication } from "./rule-schema";
 
 const fields = `r.id,r.source_id AS sourceId,r.component_id AS componentId,r.name,r.mode,r.state,r.template_id AS templateId,r.approved_by_operator_id AS approvedByOperatorId,
   COALESCE((SELECT display_name FROM oa_operators WHERE id=r.approved_by_operator_id),'Erased operator') AS approvedByName,r.degradation_reason AS degradationReason,r.created_at AS createdAt,r.updated_at AS updatedAt`;
@@ -12,6 +12,16 @@ export function createAlertRuleRepository(db: D1Database) {
     list: async () => (await db.prepare(`SELECT ${fields} FROM alert_rules r ORDER BY r.name,r.id`).all<RuleView>()).results,
     runs: async () => (await db.prepare(`SELECT ${runFields} FROM alert_rule_runs ORDER BY created_at,id`).all<RuleRun>()).results,
     findRun,
+    async publicationApproval(ruleId:string,firingUpdateId:string) {
+      const row=await db.prepare(`SELECT audit.payload_json AS payloadJson,update_row.author_operator_id AS operatorId,update_row.automation_attribution AS attribution
+        FROM incident_updates update_row JOIN audit_entries audit ON audit.entity_type='alert-rule' AND audit.entity_id=?
+        AND audit.action IN ('created','updated') AND audit.created_at<=update_row.created_at AND audit.operator_id=update_row.author_operator_id
+        WHERE update_row.id=? ORDER BY audit.created_at DESC,audit.rowid DESC LIMIT 1`).bind(ruleId,firingUpdateId).first<{payloadJson:string;operatorId:string;attribution:string|null}>();
+      if(!row?.attribution)throw new Error('The published rule approval no longer exists.');
+      const payload=JSON.parse(row.payloadJson) as Record<string,unknown>;
+      const input=alertRuleSchema.parse({name:payload.name,mode:payload.mode,state:payload.state,templateId:payload.templateId});
+      return {input,operatorId:row.operatorId,attribution:row.attribution};
+    },
     async intakeContext(incidentId:string) {
       const receipt=await db.prepare("SELECT source_id AS sourceId,error FROM alert_receipts WHERE incident_id=? ORDER BY rowid DESC LIMIT 1").bind(incidentId).first<{sourceId:string;error:string|null}>();
       const components=(await db.prepare("SELECT component_id AS componentId FROM incident_components WHERE incident_id=? AND component_id IS NOT NULL").bind(incidentId).all<{componentId:string}>()).results;
@@ -28,13 +38,14 @@ export function createAlertRuleRepository(db: D1Database) {
     async save(sourceId: string, componentId: string, input: AlertRuleInput, actor: string, at: string, templateVersion: string | null) {
       const existing = await db.prepare(`SELECT ${fields} FROM alert_rules r WHERE source_id=? AND component_id=?`).bind(sourceId,componentId).first<RuleView>();
       const id=existing?.id ?? createUlid();
-      // A changed approval ends the previous rule's standing actions. It cannot
-      // grant a newly selected rule authority over an already running alert.
+      // An edit may release an unpublished claim. A committed publication keeps
+      // its claim and execution until recovery under the original approval.
       const previousRuns=existing ? (await db.prepare(`SELECT ${runFields} FROM alert_rule_runs WHERE rule_id=? AND released_at IS NULL`).bind(existing.id).all<RuleRun>()).results : [];
+      const releasedRuns=previousRuns.filter(run=>!run.firingUpdateId);
       await db.batch([
         db.prepare(`SELECT CASE WHEN ? IS NULL AND NOT EXISTS(SELECT 1 FROM alert_rules WHERE source_id=? AND component_id=?) OR EXISTS(SELECT 1 FROM alert_rules WHERE id=? AND updated_at=?) THEN 1 ELSE json('Rule approval changed') END`).bind(existing?.id ?? null,sourceId,componentId,existing?.id ?? null,existing?.updatedAt ?? null),
         activeRuleRunsGuard(db,'rule',id,previousRuns.map(run=>run.incidentId)),
-        ...previousRuns.flatMap(run=>[
+        ...releasedRuns.flatMap(run=>[
           db.prepare(`UPDATE incident_components SET state='Operational',updated_at=? WHERE incident_id=?`).bind(at,run.incidentId),
           db.prepare(`UPDATE incidents SET lifecycle=CASE WHEN EXISTS(SELECT 1 FROM incident_updates WHERE incident_id=incidents.id) THEN lifecycle ELSE 'Resolved' END,updated_at=? WHERE id=?`).bind(at,run.incidentId),
           db.prepare(`UPDATE alert_rule_runs SET released_at=?,updated_at=? WHERE id=?`).bind(at,at,run.id),
@@ -45,7 +56,7 @@ export function createAlertRuleRepository(db: D1Database) {
         db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES(?,'alert-rule',?,?,?,?,?,?)`).bind(createUlid(),id,existing ? 'updated':'created',actor,JSON.stringify({sourceId,componentId,name:input.name,mode:input.mode,state:input.state,templateId:input.templateId ?? null}),at,at),
         db.prepare(`INSERT INTO alert_rules(id,source_id,component_id,name,mode,state,template_id,approved_by_operator_id,degradation_reason,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NULL,?,?) ON CONFLICT(source_id,component_id) DO UPDATE SET name=excluded.name,mode=excluded.mode,state=excluded.state,template_id=excluded.template_id,approved_by_operator_id=excluded.approved_by_operator_id,degradation_reason=NULL,updated_at=excluded.updated_at`).bind(id,sourceId,componentId,input.name,input.mode,input.state,input.templateId ?? null,actor,at,at),
       ]);
-      return { rule: (await db.prepare(`SELECT ${fields} FROM alert_rules r WHERE source_id=? AND component_id=?`).bind(sourceId,componentId).first<RuleView>())!, publicChanged: previousRuns.length > 0 };
+      return { rule: (await db.prepare(`SELECT ${fields} FROM alert_rules r WHERE source_id=? AND component_id=?`).bind(sourceId,componentId).first<RuleView>())!, publicChanged: releasedRuns.length > 0 };
     },
     async remove(sourceId:string,componentId:string,actor:string,at:string) {
       const rule=await db.prepare(`SELECT ${fields} FROM alert_rules r WHERE source_id=? AND component_id=?`).bind(sourceId,componentId).first<RuleView>();
@@ -136,11 +147,14 @@ export function activeRuleRunsGuard(db:D1Database,kind:'source'|'rule',id:string
 export function automationPublicationStatements(db:D1Database,input:RuleAutomationPublication,updateId:string,at:string):{before:D1PreparedStatement[];after:D1PreparedStatement[]} {
   const column=input.phase==='firing'?'firing_update_id':'recovery_update_id';
   const condition=input.phase==='firing'?`EXISTS(SELECT 1 FROM alert_rule_evidence WHERE rule_id=? AND source_incident_id=run.source_incident_id AND firing=1)`:`NOT EXISTS(SELECT 1 FROM alert_rule_evidence WHERE rule_id=? AND source_incident_id=run.source_incident_id AND firing=1)`;
+  const approval=input.phase==='firing'
+    ? `rule.mode='claim-and-publish' AND template.id=rule.template_id AND ? = 'rule ' || rule.name || ', approved by ' || COALESCE((SELECT display_name FROM oa_operators WHERE id=rule.approved_by_operator_id),'Erased operator')`
+    : `run.mode='claim-and-publish' AND EXISTS(SELECT 1 FROM incident_updates firing WHERE firing.id=run.firing_update_id AND firing.automation_attribution=?)`;
   return {
-    before:[db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id JOIN incident_templates template ON template.id=rule.template_id WHERE run.id=? AND run.${column} IS NULL AND run.released_at IS NULL AND rule.id=? AND rule.updated_at=? AND rule.mode='claim-and-publish' AND template.id=? AND template.updated_at=? AND EXISTS(SELECT 1 FROM alert_sources WHERE id=? AND updated_at=?) AND ? = 'rule ' || rule.name || ', approved by ' || COALESCE((SELECT display_name FROM oa_operators WHERE id=rule.approved_by_operator_id),'Erased operator') AND ${condition}) THEN 1 ELSE json('Automation inputs changed') END`).bind(input.runId,input.ruleId,input.ruleVersion,input.templateId,input.templateVersion,input.sourceId,input.sourceVersion,input.attribution,input.ruleId)],
+    before:[db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id JOIN incident_templates template ON template.id=? WHERE run.id=? AND run.${column} IS NULL AND run.released_at IS NULL AND rule.id=? AND rule.updated_at=? AND ${approval} AND template.updated_at=? AND EXISTS(SELECT 1 FROM alert_sources WHERE id=? AND updated_at=?) AND ${condition}) THEN 1 ELSE json('Automation inputs changed') END`).bind(input.templateId,input.runId,input.ruleId,input.ruleVersion,input.attribution,input.templateVersion,input.sourceId,input.sourceVersion,input.ruleId)],
     after:[
       db.prepare(`UPDATE alert_rule_runs SET ${column}=?,released_at=?,updated_at=? WHERE id=?`).bind(updateId,input.phase==='recovery'?at:null,at,input.runId),
-      db.prepare(`INSERT INTO incident_internal_notes(id,incident_id,body,author_operator_id,created_at,updated_at) SELECT ?,run.incident_id,?,rule.approved_by_operator_id,?,? FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id WHERE run.id=?`).bind(createUlid(),`${input.attribution}; ${input.phase} publication caused by alert ${input.receiptId}.`,at,at,input.runId),
+      db.prepare(`INSERT INTO incident_internal_notes(id,incident_id,body,author_operator_id,created_at,updated_at) SELECT ?,run.incident_id,?,CASE WHEN ?='recovery' THEN (SELECT author_operator_id FROM incident_updates WHERE id=run.firing_update_id) ELSE rule.approved_by_operator_id END,?,? FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id WHERE run.id=?`).bind(createUlid(),`${input.attribution}; ${input.phase} publication caused by alert ${input.receiptId}.`,input.phase,at,at,input.runId),
     ],
   };
 }

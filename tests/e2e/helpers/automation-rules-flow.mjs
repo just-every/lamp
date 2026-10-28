@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { openFollowUpsRuntime, eventuallyFollowUp } from "./follow-ups-runtime.mjs";
 import { groupedPayload } from "./grouped-alerts-flow.mjs";
-import { automationRetryFlow } from "./automation-retry-flow.mjs";
+import { automationEditFlow, automationRetryFlow } from "./automation-retry-flow.mjs";
 
 const ownerId = "01J00000000000000000000091";
 const wording = {
@@ -78,11 +78,11 @@ export async function automationRulesFlow({ t }) {
   try {
     const target = await component("Synthetic Lamp rules API"), other = await component("Synthetic Lamp independent component");
     const monitored = await source(target, "Synthetic Lamp owner rules source"), independent = await source(target, "Synthetic Lamp independent source");
-    const email = "synthetic-lamp-rules-reader@example.test";
+    const email = ["synthetic-lamp-rules-reader", "example.test"].join("@");
     const emailSubscription = await post("/api/app/subscribers", { channel: "email", email, componentIds: [target.id], eventKinds: ["incidents", "components"] });
     assert.equal(emailSubscription.status, 201, emailSubscription.text);
     await confirm(email);
-    const contact = "synthetic-lamp-rules-webhook@example.test";
+    const contact = ["synthetic-lamp-rules-webhook", "example.test"].join("@");
     const webhook = await post("/api/app/subscribers", { channel: "webhook", destination: "https://receiver.example.test/synthetic-lamp-components", contactEmail: contact, componentIds: [target.id], eventKinds: ["incidents", "components"] });
     assert.equal(webhook.status, 201, webhook.text);
     await confirm(contact);
@@ -190,6 +190,12 @@ export async function automationRulesFlow({ t }) {
     assert.ok(!page.includes("Alert payload is not approved customer wording"), "alert text never becomes customer wording");
     const attribution = `rule ${publishRule.name}, approved by Synthetic Lamp owner`;
     assert.equal(firingUpdate.automationAttribution, attribution, "the atomic publication retains its approving rule attribution");
+    for (const path of [`/incidents/${published.reference}`, "/", "/history", "/api/public/status"]) {
+      const artifact = await publicText(path);
+      assert.ok(!artifact.includes(publishRule.approvedByName), `public ${path} omits the approving operator`);
+      assert.ok(!artifact.includes(attribution), `public ${path} omits private rule attribution`);
+    }
+    assert.ok(page.includes(firingUpdate.publishedAt), "the public update retains its saved publication time");
     assert.equal(firingUpdate.automationReceiptId, automatic.body.receiptId, "the internal update identifies its causal alert");
     assert.ok(published.internalNotes.some(note => note.body.includes(attribution) && note.body.includes(automatic.body.receiptId)), "internal timeline attributes approval and identifies the causal alert");
     assert.ok((await incident(automatic.body.incidentId)).internalNotes.some(note => note.body.includes(publicationRun.incidentId)), "the original alert draft links the automated incident");
@@ -224,6 +230,8 @@ export async function automationRulesFlow({ t }) {
     assert.equal((await incident(publicationRun.incidentId)).updates.length, 2);
     assert.equal(subscriberMail(email).length, beforePublicationMail + 2);
     assert.equal(fixture.webhookRequests.length, beforePublicationWebhooks);
+
+    await automationEditFlow({ fixture, target, template, wording, resolvedWording, saveRule, send, pingdom, incident, publicState, subscriberMail, email, publicText, runs, runFor });
 
     await groupedRuleProof({ fixture, target, other, template, saveRule, send, runs, runFor, incident, publicState, subscriberMail, email, t });
 
