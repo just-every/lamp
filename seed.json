@@ -587,6 +587,18 @@
       "why": "Stable random secret of at least 32 characters for Base operator session and link hashes. Installer generates and preserves it."
     },
     {
+      "name": "INSTALLATION_KEY",
+      "required": true,
+      "secret": true,
+      "why": "Independent 256-bit installation encryption key for Base dependency signing-key custody, stored as 64 lowercase hex characters. Installer generates and preserves it outside archives."
+    },
+    {
+      "name": "INSTALLATION_KEY_PREVIOUS",
+      "required": false,
+      "secret": true,
+      "why": "Previous installation encryption key retained during an explicit Base custody rotation or retired-key reopen."
+    },
+    {
       "name": "IDENTITY_PROVIDER",
       "required": false,
       "secret": false,

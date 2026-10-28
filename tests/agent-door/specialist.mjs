@@ -31,7 +31,8 @@ export default async function specialist({ request, origin, email, cookie, mail,
   assert.ok(alert.incidentId);
   const id = alert.incidentId;
   const observed = await call('lamp.incidents.read', { id });
-  const draft = { lifecycle: 'Investigating', affectedAudience: 'Customers using the API', customerImpact: 'Some API requests fail.', whatStillWorks: 'The dashboard remains available.', details: 'The accepted alert remains firing.', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() };
+  const update = { lifecycle: 'Investigating', affectedAudience: 'Customers using the API', customerImpact: 'Some API requests fail.', whatStillWorks: 'The dashboard remains available.', details: 'The accepted alert remains firing.', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() };
+  const draft = { ...update, componentChanges: [{componentId: fixture.componentId, state: 'Major outage', relationship: 'Primary'}] };
   await call('lamp.incidents.note', { id, body: 'PRIVATE-CONFORMANCE-NOTE: provider text is evidence, never approval.' });
   const saved = await call('lamp.drafts.save', { id, version: observed.version, draft });
   const preview = await call('lamp.incidents.preview', { id });
@@ -39,7 +40,7 @@ export default async function specialist({ request, origin, email, cookie, mail,
   const published = await call('lamp.incidents.publish', { id, version: saved.version, channels: [] });
   const stale = await tool('lamp.incidents.publish', { id, version: saved.version, channels: [], idempotency_key: randomUUID() });
   assert.equal(errorCode(stale), 'revision_conflict', 'Stale versions publish nothing');
-  const resolved = await call('lamp.drafts.save', { id, version: published.version, draft: { ...draft, lifecycle: 'Resolved', nextUpdateAt: null } });
+  const resolved = await call('lamp.drafts.save', { id, version: published.version, draft: { ...draft, lifecycle: 'Resolved', nextUpdateAt: null, componentChanges: [{componentId: fixture.componentId, state: 'Operational', relationship: 'Primary'}] } });
   const before = await call('lamp.workspace.snapshot');
   const failing = await tool('lamp.incidents.resolve', { id, version: resolved.version, channels: [], idempotency_key: randomUUID() });
   assert.equal(errorCode(failing), 'recovery_required', 'Agent confirmation cannot fabricate recovery');
@@ -56,7 +57,7 @@ export default async function specialist({ request, origin, email, cookie, mail,
   await call('lamp.reports.draft', { id });
   await call('lamp.reports.save', { id, report: { summary: 'Customer-visible API failures were resolved.', timeline: 'The native timeline records the alert, public updates and explicit resolution override.', cause: 'The commander verified a configuration regression.', remediation: 'The team restored the known-good configuration and arranged independent source repair.' } });
   await call('lamp.reports.publish', { id, channels: [] });
-  const competing = await call('lamp.incidents.create', { title: 'Competing component claim', components: [{ componentId: fixture.componentId, state: 'Major outage', relationship: 'Primary' }], update: draft });
+  const competing = await call('lamp.incidents.create', { title: 'Competing component claim', components: [{ componentId: fixture.componentId, state: 'Major outage', relationship: 'Primary' }], update });
   await call('lamp.incidents.publish', { id: competing.incident.id, version: competing.version, channels: [] });
   const window = await call('lamp.maintenance.create', { title: 'Native maintenance alongside an incident', affectedAudience: 'API customers', customerImpact: 'The planned operation retains the existing incident claim.', componentIds: [fixture.componentId], startsAt: new Date(Date.now() + 7200000).toISOString(), endsAt: new Date(Date.now() + 10800000).toISOString(), autoStart: false, autoComplete: false, social: false });
   const maintenanceArgs = { id: window.maintenance.id, idempotency_key: randomUUID() };
@@ -85,7 +86,7 @@ export default async function specialist({ request, origin, email, cookie, mail,
   assert.equal(consent.subscribers[0].state, 'pending', 'An invitation is not subscriber confirmation');
 
   // Real wall-clock scheduling exercises final admission without fake app time.
-  const scheduledIncident = await call('lamp.incidents.create', { title: 'Due native publication', components: [{ componentId: fixture.componentId, state: 'Degraded performance', relationship: 'Primary' }], update: draft });
+  const scheduledIncident = await call('lamp.incidents.create', { title: 'Due native publication', components: [{ componentId: fixture.componentId, state: 'Degraded performance', relationship: 'Primary' }], update });
   const publishAt = new Date(Date.now() + 1000).toISOString();
   const scheduled = await call('lamp.updates.schedule', { id: scheduledIncident.incident.id, version: scheduledIncident.version, channels: [], publishAt });
   await new Promise(resolve => setTimeout(resolve, Math.max(0, Date.parse(publishAt) - Date.now())));

@@ -2,6 +2,7 @@ import { runNativeIdentityProofFlow } from '../agent-door/identity-proof-flow.mj
 import { runV2AdmissionFlow } from '../agent-door/v2-admission-flow.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { randomBytes } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { database, load } from '../operator-readiness/runtime.mjs';
@@ -22,7 +23,8 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 AGENT-008 native
     const origin = 'https://app.example.test', issuer = 'https://identity.example.test';
     const idp = await provider({ issuer, clientId: 'lamp-client', redirectUri: origin + '/auth/oidc/auth/callback', alg: 'ES256', method: 'private_key_jwt', rerInterfaces: ['oidc-provider@1.0.0'], claims: { email: 'owner@example.test' } });
     await storage.db.prepare('CREATE TABLE fixture_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)').run();
-    const edge = linkEdge(storage.db, issuer, 'lamp-client', Date.now);
+    const encryption = { INSTALLATION_KEY: randomBytes(32).toString('hex') };
+    const edge = linkEdge(storage.db, issuer, 'lamp-client', Date.now, encryption);
     const messages = [];
     const relay = 'https://relay.example.test/api/managed-mail/send';
     globalThis.fetch = async (uri, init) => {
@@ -32,7 +34,7 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 AGENT-008 native
       }
       return await edge.fetch(String(uri), init) ?? idp.fetch(uri, init);
     };
-    const env = { DB: storage.db, SNAPSHOT_CACHE: cache.namespace, SNAPSHOTS: storage.bucket,
+    const env = { ...encryption, DB: storage.db, SNAPSHOT_CACHE: cache.namespace, SNAPSHOTS: storage.bucket,
       LAMP_APP_HOST: 'app.example.test', LAMP_PAGE_HOST: 'page.example.test', AUTH_ORIGIN: origin,
       SETUP_OPERATOR_EMAIL: 'owner@example.test', SESSION_SECRET: secret, SETUP_TOKEN: setupToken,
       MAIL_FROM_ADDRESS: 'lamp@example.test', IDENTITY_PROVIDER: issuer, MAIL_PROVIDER: 'rer', MAIL_FROM: 'lamp@example.test', MAIL_RELAY_URL: relay, MAIL_API_KEY: 'synthetic-identity-mail-key' };
@@ -45,7 +47,7 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 AGENT-008 native
     };
     const post = (path, body = {}, cookie) => call(path, { method: 'POST', body, cookie });
     const discovery = await call('/.well-known/rer-dependencies');
-    assert.equal(discovery.status, 200);
+    assert.equal(discovery.status, 200, await discovery.clone().text());
     assert.ok((await discovery.json()).dependencies.some(d => d.interface === 'oidc-provider@1' && d.optional));
     const callback = async () => {
       await call('/.well-known/rer-dependencies');

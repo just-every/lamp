@@ -213,7 +213,8 @@ export function createIncidentsService(
     if (!update) return null;
     await runtime.events?.incidentUpdatePublished({ incidentId, updateId: update.id, lifecycle: update.lifecycle, publishedAt: update.publishedAt });
     if (update.lifecycle === "Resolved") await runtime.events?.incidentResolved({ incidentId, updateId: update.id, resolvedAt: update.publishedAt });
-    return update;
+    const attribution = await repository.agentAttributions([update.id]);
+    return {...update, agentAttribution: attribution.get(`incident-update:${update.id}`) ?? null};
   };
 
   return {

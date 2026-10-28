@@ -2284,7 +2284,10 @@
           "pointer": "/template/id"
         },
         "template": {
-          "name": "Edited conformance template"
+          "name": {
+            "$from": "template-create",
+            "pointer": "/template/id"
+          }
         }
       },
       "expect": [

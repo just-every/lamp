@@ -76,7 +76,9 @@ export function createAccessTools(services: AppServices, bindings: AppBindings):
         const record = await target(String(args.id), ctx);
         if (record?.kind !== 'chat-link') throw new ToolRefusal('record_not_found');
         if (!await services.chatDesk.links.remove(record.id, ctx.person.id)) throw new ToolRefusal('revision_conflict');
-        return changed(ctx, 'access.changed', `lamp://access/${record.id}`, {id: record.id, revoked: true});
+        // The deleted link has no native record to read back. Its person's
+        // current access projection retains the resulting linked-identity set.
+        return changed(ctx, 'access.changed', `lamp://access/${ctx.person.id}`, {id: record.id, revoked: true});
       },
     },
     {
@@ -132,7 +134,9 @@ export function createAccessResources(services: AppServices, bindings: AppBindin
       let id: string; try { id = decodeURIComponent(match[1]); } catch { return null; }
       const operator = await identities.person(id);
       if (operator) return {json:{id:operator.id,name:operator.displayName,role:operator.role,status:operator.status,
-        grants:operator.status === 'active' && operator.role === 'owner' ? ['native:owner'] : []}};
+        grants:operator.status === 'active' && operator.role === 'owner' ? ['native:owner'] : [],
+        ...(operator.id === ctx.person.id ? {chatLinks: (await services.chatDesk.links.list(operator.id))
+          .map(({id, transport, createdAt}) => ({id, transport, createdAt}))} : {})}};
       const token = (await management.list()).find(row => row.id === id);
       if (token) return {json: {id, name: token.name, issuerId: token.issuerId, revokedAt: token.revokedAt,
         expiresAt: token.expiresAt, grants: await identities.credential(token.id, token.issuerId) ? token.scopes.map(scope => `management:${scope}`) : []}};

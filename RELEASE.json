@@ -963,6 +963,10 @@
     {
       "id": "0073_agent_native_proofs.sql",
       "buyerSteps": "Apply after 0072. Adds opaque, action-bound native email-proof references. They contain no bearer or session cookie; native admission, expiry and revocation still govern their use."
+    },
+    {
+      "id": "0074_dependency_keys_sealed.sql",
+      "buyerSteps": "Apply after 0073. Adds dependency signing-key encryption custody markers without replacing existing keys. The normal setup/deploy lifecycle generates and retains INSTALLATION_KEY; retain it for the installation and use INSTALLATION_KEY_PREVIOUS during an explicit rotation. Archives contain neither secret."
     }
   ],
   "breaking": false,
