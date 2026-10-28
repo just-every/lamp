@@ -1,3 +1,5 @@
+import { setupAuthorityFlow } from "./setup-authority-flow.mjs";
+import { ownerMigrationFlow } from "./owner-migration-flow.mjs";
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {mkdtemp,readdir,readFile,rm} from 'node:fs/promises';
@@ -20,7 +22,9 @@ async function migrateAfterDependencyApproval(db){
 
 }
 
-test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials',async()=>{
+test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials',async()=>{
+ await setupAuthorityFlow();
+ await ownerMigrationFlow();
  const directory=await mkdtemp(join(process.cwd(),'.lamp-auth-upgrade-'));const runtime=openRuntime(directory);
  try {
   const db=await runtime.getD1Database('DB');

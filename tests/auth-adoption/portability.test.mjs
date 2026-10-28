@@ -14,7 +14,7 @@ import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
 import { populateArchiveHistory } from '../helpers/archive-history.mjs';
 import { fixtureProcessEnv } from '../helpers/worker-environment.mjs';
 
-test('HIST-004 PORT-001 ACCESS-001 INTAKE-009 INTAKE-014 native rer backup restores the whole product without reviving temporary authority', async t => {
+test('HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 native rer backup restores the whole product without reviving temporary authority', async t => {
   const root = process.cwd(), directory = await mkdtemp(join(tmpdir(), 'lamp-auth-portability-'));
   const source = join(directory, 'source'), target = join(directory, 'target');
   let current;

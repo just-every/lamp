@@ -1,7 +1,7 @@
 // Local verification and CI execute the same commands. Production output is
 // built once, then each journey gets its own database, runtime and browser.
 export const verificationPlan = {
-  build: ['source:copies', 'source:check', 'typecheck', 'check:syntax', 'validate:release', 'verify:visual:source', 'build:app', 'build:site'],
+  build: ['check:contract-docs', 'source:copies', 'source:check', 'typecheck', 'check:syntax', 'validate:release', 'verify:visual:source', 'build:app', 'build:site'],
   ownership: ['test:ownership', 'test:owner-claim', 'test:owner-backup'],
   portability: ['test:portability'],
   imports: ['test:imports', 'test:mail', 'test:site'],

@@ -1,3 +1,4 @@
+import { baselineReporterFlow } from "./reporter-flow.mjs";
 import { widgetPrivacyFlow } from "../../e2e/helpers/widget-privacy-flow.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -59,6 +60,7 @@ async function eventuallySql(statement, predicate, label) {
 }
 
 baseline(["BASE-ACCESS-001","BASE-ACCESS-002","BASE-ACCESS-003","BASE-ACCESS-004","BASE-INPUT-001","BASE-INPUT-002","BASE-INPUT-003","BASE-SECRET-001","BASE-DATA-002","BASE-DATA-003","BASE-DATA-004","BASE-DATA-005","BASE-PUBLIC-001","BASE-PUBLIC-002"], 'An owner publishes private installation data safely, then erases identities and signs out', async () => {
+  await baselineReporterFlow();
 
   {
   const invalid = await fixture.fetchApp("/auth/magic-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({email:"not-an-email"}) });

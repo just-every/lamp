@@ -13,6 +13,7 @@ import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { fixtureProcessEnv, isolatedWorkerEnvArgs } from "../helpers/worker-environment.mjs";
+import { docsSiteFlow } from "../docs/docs-site-flow.mjs";
 
 const appHost = "127.0.0.1";
 const pageHost = "localhost";
@@ -250,6 +251,7 @@ after(async () => {
 });
 
 test("DOCS-001 PAGE-020 — the built single Worker preserves public docs, Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 240_000 }, async () => {
+  await docsSiteFlow();
   {
   const browser = await chromium.launch({
     executablePath: process.env.LAMP_CHROMIUM_PATH, headless: true, args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });

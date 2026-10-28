@@ -12,7 +12,7 @@ import { reservePort } from './worker-startup.mjs';
 
 // One owner migration through the actual wizard and Cutover documents. The source
 // table changes the saved export, not the behavior or the viewport under test.
-test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 MOVE-009 — owner reviews three providers, checks surviving public addresses, deliberately invites and undoes through Cutover', { timeout: 600_000 }, async () => {
+test('MOVE-013 MOVE-014 MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 MOVE-009 — owner reviews three providers, checks surviving public addresses, deliberately invites and undoes through Cutover', { timeout: 600_000 }, async () => {
   const runtime = await openNativeRuntime(); let browser;
   try {
     await runtime.start(); await runtime.seedOperator();

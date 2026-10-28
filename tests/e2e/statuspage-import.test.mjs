@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { openStatusJourney } from './helpers/status-journey.mjs';
 import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
 import { postmortemTemplateImportFlow } from './helpers/postmortem-template-import-flow.mjs';
+import { cutoverContractFlow } from '../auth-adoption/cutover-contract-flow.mjs';
 
 const fixtures = source => readdirSync(`tests/fixtures/${source}/small`).map(name => ({ name, text: readFileSync(`tests/fixtures/${source}/small/${name}`, 'utf8') }));
 const parsed = (files, name) => JSON.parse(files.find(file => file.name === name).text);
@@ -16,7 +17,7 @@ function sourceHistory(source, files) {
   }));
 }
 
-test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 ACCESS-001 — owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes', { timeout: 600_000 }, async t => {
+test('MOVE-013 MOVE-014 MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 ACCESS-001 — owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes', { timeout: 600_000 }, async t => {
   const sourceFiles = fixtures('statuspage'), apiKey = 'synthetic-owner-import-key';
   const requests = [];
   const runtime = await openStatusJourney({ providerEdge: async request => {
@@ -151,4 +152,5 @@ test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 AC
     const importAll = async files => { const { review, result } = await apply({ files }); return { preview: review, result }; };
     await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, init), importAll, moveIn, original: sourceFiles, publicOrigin, preserveEdits: true, fetcher: fetch });
   } finally { await runtime.close(); }
+  await cutoverContractFlow(t);
 });

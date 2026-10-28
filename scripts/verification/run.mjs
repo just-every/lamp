@@ -7,7 +7,7 @@ import { checkVerificationPlan } from './check-plan.mjs';
 checkVerificationPlan();
 if (!process.env.LAMP_VERIFY_SHARD || process.env.LAMP_VERIFY_SHARD === 'build') {
   const { execFileSync } = await import('node:child_process');
-  execFileSync(process.execPath, ['scripts/contract-docs.mjs', 'check', 'INTEG-002'], { stdio: 'inherit' });
+  execFileSync(process.execPath, ['src/base/contract-docs.mjs', 'check'], { stdio: 'inherit' });
 }
 
 const requested = process.argv[2] ?? process.env.LAMP_VERIFY_SHARD;

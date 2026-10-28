@@ -1,6 +1,6 @@
 {
   "name": "lamp",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.12.4",
@@ -62,7 +62,8 @@
     "test:channels": "node --test --test-concurrency=1 tests/e2e/channels-and-presets.test.mjs",
     "test:mail": "node --test --test-concurrency=1 tests/e2e/rer-mail.test.mjs",
     "build:site": "rer build --site",
-    "test:owner-backup": "node --test --test-concurrency=1 tests/e2e/export-import.test.mjs"
+    "test:owner-backup": "node --test --test-concurrency=1 tests/e2e/export-import.test.mjs",
+    "check:contract-docs": "node src/base/contract-docs.mjs check"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

@@ -68,7 +68,7 @@ export const assertionScripts = [
   'scripts/check-syntax.mjs',
   'scripts/validate-release.mjs',
   'scripts/verify-visual-edit.mjs',
-  'scripts/contract-docs.mjs',
+  'src/base/contract-docs.mjs',
   'scripts/verification/check-plan.mjs',
   'scripts/chromium-probe.mjs',
   'scripts/verification/aggregate.mjs',
