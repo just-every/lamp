@@ -5,7 +5,9 @@
     "LAMP_APP_HOST": "rer-hosted-check.invalid",
     "LAMP_PAGE_HOST": "status.rer-hosted-check.invalid",
     "SETUP_OPERATOR_EMAIL": "owner@rer-hosted-check.invalid",
-    "MAIL_PROVIDER": "resend"
+    "MAIL_PROVIDER": "resend",
+    "AI_PROVIDER_URL": "https://lamp-agent-provider.invalid/v1/chat/completions",
+    "AI_PROVIDER_MODEL": "lamp-conformance-structured"
   },
   "secrets": [
     {
@@ -37,6 +39,16 @@
     {
       "binding": "MAIL_API_KEY",
       "environment": "MAIL_PROVIDER_API_KEY"
+    },
+    {
+      "binding": "AI_PROVIDER_API_KEY",
+      "environment": "AI_PROVIDER_API_KEY",
+      "verifyStandIn": "synthetic-lamp-agent-provider-key"
+    },
+    {
+      "binding": "INSTALLATION_KEY",
+      "environment": "INSTALLATION_KEY",
+      "verifyStandIn": "1212121212121212121212121212121212121212121212121212121212121212"
     }
   ]
 }

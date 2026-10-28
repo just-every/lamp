@@ -33,7 +33,7 @@
       "kind": "text",
       "required": true,
       "group": "page",
-      "help": "Enter 1–120 characters."
+      "help": "Enter 1\u2013120 characters."
     },
     {
       "name": "LAMP_PAGE_TAGLINE",
@@ -41,7 +41,7 @@
       "kind": "text",
       "required": true,
       "group": "page",
-      "help": "Enter 1–280 characters."
+      "help": "Enter 1\u2013280 characters."
     },
     {
       "name": "LAMP_PAGE_TIMEZONE",
@@ -64,7 +64,7 @@
       "kind": "text",
       "required": true,
       "group": "owner",
-      "help": "Enter 1–120 characters."
+      "help": "Enter 1\u2013120 characters."
     },
     {
       "name": "LAMP_HOSTING",
@@ -370,6 +370,16 @@
       "required": false,
       "group": "sms",
       "help": "Optional Messaging Service identifier used instead of the sending number."
+    },
+    {
+      "name": "INSTALLATION_KEY",
+      "label": "Installation key custody",
+      "help": "Protects stored native dependency signing keys. Keep this private installation value with backups.",
+      "kind": "secret",
+      "input": "managed",
+      "required": true,
+      "ownerVisible": false,
+      "generate": "hex"
     }
   ],
   "steps": [

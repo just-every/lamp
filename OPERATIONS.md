@@ -27,6 +27,8 @@ installation this checkout deployed as `production`.
 
 ## Owner inputs
 
+The rer 0.2.86 setup manifest generates `INSTALLATION_KEY` for Base’s sealed dependency signing keys. Retain it privately with backups and restore it with the installation; deploy preserves a Worker’s existing value. Direct deployment scripts must receive it from the owner’s private inputs. Key replacement needs Base’s rekey lifecycle; it is not a session-secret rotation.
+
 Supply `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` for the intended account.
 The token needs Worker deployment, D1, R2, Queues and custom-hostname access,
 including Zone Workers Routes read/write permission for both hosts’ zones.
