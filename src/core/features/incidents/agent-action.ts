@@ -32,6 +32,14 @@ export function publicAgentAction(action: AgentAction | null | undefined): Publi
   return action ? { label: action.label, approvers: action.approvers.map(person => ({ name: person.name })) } : undefined;
 }
 
+/** Invocation custody belongs to native workers, never ordinary tool/resource readback. */
+export function safeDoorValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(safeDoorValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
+    key === 'agentAction' && item ? publicAgentAction(item as AgentAction) : safeDoorValue(item)]));
+}
+
 export function agentActionLines(action: PublicAgentAction | null | undefined): string[] {
   return action ? [
     `Prepared by: ${action.label}`,

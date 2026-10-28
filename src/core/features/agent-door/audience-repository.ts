@@ -30,6 +30,16 @@ export function createAudienceRepository(db: D1Database) {
     async deliveryOutcome(id:string) {
       return db.prepare("SELECT id,outcome,queued_at AS queuedAt,outcome_at AS outcomeAt FROM notification_delivery_records WHERE id=?").bind(id).first<{id:string;outcome:string;queuedAt:string;outcomeAt:string|null}>();
     },
+    async providerDeliveryIndex(updateId?: string) {
+      const sms = (await db.prepare(`SELECT d.id,d.outcome,d.incident_update_id AS incidentUpdateId,s.state AS subscriberState
+        FROM sms_deliveries d JOIN subscriber_directory s ON s.id=d.subscriber_id
+        WHERE (? IS NULL OR d.incident_update_id=?) ORDER BY d.queued_at DESC,d.id LIMIT 100`)
+        .bind(updateId ?? null, updateId ?? null).all()).results;
+      const responders = (await db.prepare(`SELECT id,state,source_id AS sourceId,incident_update_id AS incidentUpdateId
+        FROM alert_responder_posts WHERE (? IS NULL OR incident_update_id=?) ORDER BY created_at DESC,id LIMIT 100`)
+        .bind(updateId ?? null, updateId ?? null).all()).results;
+      return { sms, responders };
+    },
     async invitationPlan(batchId: string) {
       if(!await subscribers.intake.batchExists(batchId)) return null;
       const ids=await subscribers.intake.pending(batchId);

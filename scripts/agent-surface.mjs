@@ -15,12 +15,14 @@ try {
     import { operationsTools } from './src/core/features/agent-door/operations-tools.ts';
     import { audienceTools } from './src/core/features/agent-door/audience-tools.ts';
     import { accessTools } from './src/core/features/agent-door/access-tools.ts';
+    import { managementTools } from './src/core/features/agent-door/management-tools.ts';
+    import { connectionTools } from './src/core/features/agent-door/connection-tools.ts';
     import { nativeWitness } from './src/core/features/agent-door/witness.ts';
     import { lampResources } from './src/core/features/agent-door/resources.ts';
     import { lampNotTools } from './src/core/features/agent-door/index.server.ts';
     const unavailable = new Proxy(function(){ throw Error('Declaration must not execute native work'); }, { get: () => unavailable });
     const bindings = { DB: unavailable, SNAPSHOTS: unavailable };
-    const tools = [...incidentTools(bindings, unavailable), ...operationsTools(bindings, unavailable), ...audienceTools(bindings, unavailable), ...accessTools(bindings, unavailable), nativeWitness(bindings, unavailable)];
+    const tools = [...incidentTools(bindings, unavailable), ...operationsTools(bindings, unavailable), ...audienceTools(bindings, unavailable), ...accessTools(bindings, unavailable), ...managementTools(bindings, unavailable), ...connectionTools(unavailable), nativeWitness(bindings, unavailable)];
     export default {
       tools: [...tools.map(({name,scope,readOnly,classes,clauses,inputSchema,proof,proofKind,widens,narrowing}) => ({name,scope,readOnly,classes,clauses,...(widens === false ? {widens,narrowing,inputSchema} : {}),...(proof ? {proof,proofKind} : {})})),
         {name:'lamp.events.list',scope:'events:read',readOnly:true,classes:['standard'],clauses:['BASE-AGENT-010']}].sort((a,b)=>a.name.localeCompare(b.name)),

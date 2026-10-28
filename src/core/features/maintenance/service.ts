@@ -98,7 +98,7 @@ export function createMaintenanceService(
     const changed = { ...record, state: "In progress" as const, updatedAt: timestamp };
     const { notice, statements } = await prepareNotice(changed, components, "started", operatorId, "eligible", false, agentAction);
     if (!await repository.transitionWithNotice(maintenanceId, "Scheduled", "In progress", null, timestamp, notice, statements, { startsAt: record.startsAt, endsAt: record.endsAt, autoStart: automatic }, expectedUpdatedAt ?? record.updatedAt, automatic)) throw new Error("The maintenance changed before it could be started.");
-    await Promise.all(components.flatMap(component => component.componentId ? [componentsService.recomputePublicState(component.componentId, {type: "maintenance", id: maintenanceId, operatorId}, timestamp)] : []));
+    await Promise.all(components.flatMap(component => component.componentId ? [componentsService.recomputePublicState(component.componentId, {type: "maintenance", id: maintenanceId, operatorId, ...(agentAction ? { agentAction } : {})}, timestamp)] : []));
     await events?.maintenanceStarted({ maintenanceId, reference: record.reference, state: "In progress", occurredAt: timestamp });
     await onPublicDataChanged();
     return view((await repository.find(maintenanceId))!);
@@ -203,7 +203,8 @@ export function createMaintenanceService(
       if (!record || record.state !== "Completed") return;
       const components = await repository.listComponents(maintenanceId);
       const changedAt = record.completedAt ?? record.updatedAt;
-      await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "maintenance", id: maintenanceId, operatorId }, changedAt)] : []));
+      const agentAction = (await repository.listNotices(maintenanceId)).find(notice => notice.kind === "completed")?.agentAction;
+      await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "maintenance", id: maintenanceId, operatorId, ...(agentAction ? { agentAction } : {}) }, changedAt)] : []));
       await onPublicDataChanged();
     },
     async runDue(now = nowIso()) {

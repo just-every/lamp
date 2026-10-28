@@ -50,6 +50,7 @@ import { registerSocialRoutes } from "../features/social/routes";
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
 import { lampAgentDoor } from '../features/agent-door/index.server';
+import { preparePersonMutation } from '../features/agent-door/person-events';
 
 export type { AppBindings } from "./types";
 
@@ -83,14 +84,20 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerSetupRoutes(app, services);
   registerPublicSnapshotRoutes(app, services.publicSnapshots);
   app.use("/api/app/*", requireOperator(services.auth, request => authorizedReads.get(request)));
+  app.use('/api/app/*', async (context, next) => {
+    const person = await agent.people.person(context.get('operator').id);
+    const complete = person?.active ? await preparePersonMutation({ request: context.req.raw, bindings, services, person, door: agent.door }) : async () => {};
+    await next();
+    await complete(context.res);
+  });
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
   registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailgunSigningKey: bindings.MAILGUN_WEBHOOK_SIGNING_KEY, sesEventTopicArn: bindings.SES_EVENT_TOPIC_ARN, postmarkWebhookSecret: bindings.POSTMARK_WEBHOOK_SECRET, secondaryMailProvider: bindings.MAIL_SECONDARY_PROVIDER, mailProvider: bindings.MAIL_PROVIDER, localMail, smsConfigured: services.sms.configured });
   registerMailSettings(app,bindings);
   registerTrafficAlertRoutes(app, services.trafficStorage);
   registerMetricsRoutes(app, services.metrics);
-  registerManagementApiRoutes(app, createManagementApiService(bindings.DB, services.auth), services.metrics, publicWriteLimiter, services.components);
+  registerManagementApiRoutes(app, createManagementApiService(bindings.DB, services.auth), services.metrics, publicWriteLimiter, services.components, agent.managementCall);
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, onUptimeTiming: services.metrics.acceptUptime, rateLimiter: publicWriteLimiter });
-  registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
+  registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail, onErased: () => services.publicSnapshots.rebuild(true) });
   registerOverviewRoutes(app, services.overview);
   registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));
   registerSubscriberReportingRoutes(app, createSubscriberReportingService(createSubscriberReportingRepository(bindings.DB)));

@@ -90,6 +90,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
     `Start: ${starts}`,
     `End: ${ends}`,
     delivery.maintenanceNoticeBody ?? "",
+    ...agentActionLines(parseAgentAction(delivery.agentActionJson)),
   ].filter(Boolean).join("\n\n");
   return { email: { subject: `[${delivery.maintenanceReference}] ${kind}: ${delivery.maintenanceTitle}`, plainText } };
 }
@@ -207,7 +208,7 @@ export function createDeliveriesService(
       const manageUrl = new URL(`/manage/${encodeURIComponent(manage)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe)}`, origin).toString();
       const rendered = delivery.componentEventId
-        ? { email: { subject: `${delivery.componentName}: ${delivery.newComponentState}`, plainText: `${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}\n\nChanged: ${displayNotificationTime(delivery.componentChangedAt!, delivery.timezone)}\nClaimant: ${delivery.componentClaimantKind}` } }
+        ? { email: { subject: `${delivery.componentName}: ${delivery.newComponentState}`, plainText: [`${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}\n\nChanged: ${displayNotificationTime(delivery.componentChangedAt!, delivery.timezone)}\nClaimant: ${delivery.componentClaimantKind}`, ...agentActionLines(parseAgentAction(delivery.agentActionJson))].join("\n\n") } }
         : delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
         ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]), ...[["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]].flatMap(([label, value]) => value?.trim() ? [`${label}: ${value}`] : []), ...agentActionLines(parseAgentAction(delivery.agentActionJson))].join("\n\n") } }
         : delivery.incidentUpdateId !== null && delivery.incidentReference !== null && delivery.incidentTitle !== null && delivery.lifecycle !== null && delivery.affectedAudience !== null && delivery.customerImpact !== null
@@ -259,7 +260,7 @@ export function createDeliveriesService(
     const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
     const incidentEvent = !statuspage && !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
     const event = delivery.componentEventId
-      ? { event: "component.changed", deliveryId: delivery.id, component: { id: delivery.componentId, name: delivery.componentName, previousState: delivery.previousComponentState, state: delivery.newComponentState, changedAt: delivery.componentChangedAt, claimantKind: delivery.componentClaimantKind } }
+      ? { event: "component.changed", deliveryId: delivery.id, ...(delivery.agentActionJson ? { agentAction: publicAgentAction(parseAgentAction(delivery.agentActionJson)) } : {}), component: { id: delivery.componentId, name: delivery.componentName, previousState: delivery.previousComponentState, state: delivery.newComponentState, changedAt: delivery.componentChangedAt, claimantKind: delivery.componentClaimantKind } }
       : incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
       : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, ...(delivery.agentActionJson ? { agentAction: publicAgentAction(parseAgentAction(delivery.agentActionJson)) } : {}), incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };

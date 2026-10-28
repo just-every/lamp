@@ -1,3 +1,4 @@
+import type { AgentAction } from "../incidents/agent-action";
 import { componentNotificationStatements } from "../deliveries/component-notifications.repository";
 import { currentStateHistoryStatement } from "./state-history-repository";
 import { deletionAudit } from "./deletion-audit";
@@ -22,7 +23,7 @@ import type { ComponentGroupUpdateInput, ComponentUpdateInput } from "../../shar
 
 export type StoredComponent = typeof components.$inferSelect;
 export type CurrentComponentClaim = { componentId: string; state: ComponentState; causeType: "standing-claim" | "incident" | "maintenance" };
-export type StateClaimCause = { type: "standing-claim" | "incident" | "maintenance" | "correction"; id: string | null; operatorId: string | null };
+export type StateClaimCause = { type: "standing-claim" | "incident" | "maintenance" | "correction"; id: string | null; operatorId: string | null; agentAction?: AgentAction };
 export type StoredComponentGroup = typeof componentGroups.$inferSelect;
 export type ComponentHistoryEntry = Pick<typeof componentStateHistory.$inferSelect, "id" | "previousState" | "newState" | "causeType" | "causeId" | "operatorId" | "changedAt" | "createdAt">;
 export type ComponentHistoryCorrection = Pick<typeof componentStateCorrections.$inferSelect, "id" | "historyId" | "state" | "startsAt" | "endsAt" | "reason" | "operatorId" | "createdAt">;
@@ -55,7 +56,7 @@ export interface ComponentRepository {
   updateGroup(groupId: string, input: ComponentGroupUpdateInput & { updatedAt: string }): Promise<boolean>;
   deleteGroup(groupId: string, operatorId: string): Promise<boolean>;
   insertComponent(input: typeof components.$inferInsert, initialState: { event: ComponentClaimEventInput; history: ComponentStateHistoryInput }): Promise<void>;
-  updateComponent(componentId: string, input: ComponentUpdateInput & { updatedAt: string }, expectedUpdatedAt?: string): Promise<boolean>;
+  updateComponent(componentId: string, input: ComponentUpdateInput & { updatedAt: string }, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<boolean>;
   deleteComponent(componentId: string, operatorId: string): Promise<boolean>;
 }
 
@@ -273,7 +274,7 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
     async appendCurrentStateHistory(input) {
       const [history] = await binding.batch<{ previousState: ComponentState; newState: ComponentState }>([
         currentStateHistoryStatement(binding, input),
-        ...componentNotificationStatements(binding, input.id, input.createdAt),
+        ...componentNotificationStatements(binding, input.id, input.createdAt, input.cause.agentAction),
       ]);
       return history.results[0] ?? null;
     },
@@ -389,7 +390,19 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
           .bind(initialState.history.id, initialState.history.componentId, initialState.history.previousState, initialState.history.newState, initialState.history.cause.type, initialState.history.cause.id, initialState.history.cause.operatorId, initialState.history.changedAt, initialState.history.createdAt, initialState.history.updatedAt),
       ]);
     },
-    async updateComponent(componentId, input, expectedUpdatedAt) {
+    async updateComponent(componentId, input, expectedUpdatedAt, agentAction) {
+      if (agentAction) {
+        const columns = { groupId: 'group_id', name: 'name', description: 'description', region: 'region', internal: 'internal', onlyShowIfDegraded: 'only_show_if_degraded', uptimeStartDate: 'uptime_start_date', displayOrder: 'display_order', note: 'note', updatedAt: 'updated_at' } as const;
+        const fields = Object.entries(columns).filter(([key]) => input[key as keyof typeof input] !== undefined);
+        const result = await binding.batch<{ id: string }>([
+          binding.prepare(`UPDATE components SET ${fields.map(([, column]) => `${column}=?`).join(',')} WHERE id=?${expectedUpdatedAt === undefined ? '' : ' AND updated_at=?'} RETURNING id`)
+            .bind(...fields.map(([key]) => { const value = input[key as keyof typeof input]; return typeof value === 'boolean' ? Number(value) : value ?? null; }), componentId, ...(expectedUpdatedAt === undefined ? [] : [expectedUpdatedAt])),
+          binding.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+            SELECT ?,'component',?,'component.updated',?,?,?,? WHERE changes()=1`)
+            .bind(createUlid(), componentId, agentAction.sponsor.id, JSON.stringify({ actor: agentAction }), input.updatedAt, input.updatedAt),
+        ]);
+        return result[0].results.length > 0;
+      }
       // Drizzle omits undefined fields: an edit without an explicit order leaves
       // display_order untouched in the UPDATE itself, even across concurrent moves.
       const result = await database.update(components).set(input).where(and(eq(components.id, componentId), ...(expectedUpdatedAt === undefined ? [] : [eq(components.updatedAt, expectedUpdatedAt)]))).returning({ id: components.id });

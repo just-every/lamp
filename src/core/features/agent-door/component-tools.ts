@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { AppBindings } from '../../app/types';
 import type { AppServices } from '../../app/services';
+import { agentAction } from '../incidents/agent-action';
 import type { ComponentView } from '../components/service';
 import { componentSchema, componentUpdateSchema, componentStandingClaimSchema } from '../../shared/schemas';
 import { ToolRefusal, type ToolDefinition, type ClassAndFacts } from '../../../base/modules/agent-door/index.ts';
@@ -43,13 +44,13 @@ export function componentTools(_bindings: AppBindings, services: AppServices): T
       return [...result, ...sensitive([after])];
     },
     summary: async args => { const input = updateInput.parse(args), record = await get(input.id); return { target: { id: record.id, name: record.name }, recipients: record.internal && input.component.internal ? [] : ['Public status page'], items: [`Revision: ${record.updatedAt}`, `Current visibility: ${record.internal ? 'internal' : 'public'}`, ...Object.entries(input.component).map(([key, value]) => `${key}: ${JSON.stringify(value)}`)] }; },
-    run: async (args, ctx) => { try { const input = updateInput.parse(args), before = await get(input.id), component = await services.components.update(input.id, input.component, before.updatedAt); if (!component) throw new ToolRefusal('revision_conflict'); changed(ctx, 'component.updated', describe(component).uri, { id: component.id }); return { result: { component }, resources: [describe(component)] }; } catch (error) { return nativeFailure(error); } },
+    run: async (args, ctx) => { try { const input = updateInput.parse(args), before = await get(input.id), component = await services.components.update(input.id, input.component, before.updatedAt, agentAction(ctx)); if (!component) throw new ToolRefusal('revision_conflict'); changed(ctx, 'component.updated', describe(component).uri, { id: component.id }); return { result: { component }, resources: [describe(component)] }; } catch (error) { return nativeFailure(error); } },
   }, {
     name: 'lamp.claims.update', title: 'Set standing component claim', description: 'Change or clear a native standing claim. Other incident or maintenance claims still determine the most severe public state. A configured claim is not measured recovery.',
     scope: 'lamp:publish', readOnly: false, inputSchema: jsonInput(claimInput), outputSchema: output, classes: ['standard', 'external', 'live', 'sensitive'], clauses: ['COMP-001', 'COMP-006', 'TEAM-003'], untrusted: true,
     revisionType: 'string', revision: async args => { const component = await get(claimInput.parse(args).id); return JSON.stringify([component.updatedAt, component.standingClaimState, component.publicState]); },
     classify: async args => { const component = await get(claimInput.parse(args).id); return component.internal ? [standard(), ...sensitive([component])] : [publicDisclosure(), live('status-page component state')]; },
     summary: async args => { const input = claimInput.parse(args), component = await get(input.id); return { target: { id: component.id, name: component.name }, recipients: component.internal ? [] : ['Public status page and eligible component webhook subscribers'], items: [`Standing claim: ${component.standingClaimState ?? 'none'} → ${input.state ?? 'none'}`, `Effective state before change: ${component.publicState}`, 'Competing incident and maintenance claims retain their precedence.'] }; },
-    run: async (args, ctx) => { try { const input = claimInput.parse(args), component = required(await services.components.setStandingClaim(input.id, input.state, ctx.person.id)); changed(ctx, 'component.claim.changed', describe(component).uri, { id: component.id, state: component.publicState }); return { result: { component }, resources: [describe(component)] }; } catch (error) { return nativeFailure(error); } },
+    run: async (args, ctx) => { try { const input = claimInput.parse(args), component = required(await services.components.setStandingClaim(input.id, input.state, ctx.person.id, agentAction(ctx))); changed(ctx, 'component.claim.changed', describe(component).uri, { id: component.id, state: component.publicState }); return { result: { component }, resources: [describe(component)] }; } catch (error) { return nativeFailure(error); } },
   }];
 }

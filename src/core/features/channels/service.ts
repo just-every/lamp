@@ -81,7 +81,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
         const saved=parseAgentAction(event.agentActionJson);
         if(saved&&!admitted){if(agentAdmission)await agentAdmission(event.id,saved,String((await delivery.get(event.id))?.attempts??0));continue;}
         const fields=event.kind==='component'
-          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${formatTime(event.changedAt!,event.timezone)} (${event.changedAt})`,`Claimant: ${event.claimantKind}`]
+          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${formatTime(event.changedAt!,event.timezone)} (${event.changedAt})`,`Claimant: ${event.claimantKind}`,...agentActionLines(parseAgentAction(event.agentActionJson))]
           : [`${event.reference}: ${event.title}`,`Maintenance: ${event.noticeKind}`,event.noticeBody ?? '',...agentActionLines(parseAgentAction(event.agentActionJson)),`Published: ${formatTime(event.publishedAt!,event.timezone)} (${event.publishedAt})`];
         await delivery.enqueue({id:event.id,tenant:NAMESPACE,destinationId:event.subscriberId,event:event.kind==='component'?'component.changed':'maintenance.notice',
           protocol:event.channelKind==='slack'?SLACK_WEBHOOK_PROTOCOL:TEAMS_WEBHOOK_PROTOCOL,

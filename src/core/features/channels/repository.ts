@@ -70,9 +70,10 @@ export function createChannelRepository(db: D1Database) {
         JOIN incident_updates u ON u.id=p.incident_update_id JOIN incidents i ON i.id=u.incident_id
         LEFT JOIN integration_deliveries x ON x.namespace='lamp-channels' AND x.id=p.id WHERE p.id=?
         UNION ALL
-        SELECT e.id,n.agent_action_json AS agentActionJson,d.id AS destinationId,d.name,d.kind,m.reference,n.body AS wording,x.state,COALESCE(x.attempts,0) AS attempts
+        SELECT e.id,COALESCE(n.agent_action_json,c.agent_action_json) AS agentActionJson,d.id AS destinationId,d.name,d.kind,COALESCE(m.reference,c.component_name) AS reference,COALESCE(n.body,c.new_state) AS wording,x.state,COALESCE(x.attempts,0) AS attempts
         FROM channel_subscriber_events e JOIN delivery_channel_destinations d ON d.id=e.subscriber_id
         LEFT JOIN maintenance_notices n ON n.id=e.event_id AND e.kind='maintenance'
+        LEFT JOIN component_notification_events c ON c.id=e.event_id AND e.kind='component'
         LEFT JOIN maintenance m ON m.id=n.maintenance_id
         LEFT JOIN integration_deliveries x ON x.namespace='lamp-channels' AND x.id=e.id WHERE e.id=? LIMIT 1`)
         .bind(id,id).first<{id:string;agentActionJson:string|null;destinationId:string;name:string;kind:string;reference:string|null;wording:string|null;state:string|null;attempts:number}>();

@@ -73,7 +73,7 @@
     "deploy:cloudflare": "node scripts/deploy.mjs",
     "export:cloudflare": "node scripts/export.mjs",
     "import:cloudflare": "node scripts/import.mjs",
-    "test:rer-journey": "node --test --test-concurrency=1 tests/e2e/auth-adoption-journey.test.mjs",
+    "test:rer-journey": "node --test --test-concurrency=1 tests/e2e/auth-adoption-journey.test.mjs && pnpm run build:app && node scripts/agent-surface.mjs && node tests/agent-door/run.mjs",
     "test:move-in": "pnpm run test:move-in:cutover && pnpm run test:move-in:statuspage && pnpm run test:move-in:betterstack && pnpm run test:move-in:instatus && pnpm run test:move-in:sorry",
     "test:channels-and-presets": "node --test --test-concurrency=1 tests/e2e/channels-and-presets.test.mjs",
     "test:incident-brief": "node --test --test-concurrency=1 tests/e2e/incident-brief.test.mjs",

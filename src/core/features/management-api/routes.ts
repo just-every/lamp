@@ -8,8 +8,12 @@ import type { MetricsService } from "../metrics/service";
 import type { PublicWriteRateLimiter } from "../../platform/security/rate-limiter";
 import { TokenAuthorityError } from "./repository";
 import type { ManagementApiService } from "./service";
+import type { CallResult } from '../../../base/modules/agent-door/types.ts';
 const createSchema=z.object({name:z.string().trim().min(1).max(80),scopes:z.array(z.enum(["read","metrics:write"])).max(2).refine(scopes=>new Set(scopes).size===scopes.length).default([]),expiresInSeconds:z.number().int().min(1).max(365*86400).default(86400)}).strict();
-export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementApiService,metrics:MetricsService,limiter:PublicWriteRateLimiter,components:ComponentsService) {
+export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementApiService,_metrics:MetricsService,limiter:PublicWriteRateLimiter,_components:ComponentsService,invoke:(request:Request,name:string,args:Record<string,unknown>)=>Promise<CallResult>) {
+  const response = (result: CallResult) => result.outcome === 'done'
+    ? Response.json(result.result, { headers: { 'Cache-Control': 'no-store' } })
+    : Response.json({ code: result.code ?? 'approval_required', ...result }, { status: result.outcome === 'pending' ? 202 : result.code === 'unauthenticated' ? 401 : result.code === 'insufficient_scope' ? 403 : 409, headers: { 'Cache-Control': 'no-store' } });
   app.use("/api/app/management-tokens",async(c,next)=>{
     c.header("Cache-Control","no-store");
     if(!await service.isManager(c.get("operator").id))return c.json({error:"Only an Owner or Admin can manage tokens."},403);
@@ -40,11 +44,10 @@ export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementA
       c.header("Retry-After",String(60-Math.floor(Date.now()/1000)%60));
       return c.json({error:"This token's minute request limit was reached."},429);
     }
-    const body=resource === "components"
-      ? await Promise.all([components.list(),components.listGroups()]).then(([rows,groups])=>({components:rows,groups}))
-      : {metrics:await metrics.list()};
+    const admitted=await invoke(c.req.raw,resource==='components'?'lamp.components.list':'lamp.metrics.read',{});
+    if(admitted.outcome!=='done')return response(admitted);
     if(!await service.recordRead(authenticated.authority))return c.json({error:"A valid management token is required."},401);
-    return c.json(body);
+    return response(admitted);
   });
   app.post("/api/v1/metrics/:id/points",async c=>{
     c.header("Cache-Control","no-store");
@@ -57,7 +60,11 @@ export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementA
     }
     const id=ulidSchema.safeParse(c.req.param("id")),input=pointsSchema.safeParse(await c.req.json().catch(()=>null));
     if(!id.success||!input.success)return c.json({error:"Supply UTC minute aggregates as {points:[{at:epochMilliseconds,value:number}]}."},400);
-    try{return await metrics.push(id.data,input.data.points,authenticated.authority)?c.json({accepted:input.data.points.length}):c.json({error:"Metric not found."},404);}
+    try{
+      const bytes=new TextEncoder().encode(JSON.stringify([authenticated.token.id,id.data,input.data.points]));
+      const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(value=>value.toString(16).padStart(2,'0')).join('');
+      return response(await invoke(c.req.raw,'lamp.metrics.push',{id:id.data,...input.data,idempotency_key:c.req.header('Idempotency-Key')??`management:${digest}`}));
+    }
     catch(cause){return c.json({error:cause instanceof Error?cause.message:"Metric points could not be saved."},cause instanceof TokenAuthorityError?401:400);}
   });
 }

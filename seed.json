@@ -739,6 +739,12 @@
       "required": false,
       "secret": false,
       "why": "Twilio Messaging Service identifier used instead of a sending number when configured."
+    },
+    {
+      "name": "RER_BUSINESS_TRUST",
+      "required": false,
+      "secret": false,
+      "why": "Signed Business-settings trust for durable Business person IDs. Reuses installation trust; missing mappings do not authorize agent tokens."
     }
   ],
   "deploy": {

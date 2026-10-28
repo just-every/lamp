@@ -1,3 +1,4 @@
+import type { AgentAction } from "../incidents/agent-action";
 import { mostSevereState, type ComponentState } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
 import type { ComponentGroupInput, ComponentHistoryCorrectionInput, ComponentInput, ComponentUpdateInput, ComponentGroupUpdateInput } from "../../shared/schemas";
@@ -23,12 +24,12 @@ export interface ComponentsService {
   history(componentId: string): Promise<ComponentHistoryView | null>;
   get(componentId: string): Promise<ComponentView | null>;
   create(input: ComponentInput, operatorId: string): Promise<ComponentView>;
-  update(componentId: string, input: ComponentUpdateInput, expectedUpdatedAt?: string): Promise<ComponentView | null>;
+  update(componentId: string, input: ComponentUpdateInput, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<ComponentView | null>;
   remove(componentId: string, operatorId: string): Promise<boolean>;
   createGroup(input: ComponentGroupInput): Promise<{ id: string; name: string; displayOrder: number }>;
   updateGroup(groupId: string, input: ComponentGroupUpdateInput): Promise<boolean>;
   removeGroup(groupId: string, operatorId: string): Promise<boolean>;
-  setStandingClaim(componentId: string, state: ComponentState | null, operatorId: string): Promise<ComponentView | null>;
+  setStandingClaim(componentId: string, state: ComponentState | null, operatorId: string, agentAction?: AgentAction): Promise<ComponentView | null>;
   correctHistory(componentId: string, input: ComponentHistoryCorrectionInput, operatorId: string): Promise<void>;
   canReconstructHistoricalState(componentId: string, instant: string): Promise<boolean>;
   incidentClaimStateAt(componentId: string, incidentId: string, instant: string): Promise<ComponentState | null>;
@@ -63,6 +64,7 @@ export function createComponentsService(
         state: transition.newState,
         changedAt: changedAt ?? timestamp,
         cause: cause.type,
+        ...(cause.agentAction ? { agentAction: cause.agentAction } : {}),
       });
     }
     return transition?.newState ?? mostSevereState(await repository.listClaims(componentId));
@@ -123,8 +125,8 @@ export function createComponentsService(
       if (!component) throw new Error("Created component could not be read.");
       return toView(repository, { ...component, groupName: null });
     },
-    async update(componentId, input, expectedUpdatedAt) {
-      const updated = await repository.updateComponent(componentId, { ...input, updatedAt: nowIso() }, expectedUpdatedAt);
+    async update(componentId, input, expectedUpdatedAt, agentAction) {
+      const updated = await repository.updateComponent(componentId, { ...input, updatedAt: nowIso() }, expectedUpdatedAt, agentAction);
       if (!updated) return null;
       await onPublicDataChanged();
       const component = await repository.findComponent(componentId);
@@ -152,7 +154,7 @@ export function createComponentsService(
       if (removed) await onPublicDataChanged();
       return removed;
     },
-    async setStandingClaim(componentId, state, operatorId) {
+    async setStandingClaim(componentId, state, operatorId, agentAction) {
       const component = await repository.findComponent(componentId);
       if (!component) return null;
 
@@ -166,7 +168,7 @@ export function createComponentsService(
         updatedAt: timestamp,
         event: { id: createUlid(), componentId, causeType: "standing-claim", causeId: null, state, changedAt: timestamp, createdAt: timestamp, updatedAt: timestamp },
       });
-      await recomputePublicState(componentId, { type: "standing-claim", id: null, operatorId });
+      await recomputePublicState(componentId, { type: "standing-claim", id: null, operatorId, ...(agentAction ? { agentAction } : {}) });
       await onPublicDataChanged();
       return toView(repository, { ...component, groupName: null });
     },

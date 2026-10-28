@@ -27,7 +27,10 @@ export default {
   // bootstrap row the restore replaces.
   replaceableTables: ['public_snapshot_work', 'snapshot_build_control', 'reference_counters', 'page_settings', 'sms_settings'],
   includeTables: operatorContinuity,
-  excludeTables: ['subscriber_oauth_states', 'chat_link_codes', 'chat_previews', 'chat_requests', 'oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
+  // Restoring history must never re-admit queued agent effects, pending
+  // approvals or an old policy. Held native schedule markers travel so normal
+  // Cron cannot silently inherit the discarded agent queue's authority.
+  excludeTables: ['lamp_agent_jobs', 'agent_door_state', 'agent_door_calls', 'agent_door_approvals', 'agent_door_reviews', 'agent_door_usage', 'subscriber_oauth_states', 'chat_link_codes', 'chat_previews', 'chat_requests', 'oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
   requiredConfiguration: ['SETUP_TOKEN', 'SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'],
   // A PagerDuty source's sealed REST key never travels, as in the hosted archive
   // (scripts/export.mjs): the column stays, so earlier archives still restore, and

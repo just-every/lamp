@@ -121,6 +121,12 @@
           "title": "Slack and Teams incident desk",
           "source": "docs/chat-desk.md",
           "summary": "Link your chat identity and prepare signed incident commands."
+        },
+        {
+          "slug": "agents",
+          "title": "Agents and MCP",
+          "source": "docs/agents.md",
+          "summary": "Use the incident communicator under company policy, exact native versions and current operator authority."
         }
       ]
     },

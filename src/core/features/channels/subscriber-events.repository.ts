@@ -19,7 +19,7 @@ export function createChatEventRepository(db: D1Database) {
     async pending(limit:number,id?:string) {
       return (await db.prepare(`SELECT x.id,x.subscriber_id AS subscriberId,x.kind,d.kind AS channelKind,
         c.component_name AS componentName,c.previous_state AS previousState,c.new_state AS newState,c.changed_at AS changedAt,c.claimant_kind AS claimantKind,
-        n.agent_action_json AS agentActionJson,m.reference,m.title,n.kind AS noticeKind,n.body AS noticeBody,n.published_at AS publishedAt,p.timezone
+        COALESCE(n.agent_action_json,c.agent_action_json) AS agentActionJson,m.reference,m.title,n.kind AS noticeKind,n.body AS noticeBody,n.published_at AS publishedAt,p.timezone
         FROM channel_subscriber_events x JOIN subscriber_directory s ON s.id=x.subscriber_id AND s.state='active'
         JOIN delivery_channel_destinations d ON d.id=s.id AND d.removed_at IS NULL
         JOIN page_settings p ON p.id='default'

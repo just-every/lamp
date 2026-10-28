@@ -40,13 +40,13 @@ export function createLampDoorRepository(db: D1Database) {
       return { rows, statements, async afterCommit() {} };
     },
     async mapped(sub: string) {
-      const owner = await db.prepare('SELECT owner_id FROM bs_settings WHERE singleton=1 AND stopped=0').first<{ owner_id: string | null }>();
+      const owner = await db.prepare('SELECT owner_id FROM bs_settings WHERE singleton=1 AND stopped=0 AND document IS NOT NULL').first<{ owner_id: string | null }>();
       if (owner?.owner_id === sub) return (await this.owner())?.id ?? null;
       if (!owner) return null;
       return (await db.prepare("SELECT operator_id AS id FROM bs_team WHERE business_id=? AND state='active'").bind(sub).first<{ id: string }>())?.id ?? null;
     },
     async member(id: string) {
-      const settings = await db.prepare('SELECT owner_id FROM bs_settings WHERE singleton=1 AND stopped=0').first<{ owner_id: string | null }>();
+      const settings = await db.prepare('SELECT owner_id FROM bs_settings WHERE singleton=1 AND stopped=0 AND document IS NOT NULL').first<{ owner_id: string | null }>();
       if (!settings) return null;
       if ((await this.owner())?.id === id && settings.owner_id) return { id: settings.owner_id, role: 'owner' as const };
       const row = await db.prepare("SELECT business_id AS id,business_role AS role FROM bs_team WHERE operator_id=? AND state='active' AND business_id IS NOT NULL")
@@ -54,6 +54,7 @@ export function createLampDoorRepository(db: D1Database) {
       return row ? { id: row.id, role: row.role === 'admin' ? 'editor' as const : null } : null;
     },
     async liveClient(id: string, sponsor: string) {
+      id = id.startsWith('management-token:') ? id.slice('management-token:'.length) : id;
       return db.prepare(`SELECT t.id,t.name,t.read_scope AS readScope,t.scope,c.operator_version AS version,c.kind FROM management_tokens t
         JOIN oa_credentials c ON c.id=t.id JOIN oa_operators o ON o.id=c.operator_id
         WHERE t.id=? AND t.issuer_id=? AND c.operator_id=t.issuer_id AND o.status='active' AND o.role='owner'

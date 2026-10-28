@@ -1,0 +1,1700 @@
+{
+  "witness": {
+    "tool": "lamp.evidence.read",
+    "args": {}
+  },
+  "verification": {
+    "owner": {
+      "emailField": "SETUP_OPERATOR_EMAIL",
+      "initializer": "tests/agent-door/initialize-owner.mjs",
+      "bindings": {
+        "AUTH_ORIGIN": "appOrigin",
+        "SLACK_SIGNING_SECRET": "token"
+      }
+    },
+    "network": {
+      "module": "tests/agent-door/provider-edge.mjs",
+      "origins": [
+        "https://agent-model.example.invalid",
+        "https://hooks.slack.com"
+      ]
+    },
+    "journey": "tests/agent-door/specialist.mjs"
+  },
+  "journey": [
+    {
+      "id": "snapshot",
+      "tool": "lamp.evidence.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "public-component",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": null,
+        "description": "Customer-facing API requests",
+        "internal": false,
+        "displayOrder": 0,
+        "note": "",
+        "name": "Harbour API"
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        }
+      ]
+    },
+    {
+      "id": "private-component",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": null,
+        "description": "Customer-facing API requests",
+        "internal": true,
+        "displayOrder": 0,
+        "note": "",
+        "name": "Private responder checks"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "tool": "lamp.components.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ],
+      "inject": {
+        "confirmExternal": true,
+        "classes": [
+          "standard"
+        ],
+        "approved": true
+      }
+    },
+    {
+      "id": "private-read",
+      "tool": "lamp.components.read",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "public-read",
+      "tool": "lamp.components.read",
+      "args": {
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "private-claim",
+      "tool": "lamp.claims.update",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "state": "Degraded performance"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "public-claim",
+      "tool": "lamp.claims.update",
+      "args": {
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        },
+        "state": "Degraded performance"
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        }
+      ]
+    },
+    {
+      "id": "private-edit",
+      "tool": "lamp.components.update",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "component": {
+          "groupId": null,
+          "description": "Customer-facing API requests",
+          "internal": true,
+          "displayOrder": 0,
+          "note": "Current private evidence",
+          "name": "Private responder checks"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "visibility",
+      "tool": "lamp.components.update",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "component": {
+          "groupId": null,
+          "description": "Customer-facing API requests",
+          "internal": false,
+          "displayOrder": 0,
+          "note": "",
+          "name": "Responder check status"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "private-again",
+      "tool": "lamp.components.update",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "component": {
+          "groupId": null,
+          "description": "Customer-facing API requests",
+          "internal": true,
+          "displayOrder": 0,
+          "note": "",
+          "name": "Private responder checks"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "incident",
+      "tool": "lamp.incidents.create",
+      "args": {
+        "title": "API response delays",
+        "components": [
+          {
+            "componentId": {
+              "$from": "public-component",
+              "pointer": "/component/id"
+            },
+            "state": "Major outage",
+            "relationship": "Primary"
+          }
+        ],
+        "update": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "API customers",
+          "customerImpact": "Some API requests are delayed.",
+          "whatStillWorks": "The dashboard remains available.",
+          "details": "Responders are investigating the reported delay.",
+          "nextUpdateAt": "2026-10-30T12:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "note",
+      "tool": "lamp.incidents.note",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "body": "PRIVATE-DO-NOT-DISCLOSE: internal responder investigation."
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "incident-read",
+      "tool": "lamp.incidents.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "brief",
+      "tool": "lamp.incidents.brief",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "recovery",
+      "tool": "lamp.recovery.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "private-impact",
+      "tool": "lamp.impact.update",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "impactOverride": "Partially unavailable"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "saved-draft",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "incident-read",
+          "pointer": "/revision"
+        },
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "API customers",
+          "customerImpact": "Some API requests are delayed.",
+          "whatStillWorks": "The dashboard remains available.",
+          "details": "Responders are investigating the reported delay.",
+          "nextUpdateAt": "2026-10-30T12:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "updated-draft",
+      "tool": "lamp.incidents.update",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "saved-draft",
+          "pointer": "/revision"
+        },
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "API customers",
+          "customerImpact": "Some API requests are delayed.",
+          "whatStillWorks": "The dashboard remains available.",
+          "details": "Responders isolated a delayed API dependency.",
+          "nextUpdateAt": "2026-10-30T12:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "publication",
+      "tool": "lamp.incidents.publish",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "updated-draft",
+          "pointer": "/revision"
+        },
+        "channels": [
+          "email",
+          "chat",
+          "social",
+          "sms"
+        ]
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "published-impact",
+      "tool": "lamp.impact.update",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "impactOverride": null
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        }
+      ]
+    },
+    {
+      "id": "status",
+      "tool": "lamp.status.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "deliveries",
+      "tool": "lamp.deliveries.read",
+      "args": {
+        "incident_update_id": {
+          "$from": "publication",
+          "pointer": "/update/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "delivery-dispatch",
+      "tool": "lamp.deliveries.dispatch",
+      "args": {
+        "id": {
+          "$from": "deliveries",
+          "pointer": "/deliveries/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "inactive-delivery-dispatch",
+      "tool": "lamp.deliveries.dispatch",
+      "args": {
+        "id": {
+          "$from": "deliveries",
+          "pointer": "/deliveries/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "channels",
+      "tool": "lamp.channels.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "channel-consent",
+      "tool": "lamp.channels.update",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        },
+        "operatorAlerts": true
+      },
+      "expect": [
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "channel-test",
+      "tool": "lamp.channels.test",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "tool": "lamp.social.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "social-publication",
+      "tool": "lamp.social.publish",
+      "args": {
+        "id": {
+          "$from": "social",
+          "pointer": "/posts/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "social-dispatch",
+      "tool": "lamp.social.dispatch",
+      "args": {
+        "id": {
+          "$from": "social",
+          "pointer": "/posts/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "channel-dispatch",
+      "tool": "lamp.channels.dispatch",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/posts/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "sms-dispatch",
+      "tool": "lamp.sms.dispatch",
+      "args": {
+        "id": {
+          "$from": "deliveries",
+          "pointer": "/sms/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "inactive-sms-dispatch",
+      "tool": "lamp.sms.dispatch",
+      "args": {
+        "id": {
+          "$from": "deliveries",
+          "pointer": "/sms/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "responder-dispatch",
+      "tool": "lamp.responders.dispatch",
+      "args": {
+        "id": {
+          "$from": "deliveries",
+          "pointer": "/responders/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "post-publication",
+      "tool": "lamp.incidents.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "correction-draft",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "post-publication",
+          "pointer": "/revision"
+        },
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "API customers",
+          "customerImpact": "Some API requests are delayed.",
+          "whatStillWorks": "The dashboard remains available.",
+          "details": "Corrected scope: only the EU API is delayed.",
+          "nextUpdateAt": "2026-10-30T13:00:00.000Z",
+          "componentChanges": [
+            {
+              "componentId": {
+                "$from": "public-component",
+                "pointer": "/component/id"
+              },
+              "state": "Degraded performance",
+              "relationship": "Primary"
+            }
+          ]
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "correction",
+      "tool": "lamp.updates.correct",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "correction-draft",
+          "pointer": "/revision"
+        },
+        "updateId": {
+          "$from": "publication",
+          "pointer": "/update/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "correction-read",
+      "tool": "lamp.incidents.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "schedule",
+      "tool": "lamp.updates.schedule",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "correction-read",
+          "pointer": "/revision"
+        },
+        "publishAt": "2026-10-30T10:00:00.000Z",
+        "channels": [
+          "email"
+        ]
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "resolution-draft",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "schedule",
+          "pointer": "/revision"
+        },
+        "draft": {
+          "lifecycle": "Resolved",
+          "affectedAudience": "API customers",
+          "customerImpact": "Some API requests are delayed.",
+          "whatStillWorks": "The dashboard remains available.",
+          "details": "Independent checks confirm the retired endpoint is no longer used.",
+          "nextUpdateAt": null,
+          "componentChanges": [
+            {
+              "componentId": {
+                "$from": "public-component",
+                "pointer": "/component/id"
+              },
+              "state": "Operational",
+              "relationship": "Primary"
+            }
+          ]
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "resolution",
+      "tool": "lamp.incidents.resolve",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "draft_version": {
+          "$from": "resolution-draft",
+          "pointer": "/revision"
+        },
+        "channels": [
+          "email"
+        ],
+        "overrideReason": "Customer checks confirm recovery; the old monitor still checks the retired endpoint."
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "report-draft",
+      "tool": "lamp.reports.draft",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "report-read",
+      "tool": "lamp.reports.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "report-save",
+      "tool": "lamp.reports.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "report": {
+          "summary": "API requests were delayed.",
+          "timeline": "Responders isolated the dependency and checked recovery.",
+          "cause": "A retired dependency remained in the request path.",
+          "remediation": "Remove the retired dependency and retain an independent check."
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "report-publication",
+      "tool": "lamp.reports.publish",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "report_version": {
+          "$from": "report-save",
+          "pointer": "/revision"
+        },
+        "channels": []
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "API dependency maintenance",
+        "affectedAudience": "API customers",
+        "customerImpact": "Brief API delays are possible.",
+        "startsAt": "2026-10-30T10:00:00.000Z",
+        "endsAt": "2026-10-30T11:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "maintenance-read",
+      "tool": "lamp.maintenance.read",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "maintenance-update",
+      "tool": "lamp.maintenance.update",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        },
+        "startsAt": "2026-10-30T10:00:00.000Z",
+        "endsAt": "2026-10-30T11:30:00.000Z",
+        "autoStart": false,
+        "autoComplete": false
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "maintenance-start",
+      "tool": "lamp.maintenance.start",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "maintenance-complete",
+      "tool": "lamp.maintenance.complete",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "cancel-plan",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Cancelled maintenance",
+        "affectedAudience": "API customers",
+        "customerImpact": "Brief API delays are possible.",
+        "startsAt": "2026-10-30T10:00:00.000Z",
+        "endsAt": "2026-10-30T11:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "cancel",
+      "tool": "lamp.maintenance.cancel",
+      "args": {
+        "id": {
+          "$from": "cancel-plan",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "due-plan",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Due automatic maintenance",
+        "affectedAudience": "API customers",
+        "customerImpact": "Brief API delays are possible.",
+        "startsAt": "2026-10-01T10:00:00.000Z",
+        "endsAt": "2026-10-01T11:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": true,
+        "autoComplete": true
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "due-start",
+      "tool": "lamp.maintenance.autostart",
+      "args": {
+        "id": {
+          "$from": "due-plan",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "due-complete",
+      "tool": "lamp.maintenance.autocomplete",
+      "args": {
+        "id": {
+          "$from": "due-plan",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "reminder-plan",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Upcoming maintenance reminder",
+        "affectedAudience": "API customers",
+        "customerImpact": "Brief API delays are possible.",
+        "startsAt": "2026-10-29T08:00:00.000Z",
+        "endsAt": "2026-10-29T09:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "reminder",
+      "tool": "lamp.maintenance.remind",
+      "args": {
+        "id": {
+          "$from": "reminder-plan",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "commitment"
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "tool": "lamp.metrics.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "metric-config",
+      "tool": "lamp.metrics.update",
+      "args": {
+        "id": {
+          "$from": "metrics",
+          "pointer": "/metrics/0/id"
+        },
+        "patch": {
+          "credentials": {
+            "key": "synthetic-network-edge-only"
+          }
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "metric-points",
+      "tool": "lamp.metrics.push",
+      "args": {
+        "id": {
+          "$from": "metrics",
+          "pointer": "/metrics/1/id"
+        },
+        "points": [
+          {
+            "at": 1793188800000,
+            "value": 120
+          }
+        ]
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        }
+      ]
+    },
+    {
+      "id": "private-page",
+      "tool": "lamp.page.update",
+      "args": {
+        "settings": {
+          "pageName": "Harbour service status",
+          "tagline": "Current service and incident communication",
+          "accentColor": "#163c60",
+          "timezone": "UTC",
+          "hostname": "status.rer-hosted-check.invalid",
+          "footerCreditEnabled": false,
+          "aiToneInstructions": "Be concise and cite the native record."
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "public-page",
+      "tool": "lamp.page.update",
+      "args": {
+        "settings": {
+          "pageName": "Harbour service status",
+          "tagline": "Current API service status",
+          "accentColor": "#163c60",
+          "timezone": "UTC",
+          "hostname": "status.rer-hosted-check.invalid",
+          "footerCreditEnabled": false,
+          "aiToneInstructions": "Be concise and cite the native record.",
+          "widgetAllowedOrigins": [
+            "https://harbour.example.invalid"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "restore-page",
+      "tool": "lamp.page.update",
+      "args": {
+        "settings": {
+          "pageName": "Harbour service status",
+          "tagline": "Current service and incident communication",
+          "accentColor": "#163c60",
+          "timezone": "UTC",
+          "hostname": "status.rer-hosted-check.invalid",
+          "footerCreditEnabled": false,
+          "aiToneInstructions": "Be concise and cite the native record.",
+          "widgetAllowedOrigins": []
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        },
+        {
+          "class": "live"
+        },
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "intake",
+      "tool": "lamp.intake.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "source-mapping",
+      "tool": "lamp.intake.update",
+      "args": {
+        "id": {
+          "$from": "intake",
+          "pointer": "/sources/0/id"
+        },
+        "name": "API monitor"
+      },
+      "expect": [
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "tool": "lamp.ai.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "ai-check",
+      "tool": "lamp.ai.check",
+      "args": {},
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "ai-suggestion",
+      "tool": "lamp.ai.suggest",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "add-subscriber",
+      "tool": "lamp.subscribers.update",
+      "args": {
+        "channel": "email",
+        "email": "journey-recipient@example.test",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "existing-subscriber",
+      "tool": "lamp.subscribers.update",
+      "args": {
+        "channel": "email",
+        "email": "journey-recipient@example.test",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "subscribers",
+      "tool": "lamp.subscribers.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "imports",
+      "tool": "lamp.imports.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "invitations",
+      "tool": "lamp.subscribers.invite",
+      "args": {
+        "batch_id": {
+          "$from": "imports",
+          "pointer": "/batches/0/batchId"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "remove-subscriber",
+      "tool": "lamp.subscribers.remove",
+      "args": {
+        "id": {
+          "$from": "add-subscriber",
+          "pointer": "/subscriber/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive"
+        }
+      ]
+    },
+    {
+      "id": "privacy-subscriber",
+      "tool": "lamp.subscribers.update",
+      "args": {
+        "channel": "email",
+        "email": "privacy-recipient@example.test"
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "erase-subscriber",
+      "tool": "lamp.privacy.erase",
+      "args": {
+        "id": {
+          "$from": "privacy-subscriber",
+          "pointer": "/subscriber/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive"
+        }
+      ]
+    },
+    {
+      "id": "followups",
+      "tool": "lamp.followups.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "retry",
+      "tool": "lamp.followups.retry",
+      "args": {
+        "id": {
+          "$from": "followups",
+          "pointer": "/followUps/0/id"
+        },
+        "occurrence": {
+          "$from": "followups",
+          "pointer": "/followUps/0/occurrence"
+        }
+      },
+      "expect": [
+        {
+          "class": "external"
+        }
+      ]
+    },
+    {
+      "id": "dismiss",
+      "tool": "lamp.followups.dismiss",
+      "args": {
+        "id": {
+          "$from": "followups",
+          "pointer": "/followUps/1/id"
+        },
+        "occurrence": {
+          "$from": "followups",
+          "pointer": "/followUps/1/occurrence"
+        },
+        "reason": "The selected stale destination has been retired."
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "access",
+      "tool": "lamp.access.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "unlink",
+      "tool": "lamp.access.update",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/chatLinks/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "revoke",
+      "tool": "lamp.credentials.update",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/credentials/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "withdraw-channel",
+      "tool": "lamp.channels.update",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        },
+        "operatorAlerts": false
+      },
+      "expect": [
+        {
+          "class": "access"
+        },
+        {
+          "class": "security"
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "tool": "lamp.events.list",
+      "args": {
+        "limit": 200
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    }
+  ],
+  "escalations": [],
+  "narrowings": [
+    {
+      "tool": "lamp.access.update",
+      "step": "unlink",
+      "witness": {
+        "tool": "lamp.access.read",
+        "args": {
+          "id": {
+            "$from": "access",
+            "pointer": "/chatLinks/0/id"
+          }
+        },
+        "pointer": "/grants"
+      }
+    },
+    {
+      "tool": "lamp.credentials.update",
+      "step": "revoke",
+      "witness": {
+        "tool": "lamp.access.read",
+        "args": {
+          "id": {
+            "$from": "access",
+            "pointer": "/credentials/0/id"
+          }
+        },
+        "pointer": "/grants"
+      }
+    }
+  ]
+}
