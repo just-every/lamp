@@ -20,6 +20,7 @@ export async function incidentSubscriptionApiFlow() {
     const path=`/api/v1/incidents/${incident.id}/subscribers`,compat=`/v1/pages/default/incidents/${incident.id}/subscribers`;
     const call=(path,token,method="GET",body,oauth=false)=>raw(appOrigin+path,{method,headers:{Authorization:`${oauth?"OAuth":"Bearer"} ${token}`,...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{})});
     const state=async()=>({subscribers:(await db.prepare("SELECT * FROM subscribers ORDER BY id").all()).results,incident:(await db.prepare("SELECT * FROM incident_subscriptions ORDER BY subscriber_id").all()).results,tokens:(await api("/api/app/management-tokens")).body.tokens,audit:(await db.prepare("SELECT * FROM audit_entries ORDER BY id").all()).results,messages:messages.length});
+    assert.equal((await call("/api/v1/components",publicReader.token)).status,200,"existing public read tokens retain public component access");
     const before=await state();
     assert.equal((await call(path,publicReader.token)).status,403,"an existing public-data read scope does not expose subscriber addresses");
     assert.equal((await call("/api/v1/components",reader.token)).status,403,"a subscriber reader gains no unrelated read permission");
