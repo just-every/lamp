@@ -1,3 +1,4 @@
+import { twilioConfigured } from "../features/sms/twilio";
 import { createSocialService } from "../features/social/service";
 import { createTrafficStorage } from "../features/traffic-alerts/storage";
 import { createTrafficIncidentRepository } from "../features/traffic-alerts/repository";
@@ -52,7 +53,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const extensions = createServerExtensionMount();
   const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
   const snapshotOrigin = bindings.LAMP_LOCAL_ORIGIN ? publicPageOrigin(bindings.LAMP_LOCAL_ORIGIN, bindings.LAMP_PAGE_HOST) : undefined;
-  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
+  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin, twilioConfigured({accountSid:bindings.TWILIO_ACCOUNT_SID,authToken:bindings.TWILIO_AUTH_TOKEN,fromNumber:bindings.TWILIO_FROM_NUMBER,messagingService:bindings.TWILIO_MESSAGING_SERVICE})), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const metrics = createMetricsService(bindings.DB, async()=>{await publicSnapshots.retryPendingBuild();}, { webhookSecret: bindings.WEBHOOK_SIGNING_SECRET, effectsPaused: bindings.EFFECTS_PAUSED === "1" });
   const incidentImpact = createIncidentImpactService(createIncidentImpactRepository(bindings.DB), publicSnapshots.rebuild);
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS, bindings.MAIL_PROVIDER !== "rer");
@@ -118,7 +119,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forIncidentUpdate: async (input) => [
       ...responders.publicationStatements(input),
       ...(input.channels.includes("social") ? social.publicationStatements(input) : []),
-      ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
+      ...sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt,ordinaryEnabled:input.channels.includes("sms")}),
       ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
     ],
@@ -184,7 +185,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => [
       ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels.filter((channel):channel is "email"|"webhook"=>channel!=="sms"), queuedAt: input.queuedAt }),
-      ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.eventId,kind:"incident-report",incidentReportId:input.eventId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
+      ...sms.publicationStatements({eventId:input.eventId,kind:"incident-report",incidentReportId:input.eventId,componentIds:input.componentIds,queuedAt:input.queuedAt,ordinaryEnabled:input.channels.includes("sms")}),
     ],
   }, briefs, async ({ incidentId, reference, title, week }) => deliveries.queueOperatorAlert({
     eventId: `report-reminder/${incidentId}/${week}`,

@@ -1,10 +1,12 @@
+import { incidentResolutionReceiptStatements } from "../subscribers/incident-lifecycle.repository";
+import { incidentDispatchAllowedSql, incidentFinalDeliverySql } from "./subscriber-eligibility";
 import type { ComponentState } from "../../shared/domain";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { maintenance, deliveryRecords, operators, subscribers } from "../../shared/schema";
+import { maintenance, deliveryRecords, operators, subscriberDirectory as subscribers } from "../../shared/schema";
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
 import { createStatuspageWebhookRepository } from "./statuspage-webhook.repository";
@@ -118,7 +120,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
         SELECT component_event.id AS componentEventId, component_event.component_id AS componentId, component_event.component_name AS componentName, component_event.component_created_at AS componentCreatedAt, component_event.previous_state AS previousComponentState, component_event.new_state AS newComponentState, component_event.changed_at AS componentChangedAt, component_event.claimant_kind AS componentClaimantKind,
-          d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
+          d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, CASE WHEN ${incidentFinalDeliverySql("d.notification_event_id")} THEN 'active'
+            WHEN ${incidentDispatchAllowedSql("d.notification_event_id", "COALESCE(i.id,reportIncident.id)")} THEN s.state ELSE 'deactivated' END AS subscriberState, s.destination, s.contact_email AS contactEmail,
           COALESCE(s.webhook_format,'lamp') AS webhookFormat,COALESCE(i.id,reportIncident.id) AS statuspageIncidentId,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
@@ -262,14 +265,15 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return pending.results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
     },
     async markOutcome(deliveryId, outcome, outcomeAt, updatedAt) {
-      await binding.batch(updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]));
+      await binding.batch([...updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]), ...(outcome === "delivered" ? incidentResolutionReceiptStatements(binding,deliveryId,updatedAt) : [])]);
     },
     async markProviderOutcome(deliveryId, outcome, now) {
       const transition = outcome === "delivered" ? "outcome IN ('queued','failed')"
         : outcome === "bounced" ? "outcome IN ('queued','delivered','failed')" : "outcome IN ('queued','delivered','bounced','failed')";
-      const results=await binding.batch(updateStatements(`SET outcome=?,outcome_at=?,updated_at=? WHERE id=? AND ${transition}
-        AND NOT EXISTS(SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id AND a.local_capture_id IS NOT NULL)`,[outcome,now,now,deliveryId]));
-      return results.reduce((sum,row)=>sum+row.meta.changes,0)===1;
+      const results=await binding.batch([...updateStatements(`SET outcome=?,outcome_at=?,updated_at=? WHERE id=? AND ${transition}
+        AND NOT EXISTS(SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id AND a.local_capture_id IS NOT NULL)`,[outcome,now,now,deliveryId]),
+        ...(outcome === "delivered" ? incidentResolutionReceiptStatements(binding,deliveryId,now) : [])]);
+      return results.slice(0,deliveryTables.length).reduce((sum,row)=>sum+row.meta.changes,0)===1;
     },
     async freezeMailPayload(deliveryId, payloadJson) {
       const [,stored]=await binding.batch<{payloadJson:string|null}>([
@@ -284,17 +288,21 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       // Both scopes and their authoritative winners share one transaction. A
       // concurrent delivery reuses the committed tokens; a revoked token is
       // never reused, and an inactive/deleted subscriber gets no new links.
+      const terminalReport = `EXISTS(SELECT 1 FROM notification_deliveries terminal WHERE terminal.subscriber_id=subscribers.id
+        AND terminal.outcome='queued' AND ${incidentFinalDeliverySql("terminal.notification_event_id", "subscribers")})`;
+      const notificationAllowed = `(state='active' OR ${terminalReport})`;
+      const tokenAvailable = `(revoked_at IS NULL OR ${terminalReport})`;
       const insert = (scope: "manage" | "unsubscribe") => binding.prepare(`
         INSERT INTO subscriber_tokens (id, subscriber_id, scope, token_hash, expires_at, revoked_at, created_at, updated_at)
-        SELECT ?, id, ?, ?, NULL, NULL, ?, ? FROM subscriber_directory AS subscribers
-        WHERE id = ? AND state = 'active'
-          AND NOT EXISTS (SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL)
-      `).bind(candidates[scope].id, scope, candidates[scope].tokenHash, now, now, subscriberId, subscriberId, scope);
+        SELECT ?, id, ?, ?, NULL, CASE WHEN state='active' THEN NULL ELSE ? END, ?, ? FROM subscriber_directory AS subscribers
+        WHERE id = ? AND ${notificationAllowed}
+          AND NOT EXISTS (SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND ${tokenAvailable})
+      `).bind(candidates[scope].id, scope, candidates[scope].tokenHash, now, now, now, subscriberId, subscriberId, scope);
       const [, , stored] = await binding.batch<{ state: string; manage: string | null; unsubscribe: string | null }>([
         insert("manage"), insert("unsubscribe"),
-        binding.prepare(`SELECT state,
-          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'manage' AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1) AS manage,
-          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'unsubscribe' AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1) AS unsubscribe
+        binding.prepare(`SELECT CASE WHEN ${notificationAllowed} THEN 'active' ELSE state END AS state,
+          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'manage' AND ${tokenAvailable} ORDER BY created_at DESC,id DESC LIMIT 1) AS manage,
+          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'unsubscribe' AND ${tokenAvailable} ORDER BY created_at DESC,id DESC LIMIT 1) AS unsubscribe
           FROM subscriber_directory AS subscribers WHERE id = ?`).bind(subscriberId),
       ]);
       const row = stored.results[0];

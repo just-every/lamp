@@ -1,3 +1,4 @@
+import { incidentReportEndStatements } from "../subscribers/incident-lifecycle.repository";
 import { reportReminderEligibleSql } from "./reminder-eligibility";
 import { createUlid } from "../../shared/ids";
 
@@ -73,6 +74,7 @@ export function createReportRepository(binding: D1Database): ReportRepository {
             .bind(publishedAt, operatorId, publishedAt, incidentId, reportId, incidentId, report.summary, report.timeline, report.cause, report.remediation),
           guard,
           ...notificationStatements,
+          ...incidentReportEndStatements(binding,incidentId,reportId,publishedAt),
         ]);
       } catch {
         return false;

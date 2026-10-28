@@ -11,6 +11,7 @@ CREATE TABLE incident_subscriptions (
  incident_id TEXT NOT NULL REFERENCES incidents(id) ON DELETE RESTRICT,
  destination TEXT NOT NULL,
  include_report INTEGER NOT NULL DEFAULT 1 CHECK(include_report IN (0,1)),
+ resolution_at TEXT,
  resolution_delivered_at TEXT,
  ended_at TEXT,
  final_event_id TEXT,

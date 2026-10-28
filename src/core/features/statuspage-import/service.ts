@@ -108,6 +108,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     const last = Object.fromEntries(counters.results.map((row) => [row.namespace, Number(row.last_number)]));
     return {
       subscriberCounts: await createSubscriberLimitRepository(db).counts(),
+      incidentIncludeReport: (await db.prepare("SELECT include_report FROM incident_follow_settings WHERE id=1").first<{include_report:number}>())?.include_report !== 0,
       maxGroupOrder: Number(groups.results[0].value), maxComponentOrder: Number(components.results[0].value),
       lastReference: { INC: last.INC ?? 0, SCH: last.SCH ?? 0 },
       allocated: new Set(allocated.results.map((row) => String(row.reference))),

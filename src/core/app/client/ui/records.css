@@ -136,3 +136,9 @@
 
 .email-branding-settings > p { max-width: 75ch; }
 .email-branding-settings .settings-grid { margin-top: 20px; }
+
+/* Incident followers use the existing subscriber records at readable type sizes. */
+.incident-subscribers-card > h2 { margin: 0; padding: 20px 16px 12px; }
+.incident-subscribers-card > p { margin: 0; padding: 4px 16px 20px; }
+.incident-subscribers-card th, .incident-subscribers-card td small, .subscriber-table-card .incident-subscriber-row td small { font-size: 13px; }
+.incident-subscribers-card td::before, .subscriber-table-card .incident-subscriber-row td::before { font-size: 13px; }

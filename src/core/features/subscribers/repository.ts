@@ -1,3 +1,5 @@
+import { createIncidentSubscriptionLifecycleRepository } from "./incident-lifecycle.repository";
+import { createIncidentSubscriptionRepository } from "./incident.repository";
 import { createSubscriberPreferencesRepository } from "./preferences.repository";
 import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
 
@@ -21,6 +23,8 @@ export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
+  incidentLifecycle: ReturnType<typeof createIncidentSubscriptionLifecycleRepository>;
+  incidents: ReturnType<typeof createIncidentSubscriptionRepository>;
   preferences: ReturnType<typeof createSubscriberPreferencesRepository>;
   intake: SubscriberIntakeRepository;
   limits: ReturnType<typeof createSubscriberLimitRepository>;
@@ -37,7 +41,7 @@ export interface SubscriberRepository extends SubscriberTransitions {
   ensureManagedUnsubscribeToken(subscriberId: string, manageTokenHash: string, candidate: { id: string; tokenHash: string }, now: string): Promise<string | null>;
   revokeTokens(subscriberId: string, now: string, scope?: "confirm" | "manage" | "unsubscribe"): Promise<void>;
   deactivateSubscriber(subscriberId: string, reason: string, now: string): Promise<void>;
-  anonymizeAndDeactivate(subscriberId: string, operatorId: string, now: string): Promise<void>;
+  anonymizeAndDeactivate(subscriberId: string, operatorId: string | null, now: string): Promise<void>;
   /** Deletes expired unconfirmed subscribers, erasing at most `custodyErasures` of
    * those an import holds from its custody (each is its own D1 batch); the
    * rest wait for a later run. */
@@ -50,6 +54,8 @@ export interface SubscriberRepository extends SubscriberTransitions {
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
   const database = createDatabase(binding);
   return {
+    incidentLifecycle: createIncidentSubscriptionLifecycleRepository(binding),
+    incidents: createIncidentSubscriptionRepository(binding),
     preferences: createSubscriberPreferencesRepository(binding),
     intake: createSubscriberIntakeRepository(binding),
     limits: createSubscriberLimitRepository(binding),
@@ -73,7 +79,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       return (await database.select().from(subscriberDirectory).where(eq(subscriberDirectory.id, subscriberId)).get()) ?? null;
     },
     async findSubscriberByDestination(destination) {
-      return (await database.select().from(subscriberDirectory).where(eq(subscriberDirectory.destination, destination)).get()) ?? null;
+      return (await database.select().from(subscriberDirectory).where(and(eq(subscriberDirectory.destination, destination), sql`NOT EXISTS (SELECT 1 FROM incident_subscriptions f WHERE f.subscriber_id = ${subscriberDirectory.id})`)).get()) ?? null;
     },
     async findSubscriberByToken(tokenHash, scope, now) {
       const row = await database.select({ subscriber: subscriberDirectory, token: subscriberTokens }).from(subscriberTokens)
@@ -170,7 +176,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
     async anonymizeAndDeactivate(subscriberId, operatorId, now) {
       // Keep the opaque core identifier and the responsible operator, but no
       // personally identifying destination or contact address in the audit.
-      const subscriber = await database.select({ destination: subscribers.destination, contactEmail: subscribers.contactEmail }).from(subscribers).where(eq(subscribers.id, subscriberId)).get();
+      const subscriber = await database.select({ destination: subscriberDirectory.destination, contactEmail: subscriberDirectory.contactEmail }).from(subscriberDirectory).where(eq(subscriberDirectory.id, subscriberId)).get();
       if (!subscriber || subscriber.destination === `deleted:${subscriberId}`) return;
       const replacement = `deleted:${subscriberId}`;
       const personalValues = [...new Set([subscriber.destination, subscriber.contactEmail].filter((value): value is string => Boolean(value)))];
@@ -211,7 +217,9 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // An import's retained copies of this subscriber go in the same batch.
       const subject = { id: subscriberId, values: personalValues };
       if ((await subjectsInCustody(binding, [subject])).length) {
-        await retireSubscriberCustody(binding, subject, [...native, ...imported], [audit], { principalId: operatorId, authority: { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [operatorId] } });
+        await retireSubscriberCustody(binding, subject, [...native, ...imported], [audit], { principalId: operatorId ?? "lamp:incident-follow-expiry", authority: operatorId
+          ? { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [operatorId] }
+          : { sql: "EXISTS(SELECT 1 FROM incident_subscriptions WHERE subscriber_id=? AND ended_at<=?)", params: [subscriberId,new Date(Date.parse(now)-24*60*60*1000).toISOString()] } });
         return;
       }
       await binding.batch([...native, audit].map((statement) => binding.prepare(statement.sql).bind(...statement.params ?? [])));
