@@ -18,6 +18,12 @@ reviews and retained activity. A named person approves the exact saved summary
 and revision. Agent confirmations and imported text cannot approve an action.
 Pause and revoked sponsor, agent or consent stop the next agent effect.
 
+Record actions resolve their native target through the current authorized
+resource projection. Audit rows identify its kind and ID; pending summaries bind
+that same identity into the summary hash. Resource refusals expose their machine
+code in JSON-RPC `error.data.code`. Hidden and missing records both return
+`resource_unavailable` without disclosing whether a record exists.
+
 Native management credentials retain their original read or metric-point scopes
 and sponsoring operator. Credential issuance, recent email proof, chat identity
 linking, connection secrets and import apply retain their native person doors.
@@ -40,7 +46,8 @@ See [Native proof for protected changes](agent-native-proof.md) for the person p
    reasoned override. Prepare and publish the post-incident report from the record.
 
 Stale draft versions refuse before publication. Exact-key replay keeps one native
-effect; changed arguments conflict. Queued effects retain their agent, sponsor and
+effect; changed arguments conflict. Retries still check current admission, Pause
+and policy before returning a retained result. Queued effects retain their agent, sponsor and
 consent and recheck admission at final native dispatch. Maintenance preserves
 competing incident claims. Importing subscribers is silent; an explicit invitation
 is a separate policy-decided action and does not confirm subscriber consent.
