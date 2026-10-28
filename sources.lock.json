@@ -3060,7 +3060,7 @@
       "executable": false
     },
     "src/core/app/client/ui/alerts.css": {
-      "sha256": "5bb9ca04f9d3c8d1a18a76d3b97cc8790b2aaea01e1f4335676e4fb48a944b8d",
+      "sha256": "9e66cc86e58a5115211174a4ab7bf34366f3378f6ff79ccd16de8bc36eed8a4c",
       "executable": false
     },
     "src/core/app/client/ui/api.ts": {
@@ -6624,7 +6624,7 @@
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-browser-flow.mjs": {
-      "sha256": "fc211fe516855244e24fe18f1fbd08817d5642cf772508918b2a900cc2e6abfc",
+      "sha256": "87b891c079c91c58f2d517307dede9e3d53cc34c7dce41075951bd3b83ab35b5",
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-flow.mjs": {

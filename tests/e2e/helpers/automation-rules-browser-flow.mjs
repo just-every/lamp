@@ -62,6 +62,8 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     const rule = (await api("/api/app/intake/rules")).body.rules.find(row => row.sourceId === source.id && row.componentId === target.id);
     assert.equal(rule.mode, "claim-and-publish"); assert.equal(rule.templateId, template.id);
     assert.ok(rule.approvedByOperatorId && Number.isFinite(Date.parse(rule.updatedAt)));
+    const textSizes = await rules.locator(".state-pill, .character-count").evaluateAll(elements => elements.map(element => Number.parseFloat(getComputedStyle(element).fontSize)));
+    assert.ok(textSizes.length && textSizes.every(size => size >= 13), "rule badges and wording counters meet the 13px minimum at 1440");
     await audit("rule settings");
     const proof = process.env.LAMP_AUTO_SCREENSHOTS;
     if (proof) await mkdir(proof, { recursive: true });
