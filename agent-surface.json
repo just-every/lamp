@@ -1223,6 +1223,7 @@
     "lamp://components/{id}",
     "lamp://deliveries/{id}",
     "lamp://groups/{id}",
+    "lamp://imports/{id}/report",
     "lamp://incidents/{id}",
     "lamp://incidents/{id}/brief",
     "lamp://incidents/{id}/draft/{version}",

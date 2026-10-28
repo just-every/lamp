@@ -123,13 +123,16 @@ export function createAccessTools(services: AppServices, bindings: AppBindings):
 export function createAccessResources(services: AppServices, bindings: AppBindings): ResourceDefinition[] {
   const people = createPeopleAdapter(services, bindings), management = createManagementApiService(bindings.DB, services.auth), identities = createAgentIdentityRepository(bindings.DB);
   return [{uriTemplate: 'lamp://access/{id}', name: 'Native access metadata', scope: 'lamp.access.read', classes: ['standard'],
-    description: 'Current effective management scopes or the sponsoring person’s linked chat identity, without secret or chat-principal fields.',
+    description: 'Native operator status, effective management scopes or the sponsoring person’s linked chat identity, without secrets or chat-principal fields.',
     classify: () => [{class: 'standard', facts: {measure: 1}}],
     async read(uri, ctx) {
       if (!(await people.person(ctx.person.id))?.active) return null;
       const match = /^lamp:\/\/access\/([^/]+)$/.exec(uri);
       if (!match) return null;
       let id: string; try { id = decodeURIComponent(match[1]); } catch { return null; }
+      const operator = await identities.person(id);
+      if (operator) return {json:{id:operator.id,name:operator.displayName,role:operator.role,status:operator.status,
+        grants:operator.status === 'active' && operator.role === 'owner' ? ['native:owner'] : []}};
       const token = (await management.list()).find(row => row.id === id);
       if (token) return {json: {id, name: token.name, issuerId: token.issuerId, revokedAt: token.revokedAt,
         expiresAt: token.expiresAt, grants: await identities.credential(token.id, token.issuerId) ? token.scopes.map(scope => `management:${scope}`) : []}};

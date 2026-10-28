@@ -45,6 +45,23 @@ export function createCommunicationResources(services: AppServices, bindings: Ap
   const repository = createCommunicationRepository(bindings.DB);
   const classify: ResourceDefinition['classify'] = () => [{class: 'standard', facts: {measure: 1}}];
   return [{
+    uriTemplate: 'lamp://imports/{id}/report', name: 'Retained native import report', scope: 'lamp.access.read',
+    description: 'Read-only native Move in report and cutover accounting. Import apply, undo and invitations retain their explicit doors.',
+    classes: ['standard', 'sensitive'],
+    classify(record) {
+      const json = record.json as {report:{items:Array<{outcome:string;name:string}>}};
+      return json.report.items.some(item => item.outcome === 'kept-private' && item.name.trim())
+        ? [{class:'standard',facts:{measure:1}},{class:'sensitive',facts:{measure:1,kind:'protected import accounting'}}]
+        : [{class:'standard',facts:{measure:1}}];
+    },
+    async read(uri, ctx) {
+      if (!await repository.activeOperator(ctx.person.id)) return null;
+      const id = /^lamp:\/\/imports\/([^/?#]+)\/report$/.exec(uri)?.[1];
+      if (!id) return null;
+      try { return {json:await services.statuspageImport.readAgentReport(decodeURIComponent(id),ctx.person.id),untrusted:true}; }
+      catch { return null; }
+    },
+  }, {
     uriTemplate: 'lamp://subscribers/{id}', name: 'Subscriber consent and delivery selection', scope: 'lamp.subscribers.read',
     description: 'Native subscription state and selected components. No subscription tokens or webhook capability path.',
     classes: ['standard'], classify,

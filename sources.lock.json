@@ -452,7 +452,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "24c3f137c7f68d1541670ae3e27c3651eb12c7c95507da5981a7ecdfd5575644",
+      "sha256": "e504f21275cc595af817fe81b737b2c32235e78d0a97c7079e2fed358b754a0b",
       "executable": false
     },
     "AGENTS.md": {
@@ -532,7 +532,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "be55bc8ba575918b819dbeb28fd507b77ddb3f6e0a2e4012c26236a7c2daa06f",
+      "sha256": "e7c9b1bdd1035044b3f45e9730b4637ebfc2a2725a5117c184b5e84fcdae5e5c",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -4492,7 +4492,7 @@
       "executable": false
     },
     "src/core/features/agent-door/access.ts": {
-      "sha256": "424d75e4b8028af8979dad9cda1113d9983ffa0eb41b202383f9efa3927ed060",
+      "sha256": "dd878f9a71a7939083633c3e033800dc191640b9e4f75cca130550db3f176def",
       "executable": false
     },
     "src/core/features/agent-door/actor.ts": {
@@ -4516,7 +4516,7 @@
       "executable": false
     },
     "src/core/features/agent-door/communication-resources.ts": {
-      "sha256": "0086f1d945dc45af09ff4e55a07b7aa44d51e4a6c6f333960da5c18c9e80be08",
+      "sha256": "49eafd49b1cb9e976eb24dcfe6f6f10787ba8ec4d00ccb6461bf7330b936c36b",
       "executable": false
     },
     "src/core/features/agent-door/communications.repository.ts": {
@@ -4532,7 +4532,7 @@
       "executable": false
     },
     "src/core/features/agent-door/event-resource.ts": {
-      "sha256": "4d9d539672ab353cd949a64e660c6ddca898088151eb32a2f0e8a5c1e8aeae40",
+      "sha256": "21832a893a925eb6635261cd8c2df2bef8fc63f30d0481b63c35a5a1178f8ada",
       "executable": false
     },
     "src/core/features/agent-door/final-dispatch.ts": {
@@ -4592,7 +4592,7 @@
       "executable": false
     },
     "src/core/features/agent-door/person-events.ts": {
-      "sha256": "45857180aa15ef780d857d03a3a98729e75d7902ecda95911524d50938572cfe",
+      "sha256": "38651bed0f27e7ce74015aa296f0b6a94d6af36f1db40ca13cf30019421f3613",
       "executable": false
     },
     "src/core/features/agent-door/provenance.repository.ts": {
@@ -6260,7 +6260,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/service.ts": {
-      "sha256": "b2bd1fac8ab3fc6986c33a5c4769a0a54db48cf1c57911ac215f027bea9141fc",
+      "sha256": "cc42ccd239714131ed798f6e058f7a639626b2be05d38a99dc4d31e077493e2e",
       "executable": false
     },
     "src/core/features/statuspage-import/sorry-release.repository.ts": {
@@ -7776,7 +7776,7 @@
       "executable": false
     },
     "tests/betterstack/flow.test.mjs": {
-      "sha256": "7f5fd64e7237705925ea28898c201bb50a4c448778d5a29eb4472a266b5ab65f",
+      "sha256": "e51ac08e7f6f61337f53f995c002b8f7d23b5d22c6b20ac2f4729704f95a006c",
       "executable": false
     },
     "tests/betterstack/portability.mjs": {

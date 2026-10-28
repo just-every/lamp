@@ -4,7 +4,8 @@ import { createAgentWitnessRepository } from './witness.repository';
 /** Actual person API writes share the retained event vocabulary with tools. */
 export async function withNativePersonEvents(request: Request, db: D1Database, people: PeopleAdapter,
   door: AgentDoor, action: () => Promise<Response>) {
-  if (['GET','HEAD','OPTIONS'].includes(request.method) || !new URL(request.url).pathname.startsWith('/api/app/')) return action();
+  const path = new URL(request.url).pathname;
+  if (['GET','HEAD','OPTIONS'].includes(request.method) || !(path.startsWith('/api/app/') || path.startsWith('/api/operator/import/'))) return action();
   const person = await people.session(request);
   if (!person?.active) return action();
   const repository = createAgentWitnessRepository(db), before = await repository.snapshot();

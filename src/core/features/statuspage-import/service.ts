@@ -69,12 +69,15 @@ const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; 
 export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string; capturePublicFeeds?: (source: StatusFeedVendor, publicUrl: string) => Promise<SavedFile[]> } = {}) {
   /** An import Move in made before the door (the operator's own, by its source
    * namespace) or a door import of a listed source, under the session's authority. */
-  async function jobOf(id: string, actor: MoveInActor) {
+  async function jobForReader(id: string, operatorId: string, contextFor: (namespace: string, principalId: string) => D1ImportContext) {
     const row = await db.prepare(`SELECT j.namespace,j.principal_id,d.id AS plan_id,d.fingerprint,d.namespace AS source FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id WHERE j.id=? AND j.destination=?`).bind(id, DESTINATION).first<{ namespace: string; principal_id: string; plan_id: string | null; fingerprint: string | null; source: string | null }>();
     // A door import's principal is the installation's owner; any owner session reads it.
-    if (row?.plan_id && row.source && isImportSource(row.source)) return { context: importContext(db, actor, row.namespace, row.principal_id), door: { planId: row.plan_id, fingerprint: row.fingerprint!, namespace: row.source } };
-    if (row && !row.plan_id && row.principal_id === actor.operator.id && isImportSource(row.namespace)) return { context: importContext(db, actor, row.namespace), door: null };
+    if (row?.plan_id && row.source && isImportSource(row.source)) return { context: contextFor(row.namespace, row.principal_id), door: { planId: row.plan_id, fingerprint: row.fingerprint!, namespace: row.source } };
+    if (row && !row.plan_id && row.principal_id === operatorId && isImportSource(row.namespace)) return { context: contextFor(row.namespace, operatorId), door: null };
     throw new Error("Import not found.");
+  }
+  async function jobOf(id: string, actor: MoveInActor) {
+    return jobForReader(id, actor.operator.id, (namespace, principalId) => importContext(db, actor, namespace, principalId));
   }
   async function contextForJob(id: string, actor: MoveInActor) {
     return (await jobOf(id, actor)).context;
@@ -199,7 +202,9 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   }
 
   async function result(id: string, actor: MoveInActor): Promise<MoveInResult> {
-    const { context, door } = await jobOf(id, actor);
+    return readResult(id, await jobOf(id, actor));
+  }
+  async function readResult(id: string, { context, door }: Awaited<ReturnType<typeof jobOf>>): Promise<MoveInResult> {
     const job = await readD1ImportJob(id, context);
     const { plan } = await stored(id, context);
     const cutover = await readCutover(db, job.id, moveInPlan(plan));
@@ -304,6 +309,16 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       return { ...await result(id, actor), invites };
     },
     read: (id: string, actor: MoveInActor) => result(id, actor),
+    /** Read the same retained report as Move in under the door's current native
+     * person, without manufacturing a browser session or granting import apply.
+     * Historical pre-door jobs remain private to their original native owner. */
+    async readAgentReport(id: string, operatorId: string) {
+      const person = await db.prepare("SELECT version FROM oa_operators WHERE id=? AND role='owner' AND status='active'").bind(operatorId).first<{version:number}>();
+      if (!person) throw new Error('Import not found.');
+      const authority: D1Sql = {sql:"EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND role='owner' AND status='active')",params:[operatorId,person.version]};
+      const selected = await jobForReader(id, operatorId, (namespace, principalId) => doorPreparationContext(db, principalId, namespace, authority));
+      return readResult(id, selected);
+    },
     /** Move in's history: every door import, the owner's own and Business's,
      * with the operator's imports from before the door. */
     async list(actor: MoveInActor) {

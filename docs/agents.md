@@ -34,7 +34,7 @@ See [Native proof for protected changes](agent-native-proof.md) for the person p
 3. Publish that version under company policy. The summary names public wording,
    components, selected channels, recipients and promises. Configured native review
    rules still apply.
-4. Read native resources, public state and actual delivery outcomes. Provider
+4. Read native resources, public state and actual delivery outcomes. Retained import reports are available at `lamp://imports/{id}/report` with `lamp.access.read`; this does not grant import apply, undo or invitation authority. Provider
    acceptance and a person reading a notice remain separate facts.
 5. Resolve with current native recovery evidence or an explicitly permitted recorded
    reasoned override. Prepare and publish the post-incident report from the record.
@@ -148,6 +148,7 @@ configuration or a provider is unavailable.
 - `lamp://components/{id}`
 - `lamp://deliveries/{id}`
 - `lamp://groups/{id}`
+- `lamp://imports/{id}/report`
 - `lamp://incidents/{id}`
 - `lamp://incidents/{id}/brief`
 - `lamp://incidents/{id}/draft/{version}`
