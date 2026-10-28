@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "050253c2dc24bdef503ae767e43c88ff510ae92fc4cc6136bb295a97091b25ed",
+      "sha256": "18e6c2088b7c732fd18e8c8d9944b0044daba82cf5f30d911fdd2f0fac6f49f8",
       "executable": false
     },
     "AGENTS.md": {
@@ -468,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "40e2ce346b13520df5d978762a39276eee7f05cd6d80dde75a07a693395b282b",
+      "sha256": "486bed1bf0149d8f83dca150c0938b14e74bdb389cc7a6421a36cb62bb18ce65",
       "executable": false
     },
     "CLAUDE.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e3d9ba198aae853aa99c153cd601f7df82f25bceaa1f34d92e29f12f6f8370be",
+      "sha256": "07a63c8abe475aa35214e30698d18bfcc08d170c0d8230f4e4c86739a1a85fe3",
       "executable": false
     },
     "DEMO.md": {
@@ -548,11 +548,19 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "3a56e7ca3acb30c2522fecdbfac8ee93f647c2b7c4974aaddac65afb9537ea05",
+      "sha256": "b8bdcb619eb834ed83ac4dc447aedfb81ba407ac2e81a1dd8463873ac90164b0",
       "executable": false
     },
     "docs/components-and-groups.md": {
       "sha256": "19896b8409f2809613e8bca44e2c00090f389bb3389bd16b8b8740a5bd6eafb1",
+      "executable": false
+    },
+    "docs/contract/COVERAGE.json": {
+      "sha256": "999ee9d47f4cd2518a93f44af016e49ce370308effcf78e081b75c719f3b7edb",
+      "executable": false
+    },
+    "docs/contract/ID-MAP.json": {
+      "sha256": "4ab49d92dd3a08e6f816441d139f7dfb019de75bacf96d02ad910cd5ba3cabc0",
       "executable": false
     },
     "docs/deploy.md": {
@@ -617,6 +625,10 @@
     },
     "docs/updating.md": {
       "sha256": "5a67e1a1a7a8217ce7ed9bc59894d43b1b1dbf6162075ce7bdf33a21fe146ae3",
+      "executable": false
+    },
+    "docs/verify.md": {
+      "sha256": "050253c2dc24bdef503ae767e43c88ff510ae92fc4cc6136bb295a97091b25ed",
       "executable": false
     },
     "edition.json": {
@@ -2937,6 +2949,10 @@
     },
     "src/base/command-receipts.ts": {
       "sha256": "2f2411c94af00854c4d040ae74a8e6bd11da98308e7d5b0211473f46679d791a",
+      "executable": false
+    },
+    "src/base/contract-docs.mjs": {
+      "sha256": "d98e14f489c57f60446c2cc68310db09f298f7974d77026dbaa2c62868cc4838",
       "executable": false
     },
     "src/base/contract-filter.ts": {
