@@ -6,7 +6,7 @@
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
-    "sha256": "c52b4ddbfad26af8c28cdcad563e101f44d5a455a4f8133ca7235408c752a844"
+    "sha256": "fed741dc46728d88622e7852ec9816358019b74a9f12aee57818a843082e012e"
   },
   "components": [
     {
@@ -2240,11 +2240,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "edee61493a27d65ff906610927cdbfec0f82441cfc6bc5066c7f6b4b29a17086",
+      "sha256": "d2d1d1f3ec802d9b184b37a7b00848b73bf4a1eaa08df25c7ac2d81b11954e20",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "dbc60569cd6510e39517bc100bbf6c6561f09ce046de49b20b118fe269504575",
+      "sha256": "929ab598ac599d37770b67c3a55b6a8604231cc5d4b15a1bc9c05e260eb9c59b",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
