@@ -27,7 +27,7 @@ export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins" |
 export interface PageSettingsService {
   get(): Promise<PageSettingsView | null>;
   ensureInitial(settings: PageSettingsInput): Promise<void>;
-  update(settings: PageSettingsInput): Promise<PageSettingsView | null>;
+  update(settings: PageSettingsInput, expectedUpdatedAt?: string): Promise<PageSettingsView | null>;
   uploadLogo(input: { bytes: ArrayBuffer; contentType: string }, operatorId: string): Promise<PageSettingsView | null>;
   removeLogo(operatorId: string): Promise<PageSettingsView | null>;
 }
@@ -89,8 +89,9 @@ export function createPageSettingsService(
         updatedAt: timestamp,
       });
     },
-    async update(settings) {
+    async update(settings, expectedUpdatedAt) {
       const existing = await readRequired();
+      if (expectedUpdatedAt !== undefined && existing.updatedAt !== expectedUpdatedAt) throw new Error("Page settings changed. Reload them before editing.");
       const template = settings.template ?? existing.template;
       // Choosing Regions map needs two regions. A page that already chose it keeps that choice while regions change;
       // the public page then shows Calm headline and Settings says why.
@@ -112,7 +113,7 @@ export function createPageSettingsService(
         wordingBlockedTerms: settings.wordingBlockedTerms ? JSON.stringify(settings.wordingBlockedTerms) : existing.wordingBlockedTerms,
         wordingFriendlyLength: settings.wordingFriendlyLength ?? existing.wordingFriendlyLength,
         updatedAt: nowIso(),
-      });
+      }, expectedUpdatedAt);
       return rebuildAndRead();
     },
     async uploadLogo(input, operatorId) {

@@ -256,7 +256,7 @@ before(async () => {
   pageUrl = pageOrigin(testPort);
   rmSync(testStatePath, { recursive: true, force: true });
   rmSync(testViteCachePath, { recursive: true, force: true });
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", testStatePath], { cwd: process.cwd(), stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", testStatePath], { maxBuffer: 4 * 1024 * 1024, cwd: process.cwd(), stdio: "pipe" });
   // Configure this fixture before the Worker builds its initial public snapshot.
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
   server = spawn(process.execPath, [fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url)), "--configLoader", "native", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
@@ -982,7 +982,8 @@ test("MAINT-007 MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAIN
   const database = new DatabaseSync(":memory:");
   database.exec(`
     CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL);
-    CREATE TABLE maintenance_notices (id TEXT PRIMARY KEY, maintenance_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, published_at TEXT NOT NULL, author_operator_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE maintenance_notices (id TEXT PRIMARY KEY, maintenance_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, published_at TEXT NOT NULL, author_operator_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, agent_action_json TEXT);
+    CREATE TABLE lamp_agent_maintenance (maintenance_id TEXT PRIMARY KEY);
     CREATE TABLE audit_entries (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, action TEXT NOT NULL, operator_id TEXT, reason TEXT, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     INSERT INTO maintenance (id, state, starts_at, ends_at, completed_at, updated_at) VALUES ('maintenance-guard', 'Scheduled', '2026-09-08T00:00:00.000Z', '2026-09-08T00:30:00.000Z', NULL, '2026-09-08T00:00:00.000Z');
   `);

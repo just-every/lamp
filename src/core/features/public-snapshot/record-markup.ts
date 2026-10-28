@@ -19,8 +19,8 @@ export interface PublicIncident {
   openedAt: string;
   resolvedAt: string | null;
   components: string[];
-  updates: Array<{ componentChanges?: PublishedIncidentComponentChange[]; id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
-  report: { summary: string; timeline: string; cause: string; remediation: string; publishedAt: string } | null;
+  updates: Array<{ agentAction?: import("../incidents/agent-action").PublicAgentAction | null; componentChanges?: PublishedIncidentComponentChange[]; id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
+  report: { agentAction?: import("../incidents/agent-action").PublicAgentAction | null; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string } | null;
 }
 
 export interface PublicMaintenance {

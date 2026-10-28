@@ -1,3 +1,5 @@
+import type { AgentAction } from "../incidents/agent-action";
+import { agentActionLines, parseAgentAction } from "../incidents/agent-action";
 import type { DeliveryProtocol } from "../../../../modules/integrations/core/types.ts";
 import { hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { formatTime } from "../public-snapshot/format";
@@ -58,6 +60,44 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
   });
   const view = ({ sealedUrl: _sealed, ...channel }: ChannelDestination): ChannelView => channel;
 
+  let agentAdmission:((id:string,action:AgentAction,generation:string)=>Promise<boolean>)|undefined;
+  async function dispatchPosts(limit:number,targetId?:string,admitted=false) {
+      if (options.effectsPaused || options.unavailable) return;
+      const origin = await options.publicOrigin();
+      for (const post of await repository.pending(limit,targetId)) {
+        const saved=parseAgentAction(post.agentActionJson);
+        if(saved&&!admitted){if(agentAdmission)await agentAdmission(post.id,saved,String((await delivery.get(post.id))?.attempts??0));continue;}
+        const data: ChannelPostData = { agentAction: parseAgentAction(post.agentActionJson), incidentImpact: post.incidentImpact, reference: post.reference, title: post.title, lifecycle: post.lifecycle, customerImpact: post.customerImpact, affectedAudience: post.affectedAudience, whatStillWorks: post.whatStillWorks, details: post.details, nextUpdateAt: post.nextUpdateAt, timezone: post.timezone, componentChanges: parsePublishedComponentChanges(post.componentChangesJson), url: new URL(`/incidents/${encodeURIComponent(post.reference)}`, origin).href };
+        try {
+          await delivery.enqueue(post.kind === "slack"
+            ? { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: SLACK_WEBHOOK_PROTOCOL, body: JSON.stringify(renderChannelSlack(data)) }
+            : { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: TEAMS_WEBHOOK_PROTOCOL, body: teamsCard(data) });
+        } catch {
+          // The address or message failed its checks; nothing was sent. No URL or text is logged.
+          console.error(`Lamp could not queue channel post ${post.id}.`);
+        }
+      }
+      for(const event of await chatEvents.pending(limit,targetId)){
+        const saved=parseAgentAction(event.agentActionJson);
+        if(saved&&!admitted){if(agentAdmission)await agentAdmission(event.id,saved,String((await delivery.get(event.id))?.attempts??0));continue;}
+        const fields=event.kind==='component'
+          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${formatTime(event.changedAt!,event.timezone)} (${event.changedAt})`,`Claimant: ${event.claimantKind}`,...agentActionLines(parseAgentAction(event.agentActionJson))]
+          : [`${event.reference}: ${event.title}`,`Maintenance: ${event.noticeKind}`,event.noticeBody ?? '',...agentActionLines(parseAgentAction(event.agentActionJson)),`Published: ${formatTime(event.publishedAt!,event.timezone)} (${event.publishedAt})`];
+        await delivery.enqueue({id:event.id,tenant:NAMESPACE,destinationId:event.subscriberId,event:event.kind==='component'?'component.changed':'maintenance.notice',
+          protocol:event.channelKind==='slack'?SLACK_WEBHOOK_PROTOCOL:TEAMS_WEBHOOK_PROTOCOL,
+          body:event.channelKind==='slack'?JSON.stringify(renderLampSlackMessage(fields[0]!,fields)):teamsTestCard(fields.join('\n\n'))});
+      }
+      const result=[];
+      // Re-evaluate subscriber authority after every terminal receipt, before a
+      // later queued message can send to the same now-failing destination.
+      for(const id of targetId?[targetId]:await integrations.due(Date.now(),limit)){
+        const retained=await repository.dispatchRecord(id),saved=parseAgentAction(retained?.agentActionJson);
+        if(saved&&!admitted){if(agentAdmission)await agentAdmission(id,saved,String((await delivery.get(id))?.attempts??0));continue;}
+        result.push(await delivery.dispatch(id));
+        await chatSubscribers.deactivateFailing(nowIso());
+      }
+      return result;
+  }
   return {
     unavailable: options.unavailable ?? null,
     async list() { return (await repository.list()).map(view); },
@@ -79,11 +119,11 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
     setOperatorAlerts: (id: string, enabled: boolean, operatorId: string) => repository.setOperatorAlerts(id,enabled,operatorId,nowIso()),
     remove: (id: string, operatorId: string) => repository.remove(id, operatorId, nowIso()),
     /** Post one plainly labelled test message now, outside the durable update log, and report the provider's answer. */
-    async sendTest(id: string): Promise<{ sent: boolean; message: string } | null> {
+    async sendTest(id: string, attribution?: string): Promise<{ sent: boolean; message: string } | null> {
       if (options.unavailable) return { sent: false, message: options.unavailable };
       const destination = await repository.find(id);
       if (!destination) return null;
-      const text = `Test post from Lamp. Published incident updates for ${destination.selectionMode === "all" ? "every visible component" : "this channel's components"} will appear in ${destination.name}.`;
+      const text = `Test post from Lamp.${attribution ? ` Prepared by ${attribution}.` : ""} Published incident updates for ${destination.selectionMode === "all" ? "every visible component" : "this channel's components"} will appear in ${destination.name}.`;
       const body = destination.kind === "slack" ? JSON.stringify(renderLampSlackMessage(text, [text])) : teamsTestCard(text);
       const provider = destination.kind === "slack" ? "Slack" : "Teams";
       try {
@@ -122,37 +162,9 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
     maintenanceStatements: chatEvents.maintenanceStatements,
     log: (limit = 100) => repository.log(limit),
     /** Queue each committed post once, then send whatever is due. */
-    async dispatchPending(limit = 25) {
-      if (options.effectsPaused || options.unavailable) return;
-      const origin = await options.publicOrigin();
-      for (const post of await repository.pending(limit)) {
-        const data: ChannelPostData = { incidentImpact: post.incidentImpact, reference: post.reference, title: post.title, lifecycle: post.lifecycle, customerImpact: post.customerImpact, affectedAudience: post.affectedAudience, whatStillWorks: post.whatStillWorks, details: post.details, nextUpdateAt: post.nextUpdateAt, timezone: post.timezone, componentChanges: parsePublishedComponentChanges(post.componentChangesJson), url: new URL(`/incidents/${encodeURIComponent(post.reference)}`, origin).href };
-        try {
-          await delivery.enqueue(post.kind === "slack"
-            ? { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: SLACK_WEBHOOK_PROTOCOL, body: JSON.stringify(renderChannelSlack(data)) }
-            : { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: TEAMS_WEBHOOK_PROTOCOL, body: teamsCard(data) });
-        } catch {
-          // The address or message failed its checks; nothing was sent. No URL or text is logged.
-          console.error(`Lamp could not queue channel post ${post.id}.`);
-        }
-      }
-      for(const event of await chatEvents.pending(limit)){
-        const fields=event.kind==='component'
-          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${formatTime(event.changedAt!,event.timezone)} (${event.changedAt})`,`Claimant: ${event.claimantKind}`]
-          : [`${event.reference}: ${event.title}`,`Maintenance: ${event.noticeKind}`,event.noticeBody ?? '',`Published: ${formatTime(event.publishedAt!,event.timezone)} (${event.publishedAt})`];
-        await delivery.enqueue({id:event.id,tenant:NAMESPACE,destinationId:event.subscriberId,event:event.kind==='component'?'component.changed':'maintenance.notice',
-          protocol:event.channelKind==='slack'?SLACK_WEBHOOK_PROTOCOL:TEAMS_WEBHOOK_PROTOCOL,
-          body:event.channelKind==='slack'?JSON.stringify(renderLampSlackMessage(fields[0]!,fields)):teamsTestCard(fields.join('\n\n'))});
-      }
-      const result=[];
-      // Re-evaluate subscriber authority after every terminal receipt, before a
-      // later queued message can send to the same now-failing destination.
-      for(const id of await integrations.due(Date.now(),limit)){
-        result.push(await delivery.dispatch(id));
-        await chatSubscribers.deactivateFailing(nowIso());
-      }
-      return result;
-    },
+    setAgentAdmission(admit:(id:string,action:AgentAction,generation:string)=>Promise<boolean>){agentAdmission=admit;},
+    dispatchPending:(limit=25)=>dispatchPosts(limit),
+    dispatchAdmittedPost:(id:string)=>dispatchPosts(1,id,true),
   };
 }
 export type ChannelsService = ReturnType<typeof createChannelsService>;

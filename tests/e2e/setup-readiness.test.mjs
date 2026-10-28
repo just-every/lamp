@@ -37,7 +37,7 @@ test('SETUP-001 Lamp checks its page at 1440 and 390: local mail stays quiet, Ma
     const port = await reservePort({ label: 'Setup checklist Worker' });
     origin = appOrigin(port);
     publicOrigin = pageOrigin(port);
-    execFileSync('pnpm', ['exec','wrangler','d1','migrations','apply','DB','--local','--config','wrangler.jsonc','--persist-to',state], { stdio: 'pipe' });
+    execFileSync('pnpm', ['exec','wrangler','d1','migrations','apply','DB','--local','--config','wrangler.jsonc','--persist-to',state], { maxBuffer: 4 * 1024 * 1024, stdio: 'pipe' });
     // This journey supplies neutral settings below; the session helper's
     // default branded settings would occupy the same page_settings row.
     const sessionId = await insertRealOperatorSession({ persistTo: state, pageSettings: false });

@@ -1,3 +1,5 @@
+import type { AgentAction } from "../incidents/agent-action";
+import { agentActionLines, parseAgentAction, publicAgentAction } from "../incidents/agent-action";
 import { resolveSlackWebhook } from "../../../../modules/integrations/slack/protocol.ts";
 import { classifySlackIncomingWebhook } from "../../../../modules/integrations/slack/classify.ts";
 import { renderSubscriberSlackMessage } from "./slack-message";
@@ -31,6 +33,9 @@ export interface DeliveriesService {
   dispatchDue(origin: string, limit?: number): Promise<void>;
   dispatchEvent(eventId: string, origin: string): Promise<void>;
   dispatchDelivery(deliveryId: string, origin: string): Promise<void>;
+  /** Server composition wires current policy admission for native queued agent work. */
+  setAgentAdmission(admit: (id: string, action: AgentAction, generation: string) => Promise<boolean>): void;
+  dispatchAdmittedDelivery(deliveryId: string, origin: string): Promise<void>;
   handleProviderEvent(input: { id: string; providerMessageId: string | null; type: "delivered" | "bounced" | "complained"; hardBounce?: boolean }): Promise<void>;
   queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }): Promise<void>;
 }
@@ -85,6 +90,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
     `Start: ${starts}`,
     `End: ${ends}`,
     delivery.maintenanceNoticeBody ?? "",
+    ...agentActionLines(parseAgentAction(delivery.agentActionJson)),
   ].filter(Boolean).join("\n\n");
   return { email: { subject: `[${delivery.maintenanceReference}] ${kind}: ${delivery.maintenanceTitle}`, plainText } };
 }
@@ -96,6 +102,7 @@ export function createDeliveriesService(
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
   const pageRollup = options.pageStatusRollup ?? defaultPageStatusRollup;
+  let agentAdmission: ((id: string, action: AgentAction, generation: string) => Promise<boolean>) | undefined;
 
   async function emitAfterCommit(callback: () => Promise<void>) {
     try {
@@ -201,11 +208,11 @@ export function createDeliveriesService(
       const manageUrl = new URL(`/manage/${encodeURIComponent(manage)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe)}`, origin).toString();
       const rendered = delivery.componentEventId
-        ? { email: { subject: `${delivery.componentName}: ${delivery.newComponentState}`, plainText: `${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}\n\nChanged: ${displayNotificationTime(delivery.componentChangedAt!, delivery.timezone)}\nClaimant: ${delivery.componentClaimantKind}` } }
+        ? { email: { subject: `${delivery.componentName}: ${delivery.newComponentState}`, plainText: [`${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}\n\nChanged: ${displayNotificationTime(delivery.componentChangedAt!, delivery.timezone)}\nClaimant: ${delivery.componentClaimantKind}`, ...agentActionLines(parseAgentAction(delivery.agentActionJson))].join("\n\n") } }
         : delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
-        ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]), ...[["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]].flatMap(([label, value]) => value?.trim() ? [`${label}: ${value}`] : [])].join("\n\n") } }
+        ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]), ...[["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]].flatMap(([label, value]) => value?.trim() ? [`${label}: ${value}`] : []), ...agentActionLines(parseAgentAction(delivery.agentActionJson))].join("\n\n") } }
         : delivery.incidentUpdateId !== null && delivery.incidentReference !== null && delivery.incidentTitle !== null && delivery.lifecycle !== null && delivery.affectedAudience !== null && delivery.customerImpact !== null
-          ? renderNotificationUpdate({ incidentImpact: delivery.incidentImpact, incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
+          ? renderNotificationUpdate({ agentAction: parseAgentAction(delivery.agentActionJson), incidentImpact: delivery.incidentImpact, incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
           : renderMaintenanceNotice(delivery);
       if (!rendered) throw permanentDeliveryError("This notification event has no supported rendered content.");
       const host = new URL(origin).host;
@@ -253,10 +260,10 @@ export function createDeliveriesService(
     const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
     const incidentEvent = !statuspage && !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
     const event = delivery.componentEventId
-      ? { event: "component.changed", deliveryId: delivery.id, component: { id: delivery.componentId, name: delivery.componentName, previousState: delivery.previousComponentState, state: delivery.newComponentState, changedAt: delivery.componentChangedAt, claimantKind: delivery.componentClaimantKind } }
+      ? { event: "component.changed", deliveryId: delivery.id, ...(delivery.agentActionJson ? { agentAction: publicAgentAction(parseAgentAction(delivery.agentActionJson)) } : {}), component: { id: delivery.componentId, name: delivery.componentName, previousState: delivery.previousComponentState, state: delivery.newComponentState, changedAt: delivery.componentChangedAt, claimantKind: delivery.componentClaimantKind } }
       : incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
-      : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
+      : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, ...(delivery.agentActionJson ? { agentAction: publicAgentAction(parseAgentAction(delivery.agentActionJson)) } : {}), incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
     let payload:unknown;
     if(statuspage) {
       const links=await stableTokens(delivery.subscriberId);
@@ -381,7 +388,20 @@ export function createDeliveriesService(
       if (firstFailure) throw firstFailure;
       await repository.completeOutboxForEvent(eventId, nowIso());
     },
+    setAgentAdmission(admit) { agentAdmission = admit; },
     async dispatchDelivery(deliveryId, origin) {
+      if (options.effectsPaused) return;
+      const retained = await repository.getDelivery(deliveryId);
+      const action = parseAgentAction(retained?.agentActionJson);
+      if (action) {
+        // Missing composition fails closed. Refusal retains native outbox and
+        // provider custody; it does not manufacture an attempted send.
+        if (agentAdmission) await agentAdmission(deliveryId, action, String(await repository.getAttemptCount(deliveryId)));
+        return;
+      }
+      await this.dispatchAdmittedDelivery(deliveryId, origin);
+    },
+    async dispatchAdmittedDelivery(deliveryId, origin) {
       if (options.effectsPaused) return;
       const claimAt = nowIso();
       const reclaimBefore = new Date(Date.now() - DELIVERY_CLAIM_MS).toISOString();

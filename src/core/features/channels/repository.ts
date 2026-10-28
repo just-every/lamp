@@ -5,7 +5,7 @@ import type { IncidentLifecycle } from "../../shared/domain";
 
 export type ChannelKind = "slack" | "teams";
 export interface ChannelDestination { id: string; kind: ChannelKind; name: string; sealedUrl: string; host: string; selectionMode: "all" | "selected"; createdAt: string; operatorAlerts: boolean; operatorManaged?: boolean; componentIds: string[] }
-export interface PendingPost { incidentImpact: IncidentImpact | null; componentChangesJson: string; id: string; destinationId: string; kind: ChannelKind; incidentUpdateId: string; reference: string; title: string; lifecycle: IncidentLifecycle; customerImpact: string; affectedAudience: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; timezone: string; publishedAt: string }
+export interface PendingPost { agentActionJson?: string | null; incidentImpact: IncidentImpact | null; componentChangesJson: string; id: string; destinationId: string; kind: ChannelKind; incidentUpdateId: string; reference: string; title: string; lifecycle: IncidentLifecycle; customerImpact: string; affectedAudience: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; timezone: string; publishedAt: string }
 
 /** Slack and Teams channels a page posts its incident updates to, and the
  * posts each published update committed to them. */
@@ -58,11 +58,25 @@ export function createChannelRepository(db: D1Database) {
           OR (COALESCE((SELECT cs.selection_mode FROM subscriber_directory cs WHERE cs.id=d.id),d.selection_mode) = 'selected' AND (EXISTS (SELECT 1 FROM channel_destination_components s JOIN components c ON c.id = s.component_id WHERE s.destination_id = d.id AND NOT EXISTS(SELECT 1 FROM subscriber_directory cs WHERE cs.id=d.id) AND s.component_id IN (${placeholders}) AND c.internal = 0) OR EXISTS(SELECT 1 FROM subscriber_components s JOIN components c ON c.id=s.component_id WHERE s.subscriber_id=d.id AND s.component_id IN (${placeholders}) AND c.internal=0))))`)
         .bind(input.updateId, input.updateId, input.queuedAt,input.updateId, ...input.componentIds, ...input.componentIds,...input.componentIds));
     },
-    async pending(limit: number): Promise<PendingPost[]> {
-      return (await db.prepare(`SELECT p.id, p.incident_impact AS incidentImpact, p.destination_id AS destinationId, d.kind, p.incident_update_id AS incidentUpdateId, i.reference, i.title, u.lifecycle, u.customer_impact AS customerImpact, u.affected_audience AS affectedAudience, u.published_at AS publishedAt, u.component_changes_json AS componentChangesJson, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, settings.timezone
+    async pending(limit: number, id?: string): Promise<PendingPost[]> {
+      return (await db.prepare(`SELECT p.id, u.agent_action_json AS agentActionJson, p.incident_impact AS incidentImpact, p.destination_id AS destinationId, d.kind, p.incident_update_id AS incidentUpdateId, i.reference, i.title, u.lifecycle, u.customer_impact AS customerImpact, u.affected_audience AS affectedAudience, u.published_at AS publishedAt, u.component_changes_json AS componentChangesJson, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, settings.timezone
         FROM delivery_channel_posts p JOIN delivery_channel_destinations d ON d.id = p.destination_id JOIN incident_updates u ON u.id = p.incident_update_id JOIN incidents i ON i.id = u.incident_id JOIN page_settings settings ON settings.id = 'default'
-        WHERE d.removed_at IS NULL AND (d.created_by_operator_id IS NOT NULL OR EXISTS(SELECT 1 FROM subscriber_directory own WHERE own.id=d.id AND own.state='active')) AND NOT EXISTS(SELECT 1 FROM subscriber_directory cs WHERE cs.id=d.id AND cs.state<>'active') AND i.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM integration_deliveries x WHERE x.namespace = 'lamp-channels' AND x.id = p.id)
-        ORDER BY p.queued_at, p.id LIMIT ?`).bind(limit).all<PendingPost>()).results;
+        WHERE (? IS NULL OR p.id=?) AND d.removed_at IS NULL AND (d.created_by_operator_id IS NOT NULL OR EXISTS(SELECT 1 FROM subscriber_directory own WHERE own.id=d.id AND own.state='active')) AND NOT EXISTS(SELECT 1 FROM subscriber_directory cs WHERE cs.id=d.id AND cs.state<>'active') AND i.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM integration_deliveries x WHERE x.namespace = 'lamp-channels' AND x.id = p.id)
+        ORDER BY p.queued_at, p.id LIMIT ?`).bind(id??null,id??null,limit).all<PendingPost>()).results;
+    },
+    async dispatchRecord(id:string) {
+      return db.prepare(`SELECT p.id,u.agent_action_json AS agentActionJson,d.id AS destinationId,d.name,d.kind,i.reference,u.customer_impact AS wording,x.state,COALESCE(x.attempts,0) AS attempts
+        FROM delivery_channel_posts p JOIN delivery_channel_destinations d ON d.id=p.destination_id
+        JOIN incident_updates u ON u.id=p.incident_update_id JOIN incidents i ON i.id=u.incident_id
+        LEFT JOIN integration_deliveries x ON x.namespace='lamp-channels' AND x.id=p.id WHERE p.id=?
+        UNION ALL
+        SELECT e.id,COALESCE(n.agent_action_json,c.agent_action_json) AS agentActionJson,d.id AS destinationId,d.name,d.kind,COALESCE(m.reference,c.component_name) AS reference,COALESCE(n.body,c.new_state) AS wording,x.state,COALESCE(x.attempts,0) AS attempts
+        FROM channel_subscriber_events e JOIN delivery_channel_destinations d ON d.id=e.subscriber_id
+        LEFT JOIN maintenance_notices n ON n.id=e.event_id AND e.kind='maintenance'
+        LEFT JOIN component_notification_events c ON c.id=e.event_id AND e.kind='component'
+        LEFT JOIN maintenance m ON m.id=n.maintenance_id
+        LEFT JOIN integration_deliveries x ON x.namespace='lamp-channels' AND x.id=e.id WHERE e.id=? LIMIT 1`)
+        .bind(id,id).first<{id:string;agentActionJson:string|null;destinationId:string;name:string;kind:string;reference:string|null;wording:string|null;state:string|null;attempts:number}>();
     },
     async log(limit: number) {
       return (await db.prepare(`SELECT p.id, d.name AS channel, d.kind, i.reference, p.queued_at AS queuedAt, coalesce(x.state, 'queued') AS state, x.attempts

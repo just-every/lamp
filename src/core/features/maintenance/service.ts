@@ -1,3 +1,4 @@
+import type { AgentAction } from "../incidents/agent-action";
 import { renderMaintenanceWording } from "../../shared/update-renderer";
 import { defaultMaintenanceAutomation, type MaintenanceAutomation } from "./automation.repository";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -25,11 +26,14 @@ export interface MaintenanceService {
   list(): Promise<MaintenanceView[]>;
   getAutomationDefault(): Promise<MaintenanceAutomation>;
   saveAutomationDefault(value: MaintenanceAutomation): Promise<MaintenanceAutomation>;
-  create(input: MaintenanceInput, operatorId: string): Promise<MaintenanceView>;
-  start(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
-  reschedule(maintenanceId: string, input: Pick<MaintenanceInput, "startsAt" | "endsAt" | "autoStart" | "autoComplete" | "social"> & Partial<Pick<MaintenanceInput, "affectedAudience" | "customerImpact">>, operatorId: string): Promise<MaintenanceView | null>;
-  cancel(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
-  complete(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
+  create(input: MaintenanceInput, operatorId: string, agentAction?: AgentAction): Promise<MaintenanceView>;
+  start(maintenanceId: string, operatorId: string, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<MaintenanceView | null>;
+  reschedule(maintenanceId: string, input: Pick<MaintenanceInput, "startsAt" | "endsAt" | "autoStart" | "autoComplete" | "social"> & Partial<Pick<MaintenanceInput, "affectedAudience" | "customerImpact">>, operatorId: string, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<MaintenanceView | null>;
+  cancel(maintenanceId: string, operatorId: string, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<MaintenanceView | null>;
+  complete(maintenanceId: string, operatorId: string, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<MaintenanceView | null>;
+  autostart(maintenanceId: string, operatorId: string, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<MaintenanceView | null>;
+  autocomplete(maintenanceId: string, operatorId: string, expectedUpdatedAt?: string, agentAction?: AgentAction): Promise<MaintenanceView | null>;
+  remind(maintenanceId: string, operatorId: string, expectedUpdatedAt: string, agentAction: AgentAction): Promise<MaintenanceView | null>;
   finishCompletion(maintenanceId: string, operatorId: string): Promise<void>;
   runDue(now?: string): Promise<{ started: string[]; completed: string[]; reminded: string[] }>;
   refreshPublic(): Promise<void>;
@@ -73,9 +77,9 @@ export function createMaintenanceService(
     ]);
     return { ...record, ...automation, components, notices, importedUpdates, overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now() };
   };
-  const prepareNotice = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous", social=false) => {
+  const prepareNotice = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous", social=false, agentAction?: AgentAction) => {
     if (!notificationStatements) throw new Error("Maintenance notification transaction wiring is required.");
-    const timestamp = nowIso(); const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
+    const timestamp = nowIso(); const notice: MaintenanceNotice = { ...(agentAction ? { agentAction } : {}), id: createUlid(), maintenanceId: record.id, kind, body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
     const previousEventIds = recipientScope === "previous" ? (await repository.listNotices(record.id)).map((prior) => prior.id) : [];
     const statements = await notificationStatements.forMaintenanceNotice({ eventId: notice.id, maintenanceId: record.id, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), kind, queuedAt: timestamp, recipientScope, previousEventIds, social });
     return { notice, statements };
@@ -83,6 +87,33 @@ export function createMaintenanceService(
   const notify = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous") => {
     const { notice, statements } = await prepareNotice(record, components, kind, operatorId, recipientScope);
     return repository.writeNotice(notice, statements);
+  };
+  const startTransition = async (maintenanceId: string, operatorId: string, automatic: boolean, expectedUpdatedAt?: string, agentAction?: AgentAction) => {
+    const record = await repository.find(maintenanceId); if (!record) return null;
+    if (expectedUpdatedAt !== undefined && record.updatedAt !== expectedUpdatedAt) throw new Error("The maintenance changed. Reload it before editing.");
+    const automation = await repository.automation.get(maintenanceId);
+    if (record.state !== "Scheduled" || automation.autoStart !== automatic) throw new Error(automatic ? "Automatic start is not enabled for this scheduled maintenance." : "Only scheduled maintenance with auto-start off can be started by this action.");
+    if (automatic && (!agentAction || !await repository.agentOwned(maintenanceId) || Date.parse(record.startsAt) > Date.now())) throw new Error("Agent maintenance has not reached its current authorized start time.");
+    const timestamp = nowIso(), components = await repository.listComponents(maintenanceId);
+    const changed = { ...record, state: "In progress" as const, updatedAt: timestamp };
+    const { notice, statements } = await prepareNotice(changed, components, "started", operatorId, "eligible", false, agentAction);
+    if (!await repository.transitionWithNotice(maintenanceId, "Scheduled", "In progress", null, timestamp, notice, statements, { startsAt: record.startsAt, endsAt: record.endsAt, autoStart: automatic }, expectedUpdatedAt ?? record.updatedAt, automatic)) throw new Error("The maintenance changed before it could be started.");
+    await Promise.all(components.flatMap(component => component.componentId ? [componentsService.recomputePublicState(component.componentId, {type: "maintenance", id: maintenanceId, operatorId, ...(agentAction ? { agentAction } : {})}, timestamp)] : []));
+    await events?.maintenanceStarted({ maintenanceId, reference: record.reference, state: "In progress", occurredAt: timestamp });
+    await onPublicDataChanged();
+    return view((await repository.find(maintenanceId))!);
+  };
+  const completeTransition = async (maintenanceId: string, operatorId: string, automatic: boolean, expectedUpdatedAt?: string, agentAction?: AgentAction) => {
+    const record = await repository.find(maintenanceId); if (!record) return null;
+    if (expectedUpdatedAt !== undefined && record.updatedAt !== expectedUpdatedAt) throw new Error("The maintenance changed. Reload it before editing.");
+    const automation = await repository.automation.get(maintenanceId);
+    if (automatic && (!automation.autoComplete || !agentAction || !await repository.agentOwned(maintenanceId) || Date.parse(record.endsAt) > Date.now())) throw new Error("Agent maintenance has not reached its current authorized completion time.");
+    const timestamp = nowIso(), components = await repository.listComponents(maintenanceId);
+    const changed = { ...record, state: "Completed" as const, completedAt: timestamp, updatedAt: timestamp };
+    const { notice, statements } = await prepareNotice(changed, components, "completed", operatorId, "eligible", false, agentAction);
+    if (!await repository.transitionWithNotice(maintenanceId, "In progress", "Completed", timestamp, timestamp, notice, statements, automatic ? { startsAt: record.startsAt, endsAt: record.endsAt, autoComplete: true } : undefined, expectedUpdatedAt ?? record.updatedAt, automatic)) throw new Error("Only in-progress unchanged maintenance can be completed.");
+    await events?.maintenanceCompleted({ maintenanceId, reference: record.reference, state: "Completed", occurredAt: timestamp });
+    return view((await repository.find(maintenanceId))!);
   };
   return {
     getAutomationDefault: () => repository.automation.getDefault(),
@@ -103,7 +134,7 @@ export function createMaintenanceService(
       await Promise.all(result.filter((record) => record.overrunning).map((record) => onOverrun({ maintenanceId: record.id, endsAt: record.endsAt })));
       return result;
     },
-    async create(input, operatorId) {
+    async create(input, operatorId, agentAction) {
       if (!input.title.trim() || input.title.length > 250) throw new Error("Maintenance title is required and must be at most 250 characters.");
       assertWindow(input.startsAt, input.endsAt);
       const wording = maintenanceWording(input);
@@ -115,69 +146,65 @@ export function createMaintenanceService(
       const reference = await repository.allocateMaintenanceReference();
       const record: StoredMaintenance = { id: maintenanceId, reference, title: input.title.trim(), ...wording, state: "Scheduled", startsAt: input.startsAt, endsAt: input.endsAt, completedAt: null, createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
       const attached = components.map((component) => ({ id: createUlid(), maintenanceId, componentId: component!.id, componentName: component!.name, state: "Under maintenance" as const, createdAt: timestamp, updatedAt: timestamp }));
-      const notice: MaintenanceNotice = { id: createUlid(), maintenanceId, kind: "scheduled", body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
+      const notice: MaintenanceNotice = { ...(agentAction ? { agentAction } : {}), id: createUlid(), maintenanceId, kind: "scheduled", body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
       const statements = await notificationStatements.forMaintenanceNotice({ eventId: notice.id, maintenanceId, componentIds: attached.flatMap((component) => component.componentId ? [component.componentId] : []), kind: notice.kind, queuedAt: timestamp, recipientScope: "eligible", previousEventIds: [], social: input.social });
       const defaults = await repository.automation.getDefault();
       await repository.create(record, attached, notice, statements, { autoStart: input.autoStart ?? defaults.autoStart, autoComplete: input.autoComplete ?? defaults.autoComplete });
       await events?.maintenanceScheduled({ maintenanceId, reference: record.reference, state: "Scheduled", occurredAt: timestamp });
       return view(record);
     },
-    async reschedule(maintenanceId, input, operatorId) {
+    async reschedule(maintenanceId, input, operatorId, expectedUpdatedAt, agentAction) {
       assertWindow(input.startsAt, input.endsAt);
       const record = await repository.find(maintenanceId); if (!record) return null;
+      if (expectedUpdatedAt !== undefined && record.updatedAt !== expectedUpdatedAt) throw new Error("The maintenance changed. Reload it before editing.");
       const timestamp = nowIso(); const components = await repository.listComponents(maintenanceId);
       const wording = input.affectedAudience === undefined && input.customerImpact === undefined ? undefined : maintenanceWording(input);
       const changed = { ...record, ...wording, startsAt: input.startsAt, endsAt: input.endsAt, updatedAt: timestamp };
-      const { notice, statements } = await prepareNotice(changed, components, "rescheduled", operatorId, "previous", input.social);
+      const { notice, statements } = await prepareNotice(changed, components, "rescheduled", operatorId, "previous", input.social, agentAction);
       if (record.state === "Scheduled") {
-        if (!(await repository.updateWindowWithNotice(maintenanceId, input.startsAt, input.endsAt, timestamp, notice, statements, { autoStart: input.autoStart, autoComplete: input.autoComplete }, wording))) throw new Error("Only scheduled maintenance can be rescheduled.");
+        if (!(await repository.updateWindowWithNotice(maintenanceId, input.startsAt, input.endsAt, timestamp, notice, statements, { autoStart: input.autoStart, autoComplete: input.autoComplete }, wording, expectedUpdatedAt))) throw new Error("Only scheduled maintenance can be rescheduled.");
       } else if (record.state === "In progress") {
         if (input.startsAt !== record.startsAt) throw new Error("The start time cannot change after maintenance has started.");
         const hasSwitch = input.autoStart !== undefined || input.autoComplete !== undefined;
         if (Date.parse(input.endsAt) < Date.parse(record.endsAt) || (!hasSwitch && input.endsAt === record.endsAt)) throw new Error("An in-progress maintenance window can only be extended to a later end time, or keep its time while changing automation.");
-        if (!(await repository.extendInProgressWithNotice(maintenanceId, record.startsAt, record.endsAt, input.endsAt, timestamp, notice, statements, input.autoStart === undefined && input.autoComplete === undefined ? undefined : { autoStart: input.autoStart, autoComplete: input.autoComplete }, wording))) throw new Error("The maintenance window changed before it could be extended.");
+        if (!(await repository.extendInProgressWithNotice(maintenanceId, record.startsAt, record.endsAt, input.endsAt, timestamp, notice, statements, input.autoStart === undefined && input.autoComplete === undefined ? undefined : { autoStart: input.autoStart, autoComplete: input.autoComplete }, wording, expectedUpdatedAt))) throw new Error("The maintenance window changed before it could be extended.");
       } else {
         throw new Error("Only scheduled maintenance can be rescheduled or in-progress maintenance can be extended.");
       }
       return view((await repository.find(maintenanceId))!);
     },
-    async start(maintenanceId, operatorId) {
+    start: (maintenanceId, operatorId, expectedUpdatedAt, agentAction) => startTransition(maintenanceId, operatorId, false, expectedUpdatedAt, agentAction),
+    autostart: (maintenanceId, operatorId, expectedUpdatedAt, agentAction) => startTransition(maintenanceId, operatorId, true, expectedUpdatedAt, agentAction),
+    async cancel(maintenanceId, operatorId, expectedUpdatedAt, agentAction) {
       const record = await repository.find(maintenanceId); if (!record) return null;
-      const automation = await repository.automation.get(maintenanceId);
-      if (record.state !== "Scheduled" || automation.autoStart) throw new Error("Only scheduled maintenance with auto-start off can be started by this action.");
-      const timestamp = nowIso();
-      const components = await repository.listComponents(maintenanceId);
-      const changed = { ...record, state: "In progress" as const, updatedAt: timestamp };
-      const { notice, statements } = await prepareNotice(changed, components, "started", operatorId, "eligible");
-      if (!(await repository.transitionWithNotice(maintenanceId,"Scheduled","In progress",null,timestamp,notice,statements,{startsAt:record.startsAt,endsAt:record.endsAt,autoStart:false}))) throw new Error("The maintenance changed before it could be started.");
-      await Promise.all(components.flatMap(component => component.componentId ? [componentsService.recomputePublicState(component.componentId,{type:"maintenance",id:maintenanceId,operatorId},timestamp)] : []));
-      await events?.maintenanceStarted({ maintenanceId, reference: record.reference, state: "In progress", occurredAt: timestamp });
-      await onPublicDataChanged();
-      return view((await repository.find(maintenanceId))!);
-    },
-    async cancel(maintenanceId, operatorId) {
-      const record = await repository.find(maintenanceId); if (!record) return null;
+      if (expectedUpdatedAt !== undefined && record.updatedAt !== expectedUpdatedAt) throw new Error("The maintenance changed. Reload it before editing.");
       const timestamp = nowIso(); const components = await repository.listComponents(maintenanceId);
       const changed = { ...record, state: "Cancelled" as const, updatedAt: timestamp };
-      const { notice, statements } = await prepareNotice(changed, components, "cancelled", operatorId, "previous");
-      if (!(await repository.cancelWithNotice(maintenanceId, timestamp, notice, statements))) throw new Error("Only scheduled maintenance can be cancelled.");
+      const { notice, statements } = await prepareNotice(changed, components, "cancelled", operatorId, "previous", false, agentAction);
+      if (!(await repository.cancelWithNotice(maintenanceId, timestamp, notice, statements, expectedUpdatedAt))) throw new Error("Only scheduled maintenance can be cancelled.");
       return view((await repository.find(maintenanceId))!);
     },
-    async complete(maintenanceId, operatorId) {
+    complete: (maintenanceId, operatorId, expectedUpdatedAt, agentAction) => completeTransition(maintenanceId, operatorId, false, expectedUpdatedAt, agentAction),
+    autocomplete: (maintenanceId, operatorId, expectedUpdatedAt, agentAction) => completeTransition(maintenanceId, operatorId, true, expectedUpdatedAt, agentAction),
+    async remind(maintenanceId, operatorId, expectedUpdatedAt, agentAction) {
       const record = await repository.find(maintenanceId); if (!record) return null;
-      const timestamp = nowIso(); const components = await repository.listComponents(maintenanceId);
-      const changed = { ...record, state: "Completed" as const, completedAt: timestamp, updatedAt: timestamp };
-      const { notice, statements } = await prepareNotice(changed, components, "completed", operatorId, "eligible");
-      if (!(await repository.transitionWithNotice(maintenanceId, "In progress", "Completed", timestamp, timestamp, notice, statements))) throw new Error("Only in-progress maintenance can be completed.");
-      await events?.maintenanceCompleted({ maintenanceId, reference: record.reference, state: "Completed", occurredAt: timestamp });
-      return view((await repository.find(maintenanceId))!);
+      const now = nowIso();
+      if (record.updatedAt !== expectedUpdatedAt || record.state !== "Scheduled" || !await repository.agentOwned(maintenanceId)
+        || Date.parse(record.startsAt) <= Date.parse(now) || Date.parse(record.startsAt) > Date.parse(now) + 24 * 60 * 60_000
+        || !reminderPolicy.shouldNotify({ kind: "scheduled", state: record.state, startsAt: record.startsAt, now })) throw new Error("The current agent maintenance reminder is not due.");
+      const components = await repository.listComponents(maintenanceId);
+      const { notice, statements } = await prepareNotice(record, components, "reminder", operatorId, "eligible", false, agentAction);
+      if (!await repository.writeNotice(notice, statements, { updatedAt: expectedUpdatedAt, requireAgentOwned: true })) throw new Error("This maintenance reminder was already published or the plan changed.");
+      await onPublicDataChanged();
+      return view(record);
     },
     async finishCompletion(maintenanceId, operatorId) {
       const record = await repository.find(maintenanceId);
       if (!record || record.state !== "Completed") return;
       const components = await repository.listComponents(maintenanceId);
       const changedAt = record.completedAt ?? record.updatedAt;
-      await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "maintenance", id: maintenanceId, operatorId }, changedAt)] : []));
+      const agentAction = (await repository.listNotices(maintenanceId)).find(notice => notice.kind === "completed")?.agentAction;
+      await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "maintenance", id: maintenanceId, operatorId, ...(agentAction ? { agentAction } : {}) }, changedAt)] : []));
       await onPublicDataChanged();
     },
     async runDue(now = nowIso()) {

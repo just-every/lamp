@@ -39,6 +39,7 @@ export type PublishingDraft = StoredIncidentDraft & {
 };
 
 export interface IncidentPublishRecord {
+  agentAction?: import("./agent-action").AgentAction;
   id: string;
   incidentId: string;
   lifecycle: string;
@@ -85,7 +86,7 @@ export interface IncidentRepository {
   create(input: Omit<typeof incidents.$inferInsert, "reference">, components: Array<typeof incidentComponents.$inferInsert>, draft: typeof incidentDrafts.$inferInsert): Promise<string>;
   nextReference(): Promise<string>;
   upsertDraft(input: typeof incidentDrafts.$inferInsert, expectedVersion: string): Promise<void>;
-  scheduleDraft(incidentId: string, scheduledPublishAt: string | null, channels: Array<UpdateChannel>, updatedAt: string, expectedDraftId?: string, replacementDraftId?: string): Promise<boolean>;
+  scheduleDraft(incidentId: string, scheduledPublishAt: string | null, channels: Array<UpdateChannel>, updatedAt: string, expectedDraftId?: string, replacementDraftId?: string, agentScheduled?: boolean): Promise<boolean>;
   reviewDraft(incidentId: string, reviewerOperatorId: string, reviewedAt: string, expectedVersion: string): Promise<boolean>;
   setDraftCorrection(incidentId: string, correctsUpdateId: string, updatedAt: string, expectedVersion: string): Promise<boolean>;
   listDueScheduledDrafts(now: string): Promise<PublishingDraft[]>;
@@ -181,7 +182,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
         COALESCE((SELECT id FROM incident_drafts WHERE incident_id = ?), '-') = ?
         AND (SELECT count(*) FROM incident_updates WHERE incident_id = ?) = ?
         AND EXISTS (SELECT 1 FROM incidents WHERE id = ? AND deleted_at IS NULL)
-        ON CONFLICT(incident_id) DO UPDATE SET id=excluded.id,lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_at=excluded.next_update_at,author_operator_id=excluded.author_operator_id,updated_at=excluded.updated_at,scheduled_publish_at=NULL,scheduled_channels_json=NULL,reviewed_by_operator_id=NULL,reviewed_at=NULL,corrects_update_id=NULL,component_changes_json=excluded.component_changes_json RETURNING id`)
+        ON CONFLICT(incident_id) DO UPDATE SET id=excluded.id,lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_at=excluded.next_update_at,author_operator_id=excluded.author_operator_id,updated_at=excluded.updated_at,scheduled_publish_at=NULL,scheduled_channels_json=NULL,agent_scheduled=0,reviewed_by_operator_id=NULL,reviewed_at=NULL,corrects_update_id=NULL,component_changes_json=excluded.component_changes_json RETURNING id`)
         .bind(input.id,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.authorOperatorId,input.createdAt,input.updatedAt,JSON.stringify(input.componentChanges ?? []),input.incidentId,draftId,input.incidentId,Number(count),input.incidentId);
       const [result] = await binding.batch([
         mutation,
@@ -189,8 +190,8 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       ]);
       if (!result.results.length) throw new DraftConflictError();
     },
-    async scheduleDraft(incidentId, scheduledPublishAt, channels, updatedAt, expectedDraftId, replacementDraftId) {
-      return Boolean(await binding.prepare(`UPDATE incident_drafts SET id = COALESCE(?, id), scheduled_publish_at = ?, scheduled_channels_json = ?, updated_at = ? WHERE incident_id = ? AND (? IS NULL OR id = ?) RETURNING id`).bind(replacementDraftId ?? null, scheduledPublishAt, JSON.stringify(channels), updatedAt, incidentId, expectedDraftId ?? null, expectedDraftId ?? null).first());
+    async scheduleDraft(incidentId, scheduledPublishAt, channels, updatedAt, expectedDraftId, replacementDraftId, agentScheduled = false) {
+      return Boolean(await binding.prepare(`UPDATE incident_drafts SET id = COALESCE(?, id), scheduled_publish_at = ?, scheduled_channels_json = ?, updated_at = ?, agent_scheduled = ? WHERE incident_id = ? AND (? IS NULL OR id = ?) RETURNING id`).bind(replacementDraftId ?? null, scheduledPublishAt, JSON.stringify(channels), updatedAt, agentScheduled ? 1 : 0, incidentId, expectedDraftId ?? null, expectedDraftId ?? null).first());
     },
     async reviewDraft(incidentId, reviewerOperatorId, reviewedAt, expectedVersion) {
       const [draftId, count] = expectedVersion.split(":");
@@ -203,7 +204,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
         .bind(correctsUpdateId, updatedAt, incidentId, draftId, incidentId, Number(count), correctsUpdateId, incidentId).first<{ id: string }>());
     },
     async listDueScheduledDrafts(now) {
-      const rows = await binding.prepare(`SELECT id, incident_id AS incidentId, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, scheduled_publish_at AS scheduledPublishAt, scheduled_channels_json AS scheduledChannelsJson, reviewed_by_operator_id AS reviewedByOperatorId, reviewed_at AS reviewedAt, corrects_update_id AS correctsUpdateId, component_changes_json AS componentChangesJson FROM incident_drafts WHERE scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= ?`).bind(now).all<import("./list-relations").DraftRow>();
+      const rows = await binding.prepare(`SELECT id, incident_id AS incidentId, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, scheduled_publish_at AS scheduledPublishAt, scheduled_channels_json AS scheduledChannelsJson, reviewed_by_operator_id AS reviewedByOperatorId, reviewed_at AS reviewedAt, corrects_update_id AS correctsUpdateId, component_changes_json AS componentChangesJson FROM incident_drafts WHERE agent_scheduled = 0 AND scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= ?`).bind(now).all<import("./list-relations").DraftRow>();
       return rows.results.flatMap((row) => {
         const draft = asPublishingDraft(row);
         return draft ? [draft] : [];

@@ -20,9 +20,9 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     binding.prepare(`SELECT CASE WHEN (SELECT count(*) FROM component_claim_events WHERE component_id = ?) = ? THEN 1 ELSE json('Historical evidence changed') END`).bind(componentId, count),
   );
   statements.push(binding.prepare(`INSERT INTO incident_updates
-    (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,is_retroactive,author_operator_id,corrects_update_id,created_at,updated_at,component_changes_json,component_snapshot_json)
-    VALUES ((SELECT id FROM incident_drafts WHERE id = ? AND incident_id = ?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(input.id,input.incidentId,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.publishedAt,input.isRetroactive ? 1 : 0,input.authorOperatorId,input.correctsUpdateId,input.createdAt,input.updatedAt,JSON.stringify(input.componentChanges),JSON.stringify(input.componentSnapshot)));
+    (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,is_retroactive,author_operator_id,corrects_update_id,created_at,updated_at,component_changes_json,component_snapshot_json,agent_action_json)
+    VALUES ((SELECT id FROM incident_drafts WHERE id = ? AND incident_id = ?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(input.id,input.incidentId,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.publishedAt,input.isRetroactive ? 1 : 0,input.authorOperatorId,input.correctsUpdateId,input.createdAt,input.updatedAt,JSON.stringify(input.componentChanges),JSON.stringify(input.componentSnapshot),input.agentAction ? JSON.stringify(input.agentAction) : null));
   for (const component of input.components.filter(row => !input.baselineComponents.some(baseline => baseline.id === row.id))) statements.push(
     binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,NULL,?,?)`)
       .bind(component.id,input.incidentId,component.componentId,component.componentName,component.state,component.relationship,input.createdAt,input.updatedAt),
@@ -63,7 +63,7 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
   statements.push(
     binding.prepare(`DELETE FROM incident_drafts WHERE id = ?`).bind(input.id),
     binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at) VALUES (?,'incident-update',?,'published',?,?,?,?,?)`)
-      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,input.recovery?.overrideReason ?? null,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges, recovery: input.recovery?.result }),input.createdAt,input.updatedAt),
+      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,input.recovery?.overrideReason ?? null,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges, ...(input.agentAction ? { actor: input.agentAction } : {}), recovery: input.recovery?.result }),input.createdAt,input.updatedAt),
     ...recipients,
     ...notificationHistoryIds.flatMap(historyId => componentNotificationStatements(binding, historyId, input.createdAt)),
   );

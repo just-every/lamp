@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import { pageSettings } from "../../shared/schema";
@@ -11,7 +11,7 @@ export interface PageSettingsRepository {
   /** The regions written on components the public page shows, each as stored. */
   visibleRegions(): Promise<string[]>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
-  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">, expectedUpdatedAt?: string): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">, operatorId: string): Promise<void>;
 }
 
@@ -41,8 +41,9 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
     async insertIfMissing(settings) {
       await database.insert(pageSettings).values(settings).onConflictDoNothing();
     },
-    async update(settings) {
-      await database.update(pageSettings).set(settings).where(eq(pageSettings.id, "default"));
+    async update(settings, expectedUpdatedAt) {
+      const rows = await database.update(pageSettings).set(settings).where(and(eq(pageSettings.id, "default"), ...(expectedUpdatedAt === undefined ? [] : [eq(pageSettings.updatedAt, expectedUpdatedAt)]))).returning({ id: pageSettings.id });
+      if (expectedUpdatedAt !== undefined && rows.length !== 1) throw new Error("Page settings changed. Reload them before editing.");
     },
     async updateLogo(input, operatorId) {
       // Select the logo being destroyed inside the same transaction as its

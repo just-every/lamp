@@ -1,3 +1,4 @@
+import { agentOperatorErasureStatements } from './agent-erasure.repository';
 import { sessionAuthority } from '../../platform/auth/authority';
 import { createUlid, nowIso } from '../../shared/ids';
 import { AuthError, type Operator, type Session } from '@runeditrun/rer/modules/operator-auth';
@@ -53,6 +54,7 @@ export function createOperatorRepository(db: D1Database) {
         db.prepare('DELETE FROM oa_step_up_challenges WHERE operator_id=? AND ' + witnessed).bind(id, ...witness),
         db.prepare('UPDATE oa_sessions SET revoked_at=COALESCE(revoked_at,?) WHERE operator_id=? AND ' + witnessed).bind(revokedAt, id, ...witness),
         db.prepare("UPDATE audit_entries SET reason=NULL,payload_json='{}',updated_at=? WHERE entity_type='operator' AND entity_id=? AND " + witnessed).bind(now, id, ...witness),
+        ...agentOperatorErasureStatements(db, { id, actor, receipt, now }),
       ]);
       if (!results[0].meta.changes) throw new AuthError('authority_changed', 409);
     },

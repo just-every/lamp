@@ -15,6 +15,13 @@ export async function metricsFlow({t}) {
   const page=async()=>{const response=await raw(publicOrigin+"/");assert.equal(response.status,200);return response.text();};
   const tick=async at=>{const result=await (await fixture.runtime.getWorker()).scheduled({cron:"* * * * *",scheduledTime:at});assert.equal(result.outcome,"ok");};
   try {
+    // Agent adoption intentionally makes retained management clients obey an
+    // explicit company policy too; the fixture's owner chooses this policy.
+    const policy = await api('/agents/api/policy', { method: 'PUT', body: JSON.stringify({ document: {
+      schema: 'rer-agent-policy/1', catalogue: 'rer-agent-classes/1',
+      rules: [{ id: 'fixture-autonomous', class: '*', do: 'autonomous' }], spend: { none: true },
+    } }) });
+    assert.equal(policy.status, 200, policy.text);
     const push=await create({provider:"push"});
     const points=Array.from({length:61},(_,index)=>({at:minute-(61-index)*60_000,value:100+index})).filter((_,index)=>index<20||index>=40);
     const mint=async scopes=>{const result=await post("/api/app/management-tokens",{name:"synthetic-lamp-56",scopes,expiresInSeconds:3600});assert.equal(result.status,201,result.text);assert.equal(result.body.credential.lastUsedAt,null);return result.body;};

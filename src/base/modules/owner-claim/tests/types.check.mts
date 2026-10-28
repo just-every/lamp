@@ -1,0 +1,10 @@
+import { createOwnerClaimHandler, verifyOwnerClaim, type OwnerClaimConfig } from '../index.mjs';
+import type { AuthConfig } from '../../operator-auth/index.mjs';
+declare const db: D1Database;
+declare const publicKeys: Record<string, JsonWebKey>;
+declare const authConfig: AuthConfig;
+const config: OwnerClaimConfig = { issuer: 'https://rer.test', installationId: 'installation-a', appOrigin: 'https://app.test', expectedEmail: 'owner@example.com', publicKeys };
+const handler: (request: Request) => Promise<Response | null> = createOwnerClaimHandler({ ...config, db, authConfig, clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' });
+const result = await verifyOwnerClaim('token', { ...config, now: 100 });
+const email: string = result.email;
+void [handler, email];

@@ -1,3 +1,4 @@
+import { publicAgentAction } from "../incidents/agent-action";
 import type { PublicSnapshotSource } from "./repository";
 import type { PublicIncident } from "./record-markup";
 
@@ -7,6 +8,7 @@ export function publicUpdate(source: PublicSnapshotSource, update: PublicSnapsho
   const componentChanges = (update.componentChanges ?? []).filter(change => !change.internal && attachments.some(row =>
     row.componentId === change.componentId || (row.componentId === null && row.componentName === change.name)));
   return {
+    ...(update.agentAction ? { agentAction: publicAgentAction(update.agentAction) } : {}),
     id: update.id, lifecycle: update.lifecycle, affectedAudience: update.affectedAudience,
     customerImpact: update.customerImpact, whatStillWorks: update.whatStillWorks, details: update.details,
     nextUpdateAt: update.nextUpdateAt, publishedAt: update.publishedAt, componentChanges,

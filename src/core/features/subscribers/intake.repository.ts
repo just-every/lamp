@@ -1,3 +1,4 @@
+import type { AgentAction } from "../incidents/agent-action";
 import { SubscriberLimitError } from "./limits";
 import { createUlid } from "../../shared/ids";
 import type { IntakeCounts, IntakeRow } from "./intake-schema";
@@ -82,7 +83,7 @@ export function createSubscriberIntakeRepository(db:D1Database) {
         WHERE a.batch_id=? AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at) AND s.state='pending'
           AND julianday(s.created_at,'+72 hours')>julianday('now')`).bind(batchId).first<{count:number}>())?.count??0);
     },
-    async claimInvitation(subscriberId:string,emailHash:string,now:string,operatorId:string|null,ownerOnly:boolean):Promise<boolean> {
+    async claimInvitation(subscriberId:string,emailHash:string,now:string,operatorId:string|null,ownerOnly:boolean,action?:AgentAction):Promise<boolean> {
       const cutoff=new Date(Date.parse(now)-24*60*60_000).toISOString();
       const allowed=`EXISTS(SELECT 1 FROM subscriber_intake a JOIN subscriber_directory s ON s.id=a.subscriber_id
         WHERE s.id=? AND s.state='pending' AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at) AND julianday(s.created_at,'+72 hours')>julianday('now'))
@@ -95,8 +96,8 @@ export function createSubscriberIntakeRepository(db:D1Database) {
           .bind(emailHash,now,now,now,subscriberId,operatorId,operatorId,Number(ownerOnly),cutoff),
         db.prepare(`UPDATE subscriber_intake SET invitation_claimed_at=? WHERE subscriber_id=? AND changes()=1`).bind(now,subscriberId),
         db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
-          SELECT ?,'subscriber',?,'subscriber.invitation-requested',?,'{}',?,? WHERE changes()=1`)
-          .bind(createUlid(),subscriberId,operatorId,now,now),
+          SELECT ?,'subscriber',?,'subscriber.invitation-requested',?,?,?,? WHERE changes()=1`)
+          .bind(createUlid(),subscriberId,operatorId,JSON.stringify(action ? {preparedBy:action} : {}),now,now),
       ]);
       return slot.results.length===1;
     },

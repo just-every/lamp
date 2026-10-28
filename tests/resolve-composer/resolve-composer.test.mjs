@@ -90,7 +90,7 @@ async function waitForSavedDraft() {
 
 before(async () => {
   await mkdir(viteCachePath, { recursive: true });
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { maxBuffer: 4 * 1024 * 1024, stdio: "pipe" });
   sessionId = await insertRealOperatorSession({ persistTo: statePath });
   ({ server, baseUrl: origin } = await startViteWorker({
     port: requestedPort, statePath, viteCachePath, timeoutMs: 120_000,

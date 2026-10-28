@@ -1,3 +1,4 @@
+import type { AgentAction } from "../../incidents/agent-action";
 import type { JobDispatcher } from "../../../platform/jobs";
 import type { FollowUpsRepository } from "./repository";
 import type { FollowUpRetryRepository } from "./retry.repository";
@@ -31,8 +32,8 @@ export function createFollowUpsService(repository: FollowUpsRepository, retries:
       if (!reason || reason.length>1000) return false;
       return repository.dismiss(input.id,input.occurrence,reason,operatorId,new Date().toISOString());
     },
-    async retry(input: {id:string;occurrence:string}, operatorId: string, jobs: JobDispatcher): Promise<"stale" | "queued" | "queue-failed"> {
-      const claim=await retries.claim(input.id,input.occurrence,operatorId,new Date().toISOString());
+    async retry(input: {id:string;occurrence:string}, operatorId: string, jobs: JobDispatcher, action?: AgentAction): Promise<"stale" | "queued" | "queue-failed"> {
+      const claim=await retries.claim(input.id,input.occurrence,operatorId,new Date().toISOString(),action);
       if (!claim) return "stale";
       try { await jobs.enqueue({type:"delivery-dispatch",eventId:claim.eventId}); }
       catch (cause) {

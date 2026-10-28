@@ -1,3 +1,4 @@
+import { agentActionLines, parseAgentAction } from "../incidents/agent-action";
 import { renderNotificationUpdate } from "../../shared/update-renderer";
 import { impactLabel } from "../../shared/incident-impact";
 import { renderLampSlackMessage } from "../channels/slack-message";
@@ -8,9 +9,18 @@ import type { DispatchableDelivery } from "./repository";
 /** Slack receives native message fields, never Lamp's generic webhook envelope. */
 export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, origin: string) {
   const time = (instant: string) => formatTime(instant, delivery.timezone ?? "UTC");
+  if(delivery.componentEventId) {
+    if(!delivery.componentName||!delivery.previousComponentState||!delivery.newComponentState||!delivery.componentChangedAt)throw new Error("Slack component change content is unavailable.");
+    return renderLampSlackMessage(`${delivery.componentName}: ${delivery.newComponentState}`, [
+      `${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}`,
+      `Changed: ${time(delivery.componentChangedAt)}`, `Claimant: ${delivery.componentClaimantKind}`,
+      ...agentActionLines(parseAgentAction(delivery.agentActionJson)), new URL('/',origin).href,
+    ]);
+  }
   if (delivery.incidentUpdateId) {
     if (delivery.incidentReference === null || delivery.incidentTitle === null || delivery.lifecycle === null || delivery.affectedAudience === null || delivery.customerImpact === null) throw new Error("Slack incident update content is unavailable.");
     const update = renderNotificationUpdate({
+      agentAction: parseAgentAction(delivery.agentActionJson),
       incidentImpact: delivery.incidentImpact,
       incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle,
       affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact,
@@ -31,6 +41,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
       `${delivery.incidentReference}: ${delivery.incidentTitle}`,
       ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]),
       ...fields.flatMap(([label, value]) => value ? [`${label}: ${value}`] : []),
+      ...agentActionLines(parseAgentAction(delivery.agentActionJson)),
       new URL(`/incidents/${encodeURIComponent(delivery.incidentReference)}`, origin).href,
     ]);
   }
@@ -40,6 +51,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
     ...(delivery.maintenanceStartsAt ? [`Start: ${time(delivery.maintenanceStartsAt)}`] : []),
     ...(delivery.maintenanceEndsAt ? [`End: ${time(delivery.maintenanceEndsAt)}`] : []),
     ...(delivery.maintenanceNoticeBody ? [delivery.maintenanceNoticeBody] : []),
+    ...agentActionLines(parseAgentAction(delivery.agentActionJson)),
     new URL("/", origin).href,
   ]);
 }

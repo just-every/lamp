@@ -1,7 +1,9 @@
+import { agentActionLines, type PublicAgentAction } from "./agent-action";
 import type { IncidentLifecycle } from "../../shared/domain";
 import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 
 export interface IncidentUpdateRenderInput {
+  agentAction?: PublicAgentAction | null;
   incidentReference: string;
   incidentTitle: string;
   lifecycle: IncidentLifecycle;
@@ -50,6 +52,7 @@ export function renderIncidentUpdate(input: IncidentUpdateRenderInput): Rendered
     ...(input.lifecycle === "Resolved" ? [] : [{ label: "Next update by", value: input.nextUpdateDisplay ?? input.nextUpdateAt ?? "Not yet committed", instant: input.nextUpdateAt ?? undefined }]),
     { label: "Additional details", value: input.details },
     ...componentChangeLines(input.componentChanges).map(value => ({ label: "Component state", value })),
+    ...agentActionLines(input.agentAction).map(value => { const i=value.indexOf(":"); return { label: value.slice(0,i), value: value.slice(i+2) }; }),
   ].filter((field) => field.value.length > 0);
   const heading = `${input.incidentReference}: ${input.incidentTitle}`;
 

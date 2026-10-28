@@ -1,3 +1,4 @@
+import { parseAgentAction } from "../incidents/agent-action";
 import { createMetricsRepository } from "../metrics/repository";
 import type { PublicMetric } from "../metrics/types";
 import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
@@ -70,7 +71,7 @@ export interface PublicSnapshotSource {
   updates: Array<typeof incidentUpdates.$inferSelect>;
   maintenance: Array<typeof maintenance.$inferSelect>;
   maintenanceComponents: Array<typeof maintenanceComponents.$inferSelect>;
-  reports: Array<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>;
+  reports: Array<{ agentAction?: import("../incidents/agent-action").AgentAction | null; incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>;
   importedMaintenanceUpdates?: Array<{ id: string; maintenanceId: string; body: string; publishedAt: string }>;
   maintenanceNotices: Array<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>;
 }
@@ -139,7 +140,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
           .where(or(and(isNull(maintenanceComponents.componentId), sql`maintenance_components.detached_internal = 0`), eq(components.internal, false)))
           .all()
           .then((rows) => rows.map((row) => row.maintenance_components)),
-        binding.prepare(`SELECT incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt FROM incident_reports WHERE published_at IS NOT NULL ORDER BY published_at DESC`).all<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>().then((result) => result.results),
+        binding.prepare(`SELECT incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt, agent_action_json AS agentActionJson FROM incident_reports WHERE published_at IS NOT NULL ORDER BY published_at DESC`).all<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string; agentActionJson: string | null }>().then((result) => result.results.map(({agentActionJson, ...row}) => ({...row, agentAction: parseAgentAction(agentActionJson)}))),
         binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt FROM maintenance_notices ORDER BY published_at DESC`).all<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>().then((result) => result.results),
         readImportedPublicRecords(binding),
         readImportedNamespaces(binding),

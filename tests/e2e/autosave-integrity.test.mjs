@@ -26,7 +26,7 @@ before(async () => {
   execFileSync("pnpm", ["run", "build:app"], { stdio: "pipe", env: fixtureProcessEnv() });
   const artifactPath = resolve("dist/server/wrangler.json");
   statePath = await mkdtemp(join(tmpdir(), "lamp-autosave-integrity-d1-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath], { stdio: "pipe", env: fixtureProcessEnv() });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath], { maxBuffer: 4 * 1024 * 1024, stdio: "pipe", env: fixtureProcessEnv() });
   const sessionId = await insertRealOperatorSession({ persistTo: statePath, configPath: artifactPath });
   // Reserve after Wrangler finishes: its emulator also allocates local ports.
   const port = await reservePort({ label: "Autosave integrity Worker" });

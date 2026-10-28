@@ -1,3 +1,4 @@
+import type { AgentAction } from "../incidents/agent-action";
 import { createUlid, nowIso } from "../../shared/ids";
 import type { BriefService } from "../brief/service";
 import { draftIncidentReport, reportReview, ReportInputError, ReportDraftError, type ReportReview } from "./draft";
@@ -13,7 +14,7 @@ export interface ReportsService {
   draft(incidentId: string, operatorId: string): Promise<{ report: IncidentReportRow; review: ReportReview }>;
   get(incidentId: string): Promise<IncidentReportRow | null>;
   save(incidentId: string, input: ReportInput, operatorId: string): Promise<IncidentReportRow>;
-  publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook" | "sms">): Promise<IncidentReportRow | null>;
+  publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook" | "sms">, agentAction?: AgentAction): Promise<IncidentReportRow | null>;
   owing(now?: string): Promise<string[]>;
   waiver(incidentId: string): ReturnType<ReportRepository["waiver"]>;
   waive(incidentId: string, reason: string, operatorId: string): Promise<boolean>;
@@ -72,7 +73,7 @@ export function createReportsService(repository: ReportRepository, onPublicDataC
       await repository.upsert(report);
       return (await repository.find(incidentId))!;
     },
-    async publish(incidentId, operatorId, channels) {
+    async publish(incidentId, operatorId, channels, agentAction) {
       const report = await repository.find(incidentId);
       if (!report || report.publishedAt) return null;
       assertReport(report, true);
@@ -80,7 +81,7 @@ export function createReportsService(repository: ReportRepository, onPublicDataC
       const timestamp = nowIso();
       const componentIds = await repository.listComponentIds(incidentId);
       const notifications = await notificationStatements.forIncidentReport({ eventId: report.id, incidentId, componentIds, channels, queuedAt: timestamp });
-      if (!(await repository.publish(incidentId, report, timestamp, operatorId, notifications))) return null;
+      if (!(await repository.publish(incidentId, report, timestamp, operatorId, notifications, agentAction))) return null;
       await onPublicDataChanged();
       return repository.find(incidentId);
     },

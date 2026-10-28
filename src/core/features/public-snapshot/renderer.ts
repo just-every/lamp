@@ -1,3 +1,4 @@
+import { publicAgentAction } from "../incidents/agent-action";
 import { publicMetricsSection } from "../metrics/public-chart";
 import { renderMaintenanceCalendar } from "./maintenance-calendar";
 import { renderPreferenceFields } from "../subscribers/preferences";
@@ -73,7 +74,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   for (const component of source.incidentComponents.filter(component => !component.componentId || !hiddenIds.has(component.componentId))) attachedByIncident.set(component.incidentId, [...(attachedByIncident.get(component.incidentId) ?? []), component.componentName]);
   const updatesByIncident = new Map<string, PublicIncident["updates"]>();
   for (const update of source.updates) updatesByIncident.set(update.incidentId, [...(updatesByIncident.get(update.incidentId) ?? []), publicUpdate(source, update)]);
-  const reportsByIncident = new Map(source.reports.map((report) => [report.incidentId, report]));
+  const reportsByIncident = new Map(source.reports.map((report) => [report.incidentId, { ...report, agentAction: publicAgentAction(report.agentAction) }]));
   const incidents: PublicIncident[] = source.incidents.map((incident) => ({
     ...incident,
     ...incidentImpact(source.incidentImpacts?.[incident.id], incident.impactOverride, source.incidentComponents.filter(component => component.incidentId === incident.id).map(component => component.state)),

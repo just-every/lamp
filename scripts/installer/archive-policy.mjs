@@ -1,3 +1,5 @@
+import { agentArchiveRow, agentTransientTables } from '../agent-archive.mjs';
+
 // Lamp's archive policy for rer export and rer import (localPortability's
 // policyModule, loaded by the transfer worker in its own process).
 
@@ -27,10 +29,13 @@ export default {
   // bootstrap row the restore replaces.
   replaceableTables: ['public_snapshot_work', 'snapshot_build_control', 'reference_counters', 'page_settings', 'sms_settings'],
   includeTables: operatorContinuity,
-  excludeTables: ['subscriber_oauth_states', 'chat_link_codes', 'chat_previews', 'chat_requests', 'oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
+  // Restoring history must never re-admit queued agent effects, pending
+  // approvals or an old policy. Held native schedule markers travel so normal
+  // Cron cannot silently inherit the discarded agent queue's authority.
+  excludeTables: [...agentTransientTables, 'subscriber_oauth_states', 'chat_link_codes', 'chat_previews', 'chat_requests', 'oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
   requiredConfiguration: ['SETUP_TOKEN', 'SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'],
   // A PagerDuty source's sealed REST key never travels, as in the hosted archive
   // (scripts/export.mjs): the column stays, so earlier archives still restore, and
   // the restored source asks the owner to reconnect.
-  exportRow: (table, row) => table === 'public_metrics' ? { ...row, sealed_credentials: null, pull_lease_until: null, pull_after: 0 } : table === 'alert_sources' && row.responder_sealed_credentials != null ? { ...row, responder_sealed_credentials: null } : row,
+  exportRow: (table, input) => { const row = agentArchiveRow(table, input); return table === 'public_metrics' ? { ...row, sealed_credentials: null, pull_lease_until: null, pull_after: 0 } : table === 'alert_sources' && row.responder_sealed_credentials != null ? { ...row, responder_sealed_credentials: null } : row; },
 };

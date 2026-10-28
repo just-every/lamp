@@ -21,6 +21,9 @@ export default defineConfig(({ command, isPreview }) => {
     // Parallel Workers previews must never rebuild each other's optimized
     // dependency graph. Test and browser runners set a private directory.
     cacheDir,
+    // Shared module and route imports must use one React dispatcher in both
+    // the Worker SSR graph and the browser graph.
+    resolve: { dedupe: ["react", "react-dom"] },
     environments: {
       client: {
         build: {

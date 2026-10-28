@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 
+import { agentArchiveRow, agentTransientTables } from './agent-archive.mjs';
 import { parseArgs } from "./ops-config.mjs";
 import { openArchivePlatform } from "./archive-runtime.mjs";
 import { ownerMigrationFiles } from "./owner-migrations.mjs";
@@ -47,7 +48,7 @@ async function main() {
   try {
     const ledger = await platformLedgerRows(platform.env.DB);
     if (ledger) await assertPlatformLedger(ledger);
-    const tables = await tableNames(platform.env.DB);
+    const tables = (await tableNames(platform.env.DB)).filter(name => !agentTransientTables.includes(name));
     const entities = [];
     // D1 batch executes these reads in one transaction, so related records
     // cannot be captured on opposite sides of a concurrent publication.
@@ -58,7 +59,7 @@ async function main() {
     }));
     const snapshot = tables.length ? await platform.env.DB.batch(tables.map((name, index) => platform.env.DB.prepare(`SELECT * FROM ${quotedIdentifier(name)} ORDER BY ${ordering[index]}`))) : [];
     for (const [index, name] of tables.entries()) {
-      entities.push({ name, dependsOn: await dependencies(platform.env.DB, name), rows: snapshot[index].results.map(row => name === "public_metrics" ? { ...row, sealed_credentials: null, pull_lease_until: null, pull_after: 0 } : name === "alert_sources" && "responder_sealed_credentials" in row ? { ...row, responder_sealed_credentials: null } : row) });
+      entities.push({ name, dependsOn: await dependencies(platform.env.DB, name), rows: snapshot[index].results.map(row => agentArchiveRow(name, name === "public_metrics" ? { ...row, sealed_credentials: null, pull_lease_until: null, pull_after: 0 } : name === "alert_sources" && "responder_sealed_credentials" in row ? { ...row, responder_sealed_credentials: null } : row)) });
     }
     const entitiesPath = join(output, "entities.json");
     const entitiesBytes = Buffer.from(`${JSON.stringify({ version: 1, tables: entities }, null, 2)}\n`);

@@ -21,7 +21,7 @@ before(async () => {
   origin = appOrigin(port);
   statePath = await mkdtemp(join(tmpdir(), "lamp-ui-interactions-d1-"));
   cachePath = await mkdtemp(join(tmpdir(), "lamp-ui-interactions-vite-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { maxBuffer: 4 * 1024 * 1024, stdio: "pipe" });
   const sessionId = await insertRealOperatorSession({ persistTo: statePath });
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     detached: true, stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: statePath, LAMP_VITE_CACHE_DIR: cachePath, LAMP_DISABLE_INSPECTOR: "true" },
