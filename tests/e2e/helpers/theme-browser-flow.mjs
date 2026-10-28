@@ -33,6 +33,7 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
       const form = document.querySelector(".settings-page");
       return form && !form.inert;
     }, null, { timeout: 30_000 });
+    const saved = () => expect(page.getByRole("status").filter({ hasText: /^Saved · live$/ })).toBeVisible({ timeout: 60_000 });
     const open = async title => { const detail = page.locator("details").filter({ has: page.locator(":scope > summary", { hasText: title }) }).first(); if (!await detail.getAttribute("open")) await detail.locator(":scope > summary").click(); };
     await open("Colours");
     await page.getByLabel("Use a custom colour palette").check();
@@ -44,11 +45,13 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByRole("button", { name: "Upload font", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "Font uploaded." })).toBeVisible();
     await expect(page.getByRole("combobox", { name: /^Page font/ })).toHaveValue("uploaded");
+    await saved();
     await expect.poll(async () => (await currentSettings()).theme.font).toBe("uploaded");
     await page.getByLabel(/^Upload header image/).setInputFiles({ name: "synthetic-lamp-2.png", mimeType: "image/png", buffer: image });
     await page.getByRole("button", { name: "Upload header image", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "Header image uploaded." })).toBeVisible();
     await expect(page.getByLabel("Show the uploaded header image")).toBeChecked();
+    await saved();
     await expect.poll(async () => (await currentSettings()).theme.headerImage).toBe(true);
     await open("Header and footer links");
     await page.getByRole("button", { name: "Add header link", exact: true }).click();
@@ -65,6 +68,7 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByLabel(/^Header HTML/).fill(theme.headerHtml);
     await page.getByLabel(/^Footer HTML/).fill(theme.footerHtml);
     await page.getByLabel(/^Custom CSS/).fill(theme.customCss);
+    await saved();
     await expect.poll(async () => (await currentSettings()).theme).toEqual({ ...theme, font: "uploaded", headerImage: true });
     await snapshot("Service updates from the Atlas team.");
     for (const width of [1440, 390]) {
