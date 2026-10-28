@@ -20,3 +20,17 @@ export function themeHeaderImage() {
   };
   return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), chunk("IHDR", header), chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]);
 }
+
+export function themeSettings(defaults) {
+  return {
+    ...defaults,
+    palette: { background: "#f4f4f4", surface: "#e9f2ec", text: "#172d24", link: "#195138", operational: "#185a3b", degraded: "#745000", partial: "#884500", major: "#a12619", maintenance: "#354d81" },
+    font: "serif", headerImage: false,
+    headerLinks: [{ label: "Customer support", href: "https://example.test/support" }],
+    footerLinks: [{ label: "Service history", href: "/history" }],
+    headerHtml: '<nav class="owner-note"><p>Service updates from the Atlas team.</p></nav>',
+    footerHtml: '<p><strong>Always here to help.</strong></p>',
+    groupsCollapsed: true, hiddenUptimeComponentIds: ["01J00000000000000000000010"], historyDays: 14,
+    customCss: '.owner-note { letter-spacing: 0.4px } .theme-footer { padding: 17px } @media print { .theme-footer { break-inside: avoid } } @page { margin: 1cm }',
+  };
+}

@@ -1,4 +1,4 @@
-import { themeHeaderImage } from "./theme-fixture.mjs";
+import { themeHeaderImage, themeSettings } from "./theme-fixture.mjs";
 import { themeTemplateFlow } from "./theme-template-flow.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -8,17 +8,7 @@ import { themeBrowserFlow } from "./theme-browser-flow.mjs";
 export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSettings, updateSettings, sessionId, cookieName, diagnostic }) {
   const original = await currentSettings();
   const defaults = original.theme;
-  const theme = {
-    ...defaults,
-    palette: { background: "#f4f4f4", surface: "#e9f2ec", text: "#172d24", link: "#195138", operational: "#185a3b", degraded: "#745000", partial: "#884500", major: "#a12619", maintenance: "#354d81" },
-    font: "serif", headerImage: false,
-    headerLinks: [{ label: "Customer support", href: "https://example.test/support" }],
-    footerLinks: [{ label: "Service history", href: "/history" }],
-    headerHtml: '<nav class="owner-note"><p>Service updates from the Atlas team.</p></nav>',
-    footerHtml: '<p><strong>Always here to help.</strong></p>',
-    groupsCollapsed: true, hiddenUptimeComponentIds: ["01J00000000000000000000010"], historyDays: 14,
-    customCss: '.owner-note { letter-spacing: 0.4px } .theme-footer { padding: 17px } @media print { .theme-footer { break-inside: avoid } } @page { margin: 1cm }',
-  };
+  const theme = themeSettings(defaults);
   const requestTheme = async (value, status = 200) => {
     const response = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify({ pageName: original.pageName, tagline: original.tagline, accentColor: original.accentColor, timezone: original.timezone, hostname: original.hostname, footerCreditEnabled: original.footerCreditEnabled, theme: value }) });
     const body = await response.json();
@@ -112,7 +102,7 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSetti
     }
     assert.deepEqual((await currentSettings()).theme, published.theme, "an unauthenticated write changes nothing");
     assert.deepEqual(Buffer.from(await (await fetch(`${pageUrl}/assets/theme-header`)).arrayBuffer()), image, "unauthenticated asset changes leave the publication intact");
-    await themeTemplateFlow({ appFetch, pageUrl, updateSettings, snapshot });
+    await themeTemplateFlow({ appFetch, pageUrl, updateSettings, snapshot, palette: theme.palette });
     await updateSettings({ template: "default" });
     return { customCss: theme.customCss };
   } finally {

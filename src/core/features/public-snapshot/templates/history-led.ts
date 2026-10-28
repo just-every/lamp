@@ -107,7 +107,7 @@ function callouts(model: PublicSnapshotModel, components: Component[], days: str
   }).join("");
 }
 
-function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
+function heatmapFrame(model: PublicSnapshotModel, titleId: string) {
   const components = publicComponentOrder(model.visibleComponents);
   const days = heatmapDays(model);
   if (!days) return "";
@@ -128,7 +128,15 @@ function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
   const legendStates = [["ok", COMPONENT_STATES[0]], ["degraded", "Degraded performance"], ["partial", "Partially unavailable"], ["major", "Major outage"], ["none", "No data"]].filter(([kind]) => kind === "ok" || seen.has(kind!));
   const legend = `<ul class="hm-legend" aria-label="Legend">${legendStates.map(([kind, name]) => `<li><i class="cell ${kind}"></i>${name}</li>`).join("")}</ul>`;
   const notes = components.filter((component) => component.note || component.description).map((component) => `<li><strong>${escapeHtml(component.name)}</strong>${componentNote(component)}</li>`).join("");
-  return `<section class="up-heatmap wrap" aria-labelledby="heatmap-title" data-live="heatmap"><div class="hm-frame"><div class="hm-head"><h2 id="heatmap-title">Components</h2>${legend}</div><div class="hm-body"><ul class="hm-labels">${labels}</ul><div class="hm-scroll" role="group" aria-label="Daily history, last ${model.theme.historyDays} days"><div class="hm-track"><div class="hm-callouts">${callouts(model, components, days)}</div>${rows}${axisMarkup(days)}</div></div></div>${notes ? `<ul class="hm-notes">${notes}</ul>` : ""}<details class="hm-method"><summary>How these figures are calculated</summary><p>Each square is one calendar day in ${escapeHtml(timezone)}. A component's percentage covers the last ${model.theme.historyDays} days of observed time; the overall figure averages the components, weighted by observed time. Degraded performance counts as ${model.policies.uptimeDowntimeWeight("Degraded performance")} downtime minutes per minute, a partial outage as ${model.policies.uptimeDowntimeWeight("Partially unavailable")} and a major outage as ${model.policies.uptimeDowntimeWeight("Major outage")}.</p></details><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></div></section>`;
+  return `<div class="hm-frame"><div class="hm-head"><h2 id="${titleId}">Components</h2>${legend}</div><div class="hm-body"><ul class="hm-labels">${labels}</ul><div class="hm-scroll" role="group" aria-label="Daily history, last ${model.theme.historyDays} days"><div class="hm-track"><div class="hm-callouts">${callouts(model, components, days)}</div>${rows}${axisMarkup(days)}</div></div></div>${notes ? `<ul class="hm-notes">${notes}</ul>` : ""}<details class="hm-method"><summary>How these figures are calculated</summary><p>Each square is one calendar day in ${escapeHtml(timezone)}. A component's percentage covers the last ${model.theme.historyDays} days of observed time; the overall figure averages the components, weighted by observed time. Degraded performance counts as ${model.policies.uptimeDowntimeWeight("Degraded performance")} downtime minutes per minute, a partial outage as ${model.policies.uptimeDowntimeWeight("Partially unavailable")} and a major outage as ${model.policies.uptimeDowntimeWeight("Major outage")}.</p></details></div>`;
+}
+
+function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
+  const content = model.theme.groupsCollapsed
+    ? groupComponentsByHeading(model.visibleComponents).map(([heading, members], index) =>
+      `<details class="theme-component-group"><summary>${escapeHtml(heading)}</summary>${heatmapFrame({ ...model, visibleComponents: members }, `heatmap-group-${index}`)}</details>`).join("")
+    : heatmapFrame(model, "heatmap-title");
+  return content ? `<section class="up-heatmap wrap" aria-label="Component uptime" data-live="heatmap">${content}<div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>` : "";
 }
 
 /** Incidents and maintenance in groups. Wide screens show them as one run of framed entries, each with its own

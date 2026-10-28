@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chromium, expect } from "@playwright/test";
 
 /** The existing theme journey follows the same saved theme through each shipped layout. */
-export async function themeTemplateFlow({ appFetch, pageUrl, updateSettings, snapshot }) {
+export async function themeTemplateFlow({ appFetch, pageUrl, updateSettings, snapshot, palette }) {
   const components = (await (await appFetch("/api/app/components")).json()).components;
   const chosen = components.filter(component => ["01J00000000000000000000010", "01J00000000000000000000020"].includes(component.id));
   const edit = async (component, region) => {
@@ -31,10 +31,17 @@ export async function themeTemplateFlow({ appFetch, pageUrl, updateSettings, sna
         await expect(contents).toBeHidden();
         await group.locator(":scope > summary").click();
         await expect(contents).toBeVisible();
+        if (template === "uptime" && width === 1440) {
+          const expected = palette.surface.match(/[a-f0-9]{2}/gi).map(value => parseInt(value, 16)).join(", ");
+          assert.equal(await group.locator(".hm-frame").evaluate(element => getComputedStyle(element).backgroundColor), `rgb(${expected})`);
+        }
+        const component = group.locator("details.rg-row").filter({ hasText: "API gateway" });
+        if (template === "regions") await component.locator(":scope > summary").click();
         const record = page.getByRole("list", { name: "14-day uptime record for API gateway", exact: true });
         await expect(record.getByRole("listitem")).toHaveCount(14);
         await expect(page.getByRole("list", { name: "14-day uptime record for Web application", exact: true }).getByRole("listitem")).toHaveCount(0);
         await page.screenshot({ path: `test-results/theme-001/${template}-expanded-${width}.png`, fullPage: true });
+        if (template === "regions") await component.locator(":scope > summary").click();
         await group.locator(":scope > summary").click();
       }
     }
