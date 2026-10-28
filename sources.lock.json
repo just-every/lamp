@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e17147b051349fca6bdf1c744f2a42b8105ba4698c7397b96efd208effabbfdb",
+      "sha256": "57d4e0c046a948e919a79171765b688480fa6175f3494ea33d3dd1aa7054f80f",
       "executable": false
     },
     "DEMO.md": {
@@ -2864,7 +2864,7 @@
       "executable": false
     },
     "scripts/release-metadata.mjs": {
-      "sha256": "c478746fa6709358d086119571586b2b45f3191af160a9d5861947ced3918b3d",
+      "sha256": "d4ca893b8789f73de84378ff16be69b2b950563f164002325594cddef81942dc",
       "executable": false
     },
     "scripts/remove-deployment.mjs": {
@@ -7848,7 +7848,7 @@
       "executable": false
     },
     "tests/release-history.test.mjs": {
-      "sha256": "3cf82f2ee33991e1c3166dee51b145b23e95b3d841e9aee228c2936cda877138",
+      "sha256": "890b65febc209751e8848d8bff325ae3cf1882233e0de2d34c4b0c2c05f81b93",
       "executable": false
     },
     "tests/release/installation-browser.mjs": {

@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const command = join(root, "scripts/validate-release.mjs");
 const firstContract = "# Contract\n\n- **GUAR-001 — Record.** Records persist. Deletion requires confirmation.\n- **GUAR-002 — Export.** Owners can export. Exports include every record.\n";
 const secondContract = firstContract.replace("Deletion requires confirmation.", "Deletion requires two confirmations.");
-const currentContract = `${secondContract}- **GUAR-003 — Audit.** Every deletion is recorded.\n`;
+const currentContract = `${secondContract}\n## Published clauses\n\n#### GUAR-003 — Audit\n\n*Tier:* Core\n\n**Requirement.** Every deletion is recorded.\n`;
 const migration = (id) => ({ id, buyerSteps: "Apply before starting the release." });
 const delta = (change) => ({ change, summary: "An editorial summary, independent of the clause's first sentence.", ...(change !== "added" ? { was: "The prior guarantee." } : {}), ...(change === "changed" ? { now: "The revised guarantee." } : {}) });
 const record = (version, previousVersion, contractChanges, migrations) => ({
@@ -103,7 +103,7 @@ test("release CLI validates release history and PAGE-020 VPAT inventory, tables 
     let result = run();
     assertExit(result, 0, "three-release chain");
     // Formatting changes preserve wording even across a retained historical delta.
-    await rewrite("release-history/2.1.0.CONTRACT.md", "Owners can export.", "Owners can `export`.");
+    await rewrite("release-history/2.1.0.CONTRACT.md", "- **GUAR-002 — Export.** Owners can export. Exports include every record.\n", "#### GUAR-002 — Export.\n\n*Tier:* Core\n\n**Requirement.** Owners can `export`. Exports include every record.\n");
     result = run();
     assertExit(result, 0, "formatting-only historical edit");
     await baseline();
