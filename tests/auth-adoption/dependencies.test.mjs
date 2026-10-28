@@ -1,4 +1,5 @@
 import { runNativeIdentityProofFlow } from '../agent-door/identity-proof-flow.mjs';
+import { runV2AdmissionFlow } from '../agent-door/v2-admission-flow.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -97,4 +98,5 @@ test('ACCESS-002 AGENT-008 dependency linking and Business identity retain exact
     await rm(dir, { recursive: true, force: true });
   }
   await runNativeIdentityProofFlow(t);
+  await runV2AdmissionFlow(t);
 });

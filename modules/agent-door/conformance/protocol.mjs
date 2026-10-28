@@ -93,7 +93,7 @@ export function createProtocol(context) {
   }, body: JSON.stringify({ jsonrpc: '2.0', id, method, params: version === '2025-11-25' ? params : { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': version, 'io.modelcontextprotocol/clientCapabilities': { elicitation: { url: {} } }, 'io.modelcontextprotocol/clientInfo': { name: 'rer-agent-conformance', version: '1' }, ...params._meta } } }) });
   const body = await responseBody(response), result = body.result, decision = result?._meta?.[DECISION] ?? body.error?.data?._meta?.[DECISION];
   const answer = { status: response.status, headers: response.headers, body, message: body, result, decision };
-  if (['tools/call', 'resources/read'].includes(method) && track && response.status !== 401) context.calls.push({
+  if (['tools/call', 'resources/read'].includes(method) && track && (response.status !== 401 || typeof body.error?.data?.code === 'string')) context.calls.push({
    kind: method, name: method === 'resources/read' ? 'resources/read' : params.name,
    args: structuredClone(method === 'resources/read' ? { uri: params.uri } : params.arguments ?? {}),
    decision: structuredClone(decision ?? null), code: errorCode(answer), result: structuredClone(result),

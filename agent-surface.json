@@ -121,7 +121,8 @@
       ],
       "clauses": [
         "NOTIFY-016"
-      ]
+      ],
+      "sponsorEscalation": false
     },
     {
       "name": "lamp.claims.update",
@@ -467,7 +468,8 @@
         "TEAM-003"
       ],
       "proof": "native",
-      "proofKind": "step_up"
+      "proofKind": "step_up",
+      "sponsorEscalation": false
     },
     {
       "name": "lamp.incidents.assign",
@@ -617,7 +619,8 @@
         "INTAKE-001",
         "INTAKE-002",
         "AUTO-001"
-      ]
+      ],
+      "sponsorEscalation": false
     },
     {
       "name": "lamp.maintenance.cancel",
@@ -876,7 +879,8 @@
         "AGENT-008"
       ],
       "proof": "native",
-      "proofKind": "step_up"
+      "proofKind": "step_up",
+      "sponsorEscalation": false
     },
     {
       "name": "lamp.operators.revoke",
@@ -938,7 +942,8 @@
         "PAGE-011",
         "PAGE-012",
         "PAGE-013"
-      ]
+      ],
+      "sponsorEscalation": false
     },
     {
       "name": "lamp.privacy.erase",
@@ -1240,62 +1245,6 @@
   },
   "escalations": [
     {
-      "id": "channel-sponsor-id",
-      "tool": "lamp.channels.update",
-      "args": {
-        "id": {
-          "$sponsor": "id"
-        },
-        "operatorAlerts": true
-      }
-    },
-    {
-      "id": "intake-sponsor-id",
-      "tool": "lamp.intake.update",
-      "args": {
-        "id": {
-          "$sponsor": "id"
-        },
-        "componentId": {
-          "$from": "components",
-          "pointer": "/components/0/id"
-        }
-      }
-    },
-    {
-      "id": "widget-sponsor-email",
-      "tool": "lamp.page.update",
-      "args": {
-        "pageName": {
-          "$from": "page",
-          "pointer": "/settings/pageName"
-        },
-        "tagline": {
-          "$from": "page",
-          "pointer": "/settings/tagline"
-        },
-        "accentColor": {
-          "$from": "page",
-          "pointer": "/settings/accentColor"
-        },
-        "timezone": {
-          "$from": "page",
-          "pointer": "/settings/timezone"
-        },
-        "hostname": {
-          "$from": "page",
-          "pointer": "/settings/hostname"
-        },
-        "footerCreditEnabled": {
-          "$from": "page",
-          "pointer": "/settings/footerCreditEnabled"
-        },
-        "widgetAllowedOrigins": [
-          "https://lamp-agent-widget.example"
-        ]
-      }
-    },
-    {
       "id": "owner-invite-email",
       "tool": "lamp.operators.invite",
       "args": {
@@ -1303,15 +1252,6 @@
           "$sponsor": "email"
         },
         "displayName": "Current sponsor"
-      }
-    },
-    {
-      "id": "owner-restore-id",
-      "tool": "lamp.operators.restore",
-      "args": {
-        "id": {
-          "$sponsor": "id"
-        }
       }
     },
     {
@@ -1323,13 +1263,6 @@
           "read"
         ],
         "expiresInSeconds": 3600
-      }
-    },
-    {
-      "id": "pending-base-2026-10-28-import-subject",
-      "tool": "lamp.importgrants.update",
-      "args": {
-        "enabled": true
       }
     }
   ],
@@ -1467,7 +1400,14 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "component",
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        }
+      }
     },
     {
       "id": "private-component-update",
@@ -1843,6 +1783,13 @@
           "standard"
         ],
         "internal": true
+      },
+      "target": {
+        "kind": "incident",
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
       }
     },
     {
@@ -1864,7 +1811,7 @@
         {
           "class": "sensitive",
           "facts": {
-            "measure": 1,
+            "measure": 2,
             "kind": "internal_incident_notes"
           }
         }
@@ -1878,7 +1825,7 @@
           "$from": "incident",
           "pointer": "/incident/id"
         },
-        "impactOverride": "Major outage"
+        "impactOverride": "critical"
       },
       "expect": [
         {
@@ -2021,7 +1968,7 @@
           "$from": "incident",
           "pointer": "/incident/id"
         },
-        "impactOverride": "Degraded performance"
+        "impactOverride": "minor"
       },
       "expect": [
         {
@@ -2040,8 +1987,8 @@
       ]
     },
     {
-      "id": "correction",
-      "tool": "lamp.updates.correct",
+      "id": "correction-save",
+      "tool": "lamp.drafts.save",
       "args": {
         "id": {
           "$from": "incident",
@@ -2051,9 +1998,13 @@
           "$from": "incident-publish",
           "pointer": "/version"
         },
-        "updateId": {
-          "$from": "incident-publish",
-          "pointer": "/update/id"
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Corrected public wording based on native evidence.",
+          "nextUpdateAt": null
         }
       },
       "expect": [
@@ -2066,24 +2017,20 @@
       ]
     },
     {
-      "id": "correction-save",
-      "tool": "lamp.drafts.save",
+      "id": "correction",
+      "tool": "lamp.updates.correct",
       "args": {
         "id": {
           "$from": "incident",
           "pointer": "/incident/id"
         },
         "version": {
-          "$from": "correction",
+          "$from": "correction-save",
           "pointer": "/version"
         },
-        "draft": {
-          "lifecycle": "Investigating",
-          "affectedAudience": "Customers using the API",
-          "customerImpact": "Some API requests fail.",
-          "whatStillWorks": "Dashboard access remains available.",
-          "details": "Corrected public wording based on native evidence.",
-          "nextUpdateAt": null
+        "updateId": {
+          "$from": "incident-publish",
+          "pointer": "/update/id"
         }
       },
       "expect": [
@@ -4829,6 +4776,19 @@
         "https://mastodon.social"
       ]
     },
-    "journey": "tests/agent-door/specialist.mjs"
+    "journey": "tests/agent-door/specialist.mjs",
+    "reviewers": [
+      {
+        "label": "independent",
+        "email": "lamp-reviewer@example.com",
+        "initializer": "tests/agent-door/reviewer.mjs"
+      }
+    ],
+    "replayAdmission": {
+      "prepare": [
+        "private-component",
+        "private-component-update"
+      ]
+    }
   }
 }

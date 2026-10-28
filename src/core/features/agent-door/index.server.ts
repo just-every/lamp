@@ -17,6 +17,7 @@ import { createAccessTools, createAccessResources } from './access';
 import { createQueuedDispatchTool, setAgentEffectDoor } from './final-dispatch';
 import { createWitnessTool } from './witness';
 import { withAgentActor } from './actor';
+import { withNativeTarget } from './targets';
 import { invokeQueuedAgentOperation } from './provenance.repository';
 
 function installationTrust(bindings: AppBindings): Trust | null {
@@ -34,7 +35,7 @@ export function createLampAgentRegistry(services: AppServices, bindings: AppBind
     ...createAccessTools(services, bindings), createQueuedDispatchTool(bindings.DB), createWitnessTool(bindings.DB)];
   const resources = [...createIncidentResources(services, bindings), ...createMaintenanceResources(services, bindings),
     ...createCatalogueResources(services, bindings), ...createCommunicationResources(services, bindings), ...createAccessResources(services, bindings)];
-  return {tools, resources};
+  return {tools: tools.map(tool => withNativeTarget(tool, resources)), resources};
 }
 
 export function createLampAgentDoor(services: AppServices, bindings: AppBindings) {

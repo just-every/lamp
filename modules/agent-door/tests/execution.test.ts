@@ -145,4 +145,45 @@ test('embedded calls retain and enforce originating consent with complete audit'
   assert.equal(JSON.parse(JSON.parse(running.audit).row).consent, r.c.consent)
   t.diagnostic('Durable invocation: one native write, two consent-attributed audit rows; revoked job refused consent_revoked with no further effect.')
  } finally { await r.close() }
+});
+
+test('public-door replay rechecks current admission, records refusals and executes its effect once', async () => {
+ const r = await runtime()
+ try {
+  await r.adopt()
+  const input = args('synthetic-base-replay-admission')
+  const first = await r.tool('records.write', input)
+  const replay = await r.tool('records.write', input)
+  assert.deepEqual(replay.result.structuredContent, first.result.structuredContent)
+  assert.equal((await r.db.prepare('SELECT version FROM test_records WHERE id=?').bind(input.id).first()).version, 1)
+  const refuse = async (expected: string, token?: string) => {
+   const before = (await r.person('/agents/api/audit')).body.rows.length
+   const answer = await r.tool('records.write', input, token ? { token } : {})
+   assert.equal(code(answer), expected)
+   assert.equal(answer.result?.structuredContent, undefined)
+   const rows = (await r.person('/agents/api/audit')).body.rows
+   assert.equal(rows.length, before + 1)
+   const row = rows.at(-1)
+   assert.equal(row.code, expected); assert.equal(row.outcome, 'refused')
+   assert.equal(row.idempotency_key, input.idempotency_key)
+   assert.equal(row.agent.id, r.c.agentId)
+   assert.equal(typeof row.sponsor.id, 'string'); assert.equal(typeof row.at, 'string')
+  }
+  await refuse('insufficient_scope', await r.token({ scope: 'records:read' }))
+  const approval = autonomousPolicy(); approval.rules = [{ id: 'all', class: '*', do: 'approval', approver: ['sponsor'], wait: 'PT1H' }]
+  await r.adopt(approval)
+  await refuse('approval_required')
+  await r.adopt(heldPolicy())
+  await refuse('review_required')
+  const blocked = autonomousPolicy(); blocked.rules = [{ id: 'block', class: '*', do: 'blocked' }]
+  await r.adopt(blocked)
+  await refuse('policy_blocked')
+  await r.adopt(autonomousPolicy(), { paused: true })
+  await refuse('agents_paused')
+  await r.adopt(autonomousPolicy(), { revoked: { agents: [], consents: [r.c.consent] } })
+  await refuse('unauthenticated')
+  await r.adopt(autonomousPolicy(), { revoked: { agents: [], consents: [] } })
+  assert.deepEqual((await r.tool('records.write', input)).result.structuredContent, first.result.structuredContent)
+  assert.equal((await r.db.prepare('SELECT version FROM test_records WHERE id=?').bind(input.id).first()).version, 1)
+ } finally { await r.close() }
 })

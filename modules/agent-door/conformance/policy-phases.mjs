@@ -13,8 +13,8 @@ export async function unsetPolicy(c, initial = false) {
   c.sponsor.id = sponsor.id;
  }
  for (const step of c.surface.journey) {
-  // Admission under an absent policy precedes argument use. No prior result
-  // exists in this phase; references are inert, invalid record identifiers.
+  // No prior result exists here; unresolved references cannot identify native
+  // records. Resolvable calls still retain their computed classification.
   const answer = await c.tool(step.tool, c.args(step, new Map(), { unresolved: true }));
   c.add(`BASE-AGENT-007.2.${initial ? 'initial' : 'removed'}.${step.id}`, errorCode(answer) === 'policy_unset', `${step.tool} must refuse with policy_unset before setup.`);
  }

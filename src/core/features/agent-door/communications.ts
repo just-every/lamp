@@ -63,7 +63,7 @@ function checked<S extends z.ZodObject>(schema: S, args: Record<string, unknown>
 }
 /** Recheck current native admission before reading, classification and execution. */
 function define<S extends z.ZodObject>(definition: Definition<S>, allowed: (id: string) => Promise<boolean>): ToolDefinition {
-  const {input, resource, ...metadata} = definition;
+  const {input, resource, authority, ...metadata} = definition;
   const admit = async (ctx: ToolContext) => {if (!await allowed(ctx.person.id)) throw new ToolRefusal('unauthenticated');};
   return {
     ...metadata, untrusted:true,
@@ -71,7 +71,7 @@ function define<S extends z.ZodObject>(definition: Definition<S>, allowed: (id: 
     async classify(args, ctx) {await admit(ctx); return definition.classify ? definition.classify(checked(input, args), ctx) : standard();},
     ...(definition.summary ? {summary: async (args: Record<string,unknown>,ctx:ToolContext) => {await admit(ctx); return definition.summary!(checked(input,args),ctx);}} : {}),
     ...(definition.revision ? {revision: async (args:Record<string,unknown>,ctx:ToolContext) => {await admit(ctx); return definition.revision!(checked(input,args),ctx);}} : {}),
-    ...(definition.authority ? {authority: async (args:Record<string,unknown>,ctx:ToolContext) => {await admit(ctx); return definition.authority!(checked(input,args),ctx);}} : {}),
+    ...(authority ? {authority: async (args:Record<string,unknown>,ctx:ToolContext) => {await admit(ctx); return authority(checked(input,args),ctx);}} : {}),
     async run(args, ctx) {await admit(ctx); const result = await definition.run(checked(input,args),ctx); return {result,...(resource ? {resources:resource(result)} : {})};},
   };
 }
