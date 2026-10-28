@@ -1126,7 +1126,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `c0bf57298a94208dec0ea28a41c2b5efc61cc6c9` (28 October 2026). TEAM-004 names its current public-door journeys below; later edits preserve the role implementation, and Verify binds the named journeys to the candidate.
+Judged from the code and tests at commit `63479a0cef372fde8c2be817ee0e630e29d4b841` (28 October 2026). TEAM-004 names its current public-door journeys below; later edits preserve the role implementation, and Verify binds the named journeys to the candidate.
 
 INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.
 
