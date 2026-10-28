@@ -3683,7 +3683,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-006, BASE
 2. Permanent erasure, irreversible history removal and an unrestorable import undo carry destructive with the actual removed-record count and dependencies.
 3. A connection that the identity, mail, SMS or chat provider keeps for a person carries gated with that provider and step; an available company-credential API route is decided by the company’s policy for its other computed classes.
 4. The same publication can carry external and commitment, and a credential connection can carry security and gated, without losing either class’s facts.
-5. Changing an active automation rule or a public component-state transition computes live with the affected running status service; the corresponding private draft does not.
+5. Changing an active automation rule, public hostname or failover configuration, or publishing a public component-state transition computes live with the affected running status service; the corresponding private draft does not.
 6. An SMS dispatch computes money with amount, currency and the provider counterparty from the stored rate and recipient facts.
 
 **Evidence.** None.

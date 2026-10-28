@@ -2788,7 +2788,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 - **security.** Changing intake authentication, signing keys, provider credentials or protective page settings names the affected setting and provider.
 - **destructive.** Permanent erasure, irreversible history removal and an import undo that cannot be restored count removed records and dependencies.
 - **money.** An SMS dispatch that changes what the business pays carries the server-computed amount, currency and provider counterparty.
-- **live.** Changing active automation or publishing a component-state transition carries the affected running status service; private drafts do not.
+- **live.** Changing active automation, public hostname or failover configuration, or publishing a component-state transition carries the affected running status service; private drafts do not.
 - **gated.** Connecting an outside identity, mail, SMS or chat provider carries gated when that provider requires its own person-bound consent, sender registration, identity verification or hosted account step; the facts name the provider and step.
 
 | Tool | Does | Core clauses | Risk class | Today |
@@ -2869,7 +2869,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 2. Permanent erasure, irreversible history removal and an unrestorable import undo carry destructive with the actual removed-record count and dependencies.
 3. A connection that the identity, mail, SMS or chat provider keeps for a person carries gated with that provider and step; an available company-credential API route is decided by the company’s policy for its other computed classes.
 4. The same publication can carry external and commitment, and a credential connection can carry security and gated, without losing either class’s facts.
-5. Changing an active automation rule or a public component-state transition computes live with the affected running status service; the corresponding private draft does not.
+5. Changing an active automation rule, public hostname or failover configuration, or publishing a public component-state transition computes live with the affected running status service; the corresponding private draft does not.
 6. An SMS dispatch computes money with amount, currency and the provider counterparty from the stored rate and recipient facts.
 
 #### SURFACE-004 — Incident communication handoffs
