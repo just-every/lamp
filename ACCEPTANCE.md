@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `b1846f33787731f5ff8879244ff28e053b15c11e` (29 October 2026); PAGE-008 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -134,7 +134,7 @@ Core · published · **partial**
 
 #### PAGE-008 — Public read paths are not rate limited
 
-Core · published · **partial** · Cites BASE-ACCESS-003
+Core · published · **done** · Cites BASE-ACCESS-003
 
 **Requirement.** Public status reads are exempt from per-caller rate limiting so shared customer egress stays usable during an incident. Supersedes `BASE-ACCESS-003` for those paths only. Public writes continue under that duty.
 
@@ -142,8 +142,8 @@ Core · published · **partial** · Cites BASE-ACCESS-003
 1. All public reads up to the declared per-address capacity succeed and never return a rate-limit refusal.
 2. Public reads share immutable generation content; healthy reads validate the current generation without querying the database, with artifact caching reducing object-byte reads.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Healthy generation validation performs no database query; Artifact caching reduces object-byte reads.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): the declared per-address request burst succeeds without rate refusal, with successful public representation reads. `tests/e2e/snapshot-retained.test.mjs` (a published status survives storage, database and queue failures, cold restart and an independent heartbeat silence alarm): healthy public routes use a repository that throws on access; six fresh generation artifacts each require one initial blob-byte read, three repeated warm rounds and conditional reads preserve identical bytes and generation identity without more byte reads, and every warm read still validates the current pointer. A subsequent generation displaces the old validators and reads its own artifacts.
+**Gap.** None.
 
 #### PAGE-009 — Time display
 
