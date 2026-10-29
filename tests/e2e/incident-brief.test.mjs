@@ -15,13 +15,14 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
   try {
     const component = await j.component('Checkout API');
     const hidden = await j.component('PRIVATE internal service', { internal: true });
-    const source = (await j.json('/api/app/intake/sources', 'POST', {
+    const sourceSettings = {
       name: 'Customer API alerts', credentialKind: 'hmac-sha256', signingSecret: 'synthetic-lamp-source-secret',
       deduplicationPath: '$.alert.id', titlePath: '$.alert.title', statePath: '$.alert.state', recoveredValue: 'recovered', componentId: component.id,
-    }, 201)).source;
-    const alert = async payload => {
+    };
+    const source = (await j.json('/api/app/intake/sources', 'POST', sourceSettings, 201)).source;
+    const alert = async (payload, sourceId = source.id) => {
       const body = JSON.stringify(payload), at = new Date().toISOString();
-      return j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: {
+      return j.raw(new URL(`/api/intake/${sourceId}`, j.publicOrigin).href, { method: 'POST', headers: {
         'Content-Type': 'application/json', 'x-lamp-timestamp': at,
         'x-lamp-signature': createHmac('sha256', 'synthetic-lamp-source-secret').update(`${at}.${body}`).digest('base64url'),
       }, body });
@@ -72,6 +73,21 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
       assert.equal(receipts.length, 1, 'the returned receipt identity independently addresses one alert');
       return receipts[0];
     };
+    const otherSource = (await j.json('/api/app/intake/sources', 'POST', { ...sourceSettings, name: 'Synthetic Lamp source 2' }, 201)).source;
+    const unrelatedAlerts = [];
+    for (const [sourceId, alertId] of [[source.id, 'synthetic-lamp-other-key'], [otherSource.id, payload.alert.id]]) {
+      const response = await alert({ alert: { ...payload.alert, id: alertId } }, sourceId);
+      assert.equal(response.status, 202);
+      const result = await response.json();
+      assert.notEqual(result.incidentId, id);
+      const row = await receipt(result.receiptId);
+      assert.equal(row.sourceId, sourceId);
+      assert.equal(row.deduplicationKey, alertId);
+      assert.equal(row.incidentId, result.incidentId);
+      assert.equal(row.state, 'firing');
+      assert.equal(row.recoveredAt, null);
+      unrelatedAlerts.push(row);
+    }
     const matchingAlert = { sourceId: source.id, sourceName: source.name, deduplicationKey: 'checkout-outage', incidentId: id };
     for (const receiptId of [firing.receiptId, latestFiring.receiptId]) {
       const row = await receipt(receiptId);
@@ -109,6 +125,7 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.equal(recoveredFiring.state, 'firing');
     assert.equal(recoveredFiring.recoveredAt, recoveryReceipt.recoveredAt, 'recovery is recorded against the matching firing alert');
     assert.equal((await receipt(firing.receiptId)).recoveredAt, null, 'the earlier firing receipt is not mistaken for the latest matching alert');
+    for (const row of unrelatedAlerts) assert.deepEqual(await receipt(row.id), row, 'recovery changes neither another key on this source nor the same key on another source');
     assertRecoveryPublicSurfacesUnchanged(publicBeforeRecovery, await recoveryPublicSurfaces(j));
     const afterRecovery = await j.read(id);
     assert.equal(afterRecovery.lifecycle, publishedBeforeRecovery.lifecycle, 'recovery cannot change incident lifecycle');
