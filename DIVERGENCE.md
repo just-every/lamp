@@ -1656,3 +1656,5 @@ both dependency discovery/linking and operator authentication. Previously the
 native dependency document returned `installation_key_missing` (503) despite the
 installation having its generated key. No secret is derived from another binding;
 the existing provider approval and native setup journeys cover the integration.
+New migration 0075 adds Base's sealed-custody marker and nonsecret key-id history
+to existing dependency installations without changing an applied migration.

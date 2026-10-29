@@ -45,7 +45,7 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 native identity 
     };
     const post = (path, body = {}, cookie) => call(path, { method: 'POST', body, cookie });
     const discovery = await call('/.well-known/rer-dependencies');
-    assert.equal(discovery.status, 200);
+    assert.equal(discovery.status, 200, await discovery.clone().text());
     assert.ok((await discovery.json()).dependencies.some(d => d.interface === 'oidc-provider@1' && d.optional));
     const callback = async () => {
       await call('/.well-known/rer-dependencies');
