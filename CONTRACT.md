@@ -3116,13 +3116,13 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026).
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 8 | 99 | 0 | 107 |
+| Published | 9 | 98 | 0 | 107 |
 | Target and push further | 8 | 74 | 54 | 136 |
-| All | 16 | 173 | 54 | 243 |
+| All | 17 | 172 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3235,7 +3235,7 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | `SUB-004` | Component selection | published | partial | `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts initial selected components; management selected or all; incident recipient selection; newly eligible catch-up recipient. Unasserted: maintenance recipient selection; all-components subscriber follows new components; narrowed selection unchanged by component creation. |
 | `SUB-005` | Cookieless subscriber tokens | published | partial | `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts referrer suppression; indexing suppression. Unasserted: one-subscription scope and no unrelated capability; at least 128 bits of entropy; a previously usable management token is refused after unsubscribe; deletion revokes every token. |
 | `SUB-006` | One-click unsubscribe | published | partial | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/rer-mail.test.mjs` | Old cited evidence asserts mail unsubscribe value is present; web unsubscribe value is present; one-click declaration; URL-encoded deactivation. Unasserted: visible unsubscribe link in notification body; multipart form deactivation; DKIM coverage of both unsubscribe headers; per-token allowance independence. |
-| `SUB-007` | Managing a subscription | published | partial | `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts management page opens; saved component selection shown; selection persists. It does not assert: channel shown. |
+| `SUB-007` | Managing a subscription | published | done | `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-preferences-flow.mjs` (subscriberPreferencesFlow): the captured emailed management link opens in a script-free browser without an operator session, visibly identifies the email channel and distinguishes saved selected and unselected components. Native form submission changes component selection and a fresh read retains it. The same page unsubscribes the subscriber; the former management link refuses reads and replayed writes, leaving the entire subscription unchanged. |  |
 | `SUB-008` | Unsubscribe integrity | published | done | `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-add-flow.mjs` (subscriberAddFlow) and `tests/e2e/helpers/subscriber-queued-unsubscribe.mjs` (subscriberQueuedUnsubscribe): an active recipient is committed before public one-click unsubscribe; the same queued delivery becomes suppressed through Queue redelivery with zero later sends. |  |
 | `SUB-009` | Webhook subscribers | published | partial | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`. Lamp-format door: tests/e2e/delivery-contract.test.mjs:631 and tests/e2e/publishing-contract.test.mjs:92. Slack-URL door: tests/e2e/publishing-contract.test.mjs:94-100, called at tests/e2e/publishing-contract.test.mjs:432 within the test at :394. Native controlled receiver; no live Slack acceptance is claimed. | Old cited evidence asserts two active signature values; exact-body signature; incident reference; subscriber address absent. Unasserted: webhook subscription creation read back; both rotation signatures verify; complete update array; complete previous/new component states; 30-second receiver deadline; rich-text URL labels equal their URLs on a nonempty set of link elements; Slack bracket and punctuation asserted in tests/e2e/helpers/update-link-evidence.mjs outside the old Evidence set; all Lamp fields are asserted in tests/e2e/helpers/update-component-flow.mjs outside the old Evidence set. |
 | `SUB-010` | Failing destinations | published | partial | `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts hard bounce deactivates the subscriber; hard-bounce reason is recorded; spam complaint deactivates the subscriber; spam-complaint reason is recorded. Unasserted: a fresh notification after the complaint is suppressed; post-deactivation pending webhook backlog sends nothing. |

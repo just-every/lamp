@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 16 | 173 | 49 | 238 |
+| Core | 17 | 172 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 16 | 173 | 54 | 243 |
+| Full target | 17 | 172 | 54 | 243 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -857,7 +857,7 @@ Core · published · **partial** · Cites BASE-ACCESS-003, BASE-PUBLIC-001 · Re
 
 #### SUB-007 — Managing a subscription
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** The emailed management link lets a subscriber manage its own channel and component selection without an operator session.
 
@@ -865,8 +865,8 @@ Core · published · **partial**
 1. Opening the management link shows the subscription channel and saved component selection.
 2. The subscriber can change its component selection and unsubscribe there without a session.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts management page opens; saved component selection shown; selection persists. It does not assert: channel shown.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-preferences-flow.mjs` (subscriberPreferencesFlow): the captured emailed management link opens in a script-free browser without an operator session, visibly identifies the email channel and distinguishes saved selected and unselected components. Native form submission changes component selection and a fresh read retains it. The same page unsubscribes the subscriber; the former management link refuses reads and replayed writes, leaving the entire subscription unchanged.
+**Gap.** None.
 
 #### SUB-008 — Unsubscribe integrity
 

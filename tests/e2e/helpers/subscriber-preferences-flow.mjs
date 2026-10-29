@@ -143,9 +143,10 @@ export async function subscriberPreferencesFlow() {
     await page.goto(manageUrl);
     await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Unsubscribe", exact: true }).click()]);
     await page.getByRole("heading", { name: "Unsubscribed", exact: true }).waitFor();
-    assert.equal((await fixture.list()).find(row => row.id === maintenance.id).state, "deactivated");
+    const stoppedSubscription = (await fixture.list()).find(row => row.id === maintenance.id);
+    assert.equal(stoppedSubscription.state, "deactivated");
     assert.equal((await raw(manageUrl)).status, 404, "unsubscribe revokes the emailed management link");
     assert.equal((await raw(manageUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: pageOrigin }, body: new URLSearchParams({ componentId: other.id }).toString() })).status, 404, "replaying the old management link cannot reactivate or edit the subscription");
-    assert.equal((await fixture.list()).find(row => row.id === maintenance.id).state, "deactivated");
+    assert.deepEqual((await fixture.list()).find(row => row.id === maintenance.id), stoppedSubscription, "refused replay leaves the entire subscription unchanged");
   } finally { try { await browser?.close(); } finally { await fixture.close(); } }
 }
