@@ -24,6 +24,7 @@ export function themeHeaderImage() {
 export function themeSettings(defaults, hiddenComponentId) {
   return {
     ...defaults,
+    paletteEnabled: true,
     palette: { background: "#f4f4f4", surface: "#e9f2ec", text: "#172d24", link: "#195138", operational: "#185a3b", degraded: "#745000", partial: "#884500", major: "#a12619", maintenance: "#354d81" },
     font: "serif", headerImage: false,
     headerLinks: [{ label: "Customer support", href: "https://example.test/support" }],

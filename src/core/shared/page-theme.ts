@@ -3,7 +3,7 @@ import { z } from "zod";
 const colour = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Theme colours must use #RRGGBB.");
 const link = z.object({ label: z.string(), href: z.string() }).strict();
 
-export const themeSchema = z.object({
+export const themeInputSchema = z.object({
   palette: z.object({
     background: colour,
     surface: colour,
@@ -14,18 +14,30 @@ export const themeSchema = z.object({
     partial: colour,
     major: colour,
     maintenance: colour,
-  }).strict().nullable().default(null),
-  font: z.enum(["default", "system", "serif", "mono", "uploaded"]).default("default"),
-  headerImage: z.boolean().default(false),
-  headerLinks: z.array(link).default([]),
-  footerLinks: z.array(link).default([]),
-  headerHtml: z.string().default(""),
-  footerHtml: z.string().default(""),
-  groupsCollapsed: z.boolean().default(false),
-  hiddenUptimeComponentIds: z.array(z.string()).default([]),
-  historyDays: z.number().int().min(1).max(90).default(90),
-  customCss: z.string().max(16_000).default(""),
-}).strict();
+  }).strict().nullable(),
+  paletteEnabled: z.boolean(),
+  font: z.enum(["default", "system", "serif", "mono", "uploaded"]),
+  headerImage: z.boolean(),
+  headerLinks: z.array(link),
+  footerLinks: z.array(link),
+  headerHtml: z.string(),
+  footerHtml: z.string(),
+  groupsCollapsed: z.boolean(),
+  hiddenUptimeComponentIds: z.array(z.string()),
+  historyDays: z.number().int().min(1).max(90),
+  customCss: z.string().max(16_000),
+}).strict().partial();
+
+// Keep missing update fields absent until they can be merged with saved settings.
+// Stored themes from before paletteEnabled infer it from their palette.
+export const themeSchema = themeInputSchema.transform(({
+  palette = null, paletteEnabled = palette !== null, font = "default", headerImage = false,
+  headerLinks = [], footerLinks = [], headerHtml = "", footerHtml = "", groupsCollapsed = false,
+  hiddenUptimeComponentIds = [], historyDays = 90, customCss = "",
+}) => ({
+  palette, paletteEnabled, font, headerImage, headerLinks, footerLinks, headerHtml, footerHtml,
+  groupsCollapsed, hiddenUptimeComponentIds, historyDays, customCss,
+}));
 
 export type PageTheme = z.infer<typeof themeSchema>;
 export const defaultPageTheme = themeSchema.parse({});

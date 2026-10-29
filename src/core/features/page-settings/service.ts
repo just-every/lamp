@@ -104,7 +104,17 @@ export function createPageSettingsService(
     async update(settings) {
       const existing = await readRequired();
       const assets = JSON.parse(existing.themeAssets) as { header?: unknown; font?: unknown };
-      const checkedTheme = settings.theme ? validatePageTheme(settings.theme, {
+      const savedTheme = themeSchema.parse(JSON.parse(existing.theme));
+      const incomingTheme = settings.theme;
+      const checkedTheme = incomingTheme ? validatePageTheme({
+        ...savedTheme,
+        ...incomingTheme,
+        // A legacy null disables the palette; its saved colours are never a deletion request.
+        palette: incomingTheme.paletteEnabled === false && savedTheme.palette
+          ? savedTheme.palette : incomingTheme.palette ?? savedTheme.palette,
+        paletteEnabled: incomingTheme.paletteEnabled ?? (incomingTheme.palette === undefined
+          ? savedTheme.paletteEnabled : incomingTheme.palette !== null),
+      }, {
         origin: `https://${settings.hostname}`,
         imagePaths: [...(assets.header ? ["/assets/theme-header"] : []), ...(existing.logoKey ? ["/assets/logo"] : [])],
       }) : null;

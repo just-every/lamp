@@ -29,8 +29,8 @@ export function ThemeSettings({ value, saved, components, onChange, onSettings, 
     <details className="brand-upload">
       <summary>Colours</summary>
       <div className="page-stack">
-        <label className="checkbox-label"><input type="checkbox" checked={value.palette !== null} onChange={event => edit("palette", event.target.checked ? { ...initialPalette } : null)} />Use a custom colour palette</label>
-        {value.palette && <>
+        <label className="checkbox-label"><input type="checkbox" checked={value.paletteEnabled} onChange={event => onChange({ ...value, paletteEnabled: event.target.checked, palette: value.palette ?? (event.target.checked ? { ...initialPalette } : null) })} />Use a custom colour palette</label>
+        {value.paletteEnabled && value.palette && <>
           <p className="field-note">Text, links and state colours must pass AA contrast on the background and surface before saving.</p>
           <div className="settings-grid">{colors.map(([key, label]) => <label className="form-label" key={key}>{label}
             <span className="colour-field" style={{ gridTemplateColumns: "48px minmax(0, 1fr)" }}>

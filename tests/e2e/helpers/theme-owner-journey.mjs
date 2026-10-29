@@ -4,6 +4,7 @@ import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { themeFlow } from './theme-flow.mjs';
 import { themeSettings } from './theme-fixture.mjs';
+import { paletteOwnerJourney } from './palette-owner-journey.mjs';
 
 export async function themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, cookieName, diagnostic }) {
   const json = async (path, method = 'GET', value) => {
@@ -26,6 +27,7 @@ export async function themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, 
     await json(`/api/app/components/${component.id}/standing-claim`, 'PUT', { state: 'Operational' });
   }
   await themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSettings, updateSettings, sessionId, cookieName, diagnostic });
+  await paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSettings, updateSettings, sessionId, cookieName, diagnostic });
 
   const limits = JSON.parse(await readFile('seed.json', 'utf8')).limits;
   const before = await json('/api/app/components/bulk');
