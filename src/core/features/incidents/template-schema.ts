@@ -2,6 +2,12 @@ import { z } from "zod";
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "../../shared/domain";
 import { ulidSchema } from "../../shared/ids";
 
+export const templateChannelsSchema = z.array(z.enum(["email", "webhook", "chat", "sms", "social"])).max(5).refine(channels => new Set(channels).size === channels.length, "Select each channel once.");
+export const templateResolvedUpdateSchema = z.object({
+  affectedAudience: z.string().trim().min(1).max(250), customerImpact: z.string().trim().min(1).max(250),
+  whatStillWorks: z.string().max(250), details: z.string().max(500),
+}).strict();
+
 const templateComponents = z.array(z.object({
   componentId: ulidSchema,
   state: z.enum(COMPONENT_STATES),
@@ -17,6 +23,8 @@ export const templateSchema = z.object({
   details: z.string().max(500),
   nextUpdateOffsetMinutes: z.number().int().min(1).max(10_080),
   components: templateComponents,
+  channels: templateChannelsSchema.optional(),
+  resolvedUpdate: templateResolvedUpdateSchema.nullable().optional(),
 }).strict();
 
 export const templateUpdateSchema = templateSchema.extend({

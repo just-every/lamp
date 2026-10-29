@@ -1,3 +1,4 @@
+import type { SubscriberWriteAuthority } from "../subscribers/incident-authority";
 import { createUlid,nowIso } from "../../shared/ids";
 import { hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { createSubscriberRepository } from "../subscribers/repository";
@@ -80,17 +81,34 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
       const confirmationSent=await invite(id,origin,operatorId);
       return {subscriberId:id,created:!existing,confirmationSent};
     },
+    async subscribeIncident(input:{incidentId:string;phone:string;includeReport?:boolean},origin:string,authority?:SubscriberWriteAuthority,operatorId?:string) {
+      await validatePhone(input.phone);ensureConfigured();
+      await controlWordingFits(await options.pageName());
+      await subscribers.limits.assertAvailable('sms');
+      const existing=await subscribers.incidents.find(input.incidentId,'sms',input.phone);
+      if(existing?.state==='active')return {subscriberId:existing.id,created:false,confirmationSent:false};
+      const row=existing&&existing.state!=='deactivated'?existing:await subscribers.incidents.create({
+        id:createUlid(),incidentId:input.incidentId,destination:input.phone,channel:'sms',requiresConfirmation:true,includeReport:input.includeReport,operatorId,
+        tokenHash:await hashOpaqueToken(createUlid()),now:nowIso(),
+      },authority);
+      const confirmationSent=await invite(row.id,origin);
+      return {subscriberId:row.id,created:!existing,confirmationSent};
+    },
     async inbound(params:URLSearchParams,origin:string) {
       const number=params.get('From')??'',sid=params.get('MessageSid')??'',body=(params.get('Body')??'').trim().toUpperCase();
       if(!sid || !number)return;
-      const id=await repository.inbound(sid,number,nowIso());
-      if(!id)return;
+      const ids=await repository.inbound(sid,number,nowIso());
+      if(!ids.length)return;
       const name=await options.pageName();
       if(['STOP','UNSUBSCRIBE','CANCEL','END','QUIT'].includes(body)) {
-        if(await repository.stop(id,nowIso()))await send(number,'You are unsubscribed. No more status messages will be sent. Subscribe again on the status page to opt in.');
+        let stopped=false;
+        for(const id of ids)stopped=await repository.stop(id,nowIso())||stopped;
+        if(stopped)await send(number,'You are unsubscribed. No more status messages will be sent. Subscribe again on the status page to opt in.');
       } else if(body==='YES') {
-        if(await repository.activate(id,nowIso())) {
-          const token=await manageToken(id);
+        let first:string|null=null;
+        for(const id of ids)if(await repository.activate(id,nowIso()))first??=id;
+        if(first) {
+          const token=await manageToken(first);
           await send(number,renderSmsMessage(`${name}: You are subscribed. Reply STOP to cancel or HELP for help. Manage preferences:`,new URL(`/manage/${encodeURIComponent(token)}`,origin).href));
         }
       } else if(body==='HELP') {

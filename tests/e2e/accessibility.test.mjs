@@ -2,7 +2,8 @@ import { requestHeaders } from "../helpers/request-headers.mjs";
 import { assertAppliedStyles } from "../helpers/applied-styles.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
+import { promisify } from "node:util";
 import { createHash, createHmac } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer as createHttpServer } from "node:http";
@@ -49,8 +50,10 @@ async function appFetch(path, init = {}) {
   });
 }
 
-function executeLocalSql(statement) {
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", wranglerConfig, "--persist-to", statePath, "--command", statement], {
+async function executeLocalSql(statement) {
+  // Keep HTTP socket-close events flowing while Wrangler writes fixture rows.
+  // A synchronous child can leave an expired keepalive socket in the fetch pool.
+  await promisify(execFile)("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", wranglerConfig, "--persist-to", statePath, "--command", statement], {
     cwd: process.cwd(),
     stdio: "pipe",
   });
@@ -159,6 +162,7 @@ before(async () => {
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", configPath, "--persist-to", statePath], {
     cwd: process.cwd(),
+    maxBuffer: 8 * 1024 * 1024,
     stdio: "pipe",
   });
   await startWorker();
@@ -226,7 +230,7 @@ before(async () => {
   const timestamp = new Date().toISOString();
   const confirmationRows = confirmTokens.map((confirm, index) => `('01J0000000000000000000008${index + 4}','email','accessibility-confirm-${index}@example.test',NULL,'pending','all','accessibility-confirm-legacy-${index}',NULL,NULL,'${timestamp}','${timestamp}')`).join(",");
   const confirmationTokenRows = confirmTokens.map((confirm, index) => `('${confirm.id}','01J0000000000000000000008${index + 4}','confirm','${confirm.hash}','2035-01-01T00:00:00.000Z',NULL,'${timestamp}','${timestamp}')`).join(",");
-  executeLocalSql(`INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES ('01J00000000000000000000080','email','accessibility-reader@example.test',NULL,'active','selected','accessibility-legacy-token',NULL,NULL,'${timestamp}','${timestamp}'),${confirmationRows}; INSERT INTO subscriber_components (id,subscriber_id,component_id,created_at,updated_at) VALUES ('01J00000000000000000000083','01J00000000000000000000080','${componentId}','${timestamp}','${timestamp}'); INSERT INTO subscriber_tokens (id,subscriber_id,scope,token_hash,expires_at,revoked_at,created_at,updated_at) VALUES ('${manage.id}','01J00000000000000000000080','manage','${manage.hash}',NULL,NULL,'${timestamp}','${timestamp}'),('${unsubscribe.id}','01J00000000000000000000080','unsubscribe','${unsubscribe.hash}',NULL,NULL,'${timestamp}','${timestamp}'),${confirmationTokenRows};`);
+  await executeLocalSql(`INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES ('01J00000000000000000000080','email','accessibility-reader@example.test',NULL,'active','selected','accessibility-legacy-token',NULL,NULL,'${timestamp}','${timestamp}'),${confirmationRows}; INSERT INTO subscriber_components (id,subscriber_id,component_id,created_at,updated_at) VALUES ('01J00000000000000000000083','01J00000000000000000000080','${componentId}','${timestamp}','${timestamp}'); INSERT INTO subscriber_tokens (id,subscriber_id,scope,token_hash,expires_at,revoked_at,created_at,updated_at) VALUES ('${manage.id}','01J00000000000000000000080','manage','${manage.hash}',NULL,NULL,'${timestamp}','${timestamp}'),('${unsubscribe.id}','01J00000000000000000000080','unsubscribe','${unsubscribe.hash}',NULL,NULL,'${timestamp}','${timestamp}'),${confirmationTokenRows};`);
   await startEmbedServer();
   await allowWidgetAt(embedUrl);
 

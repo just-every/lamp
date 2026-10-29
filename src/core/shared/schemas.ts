@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { themeSchema } from "./page-theme";
 import { emailBrandingSchema } from "./email-branding";
 import { widgetAppearanceSchema } from "./widget-appearance";
 
@@ -25,6 +26,7 @@ export const pageSettingsSchema = z.object({
   timezone: nonEmptyText(100),
   hostname: nonEmptyText(253),
   footerCreditEnabled: z.boolean(),
+  theme: themeSchema.optional(),
   template: z.enum(["default", "calm", "uptime", "regions"]).optional(),
   widgetAllowedOrigins: z.array(widgetOriginSchema).max(100).optional(),
   widgetAppearance: widgetAppearanceSchema.optional(),

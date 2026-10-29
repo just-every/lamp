@@ -1,22 +1,23 @@
+import { createOperatorRolesRepository } from './roles.repository';
 import { sessionAuthority } from '../../platform/auth/authority';
 import { createUlid, nowIso } from '../../shared/ids';
 import { AuthError, type Operator, type Session } from '@runeditrun/rer/modules/operator-auth';
-export interface StoredOperator { id: string; email: string; displayName: string; isSetupOperator: boolean }
+export interface StoredOperator { id: string; email: string; displayName: string; isSetupOperator: boolean; role: import('./permissions').OperatorRole }
 export interface StoredFormerOperator extends StoredOperator { deactivatedAt: string }
 export function createOperatorRepository(db: D1Database) {
   return {
     async isSetupOperator(id: string) { return Boolean(await db.prepare('SELECT 1 FROM oa_bootstrap WHERE claim_id=?').bind(id).first()); },
-    async view(operator: Operator): Promise<StoredOperator> { return { id: operator.id, email: operator.email, displayName: operator.displayName, isSetupOperator: await this.isSetupOperator(operator.id) }; },
+    async view(operator: Operator): Promise<StoredOperator> { return { id: operator.id, email: operator.email, displayName: operator.displayName, isSetupOperator: await this.isSetupOperator(operator.id), role: (await createOperatorRolesRepository(db).role(operator.id)) ?? 'viewer' }; },
     async version(id: string) {return db.prepare('SELECT version,status FROM oa_operators WHERE id=?').bind(id).first<{version:number;status:string}>();},
     async initialized() { return Boolean(await db.prepare('SELECT 1 FROM oa_bootstrap').first()); },
     async listOperators(): Promise<StoredOperator[]> {
-      return (await db.prepare("SELECT o.id,o.email,o.display_name AS displayName,CASE WHEN b.claim_id=o.id THEN 1 ELSE 0 END AS isSetupOperator FROM oa_operators o LEFT JOIN oa_bootstrap b ON b.singleton=1 WHERE o.status='active' ORDER BY o.email").all<StoredOperator>()).results;
+      return (await db.prepare("SELECT o.id,o.email,o.display_name AS displayName,CASE WHEN b.claim_id=o.id THEN 1 ELSE 0 END AS isSetupOperator,CASE WHEN o.role IN ('owner','admin') THEN o.role ELSE COALESCE((SELECT role FROM operator_roles WHERE operator_id=o.id),'viewer') END AS role FROM oa_operators o LEFT JOIN oa_bootstrap b ON b.singleton=1 WHERE o.status='active' ORDER BY o.email").all<StoredOperator>()).results;
     },
     async listInvitedOperators(): Promise<StoredOperator[]> {
-      return (await db.prepare("SELECT id,email,display_name AS displayName,0 AS isSetupOperator FROM oa_operators WHERE status='invited' ORDER BY email").all<StoredOperator>()).results;
+      return (await db.prepare("SELECT id,email,display_name AS displayName,0 AS isSetupOperator,CASE WHEN role IN ('owner','admin') THEN role ELSE COALESCE((SELECT role FROM operator_roles WHERE operator_id=oa_operators.id),'viewer') END AS role FROM oa_operators WHERE status='invited' ORDER BY email").all<StoredOperator>()).results;
     },
     async listFormerOperators(): Promise<StoredFormerOperator[]> {
-      return (await db.prepare("SELECT p.id,p.email,p.display_name AS displayName,EXISTS(SELECT 1 FROM oa_bootstrap WHERE claim_id=p.id) AS isSetupOperator,p.deactivated_at AS deactivatedAt FROM operators p JOIN oa_operators o ON o.id=p.id WHERE o.status='inactive' AND p.email <> 'deleted-' || lower(p.id) || '@operator.invalid' ORDER BY p.email").all<StoredFormerOperator>()).results;
+      return (await db.prepare("SELECT p.id,p.email,p.display_name AS displayName,EXISTS(SELECT 1 FROM oa_bootstrap WHERE claim_id=p.id) AS isSetupOperator,p.deactivated_at AS deactivatedAt,CASE WHEN o.role IN ('owner','admin') THEN o.role ELSE COALESCE((SELECT role FROM operator_roles WHERE operator_id=o.id),'viewer') END AS role FROM operators p JOIN oa_operators o ON o.id=p.id WHERE o.status='inactive' AND p.email <> 'deleted-' || lower(p.id) || '@operator.invalid' ORDER BY p.email").all<StoredFormerOperator>()).results;
     },
     async recordInvitation(email: string, actor: string) {
       const now=nowIso();
@@ -43,6 +44,8 @@ export function createOperatorRepository(db: D1Database) {
       const results = await db.batch([
         db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'operator',?,'deleted',?,'{}',?,? WHERE " + fence).bind(receipt, id, actor, now, now, ...args),
         db.prepare("UPDATE oa_operators SET email='deleted-' || lower(id) || '@operator.invalid',display_name='Erased operator',version=version+1 WHERE id=? AND " + witnessed).bind(id, ...witness),
+        db.prepare("UPDATE incident_updates SET automation_attribution=substr(automation_attribution,1,length(automation_attribution)-length(?)) || 'Erased operator' WHERE author_operator_id=? AND automation_attribution IS NOT NULL AND substr(automation_attribution,-length(?))=? AND " + witnessed).bind(target.displayName,id,target.displayName,target.displayName,...witness),
+        db.prepare("UPDATE incident_internal_notes SET body=replace(body,?,'approved by Erased operator;') WHERE author_operator_id=? AND incident_id IN (SELECT incident_id FROM alert_rule_runs) AND " + witnessed).bind(`approved by ${target.displayName};`,id,...witness),
         db.prepare("UPDATE oc_owner_claims SET email='deleted-' || lower(operator_id) || '@operator.invalid' WHERE operator_id=? AND " + witnessed).bind(id, ...witness),
         db.prepare("UPDATE oc_idp_grants SET subject='erased:' || ? WHERE jti IN (SELECT jti FROM oc_owner_claims WHERE operator_id=?) AND EXISTS(SELECT 1 FROM oa_external_identities identity WHERE identity.operator_id=? AND identity.issuer=oc_idp_grants.issuer AND identity.subject=oc_idp_grants.subject) AND " + witnessed).bind(id, id, id, ...witness),
         db.prepare('DELETE FROM oa_external_identities WHERE operator_id=? AND ' + witnessed).bind(id, ...witness),
@@ -55,6 +58,7 @@ export function createOperatorRepository(db: D1Database) {
         db.prepare("UPDATE audit_entries SET reason=NULL,payload_json='{}',updated_at=? WHERE entity_type='operator' AND entity_id=? AND " + witnessed).bind(now, id, ...witness),
       ]);
       if (!results[0].meta.changes) throw new AuthError('authority_changed', 409);
+      return Boolean(results[2].meta.changes);
     },
   };
 }
