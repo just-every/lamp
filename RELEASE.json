@@ -973,8 +973,12 @@
       "buyerSteps": "Apply after 0072. Adds role metadata for Communicators, Responders and Viewers while preserving existing native Owner and Admin authority. Setup remains Owner; Settings lets Owners and Admins invite operators with a role and change roles. The last active Owner cannot be demoted or removed. No provider credentials or other owner action are required."
     },
     {
-      "id": "0074_vendor_dependencies.sql",
-      "buyerSteps": "Apply after 0073. Adds keyless vendor followers, shared two-minute read windows and attributed evidence. Existing buyer states remain independent. Configure public sources and optional private drafting or rollup in Settings. No provider key is required."
+      "id": "0074_alert_rule_guards.sql",
+      "buyerSteps": "Apply after 0073. Adds per-rule firing delay and recovery hold, durable scheduled windows and attributed Undo receipts. Rules default to a two-minute firing delay and five-minute recovery hold; existing active claims are retained. Review these values in Settings before relying on immediate automation. Undo releases only its automatic claim and retains earlier public updates, component history and internal attribution. No account or credential is required."
+    },
+    {
+      "id": "0075_vendor_dependencies.sql",
+      "buyerSteps": "Apply after 0074. Adds keyless vendor followers, shared two-minute read windows and attributed evidence. Existing buyer states remain independent. Configure public sources and optional private drafting or rollup in Settings. No provider key is required."
     }
   ],
   "breaking": false,

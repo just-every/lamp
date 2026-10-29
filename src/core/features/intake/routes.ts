@@ -22,7 +22,9 @@ export function registerIntakeRoutes(app: Hono<AppEnv>, service: IntakeService, 
   app.get("/api/app/intake/receipts", async (context) => {
     const limit = z.coerce.number().int().min(1).max(250).safeParse(context.req.query("limit") ?? "100");
     if (!limit.success) return context.json({ error: "limit must be an integer from 1 to 250." }, 400);
-    return context.json({ receipts: await service.listReceipts(limit.data) });
+    const receipt = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/).optional().safeParse(context.req.query("receipt"));
+    if (!receipt.success) return context.json({error:"Invalid alert receipt."},400);
+    return context.json({ receipts: await service.listReceipts(limit.data,receipt.data) });
   });
   app.post("/api/app/intake/sources", async (context) => { const input = sourceSchema.safeParse(await context.req.json().catch(() => null)); if (!input.success) return context.json({ error: "Invalid alert source." }, 400); try { return context.json({ source: endpointView(await service.saveSource(input.data, context.get("operator").id), context.req.url) }, 201); } catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The source could not be saved." }, 400); } });
   app.put("/api/app/intake/sources/:sourceId", async (context) => { const input = sourceSchema.safeParse(await context.req.json().catch(() => null)); if (!input.success) return context.json({ error: "Invalid alert source." }, 400); try { return context.json({ source: endpointView(await service.saveSource(input.data, context.get("operator").id, context.req.param("sourceId")), context.req.url) }); } catch (cause) { if (cause instanceof AlertSourceNotFoundError) return context.json({ error: "Alert source not found." }, 404); return context.json({ error: cause instanceof Error ? cause.message : "The source could not be saved." }, 400); } });

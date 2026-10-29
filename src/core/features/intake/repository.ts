@@ -43,7 +43,7 @@ export interface IntakeRepository {
   allocateIncidentReference(): Promise<AllocatedReference>;
   listSources(): Promise<AlertSourceRow[]>;
   listActivity(): Promise<AlertSourceActivity>;
-  listReceipts(limit: number): Promise<AlertReceiptView[]>;
+  listReceipts(limit: number, receiptId?: string): Promise<AlertReceiptView[]>;
   deleteSource(sourceId: string, operatorId: string, at: string): Promise<{deleted:boolean;publicChanged:boolean}>;
   operatorEmail(operatorId: string): Promise<string | null>;
   findSource(sourceId: string): Promise<AlertSourceRow | null>;
@@ -93,9 +93,9 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         monitors: monitors.results.map(row => ({ sourceId: String(row.sourceId), monitorId: String(row.monitorId), monitorName: String(row.monitorName).trim().slice(0, 200), lastSeenAt: String(row.lastSeenAt) })),
       };
     },
-    async listReceipts(limit) {
-      const values = await binding.prepare(`SELECT ${receiptFields}, alert_sources.name AS sourceName FROM alert_receipts INNER JOIN alert_sources ON alert_sources.id = alert_receipts.source_id ORDER BY alert_receipts.received_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
-      const outbound = await binding.prepare(`SELECT p.id, p.source_id AS sourceId, s.name AS sourceName, p.external_id AS deduplicationKey, u.incident_id AS incidentId, CASE WHEN p.state = 'sent' THEN 'firing' ELSE 'invalid' END AS state, p.created_at AS receivedAt, p.error FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id JOIN incident_updates u ON u.id = p.incident_update_id WHERE p.state IN ('sent','failed') ORDER BY p.created_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
+    async listReceipts(limit, receiptId) {
+      const values = await binding.prepare(`SELECT ${receiptFields}, alert_sources.name AS sourceName FROM alert_receipts INNER JOIN alert_sources ON alert_sources.id = alert_receipts.source_id WHERE (? IS NULL OR alert_receipts.id=?) ORDER BY alert_receipts.received_at DESC LIMIT ?`).bind(receiptId ?? null,receiptId ?? null,limit).all<Record<string, unknown>>();
+      const outbound = await binding.prepare(`SELECT p.id, p.source_id AS sourceId, s.name AS sourceName, p.external_id AS deduplicationKey, u.incident_id AS incidentId, CASE WHEN p.state = 'sent' THEN 'firing' ELSE 'invalid' END AS state, p.created_at AS receivedAt, p.error FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id JOIN incident_updates u ON u.id = p.incident_update_id WHERE p.state IN ('sent','failed') AND (? IS NULL OR p.id=?) ORDER BY p.created_at DESC LIMIT ?`).bind(receiptId ?? null,receiptId ?? null,limit).all<Record<string, unknown>>();
       return [...values.results.map(receiptViewRow), ...outbound.results.map(value => ({ ...receiptViewRow({ ...value, recoveredAt: null, createdAt: value.receivedAt, updatedAt: value.receivedAt }), direction: "note" as const }))].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)).slice(0, limit);
     },
     async deleteSource(sourceId, operatorId, at) {

@@ -9,11 +9,11 @@ import { COMPONENT_STATES, type ComponentState } from "../../../shared/domain";
 import type { IncidentTemplate } from "../../incidents/template-repository";
 import { TemplateEditor } from "../../incidents/ui/template-editor";
 import type { ComponentOption, Source } from "./tools";
-import type { RuleView } from "../rule-schema";
+import type { RuleView, RuleRun } from "../rule-schema";
 
 type RuleMode = RuleView["mode"];
-type Fields = { name: string; mode: RuleMode; state: ComponentState; templateId: string };
-const defaults = (): Fields => ({ name: "", mode: "draft", state: "Degraded performance", templateId: "" });
+type Fields = { name: string; mode: RuleMode; state: ComponentState; templateId: string; firingDelaySeconds: number; recoveryHoldSeconds: number };
+const defaults = (): Fields => ({ name: "", mode: "draft", state: "Degraded performance", templateId: "", firingDelaySeconds: 120, recoveryHoldSeconds: 300 });
 const modeLabel = (mode: RuleMode) => mode === "claim-and-publish" ? "Claim and publish" : mode === "claim" ? "Claim" : "Draft";
 
 export function AlertRulesSettings() {
@@ -30,6 +30,7 @@ export function AlertRulesSettings() {
 /** AUTO-001: one owner-approved rule for one component and source. A new pair remains draft-only until saved. */
 export function AlertRules({ sources, components }: { sources: Source[]; components: ComponentOption[] }) {
   const rules = useAppData<{ rules: RuleView[] }>("/api/app/intake/rules");
+  const runs = useAppData<{ runs: RuleRun[] }>("/api/app/intake/rule-runs");
   const templates = useAppData<{ templates: IncidentTemplate[] }>("/api/app/incident-templates");
   const [sourceId, setSourceId] = useState("");
   const [componentId, setComponentId] = useState("");
@@ -56,7 +57,7 @@ export function AlertRules({ sources, components }: { sources: Source[]; compone
     const existing = rules.data?.rules.find(rule => rule.sourceId === nextSourceId && rule.componentId === nextComponentId);
     visit.current++;
     setSourceId(nextSourceId); setComponentId(nextComponentId);
-    setFields(existing ? { name: existing.name, mode: existing.mode, state: existing.state, templateId: existing.templateId ?? "" } : defaults());
+    setFields(existing ? { name: existing.name, mode: existing.mode, state: existing.state, templateId: existing.templateId ?? "", firingDelaySeconds: existing.firingDelaySeconds, recoveryHoldSeconds: existing.recoveryHoldSeconds } : defaults());
     setDirty(false); setTemplateDirty(false); setEditedTemplate(null); setError(null); setMessage(null);
   }
   function change<K extends keyof Fields>(key: K, value: Fields[K]) {
@@ -82,6 +83,15 @@ export function AlertRules({ sources, components }: { sources: Source[]; compone
     } catch (cause) { setError(cause instanceof Error ? cause.message : "The rule could not be deleted."); }
     finally { setBusy(false); }
   }
+  async function undo(run: RuleRun) {
+    if (busy || !window.confirm("Undo this automatic change? Earlier publications and history will remain.")) return;
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      await appApi(`/api/app/intake/rule-runs/${run.id}/undo`, { method: "POST", body: "{}" });
+      runs.refresh(); setMessage("Automatic change undone. Earlier publications and history are retained.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The automatic change could not be undone."); }
+    finally { setBusy(false); }
+  }
   const complete = sourceId && componentId && fields.name.trim() && (fields.mode !== "claim-and-publish" || fields.templateId);
   return <section className="data-card alert-rules" aria-labelledby="alert-rules-title">
     <div className="card-heading"><div><h2 id="alert-rules-title">Alert rules</h2><p className="card-support">Choose what alerts may do for each component and source. Without a saved rule, alerts create private drafts.</p></div></div>
@@ -101,6 +111,10 @@ export function AlertRules({ sources, components }: { sources: Source[]; compone
       <label className="form-label">Rule name<input aria-label="Rule name" required maxLength={120} value={fields.name} disabled={busy} onChange={event => change("name", event.target.value)} placeholder="API availability" /></label>
       <label className="form-label">When this source fires<select aria-label="Alert action" value={fields.mode} disabled={busy} onChange={event => change("mode", event.target.value as RuleMode)}><option value="draft">Draft</option><option value="claim">Claim</option><option value="claim-and-publish">Claim and publish</option></select><small>{fields.mode === "draft" ? "Creates a private draft. Nothing public changes." : fields.mode === "claim" ? "Claims this component's state while firing, then releases on recovery. No update or notification is sent." : "Claims this component and publishes only the saved template wording. Recovery publishes its saved Resolved update."}</small></label>
       {fields.mode !== "draft" ? <label className="form-label">Claimed state<select aria-label="Claimed state" disabled={busy} value={fields.state} onChange={event => change("state", event.target.value as ComponentState)}>{COMPONENT_STATES.map(state => <option key={state}>{state}</option>)}</select></label> : null}
+      {fields.mode !== "draft" ? <>
+        <label className="form-label">Firing delay (seconds)<input aria-label="Firing delay (seconds)" type="number" min={0} max={86400} required disabled={busy} value={fields.firingDelaySeconds} onChange={event => change("firingDelaySeconds", Number(event.target.value))} /></label>
+        <label className="form-label">Recovery hold (seconds)<input aria-label="Recovery hold (seconds)" type="number" min={0} max={86400} required disabled={busy} value={fields.recoveryHoldSeconds} onChange={event => change("recoveryHoldSeconds", Number(event.target.value))} /></label>
+      </> : null}
       {fields.mode === "claim-and-publish" ? <>
         <label className="form-label">Saved template<select aria-label="Rule template" required disabled={busy} value={fields.templateId} onChange={event => change("templateId", event.target.value)}><option value="">Choose a saved template</option>{templates.data?.templates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}</select><small>Save a template from an incident composer first. It needs complete update wording, a Resolved update and notification channels.</small></label>
         {templates.error ? <FormError>{templates.error} <Button type="button" variant="secondary" onClick={templates.refresh}>Retry templates</Button></FormError> : null}
@@ -109,6 +123,11 @@ export function AlertRules({ sources, components }: { sources: Source[]; compone
       </> : null}
       <div className="form-actions"><Button type="submit" disabled={busy || !complete || templateDirty}>{busy ? "Saving…" : "Save rule"}</Button>{currentRule ? <Button type="button" variant="secondary" disabled={busy} onClick={() => void remove()}>Delete rule</Button> : null}</div>
     </form> : <p>Choose a source and component to review or save their rule.</p>}
+    {runs.error ? <FormError>{runs.error} <Button type="button" variant="secondary" onClick={runs.refresh}>Retry automatic changes</Button></FormError> : null}
+    {runs.data?.runs.some(run => !run.releasedAt) ? <div><h3>Active automatic changes</h3><ul className="tool-list">{runs.data.runs.filter(run => !run.releasedAt).map(run => <li className="tool-row" key={run.id}>
+      <span className="tool-row-name"><strong>{rules.data?.rules.find(rule => rule.id === run.ruleId)?.name ?? "Automatic change"}</strong><a className="text-link" href={`/app/incidents/${run.incidentId}`}>View incident and alert history</a><small>{formatTime(run.createdAt)}</small></span>
+      <Button type="button" variant="secondary" disabled={busy} aria-label={`Undo automatic change ${run.id}`} onClick={() => void undo(run)}>Undo</Button>
+    </li>)}</ul></div> : null}
     {error ? <FormError>{error}</FormError> : null}
     {message ? <p role="status">{message}</p> : null}
   </section>;

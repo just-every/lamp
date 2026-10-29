@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { openStatusJourney, eventually } from './status-journey.mjs';
+import { moveInDoor } from '../../helpers/import-notifications.mjs';
 
 /** The scheduled Worker and ordinary HTTP doors own every status change.
  * Only public vendor responses and public DNS answers are recorded fixtures. */
@@ -109,6 +110,16 @@ export async function vendorDependenciesFlow() {
       const row=(await j.json('/api/app/dependencies','POST',{name:`synthetic-lamp-${format}`,sourceUrl,statusPageUrl:'https://status.synthetic-lamp.test/',format,options},201)).dependency;
       await tick();assert.equal((await list()).find(value=>value.id===row.id).state,'Major outage');
     }
+    const atomUrl='https://status.synthetic-lamp.test/changing-atom';
+    const atomReport=term=>`<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>synthetic-lamp-changing-report</id><title>synthetic-lamp-component-report</title><category term="${term}"/></entry></feed>`;
+    sources.set(atomUrl,{body:atomReport('major_outage'),status:200});
+    const atom=(await j.json('/api/app/dependencies','POST',{name:'synthetic-lamp-changing-atom',sourceUrl:atomUrl,format:'atom'},201)).dependency;
+    const atomStates=[];
+    for(const term of ['major_outage','operational']) {
+      sources.get(atomUrl).body=atomReport(term);await tick();
+      atomStates.push((await j.json('/api/app/components')).components.find(row=>row.id===atom.componentId).publicState);
+    }
+    assert.deepEqual(atomStates,['Major outage','Operational'],'each Atom category term maps to the current native component state');
     const count=(await list()).length;
     const sourceBefore=(await list()).find(row=>row.id===aws.id);
     const historyBefore=(await j.json(`/api/app/components/${aws.componentId}/history`)).history.length;
@@ -144,6 +155,27 @@ export async function vendorDependenciesFlow() {
     await j.signIn(viewerAddress);
     await j.json('/api/app/dependencies','POST',{catalogId:'aws',name:'synthetic-lamp-replay'},401);
     await j.signIn();
+    // An owner choosing an imported template gives it a native use that undo
+    // must retain, including the ability to draft on a later vendor outage.
+    const moveIn=moveInDoor((path,body,headers)=>j.api(path,{...(body?{method:'POST',body:JSON.stringify(body)}:{}),headers}));
+    const files=Object.entries({
+      'page.json':{id:'synthetic-lamp-template-page',name:'Synthetic Lamp source',viewers_must_be_team_members:false,ip_restrictions:null},
+      'page-access-groups.json':[],'component-groups.json':[],
+      'components.json':[{id:'synthetic-lamp-template-component',name:'Synthetic Lamp template service',group:false,group_id:null,position:1,status:'operational',created_at:'2026-01-01T00:00:00.000Z'}],
+      'incidents.json':[],'incidents-scheduled.json':[],'subscribers.json':[],
+      'incident-templates.json':[{id:'synthetic-lamp-imported-template',name:'synthetic-lamp-imported-template',title:'synthetic-lamp-future-draft',body:'synthetic-lamp-imported-impact',update_status:'investigating',components:[{id:'synthetic-lamp-template-component',status:'major_outage'}]}],
+    }).map(([name,value])=>({name,text:JSON.stringify(value)}));
+    const reviewed=await moveIn.preview({files});assert.equal(reviewed.status,200,JSON.stringify(reviewed.body));
+    const imported=await moveIn.apply(reviewed.body);assert.equal(imported.status,200,JSON.stringify(imported.body));
+    const importedTemplate=(await j.json('/api/app/incident-templates')).templates.find(row=>row.name==='synthetic-lamp-imported-template');
+    await j.json(`/api/app/dependencies/${cloudflare.id}`,'PUT',{mode:'draft',dependentComponentIds:[buyer.id],templateId:importedTemplate.id});
+    const undone=await moveIn.undo(imported.body.door);assert.equal(undone.status,200,JSON.stringify(undone.body));
+    const savedRule=(await list()).find(row=>row.id===cloudflare.id);
+    const incidentsBeforeUndoOutage=(await j.json('/api/app/incidents')).incidents.map(row=>row.id);
+    upstream.body=upstream.fixture.cases.find(row=>row.sourceState==='major_outage').body;await tick();
+    const futureDraft=(await j.json('/api/app/incidents')).incidents.find(row=>!incidentsBeforeUndoOutage.includes(row.id));
+    assert.deepEqual({templateId:savedRule.templateId,mode:savedRule.mode,impact:futureDraft?(await j.read(futureDraft.id)).draft?.customerImpact:null},
+      {templateId:importedTemplate.id,mode:'draft',impact:'synthetic-lamp-imported-impact'},'undo retains the owner-saved template choice and future vendor drafting');
     await j.json(`/api/app/dependencies/${cloudflare.id}`,'DELETE',undefined,204);
     assert.ok(!(await publicRows()).some(row=>row.componentId===cloudflare.componentId));
     const history=(await j.json(`/api/app/components/${cloudflare.componentId}/history`)).history;

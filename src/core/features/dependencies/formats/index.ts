@@ -60,9 +60,17 @@ function parseStatuspage(body: string, options: ParseVendorOptions): VendorStatu
   const active = incidents.find(incident => !["resolved", "postmortem"].includes(String(incident.status)) && (!options.componentId || (Array.isArray(incident.components) && incident.components.some(component => record(component).id === options.componentId))));
   return { ...chosen, incidentKey: active ? String(active.id) : null, summary: text(active?.name) || chosen.summary };
 }
+/** Atom stores category state in a term attribute; RSS uses element text.
+ * Project each response's terms into the text fields read by the feed parser. */
+function atomCategoryText(body: string): string {
+  return body.replace(/<category\b((?:[^"'<>]|"[^"]*"|'[^']*')*?)(?:\/\s*>|>[\s\S]*?<\/category\s*>)/gi, (element: string, attributes: string) => {
+    const term = [...attributes.matchAll(/([^\s"'<>/=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)].find(attribute => attribute[1].toLowerCase() === "term");
+    return term ? `<category>${term[2] ?? term[3]}</category>` : element;
+  });
+}
 function parseFeed(format: "rss" | "atom", body: string): VendorStatus {
   if (!(format === "rss" ? /<rss\b[\s\S]*<\/rss\s*>/i : /<feed\b[\s\S]*<\/feed\s*>/i).test(body) || (format === "rss" && !/<channel\b/i.test(body)) || /<!DOCTYPE|<!ENTITY/i.test(body)) throw new Error("The vendor response is not a supported status feed.");
-  const entries = feedEntries(body).sort((a, b) => {
+  const entries = feedEntries(format === "atom" ? atomCategoryText(body) : body).sort((a, b) => {
     const time = (fields: Record<string, string>) => Date.parse(fields.updated || fields.pubdate || fields.published || "") || 0;
     return time(b.fields) - time(a.fields);
   });

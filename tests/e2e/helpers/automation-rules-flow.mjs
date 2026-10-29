@@ -73,7 +73,7 @@ export async function automationRulesFlow({ t }) {
     return Object.fromEntries(await Promise.all(names.map(async name => [name, (await db.prepare(`SELECT * FROM "${name}"`).all()).results.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))])));
   };
   const saveRule = async (source, target, input) => {
-    const response = await put(rulePath(source, target), input);
+    const response = await put(rulePath(source, target), { firingDelaySeconds: 0, recoveryHoldSeconds: 0, ...input });
     assert.equal(response.status, 200, response.text);
     return response.body.rule;
   };
