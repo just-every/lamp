@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { nativeFixture } from './fixture-state.mjs';
+import { refreshOwnerEmailProof } from './owner-proof.mjs';
 
 /** Each policy round prepares real, unconsumed records through native doors. */
 export default async function preparePhase({ request, origin, cookie, mail, phase }) {
@@ -25,18 +26,7 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
     values.subscriberBatch = imported;
   }
   assert.deepEqual(mail.read({ limit: 20 }), beforeImports, 'Import sends no confirmation mail');
-  // Credential minting retains the production recent-email-proof boundary.
-  await call('/auth/step-up', 'POST', { action: 'credentials:mint', returnTo: '/app/settings' });
-  const proof = mail.read({ limit: 20 }).findLast(message => /\/auth\/confirm\?token=/.test(message.text));
-  const proofUrl = proof?.text.match(/https:\/\/[^\s<>]+\/auth\/confirm\?token=[A-Za-z0-9_-]+/)?.[0];
-  assert.ok(proofUrl, 'Native step-up sends a genuine owner confirmation link');
-  assert.equal(new URL(proofUrl).origin, origin);
-  const confirmed = await request(new URL('/auth/confirm', origin).href, {
-    method: 'POST', redirect: 'manual', headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: new URL(proofUrl).searchParams.get('token') }),
-  });
-  assert.equal(confirmed.status, 303, 'Owner completes native recent-email proof');
-  await confirmed.body?.cancel();
+  const proofAt = await refreshOwnerEmailProof({ request, origin, cookie, mail });
   {
     const credential = await call('/api/app/management-tokens', 'POST', {
       name: `Conformance read client ${phase}`, scopes: ['read'], expiresInSeconds: 3600,
@@ -59,7 +49,7 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
     assert.ok(chat?.id);
     values.chat = { id: chat.id };
   }
-  nativeFixture().proofAt = Date.now();
+  nativeFixture().proofAt = proofAt;
   const now = Date.now(), instant = seconds => new Date(now + seconds * 1000).toISOString();
   values.clock = { minute: Math.floor(now / 60_000) * 60_000, nextUpdateAt: instant(3600),
     windowStart: instant(7200), windowEnd: instant(10800), rescheduledStart: instant(9000), rescheduledEnd: instant(12600) };

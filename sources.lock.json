@@ -8040,7 +8040,7 @@
       "executable": false
     },
     "tests/agent-door/owner-fixtures.mjs": {
-      "sha256": "d015668690ade70eb65b8d604729803143811770dfcc82675352c6bfd07d2ba1",
+      "sha256": "91185750c9d273c12cba25b0de5c4316d669e3373c851ab39f2b858ef2e52f46",
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
@@ -8052,7 +8052,7 @@
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
-      "sha256": "9b44c0e0ea22c1cf0fa26644389195a81dc8816df600f6af6902e9f223f605b5",
+      "sha256": "acddbd9f7590035a51c913ab73fc96e9f2416eedfdc10c96465e14a6e8071346",
       "executable": false
     },
     "tests/agent-door/proof.mjs": {

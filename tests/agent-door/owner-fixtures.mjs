@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { retainFixture } from './fixture-state.mjs';
+import { refreshOwnerEmailProof } from './owner-proof.mjs';
 
 /** Harmless topology prepared only through native person/provider doors. */
 export async function prepareNativeFixtures({ request, origin, cookie, email, token, mail }) {
@@ -23,7 +24,8 @@ export async function prepareNativeFixtures({ request, origin, cookie, email, to
     url: 'https://hooks.slack.com/services/TCONFORMANCE/BCONFORMANCE/SyntheticLampWebhook',
     componentIds: [componentId], operatorAlerts: true,
   });
+  const proofAt = await refreshOwnerEmailProof({ request, origin, cookie, mail });
   const { operator } = await call('/api/app/session');
   assert.equal(operator.email, email, 'Fixture authority belongs to the claimed owner');
-  retainFixture({source: intake.source, token, componentId, mail, proofAt: Date.now()});
+  retainFixture({source: intake.source, token, componentId, mail, proofAt});
 }
