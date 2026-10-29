@@ -3116,13 +3116,13 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026).
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). SUB-003 implementation and native boundary proof: `ed6ef9314ef8fa0706c97f35b53e686a90d77d87` (29 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 8 | 99 | 0 | 107 |
+| Published | 9 | 98 | 0 | 107 |
 | Target and push further | 8 | 74 | 54 | 136 |
-| All | 16 | 173 | 54 | 243 |
+| All | 17 | 172 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3231,7 +3231,7 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | `MAINT-010` | Maintenance calendar clients and mail attachments | target | missing |  | Calendar-client use and maintenance-email .ics attachments carved from MAINT-007; not built. |
 | `SUB-001` | Subscribing | published | partial | `tests/e2e/public-contract.test.mjs`, `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts pending subscription; one captured confirmation envelope; captured envelope contains its confirmation link; concurrent confirmation reservation. Unasserted: confirmation recipient equals the submitted address; confirmation within 60 seconds; 24-hour expiry of confirmation allowance; unsubscribe restores the allowance immediately; absence of other notifications while pending; cross-site refusal asserted in tests/e2e/subscriber-isolation-helper.mjs outside the old Evidence set; no form token or ambient session requirement. |
 | `SUB-002` | Confirmation | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
-| `SUB-003` | Pending expiry | published | partial | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts a very old pending subscriber row is absent after expiry runs. Unasserted: expiry takes effect at the specified 72-hour boundary. |
+| `SUB-003` | Pending expiry | published | done | `tests/e2e/helpers/subscriber-expiry-flow.mjs` (subscriberExpiryFlow), loaded by the Subscriber consent journey in `tests/e2e/delivery-contract.test.mjs`: two public email subscriptions retain their pending rows and addresses immediately before each creation-plus-72-hour deadline, then native scheduled processing deletes each row and every persisted address copy exactly at its deadline. Operator inventory reconciles independently with D1; confirmed subscription fields remain unchanged; expired confirmation replay and repeated scheduled processing cannot restore an address. `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow), loaded by the Scoped incident subscriptions journey in the same test file, retains incident-scoped expiry. `tests/e2e/sorry-import.test.mjs` (Sorry move-in, Business approval, bounded catch-up, original archive, cutover and erasure remain one recoverable owner flow) retains imported-address custody erasure. |  |
 | `SUB-004` | Component selection | published | partial | `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts initial selected components; management selected or all; incident recipient selection; newly eligible catch-up recipient. Unasserted: maintenance recipient selection; all-components subscriber follows new components; narrowed selection unchanged by component creation. |
 | `SUB-005` | Cookieless subscriber tokens | published | partial | `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts referrer suppression; indexing suppression. Unasserted: one-subscription scope and no unrelated capability; at least 128 bits of entropy; a previously usable management token is refused after unsubscribe; deletion revokes every token. |
 | `SUB-006` | One-click unsubscribe | published | partial | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/rer-mail.test.mjs` | Old cited evidence asserts mail unsubscribe value is present; web unsubscribe value is present; one-click declaration; URL-encoded deactivation. Unasserted: visible unsubscribe link in notification body; multipart form deactivation; DKIM coverage of both unsubscribe headers; per-token allowance independence. |
