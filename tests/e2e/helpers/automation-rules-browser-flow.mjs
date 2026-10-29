@@ -42,6 +42,10 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     await rules.getByLabel("Rule name", { exact: true }).fill("Prepared API availability");
     await rules.getByLabel("Alert action", { exact: true }).selectOption("claim");
     await rules.getByLabel("Claimed state", { exact: true }).selectOption("Degraded performance");
+    assert.equal(await rules.getByLabel("Firing delay (seconds)", { exact: true }).inputValue(), "120");
+    assert.equal(await rules.getByLabel("Recovery hold (seconds)", { exact: true }).inputValue(), "300");
+    await rules.getByLabel("Firing delay (seconds)", { exact: true }).fill("0");
+    await rules.getByLabel("Recovery hold (seconds)", { exact: true }).fill("0");
     await rules.getByRole("button", { name: "Save rule", exact: true }).click();
     await rules.getByText("Rule saved. Your approval is recorded in the audit log.", { exact: true }).waitFor();
     await page.reload(); await operatorHydrated(page);
@@ -107,6 +111,12 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     assert.ok(internal.includes("Prepared API availability") && internal.includes(receipt.receiptId), "the internal incident view identifies the rule and triggering alert");
     await audit("automatic incident timeline");
     if (proof) await captureBoth("internal-timeline", () => timeline.screenshot.bind(timeline));
+    await timeline.getByRole("link",{name:`alert receipt ${receipt.receiptId}`,exact:true}).click();
+    await operatorHydrated(page);
+    const causingAlert=page.locator(`#receipt-${receipt.receiptId}`);
+    await causingAlert.waitFor();
+    assert.ok((await causingAlert.innerText()).includes("Prepared-rule monitor"));
+    assert.ok((await causingAlert.innerText()).includes("Accepted"));
     await page.goto(`${origin}/app/settings#alerts`); await operatorHydrated(page);
     await rules.getByRole("button", { name: `Edit rule ${rule.name}`, exact: true }).click();
     await rules.getByLabel("Rule name", { exact: true }).fill(`${rule.name} renamed`);
@@ -144,6 +154,30 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     await attention.getByText(/Draft only:.*Resolved/).first().waitFor();
     assert.ok((await attention.innerText()).includes("Needs attention"), "a broken template visibly degrades the rule to draft");
     if (proof) await captureBoth("degraded-rule", () => attention.screenshot.bind(attention));
+    await rules.getByRole("button", { name: `Edit rule ${rule.name} renamed`, exact: true }).click();
+    await rules.getByLabel("Alert action", { exact: true }).selectOption("claim");
+    await rules.getByRole("button", { name: "Save rule", exact: true }).click();
+    await rules.getByText("Rule saved. Your approval is recorded in the audit log.", { exact: true }).waitFor();
+    const undoAlert=await fetch(source.endpointUrl,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${source.token}`},body:JSON.stringify({...alert,alert_cycle_key:"prepared-api-undo-cycle"})});
+    assert.equal(undoAlert.status,202,await undoAlert.clone().text());
+    await page.reload();await operatorHydrated(page);
+    const undoRun=(await api("/api/app/intake/rule-runs")).body.runs.find(row=>row.ruleId===rule.id&&!row.releasedAt);
+    assert.ok(undoRun);
+    const undoButton=rules.getByRole("button",{name:`Undo automatic change ${undoRun.id}`,exact:true});
+    await undoButton.waitFor();
+    await audit("active automatic change");
+    if(proof)await captureBoth("automatic-change-undo",()=>rules.screenshot.bind(rules));
+    page.once("dialog",dialog=>dialog.accept());
+    await undoButton.click();
+    await rules.getByText("Automatic change undone. Earlier publications and history are retained.",{exact:true}).waitFor();
+    const afterUndo=(await api("/api/app/intake/rule-runs")).body.runs.find(row=>row.id===undoRun.id);
+    assert.ok(afterUndo.undoneAt&&afterUndo.undoneByOperatorId);
+    assert.equal(await undoButton.count(),0,"the ended change is no longer offered for Undo");
+    await page.goto(`${origin}/app/incidents/${undoRun.incidentId}`);await operatorHydrated(page);
+    await page.getByRole("button",{name:"Private actions",exact:true}).click();
+    await page.getByLabel("Saved internal notes").getByText(/Automatic change undone/).waitFor();
+    await audit("retained automatic change history");
+    if(proof)await captureBoth("automatic-change-history",()=>page.screenshot.bind(page));
     assert.deepEqual(errors, [], "rule and publication screens have no page or hydration errors");
 
     async function audit(label) {

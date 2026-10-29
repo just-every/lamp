@@ -15,7 +15,9 @@ type Open = { kind: "new"; tool: ToolId } | { kind: "edit"; sourceId: string; cr
 /** Alerts: connected tools as compact rows, then the "Connect a tool" picker or the one open form, then what arrived. */
 export function AlertsPage() {
   const sources = useAppData<{ sources: Source[] }>("/api/app/intake/sources");
-  const receipts = useAppData<{ receipts: Receipt[] }>("/api/app/intake/receipts?limit=100");
+  const [receiptId,setReceiptId] = useState("");
+  useEffect(() => { setReceiptId(new URL(window.location.href).searchParams.get("receipt") ?? ""); },[]);
+  const receipts = useAppData<{ receipts: Receipt[] }>(`/api/app/intake/receipts?limit=100${receiptId ? `&receipt=${encodeURIComponent(receiptId)}` : ""}`);
   const components = useAppData<{ components: ComponentOption[] }>("/api/app/components");
   const [open, setOpen] = useState<Open | null>(null);
   const { refresh: refreshSources } = sources;

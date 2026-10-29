@@ -22,7 +22,7 @@ export type AlertSourceView = Omit<AlertSourceRow, "signingSecret" | "bearerToke
 export type AlertSourceEndpointView = AlertSourceView & { endpointUrl: string };
 export interface IntakeResult { status: 202 | 400; receiptId: string; incidentId: string | null; replayed: boolean; }
 export interface VerifiedAlertRequest { source: AlertSourceRow; rawBody: string; }
-export interface IntakeService { deleteSource(sourceId: string, operatorId: string): Promise<boolean>; listSources(): Promise<AlertSourceView[]>; listReceipts(limit?: number): Promise<AlertReceiptView[]>; saveSource(input: AlertSourceInput, operatorId: string, existingId?: string): Promise<AlertSourceView>; authenticate(sourceId: string, request: Request, pathToken?: string): Promise<VerifiedAlertRequest>; acceptVerified(request: VerifiedAlertRequest): Promise<IntakeResult>; accept(sourceId: string, request: Request): Promise<IntakeResult>; }
+export interface IntakeService { deleteSource(sourceId: string, operatorId: string): Promise<boolean>; listSources(): Promise<AlertSourceView[]>; listReceipts(limit?: number, receiptId?: string): Promise<AlertReceiptView[]>; saveSource(input: AlertSourceInput, operatorId: string, existingId?: string): Promise<AlertSourceView>; authenticate(sourceId: string, request: Request, pathToken?: string): Promise<VerifiedAlertRequest>; acceptVerified(request: VerifiedAlertRequest): Promise<IntakeResult>; accept(sourceId: string, request: Request): Promise<IntakeResult>; }
 
 function sourceView(source: AlertSourceRow): AlertSourceView {
   const { signingSecret: _secret, bearerTokenHash: _hash, responderSealedCredentials: _sealed, responderConnected: _connected, ...view } = source;
@@ -81,7 +81,7 @@ export function createIntakeService(
       const [sources, activity] = await Promise.all([repository.listSources(), repository.listActivity()]);
       return sources.map(source => withActivity(sourceView(source), activity));
     },
-    async listReceipts(limit = 100) { return repository.listReceipts(Math.min(Math.max(limit, 1), 250)); },
+    async listReceipts(limit = 100, receiptId?: string) { return repository.listReceipts(Math.min(Math.max(limit, 1), 250), receiptId); },
     async saveSource(input, operatorId, existingId) {
       const existing = existingId ? await repository.findSource(existingId) : null;
       if (existingId && !existing) throw new AlertSourceNotFoundError();
