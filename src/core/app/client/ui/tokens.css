@@ -10,6 +10,7 @@
   --pill: #182d24;
   --pill-hover: #22392e;
   --card: #ffffff;
+  --column: #ffffff;           /* the app's main content column is pure white whatever the canvas (--paper) is */
   --card-tint: #fbfaf7;
   --stage: #eef0ea;
   --chip: #f5f4ef;

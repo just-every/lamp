@@ -28,7 +28,7 @@
 .brand-website .form-label { flex: 1 1 200px; }
 .brand-upload summary { color: var(--ink); font-size: 14px; font-weight: 500; text-decoration: underline 1.5px var(--link-line); text-underline-offset: 4px; cursor: pointer; }
 .brand-upload[open] summary { margin-bottom: 12px; }
-.settings-save-state { position: sticky; z-index: 5; top: 72px; align-self: start; background: var(--paper); padding: 8px 0; }
+.settings-save-state { position: sticky; z-index: 5; top: 72px; align-self: start; background: var(--column); padding: 8px 0; }
 .settings-save-state .save-message { margin-bottom: 0; }
 @media (max-width: 900px) {
   .settings-save-state { top: 0; }

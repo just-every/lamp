@@ -15,7 +15,7 @@
 .operator-rail-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 8px 0; color: var(--ink-3); font-size: 13px; }
 .operator-page-link, .quiet-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
 .operator-page-link:hover, .quiet-link:hover { text-decoration-color: var(--ink); }
-.operator-workspace { min-width: 0; border-left: 1px solid var(--line); }
+.operator-workspace { min-width: 0; border-left: 1px solid var(--line); background: var(--column); }
 .operator-header { position: sticky; z-index: 10; top: 0; display: flex; height: 72px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); background: var(--header-glass); backdrop-filter: blur(18px); padding: 0 40px; }
 .operator-header p { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: 15px; font-weight: 500; }
 .header-live-dot { width: 8px; height: 8px; flex: none; border-radius: 100%; background: var(--ok); }
