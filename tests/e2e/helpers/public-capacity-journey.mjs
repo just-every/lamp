@@ -7,7 +7,8 @@ import { chromium } from 'playwright';
 // ingestion, history corrections and every observed result use public doors.
 export async function publicCapacityJourney(j, limits) {
   const original = await j.json('/api/app/components/bulk');
-  const settings = (await j.json('/api/app/page-settings')).settings;
+  const saved = (await j.json('/api/app/page-settings')).settings;
+  const settings = Object.fromEntries(['pageName', 'tagline', 'accentColor', 'timezone', 'hostname', 'mailFromAddress', 'template', 'footerCreditEnabled', 'widgetAllowedOrigins'].map(key => [key, saved[key]]));
   const replace = async catalogue => {
     const { revision } = await j.json('/api/app/components/bulk');
     const review = await j.json('/api/app/components/bulk/preview', 'POST', { catalogue, revision });
