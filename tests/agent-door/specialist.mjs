@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { nativeFixture } from './fixture-state.mjs';
 import { pendingAssertions } from './pending.mjs';
+import { inspectNativePages } from './native-pages.mjs';
 const errorCode = answer => answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.body?.error?.data?.code;
 const result = (answer, label) => {
   assert.equal(answer.status, 200, `${label}: HTTP ${answer.status}`);
@@ -11,6 +12,7 @@ const result = (answer, label) => {
 };
 /** Specialist work uses the production MCP, intake, person and import doors. */
 export default async function specialist({ request, origin, email, cookie, mail, tool }) {
+  await inspectNativePages({ request, origin, cookie });
   const person = async (path, method = 'GET', body) => {
     const response = await request(new URL(path, origin).href, { method, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     assert.ok(response.ok, `Native person ${method} ${path}: HTTP ${response.status}`);
