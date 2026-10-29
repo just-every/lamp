@@ -77,7 +77,8 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: lamp-build-${{ github.sha }}
+          name: lamp-build-${{ github.run_id }}-${{ github.sha }}
+          overwrite: true
           path: ${{ runner.temp }}/lamp-built-worker.tar.gz
           if-no-files-found: error
           retention-days: 1
@@ -142,7 +143,7 @@ jobs:
           }
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: lamp-build-${{ github.sha }}
+          name: lamp-build-${{ github.run_id }}-${{ github.sha }}
           path: ${{ runner.temp }}/lamp-build
       - name: Restore the shared production Worker
         run: tar -xzf "$RUNNER_TEMP/lamp-build/lamp-built-worker.tar.gz"
