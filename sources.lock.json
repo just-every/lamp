@@ -8792,7 +8792,7 @@
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
-      "sha256": "33700d64526c8eff2e97800eaf5d9d4050bd555104b92e480351e0cbd45ef6c8",
+      "sha256": "9ca5c412d690b5d9aca548610cf40d038ba3cfcfda25cdea1362f9d4545f53b5",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {

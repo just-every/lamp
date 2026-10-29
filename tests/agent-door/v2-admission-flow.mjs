@@ -128,7 +128,7 @@ export async function runV2AdmissionFlow(t) {
   await policy('autonomous');
   await setRole('viewer');
   assert.equal((await agentDoor.invoke('lamp.incidents.read', { id: publication.id }, limited)).outcome, 'done');
-  assert.equal((await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited)).code, 'native_forbidden', 'A demotion stops the next agent mutation');
+  assert.equal((await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited)).code, 'native_forbidden', 'A demotion refuses the completed publication key before returning its receipt');
   // An unrelated principal fills earlier pages. The CLI must continue even
   // when a filtered page contains no rows for the principal being verified.
   const historyReader = { person: { id: r.owner.id }, agent: { id: 'retained-history-reader', name: 'Status reader' }, scopes: ['lamp.components.read'] };
