@@ -4,6 +4,7 @@ import type { StoredFormerOperator, StoredOperator } from "../repository";
 import { ApiError, appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
 import { LoadingState, FormError } from "../../../app/client/ui/states";
+import { OperatorRoleSelect, operatorRoleLabels } from "./operator-role-select";
 
 type OperatorsResponse = { operators: StoredOperator[] };
 type FormerOperatorsResponse = { operators: StoredFormerOperator[] };
@@ -22,7 +23,24 @@ export function OperatorsPanel() {
   function showError(cause: unknown, fallback: string) {
     const confirm = cause instanceof ApiError && cause.message === "step_up_required";
     setNeedsConfirmation(confirm);
-    setMessage(confirm ? "Confirm your identity, then try again." : cause instanceof Error ? cause.message : fallback);
+    setMessage(confirm ? "Confirm your identity, then try again."
+      : cause instanceof ApiError && cause.message === "last_owner" ? "Add another active Owner before demoting or removing the last Owner."
+      : cause instanceof ApiError && cause.message === "owner_required" ? "Only an Owner can make this change."
+      : cause instanceof Error ? cause.message : fallback);
+  }
+
+  async function changeRole(operator: StoredOperator, role: StoredOperator["role"]) {
+    setSaving(true); setMessage(null);
+    try {
+      await appApi<{ operator: StoredOperator }>(`/api/app/operators/${operator.id}/role`, { method: "POST", body: JSON.stringify({ role }) });
+      setNeedsConfirmation(false);
+      setMessage(`${operator.displayName}'s role is now ${operatorRoleLabels[role]}.`);
+      active.refresh(); invited.refresh();
+      return true;
+    } catch (cause) {
+      showError(cause, "The operator’s role could not be changed.");
+      return false;
+    } finally { setSaving(false); }
   }
 
   async function invite(event: FormEvent<HTMLFormElement>) {
@@ -66,12 +84,13 @@ export function OperatorsPanel() {
   if ((active.loading && !active.data) || (invited.loading && !invited.data) || (former.loading && !former.data)) return <LoadingState>Loading operator access…</LoadingState>;
   if (active.error || invited.error || former.error) return <FormError>{active.error ?? invited.error ?? former.error}</FormError>;
   if (!active.data || !invited.data || !former.data) return null;
-  const canRemoveActive = active.data.operators.length > 1;
+  const ownerCount = active.data.operators.filter((operator) => operator.role === "owner").length;
+  const controlsDisabled = saving || active.loading || invited.loading;
 
   return <section className="data-card operators-card" aria-labelledby="operators-title">
     <div>
       <h2 id="operators-title">Operators</h2>
-      <p>Everyone here can manage your page. Removing access signs them out. Erasing personal data removes their name and email for good.</p>
+      <p>Roles control what each operator can do. Removing access signs them out. Erasing personal data removes their name and email for good.</p>
     </div>
     <a className="text-link" href="/auth/settings/identity">Identity provider settings</a>
     {needsConfirmation && <form className="page-stack" action="/auth/step-up" method="post">
@@ -87,13 +106,16 @@ export function OperatorsPanel() {
     </form>
     {message && <p className="save-message" role="status">{message}</p>}
     <div className="operators-list" aria-label="Active operators">
-      {active.data.operators.map((operator) => <OperatorRow key={operator.id} operator={operator} saving={saving} onRevoke={canRemoveActive ? () => revokeAccess(operator) : undefined} onErase={canRemoveActive ? () => erase(operator) : undefined} />)}
+      {active.data.operators.map((operator) => {
+        const lastOwner = operator.role === "owner" && ownerCount <= 1;
+        return <OperatorRow key={operator.id} operator={operator} saving={controlsDisabled} lastOwner={lastOwner} onRoleChange={(role) => changeRole(operator, role)} onRevoke={lastOwner ? undefined : () => revokeAccess(operator)} onErase={lastOwner ? undefined : () => erase(operator)} />;
+      })}
     </div>
-    {active.data.operators.length === 1 && <p>Invite another operator before removing the last person with access.</p>}
+    {ownerCount === 1 && <p>Add another active Owner before demoting or removing the last Owner.</p>}
     {invited.data.operators.length > 0 && <section className="former-operators" aria-labelledby="invited-operators-title">
       <h3 id="invited-operators-title">Pending invitations</h3>
       <p>These people have not accepted their invitation. Erasing their personal data cancels every outstanding invitation link.</p>
-      <div className="operators-list">{invited.data.operators.map((operator) => <OperatorRow key={operator.id} operator={operator} saving={saving} onErase={() => erase(operator)} />)}</div>
+      <div className="operators-list">{invited.data.operators.map((operator) => <OperatorRow key={operator.id} operator={operator} saving={controlsDisabled} onErase={() => erase(operator)} />)}</div>
     </section>}
     {former.data.operators.length > 0 && <section className="former-operators" aria-labelledby="former-operators-title">
       <h3 id="former-operators-title">Former operators</h3>
@@ -103,10 +125,11 @@ export function OperatorsPanel() {
   </section>;
 }
 
-function OperatorRow({ operator, saving, onRevoke, onErase }: { operator: StoredOperator | StoredFormerOperator; saving: boolean; onRevoke?: () => void; onErase?: () => void }) {
+function OperatorRow({ operator, saving, lastOwner = false, onRoleChange, onRevoke, onErase }: { operator: StoredOperator | StoredFormerOperator; saving: boolean; lastOwner?: boolean; onRoleChange?: (role: StoredOperator["role"]) => Promise<boolean>; onRevoke?: () => void; onErase?: () => void }) {
   return <div className="operator-row">
-    <span><strong>{operator.displayName}</strong><small>{operator.email}{operator.isSetupOperator ? " · owner" : ""}</small></span>
+    <span><strong>{operator.displayName}</strong><small><span>{operator.email}</span> · {operatorRoleLabels[operator.role]}</small></span>
     <div className="operator-actions">
+      {onRoleChange && <OperatorRoleSelect operator={operator} disabled={saving} lastOwner={lastOwner} onChange={onRoleChange} />}
       {onRevoke && <Button type="button" variant="secondary" className="table-action" disabled={saving} onClick={onRevoke}>Remove access</Button>}
       {onErase && <Button type="button" variant="secondary" className="table-action erase-operator-action" disabled={saving} onClick={onErase}>Erase personal data</Button>}
     </div>

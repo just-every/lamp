@@ -1,22 +1,23 @@
+import { createOperatorRolesRepository } from './roles.repository';
 import { sessionAuthority } from '../../platform/auth/authority';
 import { createUlid, nowIso } from '../../shared/ids';
 import { AuthError, type Operator, type Session } from '@runeditrun/rer/modules/operator-auth';
-export interface StoredOperator { id: string; email: string; displayName: string; isSetupOperator: boolean }
+export interface StoredOperator { id: string; email: string; displayName: string; isSetupOperator: boolean; role: import('./permissions').OperatorRole }
 export interface StoredFormerOperator extends StoredOperator { deactivatedAt: string }
 export function createOperatorRepository(db: D1Database) {
   return {
     async isSetupOperator(id: string) { return Boolean(await db.prepare('SELECT 1 FROM oa_bootstrap WHERE claim_id=?').bind(id).first()); },
-    async view(operator: Operator): Promise<StoredOperator> { return { id: operator.id, email: operator.email, displayName: operator.displayName, isSetupOperator: await this.isSetupOperator(operator.id) }; },
+    async view(operator: Operator): Promise<StoredOperator> { return { id: operator.id, email: operator.email, displayName: operator.displayName, isSetupOperator: await this.isSetupOperator(operator.id), role: (await createOperatorRolesRepository(db).role(operator.id)) ?? 'viewer' }; },
     async version(id: string) {return db.prepare('SELECT version,status FROM oa_operators WHERE id=?').bind(id).first<{version:number;status:string}>();},
     async initialized() { return Boolean(await db.prepare('SELECT 1 FROM oa_bootstrap').first()); },
     async listOperators(): Promise<StoredOperator[]> {
-      return (await db.prepare("SELECT o.id,o.email,o.display_name AS displayName,CASE WHEN b.claim_id=o.id THEN 1 ELSE 0 END AS isSetupOperator FROM oa_operators o LEFT JOIN oa_bootstrap b ON b.singleton=1 WHERE o.status='active' ORDER BY o.email").all<StoredOperator>()).results;
+      return (await db.prepare("SELECT o.id,o.email,o.display_name AS displayName,CASE WHEN b.claim_id=o.id THEN 1 ELSE 0 END AS isSetupOperator,CASE WHEN o.role IN ('owner','admin') THEN o.role ELSE COALESCE((SELECT role FROM operator_roles WHERE operator_id=o.id),'viewer') END AS role FROM oa_operators o LEFT JOIN oa_bootstrap b ON b.singleton=1 WHERE o.status='active' ORDER BY o.email").all<StoredOperator>()).results;
     },
     async listInvitedOperators(): Promise<StoredOperator[]> {
-      return (await db.prepare("SELECT id,email,display_name AS displayName,0 AS isSetupOperator FROM oa_operators WHERE status='invited' ORDER BY email").all<StoredOperator>()).results;
+      return (await db.prepare("SELECT id,email,display_name AS displayName,0 AS isSetupOperator,CASE WHEN role IN ('owner','admin') THEN role ELSE COALESCE((SELECT role FROM operator_roles WHERE operator_id=oa_operators.id),'viewer') END AS role FROM oa_operators WHERE status='invited' ORDER BY email").all<StoredOperator>()).results;
     },
     async listFormerOperators(): Promise<StoredFormerOperator[]> {
-      return (await db.prepare("SELECT p.id,p.email,p.display_name AS displayName,EXISTS(SELECT 1 FROM oa_bootstrap WHERE claim_id=p.id) AS isSetupOperator,p.deactivated_at AS deactivatedAt FROM operators p JOIN oa_operators o ON o.id=p.id WHERE o.status='inactive' AND p.email <> 'deleted-' || lower(p.id) || '@operator.invalid' ORDER BY p.email").all<StoredFormerOperator>()).results;
+      return (await db.prepare("SELECT p.id,p.email,p.display_name AS displayName,EXISTS(SELECT 1 FROM oa_bootstrap WHERE claim_id=p.id) AS isSetupOperator,p.deactivated_at AS deactivatedAt,CASE WHEN o.role IN ('owner','admin') THEN o.role ELSE COALESCE((SELECT role FROM operator_roles WHERE operator_id=o.id),'viewer') END AS role FROM operators p JOIN oa_operators o ON o.id=p.id WHERE o.status='inactive' AND p.email <> 'deleted-' || lower(p.id) || '@operator.invalid' ORDER BY p.email").all<StoredFormerOperator>()).results;
     },
     async recordInvitation(email: string, actor: string) {
       const now=nowIso();

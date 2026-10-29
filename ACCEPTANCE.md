@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 13 | 174 | 51 | 238 |
+| Core | 15 | 173 | 50 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 13 | 174 | 56 | 243 |
+| Full target | 15 | 173 | 55 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -1273,17 +1273,17 @@ Core · published · **partial** · Cites BASE-OPS-004
 
 #### TEAM-001 — Equal operators
 
-Core · published · **partial** · Cites BASE-ACCESS-004
+Core · published · **done** · Cites BASE-ACCESS-004
 
-**Requirement.** Operators share the owner role until TEAM-004 introduces its role matrix. Review under UPDATE-007 applies on top of those common product privileges.
+**Requirement.** Every operator has one role and server-enforced access under TEAM-004. Review under UPDATE-007 applies in addition to publish permissions.
 
 **Acceptance.**
-1. Every active operator can create, edit, publish and resolve incidents and maintenance.
-2. Every active operator can change components and manage subscribers.
-3. There are no differentiated product roles under this release’s operator model.
+1. Every active operator has the product privileges assigned to their TEAM-004 role.
+2. Incident, maintenance, component and subscriber operations enforce that role on the server.
+3. UPDATE-007 review remains additional to role-based publish permissions.
 
-**Evidence.** `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old Evidence asserts all migrated operators carry owner role, another operator creates a component and reaches subscriber management. It does not assert every incident/maintenance privilege or complete component/subscriber mutation parity.
+**Evidence.** `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials); `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves server-enforced access under TEAM-004.
+**Gap.** None.
 
 #### TEAM-002 — Management
 
@@ -1311,6 +1311,23 @@ Core · published · **partial** · Cites BASE-OPS-005, BASE-AUDIT-001
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
 **Gap.** The old Evidence asserts subscriber-deletion audit attribution. It does not assert the listed publication, component, maintenance and correction actors, private display names or their absence from public representations. Assertions in other files cannot be added to carried-done Evidence in this rewrite.
+
+#### TEAM-004 — Roles
+
+Core · published · **done** · Cites BASE-ROLE-001, BASE-AUDIT-001, BASE-OPS-005
+
+**Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role; review under UPDATE-007 remains additional.
+
+**Acceptance.**
+1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers.
+2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages.
+3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings.
+4. The setup operator is an Owner and the last Owner cannot be demoted or removed.
+5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time.
+6. Only Owners and Admins can read the audit log; a Communicator is refused.
+
+**Evidence.** `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves Responder publish and schedule refusal, Communicator publication of the same saved draft and maintenance scheduling, Viewer settings and draft refusal, denied-route actor and time, role-change actor and time in the Owner and Admin audit view, Communicator JSON and CSV audit refusal and native auth escalation refusal. The same registration loads `tests/e2e/helpers/operator-roles-browser-flow.mjs` (operatorRolesBrowserFlow), proving Settings role selection, autosave and reload at 1440 and 390. `tests/e2e/publishing-contract.test.mjs` (linked operators run a whole private incident draft, preview and explicit publication through signed Slack and Teams), loading `tests/chat-desk/roles.mjs` (chatRoleFlow), proves signed Slack and Teams deny Responder publication and Viewer creation, retire previews across demotion and regrant and allow fresh Communicator publication. Its reviewed incident journey preserves independent review through real invited author/reviewer identities. `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-csv-flow.mjs` (subscriberCsvFlow), proves Communicator subscriber management and reporting and native Member admission as a Viewer with owner-only batch-custody refusal and audit. `tests/e2e/helpers/subscriber-add-flow.mjs` proves attributed denial without changing business or prior audit rows. `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials) proves existing Owner identities, erased-session refusal and last-Owner removal/demotion refusal. `tests/auth-adoption/portability.test.mjs`, loading `tests/auth-adoption/role-portability.mjs` (restoredRole), preserves native role metadata without restored sessions or manager authority.
+**Gap.** None.
 
 ### History and reports
 
@@ -2978,23 +2995,6 @@ Core · target · **partial** · Cites BASE-OPS-003, BASE-OPS-005
 **Gap.** Old cited evidence asserts Owner email recipient; Operator channel count; Repeated day-seven tick has the expected exact email count; Repeated day-seven tick has the expected exact Slack/Teams counts. Unasserted: Waiver audit timestamp read back; Live publication starts reminders on previously historical import.
 
 ### Operators — target
-
-#### TEAM-004 — Roles
-
-Core · target · **missing** · Cites BASE-ROLE-001, BASE-AUDIT-001, BASE-OPS-005
-
-**Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role when delivered; review under UPDATE-007 remains additional.
-
-**Acceptance.**
-1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers.
-2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages.
-3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings.
-4. The setup operator is an Owner and the last Owner cannot be demoted or removed.
-5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time.
-6. Only Owners and Admins can read the audit log; a Communicator is refused.
-
-**Evidence.** None.
-**Gap.** The product role matrix, restricted audit view and role-change/refusal journeys are not built. This replaces TEAM-001 and the roles non-goal when shipped.
 
 #### TEAM-005 — Access scoped to pages and audiences
 

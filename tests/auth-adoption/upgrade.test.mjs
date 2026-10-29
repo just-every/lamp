@@ -88,6 +88,11 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, hist
   assert.deepEqual((await db.prepare('SELECT * FROM subscriber_tokens').all()).results,retainedSubscriberTokens,'operator erasure preserves subscriber authority');
   const third=eligible.find(o=>o.email==='third@example.test');
   assert.equal((await call(`/api/app/operators/${third.id}`,{method:'DELETE',cookie:cookies['third@example.test']})).status,409,'last active owner remains recoverable');
+  const finalOwnerBefore=await db.prepare('SELECT * FROM oa_operators WHERE id=?').bind(third.id).first();
+  assert.equal((await call(`/api/app/operators/${third.id}/role`,{method:'POST',cookie:cookies['third@example.test'],body:{role:'viewer'}})).status,409,'the final active Owner cannot demote themselves');
+  assert.deepEqual(await db.prepare('SELECT * FROM oa_operators WHERE id=?').bind(third.id).first(),finalOwnerBefore);
+  assert.equal((await call('/api/app/session',{cookie:cookies['third@example.test']})).status,200,'refused demotion retains recovery access');
+  assert.equal((await db.prepare("SELECT COUNT(*) n FROM audit_entries WHERE action='role-changed'").first()).n,0,'failed role changes leave no successful audit entry');
   for(const [origin,fetchSite] of [[null,null],['null',null],['https://attacker.example',null],[auth.origin,'cross-site']]){
    const request=auth.request('/api/app/session/signout',{method:'POST',cookie:cookies['third@example.test'],body:{}});
    if(origin===null)request.headers.delete('Origin');else request.headers.set('Origin',origin);

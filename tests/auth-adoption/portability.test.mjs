@@ -1,5 +1,6 @@
 import { preparePortableAlertRules, assertPortableAlertRules } from '../e2e/helpers/automation-portability-flow.mjs';
 import { preparePortableIncidentSubscribers, assertPortableIncidentSubscribers } from "../e2e/helpers/incident-subscriber-portability-flow.mjs";
+import { portableRole, restoredRole } from './role-portability.mjs';
 import { preparePortableMetrics, assertPortableMetrics } from "../e2e/helpers/metrics-portability-flow.mjs";
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
@@ -33,6 +34,7 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
     assert.equal(bootstrap.status, 303);
     const oldCookie = await native.signIn();
     await populateArchiveHistory(current.env);
+    const roleRecord=await portableRole(db);
     const actor = await native.auth.getSession(native.request('/auth/session', { cookie: oldCookie }));
     await db.prepare('UPDATE oc_owner_claims SET operator_id=?,session_id=?').bind(actor.operator.id, actor.id).run();
     await db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES('portable-audit','operator',?,'portable history',?,'{}','2026-10-01','2026-10-01')").bind(actor.operator.id, actor.operator.id).run();
@@ -151,6 +153,7 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
     const original = await current.env.SNAPSHOTS.get('branding/original.png');
     assert.ok(original);
     assert.equal(original.httpMetadata.contentType,'image/png');
+    await restoredRole(restored,roleRecord);
   } finally { await current?.dispose(); await rm(directory, { recursive: true, force: true }); }
 });
 

@@ -11,7 +11,14 @@ import type { IncidentPublishRecord } from "./repository";
 export async function publishIncidentDraft(binding: D1Database, input: IncidentPublishRecord, recipients: D1PreparedStatement[]) {
   const statements = [publicationComponentsGuard(binding, input.incidentId, input.baselineComponents)];
   const automation = input.automation ? automationPublicationStatements(binding,input.automation,input.id,input.createdAt) : null;
-  if(automation)statements.unshift(...automation.before);
+  // Rule runs retain their approved attribution and transactional input fences.
+  // Member publications must still hold authority when their D1 batch commits.
+  if (automation) statements.unshift(...automation.before);
+  else statements.unshift(
+    binding.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators o LEFT JOIN operator_roles r ON r.operator_id=o.id
+      WHERE o.id=? AND o.status='active' AND (o.role IN ('owner','admin') OR (o.role='member' AND r.role='communicator')))
+      THEN 1 ELSE json('Publication authority changed') END`).bind(input.authorOperatorId),
+  );
   const notificationHistoryIds: string[] = [];
   if (input.recovery) statements.push(recoverySnapshotGuard(binding, input.incidentId, input.recovery.snapshot));
   for (const change of input.stagedChanges) {
