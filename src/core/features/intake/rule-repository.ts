@@ -4,8 +4,8 @@ import { currentStateHistoryStatement } from "../components/state-history-reposi
 import { alertRuleSchema, type RuleView, type RuleRun, type AlertRuleInput, type RuleAutomationPublication } from "./rule-schema";
 
 const fields = `r.id,r.source_id AS sourceId,r.component_id AS componentId,r.name,r.mode,r.state,r.template_id AS templateId,r.approved_by_operator_id AS approvedByOperatorId,
-  COALESCE((SELECT display_name FROM oa_operators WHERE id=r.approved_by_operator_id),'Erased operator') AS approvedByName,r.degradation_reason AS degradationReason,r.created_at AS createdAt,r.updated_at AS updatedAt`;
-const runFields = `id,rule_id AS ruleId,source_incident_id AS sourceIncidentId,incident_id AS incidentId,mode,firing_update_id AS firingUpdateId,recovery_update_id AS recoveryUpdateId,released_at AS releasedAt,created_at AS createdAt,updated_at AS updatedAt`;
+  COALESCE((SELECT display_name FROM oa_operators WHERE id=r.approved_by_operator_id),'Erased operator') AS approvedByName,r.degradation_reason AS degradationReason,r.firing_delay_seconds AS firingDelaySeconds,r.recovery_hold_seconds AS recoveryHoldSeconds,r.created_at AS createdAt,r.updated_at AS updatedAt`;
+const runFields = `id,rule_id AS ruleId,source_incident_id AS sourceIncidentId,incident_id AS incidentId,mode,firing_update_id AS firingUpdateId,recovery_update_id AS recoveryUpdateId,released_at AS releasedAt,undone_at AS undoneAt,undone_by_operator_id AS undoneByOperatorId,created_at AS createdAt,updated_at AS updatedAt`;
 export function createAlertRuleRepository(db: D1Database) {
   const findRun = (ruleId: string, sourceIncidentId: string) => db.prepare(`SELECT ${runFields} FROM alert_rule_runs WHERE rule_id=? AND source_incident_id=? ORDER BY created_at DESC,id DESC LIMIT 1`).bind(ruleId,sourceIncidentId).first<RuleRun>();
   return {
@@ -19,7 +19,7 @@ export function createAlertRuleRepository(db: D1Database) {
         WHERE update_row.id=? ORDER BY audit.created_at DESC,audit.rowid DESC LIMIT 1`).bind(ruleId,firingUpdateId).first<{payloadJson:string;operatorId:string;attribution:string|null}>();
       if(!row?.attribution)throw new Error('The published rule approval no longer exists.');
       const payload=JSON.parse(row.payloadJson) as Record<string,unknown>;
-      const input=alertRuleSchema.parse({name:payload.name,mode:payload.mode,state:payload.state,templateId:payload.templateId});
+      const input=alertRuleSchema.parse({name:payload.name,mode:payload.mode,state:payload.state,templateId:payload.templateId,firingDelaySeconds:payload.firingDelaySeconds,recoveryHoldSeconds:payload.recoveryHoldSeconds});
       return {input,operatorId:row.operatorId,attribution:row.attribution};
     },
     async intakeContext(incidentId:string) {
@@ -45,6 +45,7 @@ export function createAlertRuleRepository(db: D1Database) {
       await db.batch([
         db.prepare(`SELECT CASE WHEN ? IS NULL AND NOT EXISTS(SELECT 1 FROM alert_rules WHERE source_id=? AND component_id=?) OR EXISTS(SELECT 1 FROM alert_rules WHERE id=? AND updated_at=?) THEN 1 ELSE json('Rule approval changed') END`).bind(existing?.id ?? null,sourceId,componentId,existing?.id ?? null,existing?.updatedAt ?? null),
         activeRuleRunsGuard(db,'rule',id,previousRuns.map(run=>run.incidentId)),
+        db.prepare('UPDATE alert_rule_windows SET completed=1 WHERE rule_id=?').bind(id),
         ...releasedRuns.flatMap(run=>[
           db.prepare(`UPDATE incident_components SET state='Operational',updated_at=? WHERE incident_id=?`).bind(at,run.incidentId),
           db.prepare(`UPDATE incidents SET lifecycle=CASE WHEN EXISTS(SELECT 1 FROM incident_updates WHERE incident_id=incidents.id) THEN lifecycle ELSE 'Resolved' END,updated_at=? WHERE id=?`).bind(at,run.incidentId),
@@ -53,8 +54,8 @@ export function createAlertRuleRepository(db: D1Database) {
           currentStateHistoryStatement(db,{id:createUlid(),componentId,cause:{type:'incident',id:run.incidentId,operatorId:actor},changedAt:at,createdAt:at,updatedAt:at}),
         ]),
         db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_sources WHERE id=?) AND EXISTS(SELECT 1 FROM components WHERE id=?) AND (? IS NULL OR EXISTS(SELECT 1 FROM incident_templates WHERE id=? AND updated_at=?)) THEN 1 ELSE json('Rule inputs changed') END`).bind(sourceId,componentId,templateVersion,input.templateId ?? null,templateVersion),
-        db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES(?,'alert-rule',?,?,?,?,?,?)`).bind(createUlid(),id,existing ? 'updated':'created',actor,JSON.stringify({sourceId,componentId,name:input.name,mode:input.mode,state:input.state,templateId:input.templateId ?? null}),at,at),
-        db.prepare(`INSERT INTO alert_rules(id,source_id,component_id,name,mode,state,template_id,approved_by_operator_id,degradation_reason,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NULL,?,?) ON CONFLICT(source_id,component_id) DO UPDATE SET name=excluded.name,mode=excluded.mode,state=excluded.state,template_id=excluded.template_id,approved_by_operator_id=excluded.approved_by_operator_id,degradation_reason=NULL,updated_at=excluded.updated_at`).bind(id,sourceId,componentId,input.name,input.mode,input.state,input.templateId ?? null,actor,at,at),
+        db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES(?,'alert-rule',?,?,?,?,?,?)`).bind(createUlid(),id,existing ? 'updated':'created',actor,JSON.stringify({sourceId,componentId,name:input.name,mode:input.mode,state:input.state,templateId:input.templateId ?? null,firingDelaySeconds:input.firingDelaySeconds,recoveryHoldSeconds:input.recoveryHoldSeconds}),at,at),
+        db.prepare(`INSERT INTO alert_rules(id,source_id,component_id,name,mode,state,template_id,approved_by_operator_id,degradation_reason,firing_delay_seconds,recovery_hold_seconds,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NULL,?,?,?,?) ON CONFLICT(source_id,component_id) DO UPDATE SET name=excluded.name,mode=excluded.mode,state=excluded.state,template_id=excluded.template_id,approved_by_operator_id=excluded.approved_by_operator_id,degradation_reason=NULL,firing_delay_seconds=excluded.firing_delay_seconds,recovery_hold_seconds=excluded.recovery_hold_seconds,updated_at=excluded.updated_at`).bind(id,sourceId,componentId,input.name,input.mode,input.state,input.templateId ?? null,actor,input.firingDelaySeconds,input.recoveryHoldSeconds,at,at),
       ]);
       return { rule: (await db.prepare(`SELECT ${fields} FROM alert_rules r WHERE source_id=? AND component_id=?`).bind(sourceId,componentId).first<RuleView>())!, publicChanged: releasedRuns.length > 0 };
     },

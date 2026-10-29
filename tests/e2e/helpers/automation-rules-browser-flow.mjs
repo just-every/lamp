@@ -42,6 +42,10 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     await rules.getByLabel("Rule name", { exact: true }).fill("Prepared API availability");
     await rules.getByLabel("Alert action", { exact: true }).selectOption("claim");
     await rules.getByLabel("Claimed state", { exact: true }).selectOption("Degraded performance");
+    assert.equal(await rules.getByLabel("Firing delay (seconds)", { exact: true }).inputValue(), "120");
+    assert.equal(await rules.getByLabel("Recovery hold (seconds)", { exact: true }).inputValue(), "300");
+    await rules.getByLabel("Firing delay (seconds)", { exact: true }).fill("0");
+    await rules.getByLabel("Recovery hold (seconds)", { exact: true }).fill("0");
     await rules.getByRole("button", { name: "Save rule", exact: true }).click();
     await rules.getByText("Rule saved. Your approval is recorded in the audit log.", { exact: true }).waitFor();
     await page.reload(); await operatorHydrated(page);

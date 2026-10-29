@@ -1,3 +1,4 @@
+import type { createRuleGuardRepository } from "./rule-guard.repository";
 import { nowIso } from "../../shared/ids";
 import type { IncidentsService } from "../incidents/service";
 import type { IncidentTemplate } from "../incidents/template-repository";
@@ -19,28 +20,28 @@ function assertAutomationTemplate(template:IncidentTemplate|null):asserts templa
   if(!templateResolvedUpdateSchema.safeParse(template.resolvedUpdate).success)throw new Error('The template needs a saved Resolved update.');
 }
 
-export function createAlertRuleService(repository:ReturnType<typeof createAlertRuleRepository>,incidents:IncidentsService,onPublicDataChanged:()=>Promise<void>, work: { repository: ReturnType<typeof createRuleWorkRepository>; findSource:(sourceId:string)=>Promise<AlertSourceRow|null> }) {
-  async function apply(source:AlertSourceRow,receiptId:string,sourceIncidentId:string|null,payload:unknown,receivedAt:string) {
+export function createAlertRuleService(repository:ReturnType<typeof createAlertRuleRepository>,incidents:IncidentsService,onPublicDataChanged:()=>Promise<void>, work: { repository: ReturnType<typeof createRuleWorkRepository>; guard: ReturnType<typeof createRuleGuardRepository>; findSource:(sourceId:string)=>Promise<AlertSourceRow|null> }) {
+  async function apply(source:AlertSourceRow,receiptId:string,sourceIncidentId:string|null,payload:unknown,receivedAt:string, now=Date.now()) {
       const rules=(await repository.list()).filter(rule=>rule.sourceId===source.id);
       for(const rule of rules) {
         const members=ruleEvidence(source,rule.componentId,payload);if(!members.length)continue;
         // A concurrent recovery can close the private intake draft before a
         // later firing is processed. Its next recovery still releases the
         // matching active rule execution, even without an open intake draft.
-        const episodeIncidentId=sourceIncidentId ?? await repository.findActiveEvidenceIncident(rule.id,members.map(member=>member.fingerprint));
+        const episodeIncidentId=await work.guard.heldIncident(rule.id) ?? sourceIncidentId ?? await repository.findActiveEvidenceIncident(rule.id,members.map(member=>member.fingerprint));
         if(!episodeIncidentId)continue;
         let run=await repository.findRun(rule.id,episodeIncidentId);
         if(rule.mode==='draft' && !run?.firingUpdateId)continue;
         const previousEvidence=run?.releasedAt ? await repository.active(rule.id,episodeIncidentId) : null;
         await repository.recordEvidence(rule,episodeIncidentId,receiptId,receivedAt,members);
         const evidence=await repository.active(rule.id,episodeIncidentId);
-        if(!evidence.active && !run)continue;
         if (run?.releasedAt) {
           // Recovery clears the previous firing evidence before another episode
           // can start. An edit that releases a firing run does not clear it.
           if (!evidence.active || previousEvidence?.active || receivedAt <= run.releasedAt) continue;
           run = null;
         }
+        if (!await work.guard.observe(rule,episodeIncidentId,receiptId,Boolean(evidence.active),receivedAt,now,Boolean(run))) continue;
         let executionRule=rule;
         let attribution=`rule ${rule.name}, approved by ${rule.approvedByName}`;
         if(run?.firingUpdateId) {
@@ -61,6 +62,7 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
         if(run.releasedAt)continue;
         if(executionRule.mode==='claim') {
           if(await repository.claim(rule,run,receiptId,nowIso(),!evidence.active,source.updatedAt))await onPublicDataChanged();
+          await work.guard.complete(rule.id,episodeIncidentId,receiptId);
           continue;
         }
         if(!template)throw new Error('Automation template was not loaded.');
@@ -69,6 +71,7 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
         if(publishedId) {
           const committed=(await incidents.get(run.incidentId))?.updates.find(update=>update.id===publishedId);
           if(committed)await incidents.finishPublication(committed);
+          await work.guard.complete(rule.id,episodeIncidentId,receiptId);
           continue;
         }
         // Recovery is permitted only after this run's first update committed.
@@ -90,6 +93,7 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
         });
         if(!update)throw new Error('The rule update could not be published.');
         await incidents.finishPublication(update);
+        await work.guard.complete(rule.id,episodeIncidentId,receiptId);
       }
   }
   async function accept(source:AlertSourceRow,receiptId:string,sourceIncidentId:string|null,payload:unknown,receivedAt:string) {
@@ -109,6 +113,11 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
   }
   return {
     list:repository.list,runs:repository.runs,
+    async undo(runId:string,actor:string) {
+      const changed=await work.guard.undo(runId,actor,nowIso());
+      if(changed)await onPublicDataChanged();
+      return changed;
+    },
     async requiresOperatorReview(incidentId:string) {
       const context=await repository.intakeContext(incidentId);
       if(!context || context.error)return true;
@@ -147,6 +156,12 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
         if(!source)continue;
         try {await accept(source,item.receiptId,item.incidentId,JSON.parse(item.payloadJson) as unknown,item.receivedAt);}
         catch {failures.push(new Error(`Automatic rule work for receipt ${item.receiptId} remains pending; see its receipt error.`));}
+      }
+      for(const timer of await work.guard.due(now)) {
+        const source=await work.findSource(timer.sourceId);
+        if(!source || source.updatedAt!==timer.sourceVersion) {await work.guard.complete(timer.ruleId,timer.incidentId,timer.receiptId);continue;}
+        try {await apply(source,timer.receiptId,timer.incidentId,JSON.parse(timer.payloadJson) as unknown,timer.receivedAt,now);}
+        catch {failures.push(new Error(`Delayed automatic rule action for receipt ${timer.receiptId} needs retry.`));}
       }
       if(failures.length)throw new AggregateError(failures,'Automatic rule work needs retry.');
     },

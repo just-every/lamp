@@ -1011,6 +1011,10 @@
       "sha256": "93b5fd9533f6635fd792b6f7a17b04b96c527df23fe258086d1c8870f3699cc8",
       "executable": false
     },
+    "migrations/core/0074_alert_rule_guards.sql": {
+      "sha256": "25cb2974a048b5e9919e19bb41382a86acca420b2338c508e1e1e4181e9bdf45",
+      "executable": false
+    },
     "migrations/README.md": {
       "sha256": "8aa6d22bcfab1ec1d279f128961286b0654cbc3f7c327da1aeb535793dd874e9",
       "executable": false
@@ -3308,7 +3312,7 @@
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "a632319a3a10abf42430c04c4b09fd4b2577fa03ab3bcf275d2d01a97bd86696",
+      "sha256": "e54cb824581c22f2173f2ac2150095be344fcfb67769a43454d9b06f12b83e53",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -4027,20 +4031,24 @@
       "sha256": "9cd4f730bbe9683af2b904b9472993e364559dd6b2ebd512fc7afe506536aa78",
       "executable": false
     },
+    "src/core/features/intake/rule-guard.repository.ts": {
+      "sha256": "710b4a9ebc2314b868699c49f8bbbad00876d236529cc4264d6ac56e67978bad",
+      "executable": false
+    },
     "src/core/features/intake/rule-repository.ts": {
-      "sha256": "ea004991f36cb73cf5de373199cae9133df9fc9f764fac7bf5a9444c0bc5fa2f",
+      "sha256": "94abf5249edafb5eb1494a059deaccd88ef2c958ebcd348900cd6f6818bf9da5",
       "executable": false
     },
     "src/core/features/intake/rule-routes.ts": {
-      "sha256": "621c33139c594baa47ef54f182ca4d432e603011a0d7253596c90d7be7c9db40",
+      "sha256": "ae7407e78c3c46ecf5901a0cb235e2234d860533dfc5c500cce560f3f9eb12c0",
       "executable": false
     },
     "src/core/features/intake/rule-schema.ts": {
-      "sha256": "38d391f472647fb8ea9f69b8a642a84e2b50a6e9ede27d3f868c09ca5768b2a5",
+      "sha256": "83207d2b9bc69c717f3b45c698520138eb1abf6c20fc848f8545f11e132067de",
       "executable": false
     },
     "src/core/features/intake/rule-service.ts": {
-      "sha256": "0cd730d90f2674d16197d7256f81db6acad465a4ac61fa0181187ce0d04f98f0",
+      "sha256": "acedc0956ef8c9a76c299acbfab6f9374cbbc57c0d189f061c7443697bc1f74a",
       "executable": false
     },
     "src/core/features/intake/rule-work.repository.ts": {
@@ -4052,7 +4060,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/alert-rules.tsx": {
-      "sha256": "4e7a1bf1c658ec142c15fcb54d70ddce27293b9f5b4265bde86af37426b67cda",
+      "sha256": "7228bfc39f50621a4b3c404b29829e4aefa33f5ebe8b96261c7d583aac3718bf",
       "executable": false
     },
     "src/core/features/intake/ui/alerts-page.tsx": {
@@ -6652,11 +6660,11 @@
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-browser-flow.mjs": {
-      "sha256": "027c83f68c9d8eb964418dd10240341931257213ff0710df0fb5cb69480bc66a",
+      "sha256": "1df31fe58f9fbe234aad253c1fc51158b3f3f0551f78a58410782335b4f5c27a",
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-flow.mjs": {
-      "sha256": "6c24ce917318763854cb41939fab36e101b92ad889719743860f87c7d8167d76",
+      "sha256": "25bc8d68a272e5980b6ea3c272c4244518fefec6c34e9aecee3fb18feb5d92e6",
       "executable": false
     },
     "tests/e2e/helpers/channel-deletion-flow.mjs": {

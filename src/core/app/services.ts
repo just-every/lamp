@@ -1,3 +1,4 @@
+import { createRuleGuardRepository } from "../features/intake/rule-guard.repository";
 import { createRuleWorkRepository } from "../features/intake/rule-work.repository";
 import { createAlertRuleRepository } from "../features/intake/rule-repository";
 import { createAlertRuleService } from "../features/intake/rule-service";
@@ -197,7 +198,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     text: `${reference} ${title} is owing a post-incident report. Write or waive it here: ${authOrigin(bindings)}/app/incidents/${incidentId}#post-incident-report`,
   }));
   const intakeRepository=createIntakeRepository(bindings.DB);
-  const alertRules = createAlertRuleService(createAlertRuleRepository(bindings.DB),incidents,publicSnapshots.rebuild,{repository:createRuleWorkRepository(bindings.DB),findSource:intakeRepository.findSource});
+  const alertRules = createAlertRuleService(createAlertRuleRepository(bindings.DB),incidents,publicSnapshots.rebuild,{repository:createRuleWorkRepository(bindings.DB),guard:createRuleGuardRepository(bindings.DB),findSource:intakeRepository.findSource});
   const intake = createIntakeService(intakeRepository, extensions.alertIntakePolicy, async (incidentId) => {
     if(await alertRules.requiresOperatorReview(incidentId))await deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` });
   }, extensions.events, { webhookSecret: bindings.WEBHOOK_SIGNING_SECRET, onSourceDeleted: publicSnapshots.rebuild, onAccepted: (source,receipt,payload) => alertRules.accept(source,receipt.id,receipt.incidentId,payload,receipt.receivedAt) });
