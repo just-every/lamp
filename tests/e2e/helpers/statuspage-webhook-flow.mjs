@@ -23,6 +23,7 @@ export async function statuspageWebhookFlow() {
         const timestamp = record.headers["webhook-timestamp"], deliveryId = record.headers["webhook-id"];
         const expected = createHmac("sha256", signingSecret).update(`${deliveryId}.${timestamp}.${record.rawBody}`).digest("base64url");
         assert.ok(record.headers["webhook-signature"].split(/\s+/).includes(`v1=${expected}`), "Lamp component and incident carriers authenticate the complete wire bytes");
+        assert.equal(value.deliveryId, deliveryId, "the signed Lamp envelope names its own native delivery");
         assert.ok(!lampAccepted.some(previous => previous.deliveryId === deliveryId));
         lampAccepted.push({ body: value, deliveryId });
         return new Response(null, { status: 204 });
