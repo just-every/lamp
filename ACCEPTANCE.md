@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -2770,7 +2770,7 @@ Core · target · **partial** · From INTAKE-009 · Cites BASE-INPUT-001, BASE-O
 
 #### INTAKE-015 — PagerDuty publication notes
 
-Core · target · **partial** · From INTAKE-009 · Cites BASE-DATA-004, BASE-OPS-003, BASE-OPS-004 · Register R-60
+Core · target · **done** · From INTAKE-009 · Cites BASE-DATA-004, BASE-OPS-003, BASE-OPS-004 · Register R-60
 
 **Requirement.** A connected PagerDuty account receives each Lamp publication as one incident note containing the public text and permalink. Optional credentials and note-author identity stay private; rejection never undoes publication. Connection details are in [intake details](docs/contract/intake-details.md).
 
@@ -2782,8 +2782,8 @@ Core · target · **partial** · From INTAKE-009 · Cites BASE-DATA-004, BASE-OP
 5. A failed note is visible against the linked source without blocking publication.
 6. The default note author is the source owner’s Lamp email and identifies a valid PagerDuty user.
 
-**Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/pagerduty-flow.mjs`, `scripts/installer/archive-policy.mjs`, `tests/auth-adoption/portability.test.mjs`
-**Gap.** Old cited evidence asserts PagerDuty note contains the public audience statement; PagerDuty note contains public customer impact; PagerDuty note contains public still-working text; PagerDuty note contains public details. Unasserted: Note-author sealed and redacted.
+**Evidence.** `tests/e2e/helpers/pagerduty-flow.mjs` (pagerDutyFlow), loaded by `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence): each publication sends all public fields and its permalink once; replay sends none; an unconnected source publishes without a note; the distinct custom note author and REST key are absent from source responses and the persisted source row, which holds nonempty ciphertext; the captured From header retains the custom author; technical export strips both values and their ciphertext, and restore sends nothing before reconnecting; the fixed PagerDuty host receives credentials and a redirect is refused; a linked 403 receipt leaves publication intact; reconnecting without an explicit author uses the source owner email. `tests/auth-adoption/portability.test.mjs` (native rer backup restores the whole product without reviving temporary authority) opens the native archive, proves the key, custom author and ciphertext absent, retains the source with null credentials, and restores its reconnect state.
+**Gap.** None.
 
 #### INTAKE-010 — Prometheus Alertmanager and Grafana Alerting
 
