@@ -1,28 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError, appApi, useAppData } from '../../../app/client/ui/api';
+import { appApi, useAppData } from '../../../app/client/ui/api';
 import { Button } from '../../../app/client/ui/button';
 import { leaveWhenSaved, useLeaveGuard } from '../../../app/client/ui/leave-guard';
+import { saveFailureReason, useReportSave, type CardSave, type SavePhase } from './settings-save-state';
 
 type Settings = { settings: { multiple: number } };
-export type TrafficSavePhase = 'saved' | 'waiting' | 'saving' | 'error';
-export type TrafficSave = { phase: TrafficSavePhase; error: string | null; retry: () => void };
 const outOfRange = 'Choose a multiple from 1.1 to 100.';
 const valid = (value: string) => value !== '' && Number(value) >= 1.1 && Number(value) <= 100;
-// A refusal from the server already reads plainly; a lost connection or a server fault does not.
-const reason = (cause: unknown) => cause instanceof ApiError ? cause.status >= 500 ? 'The server had a problem saving it.' : cause.message : 'The server could not be reached.';
 
 /** The multiple saves on its own, so its state, failure and Retry join the tabs' one save note through `onSave`. */
-export function TrafficAlertSettings({ onSave }: { onSave: (save: TrafficSave) => void }) {
+export function TrafficAlertSettings({ onSave }: { onSave: (save: CardSave) => void }) {
   const data = useAppData<Settings>('/api/app/traffic-alerts');
   const [value, setValue] = useState<string | null>(null);
-  const [phase, setPhase] = useState<TrafficSavePhase>('saved');
+  const [phase, setPhase] = useState<SavePhase>('saved');
   const [error, setError] = useState<string | null>(null);
   const queue = useRef({ value: '', revision: 0, completed: 0, stopped: -1, leaving: 0, released: false, answered: new Set<() => void>(), sending: false, sentOnUnload: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined });
-  const report = useRef(onSave);
-  report.current = onSave;
-  const retryRef = useRef(retry);
-  retryRef.current = retry;
-  useEffect(() => report.current({ phase, error, retry: () => retryRef.current() }), [phase, error]);
+  useReportSave(onSave, phase, error, retry);
   async function flush(unloading = false) {
     const q = queue.current;
     clearTimeout(q.timer);
@@ -40,7 +33,7 @@ export function TrafficAlertSettings({ onSave }: { onSave: (save: TrafficSave) =
           if (q.revision === revision) { setPhase('saved'); data.refresh(); }
         } catch (cause) {
           q.stopped = revision;
-          if (q.revision === revision) { setPhase('error'); setError(`Traffic alerts could not be saved: ${cause instanceof Error && cause.message === outOfRange ? outOfRange : reason(cause)} Your change is kept here.`); }
+          if (q.revision === revision) { setPhase('error'); setError(`Traffic alerts could not be saved: ${cause instanceof Error && cause.message === outOfRange ? outOfRange : saveFailureReason(cause)} Your change is kept here.`); }
         }
         for (const answer of [...q.answered]) answer();
       }

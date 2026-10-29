@@ -1,4 +1,4 @@
-import { TrafficAlertSettings, type TrafficSave } from "./traffic-alert-settings";
+import { TrafficAlertSettings } from "./traffic-alert-settings";
 import type { LiveStatus } from "../../overview/live-status";
 import type { SettingsForm } from "./settings-form";
 import { Button } from "../../../app/client/ui/button";
@@ -7,11 +7,13 @@ import { MailDeliverySettings } from "./mail-delivery-settings";
 import { EmailBrandingSettings } from "./email-branding-settings";
 import { SmsSettings } from "./sms-settings";
 import { IncidentFollowSettings } from "./incident-follow-settings";
+import type { CardSave } from "./settings-save-state";
 
-export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficSave }: {
+export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficSave, onMailSave, onSmsSave }: {
   settings: SettingsForm; live: LiveStatus | null; identityEditable: boolean;
   update: <K extends keyof SettingsForm>(field: K, value: SettingsForm[K], immediate?: boolean) => void;
-  needsConfirm: boolean; confirm: () => void; onTrafficSave: (save: TrafficSave) => void;
+  needsConfirm: boolean; confirm: () => void;
+  onTrafficSave: (save: CardSave) => void; onMailSave: (save: CardSave) => void; onSmsSave: (save: CardSave) => void;
 }) {
   return <>
     <section className="data-card" aria-labelledby="sender-title">
@@ -21,8 +23,8 @@ export function NotificationSettingsTab({ settings, live, identityEditable, upda
       <SenderStatusLine sender={live?.sender ?? null} />
     </section>
     <TrafficAlertSettings onSave={onTrafficSave} />
-    <MailDeliverySettings />
-    <SmsSettings />
+    <MailDeliverySettings onSave={onMailSave} />
+    <SmsSettings onSave={onSmsSave} />
     <IncidentFollowSettings />
     <EmailBrandingSettings value={settings.emailBranding} onChange={(value, immediate) => update("emailBranding", value, immediate)} identityEditable={identityEditable} />
   </>;

@@ -21,14 +21,14 @@ import { SettingsTabs, useSettingsTab } from "./settings-tabs";
 import { PublicResources } from "./public-resources";
 import { PageSettingsTab } from "./page-settings-tab";
 import { NotificationSettingsTab } from "./notification-settings-tab";
-import type { TrafficSave } from "./traffic-alert-settings";
 import { WritingSettingsTab } from "./writing-settings-tab";
-import { SettingsSaveState } from "./settings-save-state";
+import { SettingsSaveState, type CardSave } from "./settings-save-state";
 import { useSettingsAutosave } from "./use-settings-autosave";
 
 const operatorRoute = getRouteApi("/app");
 type SettingsResponse = { settings: Awaited<ReturnType<PageSettingsService["get"]>> };
 type OverviewResponse = { overview: Awaited<ReturnType<OverviewService["get"]>> };
+const idle: CardSave = { phase: "saved", error: null, retry: () => undefined };
 
 export function SettingsPage() {
   const { data, error, loading } = useAppData<SettingsResponse>("/api/app/page-settings");
@@ -50,9 +50,11 @@ export function SettingsPage() {
   if (tab === "notifications" && !notificationsOpened) setNotificationsOpened(true);
   const [alertsOpened, setAlertsOpened] = useState(false);
   if (tab === "alerts" && !alertsOpened) setAlertsOpened(true);
-  const [traffic, setTraffic] = useState<TrafficSave>({ phase: "saved", error: null, retry: () => undefined });
-  // The tab's one save note reads "Saved · live" only once every write on it has landed.
-  const phases = [autosave.phase, traffic.phase];
+  // Cards that save on their own report here, so the tab's one save note reads "Saved · live" only once every write on it has landed.
+  const [traffic, setTraffic] = useState(idle);
+  const [mail, setMail] = useState(idle);
+  const [sms, setSms] = useState(idle);
+  const phases = [autosave.phase, traffic.phase, mail.phase, sms.phase];
   const phase = (["error", "saving", "waiting"] as const).find(candidate => phases.includes(candidate)) ?? "saved";
   // Leaving Settings or signing out waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
   useLeaveGuard(autosave.leave, autosave.unsaved);
@@ -65,9 +67,11 @@ export function SettingsPage() {
   const markSrc = saved.logoKey ? `/api/app/page-settings/brand/logo?v=${encodeURIComponent(saved.updatedAt)}` : `/api/app/page-settings/brand/mark?v=${encodeURIComponent(saved.updatedAt)}`;
   const configuration = ["page", "notifications", "writing", "embeds"].includes(tab);
   // Notifications shows the traffic failure beside its field; the other configuration tabs name it here, with its Retry.
+  // Email and SMS delivery failures are named here on every configuration tab.
   const failures = [
     ...(autosave.error ? [{ error: autosave.error, retry: autosave.retry }] : []),
     ...(traffic.error && tab !== "notifications" ? [{ error: traffic.error, retry: traffic.retry }] : []),
+    ...[mail, sms].flatMap(({ error, retry }) => error ? [{ error, retry }] : []),
   ];
 
   return <div className="page-stack settings-page" inert={!ready}>
@@ -76,7 +80,7 @@ export function SettingsPage() {
     {configuration && <SettingsSaveState phase={phase} failures={failures} />}
     <div className={configuration ? "settings-form page-stack" : "page-stack"}>
       {tab === "page" && <PageSettingsTab settings={settings} saved={saved} live={live} markSrc={markSrc} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} setStatus={setBrandStatus} />}
-      {notificationsOpened && <div hidden={tab !== "notifications"}><div className="settings-form page-stack"><NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} onTrafficSave={setTraffic} /></div></div>}
+      {notificationsOpened && <div hidden={tab !== "notifications"}><div className="settings-form page-stack"><NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} onTrafficSave={setTraffic} onMailSave={setMail} onSmsSave={setSms} /></div></div>}
       <div hidden={tab !== "writing"}><div className="settings-form page-stack"><WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} /></div></div>
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}
