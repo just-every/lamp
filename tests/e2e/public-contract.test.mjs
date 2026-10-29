@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
@@ -85,27 +85,75 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const scripted = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'America/New_York' });
     const page = await scripted.newPage();
     await page.clock.install();
+    await page.clock.pauseAt(new Date());
     await page.goto(j.publicOrigin);
-    assert.equal(await page.locator('#status-live').getAttribute('aria-live'), 'polite');
+    const live = page.locator('#status-live');
+    assert.equal(await live.getAttribute('role'), 'status');
+    assert.equal(await live.getAttribute('aria-live'), 'polite');
+    assert.equal(await live.getAttribute('aria-atomic'), 'true');
+    const liveNode = await live.elementHandle();
+    const zoneLabel = await page.locator('[data-timezone-label]').innerText();
     const generation = page.locator('[data-generated-at] time');
     assertVisibleTime(await generation.getAttribute('title'), await generation.getAttribute('datetime'), 'America/Los_Angeles');
     await j.json(`/api/app/components/${other.id}/standing-claim`, 'PUT', { state: 'Degraded performance' });
     const incident = await j.incident('API outage under investigation', [main, hidden]);
     await j.save(incident.id); await j.publish(incident.id);
     await j.visible('/', incident.title);
-    const firstStatus = await (await j.publicResponse('/api/public/status')).json();
+    const maintenance = (await j.json('/api/app/maintenance', 'POST', {
+      title: 'Customer dashboard upgrade', affectedAudience: 'Dashboard users', customerImpact: 'Dashboard access may pause.',
+      startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 3600_000).toISOString(),
+      componentIds: [other.id], autoStart: false, autoComplete: false,
+    }, 201)).maintenance;
+    await j.json(`/api/app/maintenance/${maintenance.id}/start`, 'POST', {});
+    const firstStatus = await eventually(async () => (await j.publicResponse('/api/public/status')).json(),
+      status => status.maintenance?.reference === maintenance.reference, 'in-progress maintenance reaches the refresh response');
+    const fields = value => Object.keys(value).sort();
+    assert.deepEqual(fields(firstStatus), ['generatedAt', 'incident', 'maintenance', 'overall', 'version']);
+    assert.deepEqual(fields(firstStatus.maintenance), ['reference', 'state', 'title']);
+    assert.deepEqual(firstStatus.maintenance, { reference: maintenance.reference, title: 'Customer dashboard upgrade', state: 'In progress' });
+    assert.deepEqual(fields(firstStatus.incident), ['impact', 'lifecycle', 'message', 'publishedAt', 'reference', 'summary', 'title']);
+    const publishedUpdate = (await j.read(incident.id)).updates[0];
+    assert.equal(firstStatus.version, 1);
+    assert.equal(firstStatus.overall, 'Major outage');
+    assert.equal(firstStatus.incident.reference, incident.reference);
+    assert.equal(firstStatus.incident.title, incident.title);
+    assert.equal(firstStatus.incident.lifecycle, 'Identified');
+    assert.equal(firstStatus.incident.impact, 'critical');
+    assert.equal(firstStatus.incident.publishedAt, publishedUpdate.publishedAt);
+    assert.match(firstStatus.incident.summary, /^Identified · /);
+    assert.ok(firstStatus.incident.message.includes(publishedUpdate.customerImpact));
     assert.ok((await j.publicText('/')).includes(other.name), 'a degraded conditional component becomes public');
     const badge = await (await j.publicResponse('/badge.json')).json();
     assert.ok(JSON.stringify(badge).includes('Major outage'));
     assert.ok((await j.publicText('/badge.svg')).includes('Major outage'));
+    let refreshRequests = 0, documentNavigations = 0;
+    page.on('request', request => { if (new URL(request.url()).pathname === '/api/public/status') refreshRequests++; });
+    page.on('framenavigated', frame => { if (frame === page.mainFrame()) documentNavigations++; });
+    await page.clock.runFor(29_999);
+    assert.equal(refreshRequests, 0, 'there is no poll before the thirty-second interval');
     const polled = page.waitForResponse(response => response.url().endsWith('/api/public/status') && response.status() === 200);
-    await page.clock.fastForward(30000);
+    await page.clock.runFor(1);
     const refreshed = await (await polled).json();
     assert.equal(refreshed.incident.reference, incident.reference);
     await page.waitForFunction(summary => document.querySelector('#status-live').textContent.includes(summary), refreshed.incident.summary);
     assert.equal(await page.locator('[data-newest-update]').innerText(), refreshed.incident.summary);
+    assert.equal(refreshRequests, 1);
+    assert.equal(documentNavigations, 0, 'the public story updates in place');
+    assert.ok(await liveNode.evaluate(node => node === document.querySelector('#status-live')), 'the assistive live region remains the same node');
+    assert.equal(await page.locator('[data-timezone-label]').innerText(), zoneLabel);
+    assert.equal(await page.locator('[data-timezone-label]').getAttribute('data-timezone'), 'America/Los_Angeles');
     assertVisibleTime(await generation.getAttribute('title'), await generation.getAttribute('datetime'), 'America/Los_Angeles');
     assert.ok((await page.locator('#status-live').innerText()).includes('Major outage'));
+    // Later widget and accessibility checks use ordinary browser timers.
+    await page.clock.resume();
+    if (process.env.LAMP_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-scripted-refresh.png` });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).publicState, 'Major outage');
     assert.ok(firstStatus.generatedAt);
     const permalink = await j.publicText(`/incidents/${incident.reference}`);
@@ -124,6 +172,7 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
       assert.ok(await staticPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'the script-free incident form fits its public document');
     } finally { await staticContext.close(); }
     assert.ok(!permalink.includes(hidden.name));
+    await j.json(`/api/app/maintenance/${maintenance.id}/complete`, 'POST', {});
     const feedBefore = await j.publicText('/feed.atom');
     assert.ok(feedBefore.includes(incident.reference));
     const firstIds = [...feedBefore.matchAll(/<id>([^<]+)<\/id>/g)].map(match => match[1]);
@@ -170,8 +219,48 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const audit = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
     assert.deepEqual(audit.violations.filter(item => ['serious', 'critical'].includes(item.impact)), []);
     const noScript = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
-    const plain = await noScript.newPage(); await plain.goto(j.publicOrigin);
+    const plain = await noScript.newPage();
+    let plainPolls = 0, plainNavigations = 0;
+    plain.on('request', request => { if (new URL(request.url()).pathname === '/api/public/status') plainPolls++; });
+    plain.on('framenavigated', frame => { if (frame === plain.mainFrame()) plainNavigations++; });
+    const initialDocument = await plain.goto(j.publicOrigin);
+    const initialGeneration = initialDocument.headers()['x-lamp-snapshot-generated-at'];
+    assert.ok(initialGeneration);
+    const plainGeneration = plain.locator('[data-generated-at] time');
+    assert.equal(await plainGeneration.getAttribute('datetime'), initialGeneration);
+    const absoluteGeneration = await plainGeneration.innerText();
+    assertVisibleTime(absoluteGeneration, initialGeneration, 'America/Los_Angeles');
     assert.ok((await plain.locator('body').innerText()).includes(main.name));
+    const initialContent = await plain.content();
+    const initialDocumentNode = await plain.locator('html').elementHandle();
+    const navigationCount = plainNavigations;
+    const changed = await j.incident('Fresh public content stays off the script-free document', [main]);
+    await j.save(changed.id, { customerImpact: 'Requests are unavailable during the new investigation.' });
+    await j.publish(changed.id);
+    await j.visible('/', changed.title);
+    const changedStatus = await (await j.publicResponse('/api/public/status')).json();
+    assert.notEqual(changedStatus.generatedAt, initialGeneration);
+    assert.equal(changedStatus.incident.reference, changed.reference);
+    assert.equal(changedStatus.overall, 'Major outage');
+    // Real elapsed browser time also catches an HTML Refresh header or meta tag;
+    // advancing a script clock alone cannot prove absence of document refresh.
+    const observationStarted = performance.now();
+    await plain.waitForTimeout(61_000);
+    assert.ok(performance.now() - observationStarted > 60_000);
+    assert.equal(plainPolls, 0, 'script-disabled content never polls for public status');
+    assert.equal(plainNavigations, navigationCount, 'script-disabled content never navigates automatically');
+    assert.ok(await initialDocumentNode.evaluate(node => node === document.documentElement));
+    assert.equal(await plain.content(), initialContent, 'the complete initial document remains unchanged after a new publication and two refresh intervals');
+    assert.equal(await plainGeneration.getAttribute('datetime'), initialGeneration);
+    assert.equal(await plainGeneration.innerText(), absoluteGeneration);
+    assertVisibleTime(await plainGeneration.innerText(), initialGeneration, 'America/Los_Angeles');
+    if (process.env.LAMP_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await plain.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await plain.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-script-disabled-refresh.png` });
+      }
+    }
     await plain.locator('input[name=email]').fill('public-reader@example.test');
     await Promise.all([plain.waitForNavigation(), plain.locator('form[action="/subscribe"] button[type=submit]').click()]);
     await eventually(() => j.messages.find(message => message.to.includes('public-reader@example.test')), Boolean, 'plain form sends subscriber confirmation');

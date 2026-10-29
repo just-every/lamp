@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "7b64f0ec420bec2312eaf3d34fc68ae610abfbe43d3d4840cc86160d107a2041",
+      "sha256": "128908b3469d855fc56d991c7b98253e808479269c724c81d293f292c1d7da55",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3759a1c2d26de77ffbd7fb26a4762392fbed8a91af96ccb18ffe04a20d23d3a6",
+      "sha256": "c1621034dcafd5df2f8bc7963caf429b52feb1c304ef4ab9ee94dfbe9f70563b",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "7c26cc0964e583e54bb1713a61721a699aec4c87bb2c303e98d62e7d99e26d6a",
+      "sha256": "bb96dbdd01227babb7639449666a78c10c0cb929a4e015aeb9a6797b4430373c",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -6840,7 +6840,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-capacity-journey.mjs": {
-      "sha256": "4aaab9ae33babf6b3380df38c7de255b825b53661d153499e35ff614d8baa6b3",
+      "sha256": "aaef1059c97b84b9989fdae81dd6ddadecd7a1be2c85d998672b5f497e6d61f5",
       "executable": false
     },
     "tests/e2e/helpers/report-reminders-flow.mjs": {
@@ -6992,7 +6992,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "4c3f96945c69427e2e3500f015284d4be2daa8c5146b4ae81bfd373fb651cfd0",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
