@@ -11,6 +11,7 @@ import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
 import { ChatLinksPanel } from "../../chat-desk/ui/chat-links-panel";
 import { SocialSettings } from "../../social/ui/social-settings";
+import { AlertRulesSettings } from "../../intake/ui/alert-rules";
 import { ChannelsCard } from "../../channels/ui/channels-card";
 import { OperatorsPanel } from "../../operators/ui/operators-panel";
 import { ImportDoorSetting } from "./import-door-setting";
@@ -47,6 +48,8 @@ export function SettingsPage() {
   // Notifications mounts on its first visit and then stays, so an unsaved traffic edit survives tab changes.
   const [notificationsOpened, setNotificationsOpened] = useState(false);
   if (tab === "notifications" && !notificationsOpened) setNotificationsOpened(true);
+  const [alertsOpened, setAlertsOpened] = useState(false);
+  if (tab === "alerts" && !alertsOpened) setAlertsOpened(true);
   const [trafficPhase, setTrafficPhase] = useState<TrafficSavePhase>("saved");
   // The tab's one save note reads "Saved · live" only once every write on it has landed.
   const phases = [autosave.phase, trafficPhase];
@@ -58,7 +61,7 @@ export function SettingsPage() {
   if (!settings || !saved) return null;
 
   const live = overview.data?.overview.live ?? null;
-  const components = (overview.data?.overview.components ?? []).filter(component => !component.internal).map(component => ({ name: component.name, state: component.publicState }));
+  const components = (overview.data?.overview.components ?? []).filter(component => !component.internal).map(component => ({ id: component.id, name: component.name, state: component.publicState }));
   const markSrc = saved.logoKey ? `/api/app/page-settings/brand/logo?v=${encodeURIComponent(saved.updatedAt)}` : `/api/app/page-settings/brand/mark?v=${encodeURIComponent(saved.updatedAt)}`;
   const configuration = ["page", "notifications", "writing", "embeds"].includes(tab);
 
@@ -73,6 +76,7 @@ export function SettingsPage() {
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}
       {tab === "channels" && <><ChannelsCard /><SocialSettings /><ChatLinksPanel /></>}
+      {alertsOpened && <div hidden={tab !== "alerts"} className="page-stack"><AlertRulesSettings /></div>}
       {tab === "operators" && <OperatorsPanel />}
       {tab === "data" && <>
         <section className="data-card intake-link-card"><p className="card-kicker">Moving here</p><h2>Move in</h2><p>Bring components, incident history, maintenance and subscribers, with a dry run first and undo after.</p><ImportDoorSetting /><Link className="text-link" to="/app/move-in">Start a move-in <Icon name="arrow" width={16} height={16} /></Link><a className="text-link" href="/app/cutover">Cutover preview</a></section>

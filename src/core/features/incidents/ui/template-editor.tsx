@@ -4,6 +4,7 @@ import { appApi } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
 import type { IncidentTemplate } from "../template-repository";
 import { TEMPLATE_WORDING_FIELDS, templateFieldsToShorten, type TemplateWordingField } from "../template-fields";
+import { TemplateAutomationFields } from "./template-automation-fields";
 
 export function TemplateEditor({ template, onSaved, onDirty, captureUpdate }: { template: IncidentTemplate; onSaved: (template: IncidentTemplate) => void; onDirty: (dirty: boolean) => void; captureUpdate: () => () => boolean }) {
   const [editing, setEditing] = useState(template);
@@ -15,7 +16,8 @@ export function TemplateEditor({ template, onSaved, onDirty, captureUpdate }: { 
   }, [template, onDirty]);
   const fields = templateFieldsToShorten(editing);
   const offsetValid = offset === "" || (Number.isInteger(Number(offset)) && Number(offset) >= 1 && Number(offset) <= 10_080);
-  const valid = !fields.length && editing.affectedAudience.trim() && editing.customerImpact.trim() && offsetValid;
+  const resolvedValid = !editing.resolvedUpdate || (!templateFieldsToShorten(editing.resolvedUpdate).length && editing.resolvedUpdate.affectedAudience.trim() && editing.resolvedUpdate.customerImpact.trim());
+  const valid = !fields.length && editing.affectedAudience.trim() && editing.customerImpact.trim() && offsetValid && resolvedValid;
   const change = (field: TemplateWordingField | "lifecycle", value: string) => {
     setEditing(current => ({ ...current, [field]: value })); onDirty(true); setMessage(null);
   };
@@ -23,9 +25,9 @@ export function TemplateEditor({ template, onSaved, onDirty, captureUpdate }: { 
     if (!valid || saving) return;
     const isCurrent = captureUpdate(); setSaving(true);
     try {
-      const { lifecycle, affectedAudience, customerImpact, whatStillWorks, details } = editing;
+      const { lifecycle, affectedAudience, customerImpact, whatStillWorks, details, channels, resolvedUpdate } = editing;
       const response = await appApi<{ template: IncidentTemplate }>(`/api/app/incident-templates/${template.id}`, {
-        method: "PUT", body: JSON.stringify({ lifecycle, affectedAudience, customerImpact, whatStillWorks, details, nextUpdateOffsetMinutes: offset === "" ? null : Number(offset) }),
+        method: "PUT", body: JSON.stringify({ lifecycle, affectedAudience, customerImpact, whatStillWorks, details, channels, resolvedUpdate, nextUpdateOffsetMinutes: offset === "" ? null : Number(offset) }),
       });
       if (!isCurrent()) return;
       onSaved(response.template); onDirty(false); setMessage("Template changes saved.");
@@ -41,6 +43,8 @@ export function TemplateEditor({ template, onSaved, onDirty, captureUpdate }: { 
       return <label key={field} className="form-label">{label}<textarea aria-label={`Template ${label.toLowerCase()}`} value={editing[field]} disabled={saving} onChange={event => change(field, event.target.value)} aria-invalid={editing[field].length > max} /><span className="character-count">{editing[field].length}/{max}</span></label>;
     })}
     <label className="form-label">Template next update offset (minutes)<input aria-label="Template next update offset in minutes" type="number" disabled={saving} min="1" max="10080" value={offset} onChange={event => { setOffset(event.target.value); onDirty(true); setMessage(null); }} /><small>Leave empty to choose the next update time in the composer.</small></label>
+    <TemplateAutomationFields channels={editing.channels} resolvedUpdate={editing.resolvedUpdate} disabled={saving} onChannels={channels => { setEditing(current => ({ ...current, channels })); onDirty(true); setMessage(null); }} onResolved={resolvedUpdate => { setEditing(current => ({ ...current, resolvedUpdate })); onDirty(true); setMessage(null); }} />
+    {!resolvedValid ? <p role="alert">Complete the Resolved audience and customer impact within the wording limits.</p> : null}
     {fields.length ? <div role="alert"><p>Shorten these fields before applying this template:</p><ul>{fields.map(field => <li key={field}>{TEMPLATE_WORDING_FIELDS[field].label}: {editing[field].length} characters; limit {TEMPLATE_WORDING_FIELDS[field].max}.</li>)}</ul></div> : null}
     {!offsetValid ? <p role="alert">Choose an offset between 1 minute and 7 days, or leave it empty.</p> : null}
     <Button type="button" variant="secondary" onClick={save} disabled={!valid || saving}>Save template changes</Button>

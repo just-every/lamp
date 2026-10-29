@@ -125,7 +125,18 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 AGENT-008 native
     assert.equal((await teammateSession.json()).operator.email, 'teammate@example.test');
     const ownerSession = await (await call('/api/app/session', { cookie: proof })).json();
     assert.equal((await call(`/api/app/operators/${ownerSession.operator.id}`, { method: 'DELETE', cookie: teammateCookie })).status, 403, 'another operator cannot erase the setup owner');
+    // Keep saved rule provenance with the publication while erasing its
+    // approving owner's personal name in the same identity transaction.
+    const at = new Date().toISOString();
+    await storage.db.prepare("INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES('default','Synthetic Lamp erasure','Identity erasure journey','#16794C','UTC','page.example.test','synthetic-lamp-erasure-feed','lamp@example.test',?,?)").bind(at,at).run();
+    const ownerName = (await storage.db.prepare('SELECT display_name FROM oa_operators WHERE id=?').bind(ownerSession.operator.id).first()).display_name;
+    await storage.db.prepare("INSERT INTO incidents(id,reference,title,lifecycle,opened_at,created_by_operator_id,created_at,updated_at) VALUES('erasure-rule-incident','INC-9901','Saved rule incident','Investigating',?,?,?,?)").bind(at,ownerSession.operator.id,at,at).run();
+    await storage.db.prepare("INSERT INTO incident_updates(id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at,automation_attribution,automation_receipt_id) VALUES('erasure-rule-update','erasure-rule-incident','Investigating','API customers','Requests are delayed.','','',?,?,?,?,?,?,?)").bind(at,at,ownerSession.operator.id,at,at,`rule API availability, approved by ${ownerName}`,'erasure-alert-receipt').run();
     assert.equal((await call(`/api/app/operators/${ownerSession.operator.id}`, { method: 'DELETE', cookie: proof })).status, 204);
+    const provenance = await storage.db.prepare("SELECT automation_attribution,automation_receipt_id,customer_impact FROM incident_updates WHERE id='erasure-rule-update'").first();
+    assert.equal(provenance.automation_attribution, 'rule API availability, approved by Erased operator');
+    assert.equal(provenance.automation_receipt_id, 'erasure-alert-receipt');
+    assert.equal(provenance.customer_impact, 'Requests are delayed.', 'erasure keeps the operator-written publication and causal alert');
     assert.equal((await call('/api/app/session', { cookie: proof })).status, 401, 'erasure revokes the old session');
     const listed = await (await call('/api/app/operators/former', { cookie: teammateCookie })).json();
     assert.ok(!listed.operators.some(row => row.id === ownerSession.operator.id), 'the erased identity leaves the former-operator directory');

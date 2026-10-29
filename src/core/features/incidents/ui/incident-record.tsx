@@ -14,7 +14,7 @@ export function IncidentTimeline({ incident }: { incident: IncidentView }) {
   const formatOperatorTime = useOperatorTime();
   if (!incident.updates.length) return null;
   return <section className="incident-record context-section" aria-labelledby="timeline-title"><h2 id="timeline-title">Timeline</h2>
-    <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span>{update.agentAttribution ? <p style={{overflowWrap:"anywhere"}}>Published by {update.agentAttribution.label}{update.agentAttribution.approvers.length ? ` · Approved by ${update.agentAttribution.approvers.map(person => person.name).join(", ")}` : ""}.</p> : null}<p>{update.customerImpact}</p>{componentChangeLines(update.componentChanges).map((line, index) => <p key={index}>{line}</p>)}</li>)}</ol>
+    <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span>{update.agentAttribution ? <p style={{overflowWrap:"anywhere"}}>Published by {update.agentAttribution.label}{update.agentAttribution.approvers.length ? ` · Approved by ${update.agentAttribution.approvers.map(person => person.name).join(", ")}` : ""}.</p> : null}<p>{update.customerImpact}</p>{update.automationAttribution ? <p>{update.automationAttribution}</p> : null}{update.automationReceiptId ? <p>Triggered by alert receipt <code>{update.automationReceiptId}</code>.</p> : null}{componentChangeLines(update.componentChanges).map((line, index) => <p key={index}>{line}</p>)}</li>)}</ol>
     <IncidentReach incidentId={incident.id} updateIds={incident.updates.map(update => update.id)} />
   </section>;
 }

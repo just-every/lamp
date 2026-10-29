@@ -13,7 +13,8 @@ export interface PageSettingsRepository {
   /** The regions written on components the public page shows, each as stored. */
   visibleRegions(): Promise<string[]>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
-  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  update(settings: Pick<StoredPageSettings, "theme" | "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  updateThemeAssets(input: Pick<StoredPageSettings, "theme" | "themeAssets" | "updatedAt">): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">, operatorId: string): Promise<void>;
 }
 
@@ -53,6 +54,9 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
         ...agentAttributionStatements(binding,{entityType:'page-settings',entityId:'default',operatorId:actor.sponsor.id,at:settings.updatedAt,
           guard:{sql:"EXISTS(SELECT 1 FROM page_settings WHERE id='default' AND updated_at=?)",params:[settings.updatedAt]}}),
       ] : [])]);
+    },
+    async updateThemeAssets(input) {
+      await database.update(pageSettings).set(input).where(eq(pageSettings.id, "default"));
     },
     async updateLogo(input, operatorId) {
       // Select the logo being destroyed inside the same transaction as its

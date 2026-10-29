@@ -1,26 +1,24 @@
+import { offers } from '../capabilities.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { classIds } from './protocol.mjs';
 import { AGENT_CLASSES } from './surface.mjs';
 import { targetIdentity } from './target.mjs';
+import { auditRows } from './audit-rows.mjs';
 
-export async function auditRows(c) {
- const rows = []; let cursor = null, differs = 0;
- for (let page = 0; page < 100; page++) {
-  const result = await c.personJson(`/agents/api/audit?agent=${encodeURIComponent(c.agentId)}${cursor ? `&after=${encodeURIComponent(cursor)}` : ''}`);
-  if (!Array.isArray(result.rows) || !Number.isInteger(result.differs_from_policy)) throw new Error('Audit API must return rows and differs_from_policy');
-  rows.push(...result.rows); differs += result.differs_from_policy;
-  if (result.cursor == null || result.cursor === cursor) return { rows, differs };
-  cursor = result.cursor;
- }
- throw new Error('Audit pagination exceeded 100 pages');
-}
+export { auditRows } from './audit-rows.mjs';
 export async function auditPhase(c) {
  const { rows, differs } = await auditRows(c), expected = [...c.calls];
  c.add('BASE-AGENT-009.1.count', rows.length === expected.length, `Expected exactly ${expected.length} audit rows for tool calls, resource reads and approval executions, found ${rows.length}.`);
  c.add('BASE-AGENT-009.1.unique', new Set(rows.map(row => row.id)).size === rows.length, 'Every tool call, resource read and approval execution must have its own audit ID.');
+ const perAgent = new Map();
+ for (const row of rows) {
+  if (!perAgent.has(row.agent?.id)) perAgent.set(row.agent?.id, []);
+  perAgent.get(row.agent?.id).push(row);
+ }
  for (const [index, call] of expected.entries()) {
-  const row = rows[index], decision = call.decision;
-  c.add(`BASE-AGENT-009.1.call.${index}`, Boolean(row) && row.tool === call.name && row.consent === c.consent && row.agent?.id === c.agentId && row.agent?.specialist === c.surface.specialist && row.sponsor?.id === c.sponsor.id && typeof row.label === 'string' && row.label.includes(' for ') && Number.isFinite(Date.parse(row.at)) && row.door === (call.kind === 'embedded' ? 'embedded' : 'mcp'), `${call.name} lacks its complete ordered audit row.`);
+  const principal = call.principal ?? { agent: { id: c.agentId, specialist: c.surface.specialist }, consent: c.consent, sponsor: c.sponsor.id };
+  const row = perAgent.get(principal.agent.id)?.shift(), decision = call.decision;
+  c.add(`BASE-AGENT-009.1.call.${index}`, Boolean(row) && row.tool === call.name && row.consent === principal.consent && row.agent?.id === principal.agent.id && row.agent?.specialist === principal.agent.specialist && row.sponsor?.id === principal.sponsor && (!call.principal || row.client_id === principal.clientId && row.agent?.name === principal.agent.name) && typeof row.label === 'string' && row.label.includes(' for ') && Number.isFinite(Date.parse(row.at)) && row.door === (call.kind === 'embedded' ? 'embedded' : 'mcp'), `${call.name} lacks its complete ordered audit row.`);
   if (!row) continue;
   if (call.code === 'native_proof_required') c.add(`BASE-AGENT-004.native-proof.audit.${index}`, row.outcome === 'refused' && row.code === call.code, `${call.name} native proof challenge must retain its refused audit outcome.`);
   c.add(`BASE-AGENT-009.1.resource.${index}`, call.kind === 'resources/read' ? row.resource === call.args.uri : row.resource === null || targetIdentity(row.resource), `${call.name} audit resource must identify the requested URI or the seed-resolved native kind and id.`);
@@ -37,6 +35,7 @@ export async function auditPhase(c) {
  c.add('BASE-AGENT-007.7.differs-from-policy', differs === 0, `Audit evidence has ${differs} decisions that differ from the policy in force.`);
  // Audit is read before the events tool: its own call is audited as well, but
  // cannot occur in a snapshot taken before it was made.
+ if (!offers(c.surface.capabilities, 'events')) return;
  const events = []; let after;
  for (let page = 0; page < 100; page++) {
   const result = await c.tool(`${c.surface.seed}.events.list`, { ...(after ? { after } : {}), limit: 200 });

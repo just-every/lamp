@@ -6,6 +6,7 @@ import { runAgentDoorConformance } from '../conformance/index.mjs'
 import { checkTarget } from '../conformance/target.mjs'
 import { createProtocol } from '../conformance/protocol.mjs'
 import { autonomousPolicy, heldPolicy } from '../conformance/crypto.mjs'
+import { revisionProbeCases } from './revision-probes.fixture.mjs'
 
 const code = (answer: any) => answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.error?.data?.code
 const input = (id: string, value = 'Campaign plan') => ({ id, value, idempotency_key: crypto.randomUUID() })
@@ -93,5 +94,6 @@ test('pause and unset conformance retain resolvable native target and computed c
   assert.equal(last.classification_refusal, 'classifier_refused')
   assert.deepEqual(last.classes, [])
   t.diagnostic('Native classifier denial remains explicit; paused calls still refuse and perform no effect.')
+  await revisionProbeCases(r, t)
  } finally { await r.close() }
 })

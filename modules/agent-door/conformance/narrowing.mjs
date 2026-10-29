@@ -1,14 +1,22 @@
 /** A closed target-only schema cannot encode a grant to add. Unknown schema
  * constructs fail closed, rather than hiding widening fields in a union/ref. */
+export function narrowingTargets(tool) {
+ const target = tool?.narrowing?.target, targets = typeof target === 'string' ? [target] : target;
+ return Array.isArray(targets) && targets.length > 0 && new Set(targets).size === targets.length
+  && targets.every(key => typeof key === 'string' && /^(?:id|[a-z][a-z0-9_]*_id)$/.test(key)) ? targets : [];
+}
+
 export function narrowingContract(tool) {
- const schema = tool?.inputSchema, target = tool?.narrowing?.target;
- if (tool?.widens !== false || !['revoke', 'narrow'].includes(tool.narrowing?.effect) || typeof target !== 'string'
-  || !/^(?:id|[a-z][a-z0-9_]*_id)$/.test(target) || !schema || schema.type !== 'object' || schema.additionalProperties !== false
+ const schema = tool?.inputSchema, targets = narrowingTargets(tool);
+ if (tool?.widens !== false || !['revoke', 'narrow'].includes(tool.narrowing?.effect) || !targets.length
+  || !schema || schema.type !== 'object' || schema.additionalProperties !== false
   || Object.keys(schema).some(key => !['type', 'properties', 'required', 'additionalProperties'].includes(key))
-  || !Array.isArray(schema.required) || schema.required.length !== 1 || schema.required[0] !== target
-  || !schema.properties || Object.keys(schema.properties).length !== 1) return false;
- const field = schema.properties[target];
- return field?.type === 'string' && Object.keys(field).every(key => ['type', 'minLength', 'maxLength', 'pattern', 'enum', 'description', 'title'].includes(key));
+  || !Array.isArray(schema.required) || schema.required.length !== targets.length || new Set(schema.required).size !== targets.length || !targets.every(key => schema.required.includes(key))
+  || !schema.properties || Object.keys(schema.properties).length !== targets.length) return false;
+ return targets.every(target => {
+  const field = schema.properties[target];
+  return field?.type === 'string' && Object.keys(field).every(key => ['type', 'minLength', 'maxLength', 'pattern', 'enum', 'description', 'title'].includes(key));
+ });
 }
 
 export async function grantSet(c, witness, outputs) {

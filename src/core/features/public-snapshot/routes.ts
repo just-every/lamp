@@ -265,6 +265,8 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   // A chosen built-in template's own stylesheet and script; the default page never loads them.
   app.get("/assets/template.css", serve(() => "assets/template.css"));
   app.get("/assets/template.js", serve(() => "assets/template.js"));
+  app.get("/assets/theme-font", serve(() => "assets/theme-font", true));
+  app.get("/assets/theme-header", serve(() => "assets/theme-header", true));
   app.get("/assets/logo", serve(() => "assets/logo", true));
   app.get("/assets/favicon.svg", serve(() => "assets/favicon.svg"));
   app.get("/assets/mark.svg", serve(() => "assets/mark.svg"));

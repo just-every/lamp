@@ -22,4 +22,5 @@ export const pendingAssertions = Object.freeze({
   replayReclassification: 'PENDING BASE 2026-10-29 rer 0.2.86 modules/agent-door/conformance/journey.mjs:69-71 and modules/agent-door/pipeline.ts:104-122: replay reclassifies after its own mutation and loses the original approval/review disposition',
   injectionAfterMutation: 'PENDING BASE 2026-10-29 rer 0.2.86 modules/agent-door/conformance/journey.mjs:91-94: fresh-key mutation injections duplicate notes and reuse already-consumed publication versions',
   baseArchiveRefresh: 'PENDING BASE 2026-10-29 rer 0.2.86 edition-authoring/workflow-copies.mjs:51: archive refresh requests unavailable Git history for an existing seed workflow; record-base --base-archive works',
+  legacyArchiveUpgrade: 'PENDING BASE 2026-10-29 rer 0.2.86 modules/portability/bridge.mjs:87-89 and modules/portability/import.mjs:38-39: verified legacy v2 archives without schemaObjects require their old migration replay to equal the current schema, refusing additive seed upgrades; HIST-004 prior-backup assertion remains active',
 });

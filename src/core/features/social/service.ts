@@ -79,7 +79,10 @@ export function createSocialService(db:D1Database,options:{webhookSecret?:string
     async describe(id) {
       const post=await repository.post(id);
       if(!post)return null;
-      const account=await accountFor(post.accountId);
+      const account=await repository.account(post.accountId);
+      // Disconnection removes the live effect. The retained envelope still
+      // reaches native preflight, which records its rejection without sending.
+      if(!account)return null;
       const content=post.text??await textFor(post);
       const envelope=await delivery.get(id);
       return {eventId:post.eventId,recipient:`${account.network}: ${account.name}`,content,counterparty:'public' as const,

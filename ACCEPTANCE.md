@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 11 | 174 | 51 | 236 |
+| Core | 15 | 173 | 50 | 238 |
 | Agent surface | 0 | 0 | 18 | 18 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 11 | 174 | 69 | 254 |
+| Full target | 15 | 173 | 68 | 256 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -1273,17 +1273,17 @@ Core · published · **partial** · Cites BASE-OPS-004
 
 #### TEAM-001 — Equal operators
 
-Core · published · **partial** · Cites BASE-ACCESS-004
+Core · published · **done** · Cites BASE-ACCESS-004
 
-**Requirement.** Operators share the owner role until TEAM-004 introduces its role matrix. Review under UPDATE-007 applies on top of those common product privileges.
+**Requirement.** Every operator has one role and server-enforced access under TEAM-004. Review under UPDATE-007 applies in addition to publish permissions.
 
 **Acceptance.**
-1. Every active operator can create, edit, publish and resolve incidents and maintenance.
-2. Every active operator can change components and manage subscribers.
-3. There are no differentiated product roles under this release’s operator model.
+1. Every active operator has the product privileges assigned to their TEAM-004 role.
+2. Incident, maintenance, component and subscriber operations enforce that role on the server.
+3. UPDATE-007 review remains additional to role-based publish permissions.
 
-**Evidence.** `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old Evidence asserts all migrated operators carry owner role, another operator creates a component and reaches subscriber management. It does not assert every incident/maintenance privilege or complete component/subscriber mutation parity.
+**Evidence.** `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials); `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves server-enforced access under TEAM-004.
+**Gap.** None.
 
 #### TEAM-002 — Management
 
@@ -1311,6 +1311,23 @@ Core · published · **partial** · Cites BASE-OPS-005, BASE-AUDIT-001
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
 **Gap.** The old Evidence asserts subscriber-deletion audit attribution. It does not assert the listed publication, component, maintenance and correction actors, private display names or their absence from public representations. Assertions in other files cannot be added to carried-done Evidence in this rewrite.
+
+#### TEAM-004 — Roles
+
+Core · published · **done** · Cites BASE-ROLE-001, BASE-AUDIT-001, BASE-OPS-005
+
+**Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role; review under UPDATE-007 remains additional.
+
+**Acceptance.**
+1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers.
+2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages.
+3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings.
+4. The setup operator is an Owner and the last Owner cannot be demoted or removed.
+5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time.
+6. Only Owners and Admins can read the audit log; a Communicator is refused.
+
+**Evidence.** `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves Responder publish and schedule refusal, Communicator publication of the same saved draft and maintenance scheduling, Viewer settings and draft refusal, denied-route actor and time, role-change actor and time in the Owner and Admin audit view, Communicator JSON and CSV audit refusal and native auth escalation refusal. The same registration loads `tests/e2e/helpers/operator-roles-browser-flow.mjs` (operatorRolesBrowserFlow), proving Settings role selection, autosave and reload at 1440 and 390. `tests/e2e/publishing-contract.test.mjs` (linked operators run a whole private incident draft, preview and explicit publication through signed Slack and Teams), loading `tests/chat-desk/roles.mjs` (chatRoleFlow), proves signed Slack and Teams deny Responder publication and Viewer creation, retire previews across demotion and regrant and allow fresh Communicator publication. Its reviewed incident journey preserves independent review through real invited author/reviewer identities. `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-csv-flow.mjs` (subscriberCsvFlow), proves Communicator subscriber management and reporting and native Member admission as a Viewer with owner-only batch-custody refusal and audit. `tests/e2e/helpers/subscriber-add-flow.mjs` proves attributed denial without changing business or prior audit rows. `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials) proves existing Owner identities, erased-session refusal and last-Owner removal/demotion refusal. `tests/auth-adoption/portability.test.mjs`, loading `tests/auth-adoption/role-portability.mjs` (restoredRole), preserves native role metadata without restored sessions or manager authority.
+**Gap.** None.
 
 ### History and reports
 
@@ -1740,6 +1757,38 @@ Core · target · **missing** · From THEME-001 · Cites BASE-INPUT-002, BASE-PU
 
 **Evidence.** `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs`
 **Gap.** Custom header/footer markup editing, sanitization removal reports and snapshot rendering are absent.
+
+#### THEME-004 — A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable
+
+Core · target · **missing**
+
+**Requirement.** A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable.
+
+**Acceptance.**
+1. The contrast check a palette passes uses the same contrast measure as the cards.
+2. No card keeps a fixed light background under a dark palette.
+3. The check covers every card type on the public status page and the dashboard.
+4. A palette that would leave any card below 4.5:1 is refused with that card named.
+5. One public-door journey proves a dark palette on both pages at 1440 and 390.
+
+**Evidence.** None.
+**Gap.** Shared card contrast validation, dark card backgrounds, named-card refusal and the two-page public-door journey at 1440/390 are unproven.
+
+#### THEME-005 — Turning the custom palette off never erases the owner's chosen colours
+
+Core · target · **missing**
+
+**Requirement.** Turning the custom palette off never erases the owner's chosen colours.
+
+**Acceptance.**
+1. Unticking the custom palette keeps all nine chosen colours stored.
+2. The public page shows the default look while the custom palette is off.
+3. Ticking the custom palette on again restores exactly the stored colours.
+4. Saving other theme settings while the custom palette is off never clears the colours.
+5. One public-door journey proves untick, save, reload and re-tick.
+
+**Evidence.** None.
+**Gap.** Preservation of all nine colours through untick, save, reload, other theme saves and re-tick, and the default public look while off, are unproven.
 
 #### I18N-001 — Pages in several languages
 
@@ -2213,8 +2262,8 @@ Core · target · **partial**
 6. Calendar event descriptions carry current maintenance wording.
 7. Statuspage-format maintenance webhooks retain lifecycle, scheduled start/end and all maintenance updates.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Required affected-audience and customer-impact statements reach scheduled, reminder and start email. Optional wording, verifying and other notice wording, calendar, non-email surfaces and Statuspage-format bodies remain unbuilt or unproven.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). The native schedule accepts affected-audience and customer-impact wording; the public permalink and Atom feed contain the customer impact. `tests/e2e/rer-mail.test.mjs` (Sign in, confirm a reader, publish, recover frozen mail, inspect receipts, notify maintenance and opt out). The delivery list contains one scheduled, reminder and started notice, and the two latest sent maintenance messages contain audience and impact in text and HTML.
+**Gap.** Required-wording refusal and length limits, optional wording, Verifying and other notice wording, calendar wording, remaining non-email surfaces and Statuspage-format bodies remain unbuilt or unproven. The deleted migration proof for legacy null wording and unchanged title-only notices has no equivalent assertion in the current tests; no-backfill preservation is unproven.
 
 #### MAINT-011 — Maintenance drafts and previews
 
@@ -2227,8 +2276,8 @@ Core · target · **missing** · From MAINT-009
 2. Before scheduling, each notice has UPDATE-004’s preview.
 3. Scheduled, twenty-four-hour reminder and start notices match the previewed statement beside the window.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Wording drafts and previews are unbuilt; notice-to-preview parity remains unproven.
+**Evidence.** None.
+**Gap.** Wording drafts and previews are unbuilt; notice-to-preview parity remains unproven. The surviving scheduling and mail journeys do not exercise a maintenance draft or preview.
 
 #### MAINT-012 — Maintenance updates during the window
 
@@ -2245,8 +2294,8 @@ Core · target · **missing** · From MAINT-009
 6. Before start, a wording change is a Scheduled update notifying only selected channels.
 7. An email-only In progress update reaches each eligible component email subscriber once and no webhook subscriber, with identical text on permalink, Atom and public maintenance API.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Maintenance updates, Verifying lifecycle, channel-specific notices and update timelines are unbuilt.
+**Evidence.** None.
+**Gap.** Maintenance updates, Verifying lifecycle, channel-specific notices and update timelines are unbuilt. The surviving start, completion and window-edit journeys do not prove immutable wording updates or selected-channel publication.
 
 #### MAINT-013 — Maintenance automation chosen per window
 
@@ -2261,8 +2310,8 @@ Core · target · **partial** · From MAINT-009
 4. Fifteen minutes after end it shows the overrun beside its original end, raises one operator alert and remains on AUTO-003’s list.
 5. At twenty minutes overdue no Completed notice exists; the operator’s Completed update then releases claims and sends exactly one.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Automation switches and existing start/completion, due/overrun guards and notices are proven. Push, Verifying and lifecycle through published maintenance updates remain unbuilt or unproven.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). An elapsed window starts automatically, auto-complete off retains In progress after end, overrun is reported, manual completion releases component claims with one completed notice, and a second window completes automatically. `tests/e2e/maintenance-timezone.test.mjs` (MAINT-009 PAGE-020 — operator schedules, reschedules and publishes maintenance in its configured zone, then a customer subscribes by keyboard). The native form changes auto-start to off, the API reads back false, and reload retains the scheduled window with its Start action.
+**Gap.** Page-default inheritance, auto-start-off at five minutes, exactly one start-due/overrun operator alert, NOTIFY-016 push, AUTO-003 listing, the precise fifteen/twenty-minute boundaries, Verifying and lifecycle through published maintenance updates remain unbuilt or unproven.
 
 #### MAINT-014 — Maintenance wording through every write door
 
@@ -2277,8 +2326,8 @@ Core · target · **missing** · From MAINT-009
 4. GitHub Action, Terraform and AGENT-009 drafts fill the same fields.
 5. A recorded Statuspage create with wording and auto-complete disabled produces identical wording and switch through API-002.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Management-token, Statuspage-compatible, GitHub Action, Terraform and agent wording/update doors are unbuilt.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). The authenticated native scheduling door accepts affected-audience, customer-impact, auto-start and auto-complete fields; its window and completion doors are exercised. `tests/e2e/maintenance-timezone.test.mjs` (MAINT-009 PAGE-020 — operator schedules, reschedules and publishes maintenance in its configured zone, then a customer subscribes by keyboard). The native scheduling/rescheduling form persists a changed auto-start choice. This is native-door evidence only.
+**Gap.** Native wording-update publication, management-token, Statuspage-compatible, GitHub Action, Terraform and agent wording/update doors and compatibility mappings are unbuilt or unproven.
 
 #### MAINT-015 — Imported maintenance automation and updates
 
@@ -2291,8 +2340,8 @@ Core · target · **missing** · From MAINT-009
 2. Each source message becomes a maintenance update with its original time and lifecycle.
 3. A two-message fixture imports both silently under MOVE-002.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Imported Statuspage automation and maintenance-message mapping are unbuilt.
+**Evidence.** None.
+**Gap.** Imported Statuspage automation and maintenance-message mapping are unbuilt. Native scheduling and owner SQL rollback/restore do not prove source switch preservation or silent two-message maintenance-update import.
 
 #### MAINT-010 — Maintenance calendar clients and mail attachments
 
@@ -2430,7 +2479,7 @@ Core · target · **partial** · Rules D-2
 
 #### SUB-019 — Follow one incident
 
-Core · target · **missing** · From SUB-019
+Core · target · **done** · From SUB-019 · Cites BASE-ACCESS-003, BASE-PUBLIC-001, BASE-DATA-003, BASE-OPS-003
 
 **Requirement.** Every incident permalink provides a script-free single-incident subscription form; email, enabled SMS, and webhooks with a contact address are offered. SUB-022 governs its notification lifetime.
 
@@ -2442,12 +2491,12 @@ Core · target · **missing** · From SUB-019
 5. The management API lists, creates and deletes incident subscriptions, including the Statuspage-compatible incident-subscriber doors.
 6. Unresolved Statuspage incidents import subscribers as pending under MOVE-002; these consume SUB-020 capacity, and a full channel creates and sends nothing while showing its usual full-channel response.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** Points 1 and 3: `tests/e2e/delivery-contract.test.mjs` (Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts), loading `tests/e2e/helpers/incident-follow-browser-flow.mjs` (incidentFollowBrowserFlow): script-free public email, configured SMS and webhook forms, confirmation, per-recipient report choice and 1440 and 390 screens. Point 2: the same file (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow); the same registration file (Subscriber consent, selected publication, channel delivery, export and erasure) loads `tests/e2e/helpers/incident-follow-sms-flow.mjs`: daily address allowance, pending expiry, neutral replies, cross-site refusal and signed channel consent. Point 4: incidentFollowFlow and incidentFollowBrowserFlow prove scoped token management, immediate unsubscribe and both operator views. Point 5: `tests/e2e/helpers/incident-subscription-api-flow.mjs` (incidentSubscriptionApiFlow), loaded by the same file (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), proves native and Statuspage-compatible CRUD, explicit private read and write scopes, refusal of existing public-data readers, wrong-incident refusal and revoked-credential refusal without writes. Point 6: `tests/e2e/statuspage-import.test.mjs` (owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes), loading `tests/e2e/helpers/incident-subscriber-import-flow.mjs` (incidentSubscriberImportFlow) and `tests/e2e/helpers/imported-incident-live-flow.mjs`; incidentFollowFlow proves capacity refusal without subscriber writes or mail.
+**Gap.** None.
 
 #### SUB-022 — Single-incident subscription lifetime
 
-Core · target · **missing** · From SUB-019
+Core · target · **done** · From SUB-019 · Cites BASE-DATA-003, BASE-OPS-003
 
 **Requirement.** A single-incident subscriber hears only that incident's later communication, with an explicit option to include its post-incident report.
 
@@ -2458,8 +2507,8 @@ Core · target · **missing** · From SUB-019
 4. After ending, no more notification is sent and the address is deleted within 24 hours unless it has another subscription.
 5. The script-free journey follows one incident through its next update and resolution, receives nothing for a second incident or maintenance and nothing after resolution, and reads address deletion 24 hours later.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), `tests/e2e/helpers/incident-follow-lifecycle-flow.mjs` (incidentFollowLifecycleFlow), `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow); the same registration file (Subscriber consent, selected publication, channel delivery, export and erasure) loads `tests/e2e/helpers/incident-follow-sms-flow.mjs`. Point 1: only the followed incident delivers updates and resolution; other incidents, maintenance and component changes deliver nothing. Point 2: delivered resolution ends a follow without its report; report publication or the controlled 30-day deadline ends report following. Point 3: reopening before ending delivers; reopening afterwards does not. Point 4: scheduled erasure removes the ended scope within 24 hours, revokes old authority, preserves an independent subscription; `tests/e2e/helpers/incident-subscription-api-flow.mjs` (incidentSubscriptionApiFlow) proves captured confirmation and management links cannot resurrect or expose an erased follower. Point 5: `tests/e2e/helpers/incident-follow-browser-flow.mjs` (incidentFollowBrowserFlow), loaded by the same file (Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts), proves script-free INC-7 confirmation and management at 1440 and 390; `tests/e2e/helpers/incident-follow-browser-lifecycle.mjs` (incidentFollowBrowserLifecycle) keeps that same script-free recipient through its next update, exclusion cases, delivered resolution, later suppression and scheduled address deletion.
+**Gap.** None.
 
 #### SUB-020 — Subscriber limits are stated, enforced and reported
 
@@ -2946,23 +2995,6 @@ Core · target · **partial** · Cites BASE-OPS-003, BASE-OPS-005
 **Gap.** Old cited evidence asserts Owner email recipient; Operator channel count; Repeated day-seven tick has the expected exact email count; Repeated day-seven tick has the expected exact Slack/Teams counts. Unasserted: Waiver audit timestamp read back; Live publication starts reminders on previously historical import.
 
 ### Operators — target
-
-#### TEAM-004 — Roles
-
-Core · target · **missing** · Cites BASE-ROLE-001, BASE-AUDIT-001, BASE-OPS-005
-
-**Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role when delivered; review under UPDATE-007 remains additional.
-
-**Acceptance.**
-1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers.
-2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages.
-3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings.
-4. The setup operator is an Owner and the last Owner cannot be demoted or removed.
-5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time.
-6. Only Owners and Admins can read the audit log; a Communicator is refused.
-
-**Evidence.** None.
-**Gap.** The product role matrix, restricted audit view and role-change/refusal journeys are not built. This replaces TEAM-001 and the roles non-goal when shipped.
 
 #### TEAM-005 — Access scoped to pages and audiences
 

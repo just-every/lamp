@@ -3,11 +3,12 @@ import { autonomousPolicy } from './crypto.mjs';
 
 export async function webhookPhase(c, webhooks) {
  await c.adopt(autonomousPolicy());
+ await c.prepare('webhook');
  const outputs = new Map();
  for (const id of webhooks.prepare) {
   const step = c.surface.journey.find(step => step.id === id);
   if (!step) throw new Error('Webhook preparation must name existing journey steps.');
-  const answer = await c.tool(step.tool, c.args(step, outputs));
+  const answer = await c.stepTool(step, c.args(step, outputs));
   if (answer.result?.isError || answer.result?.structuredContent === undefined) throw new Error('Could not prepare native webhook records.');
   outputs.set(id, answer.result.structuredContent);
  }

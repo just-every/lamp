@@ -28,7 +28,9 @@ export const sealedDefaults: Record<string, Row> = {
   subscribers: { created_by_operator_id: null, webhook_format: "lamp", event_kinds_json: '["incidents","maintenance","components"]', minimum_impact: null, chat_kind: null, preferences_set: 0, sms_kind: 0 },
   // Existing import journals predate per-update component snapshots. Empty
   // migration defaults are not an operator edit; real published changes are.
-  incident_updates: { component_changes_json: "[]", component_snapshot_json: "[]" },
+  incident_updates: { component_changes_json: "[]", component_snapshot_json: "[]", automation_attribution: null, automation_receipt_id: null },
+  // Unapproved automation defaults do not turn imported templates into edits.
+  incident_templates: { channels_json: "[]", resolved_update_json: null },
   incidents: { impact_override: null },
   incident_components: { detached_internal: 0 },
   maintenance: { affected_audience: null, customer_impact: null },

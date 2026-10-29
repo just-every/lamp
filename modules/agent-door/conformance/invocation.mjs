@@ -7,6 +7,7 @@ export async function invocationPhase(c, invoke) {
  const step = c.surface.journey.find(item => !c.surface.tools.find(tool => tool.name === item.tool)?.readOnly);
  if (!step) throw new Error('Durable invocation conformance requires a mutating journey step.');
  await c.adopt(autonomousPolicy());
+ await c.prepare('invocation');
  const who = { person: { id: c.sponsor.id }, agent: { id: c.agentId, name: 'Agent door conformance', specialist: c.surface.specialist }, consent: c.consent, scopes: [c.surface.tools.find(tool => tool.name === step.tool).scope] };
  const schedule = () => JSON.stringify({ name: step.tool, args: c.args(step, new Map(), { unresolved: true }), who });
  const run = async saved => {

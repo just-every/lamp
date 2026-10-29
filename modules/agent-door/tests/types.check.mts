@@ -9,6 +9,8 @@ ctx.scopes = []
 ctx.consent = 'other'
 // @ts-expect-error Operation identity cannot be replaced.
 ctx.operationId = 'other'
+// @ts-expect-error Native continuation item identity cannot be replaced.
+ctx.continuationItemId = 'other'
 // @ts-expect-error Idempotency key cannot be replaced.
 ctx.idempotencyKey = 'other'
 // @ts-expect-error Sponsor identity cannot be edited.

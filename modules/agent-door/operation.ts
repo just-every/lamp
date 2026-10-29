@@ -1,5 +1,5 @@
 import type { AuditRow } from './audit.ts'
-import type { Principal, Runtime, ToolContext } from './types.ts'
+import type { Principal, Runtime, ToolContext, ToolDefinition } from './types.ts'
 import { ToolRefusal } from './errors.ts'
 
 /** Only the door's retained admission can authorize a native continuation. */
@@ -30,4 +30,13 @@ export async function resumeOperation(rt: Runtime, id: string, principal: Princi
 
 // A continuation has its own once-only claim, retaining the public key unchanged.
 // NUL is forbidden in public keys so these internal claims cannot alias them.
-export const operationKey = (id: string, tool: string, key: string) => `\0${id}\0${tool}\0${key}`
+export const operationKey = (id: string, tool: string, key: string, item?: string) => `\0${id}\0${tool}\0${key}${item === undefined ? '' : `\0${item}`}`
+
+/** Only the seed's native resolver can select an item's once-only claim. */
+export async function continuationItem(tool: ToolDefinition, args: Record<string, unknown>, ctx: ToolContext, operationId?: string): Promise<string | undefined> {
+  if (!tool.continuationItem) return undefined
+  if (!operationId) throw new ToolRefusal('operation_mismatch')
+  const item = await tool.continuationItem(args, ctx)
+  if (!item || typeof item.id !== 'string' || !item.id.trim() || item.id.length > 200 || item.id.includes('\0') || item.operationId !== operationId) throw new ToolRefusal('operation_mismatch')
+  return item.id
+}

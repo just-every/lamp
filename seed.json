@@ -919,13 +919,14 @@
     "uploadMaxBytes": {
       "value": 2097152,
       "estimate": false,
-      "why": "Page logo only (BASE-INPUT-003)."
+      "why": "Page logos and header images; WOFF2 theme fonts have a stricter 512KB limit (BASE-INPUT-003)."
     },
     "uploadTypes": {
       "value": [
         "image/png",
         "image/jpeg",
-        "image/webp"
+        "image/webp",
+        "font/woff2"
       ],
       "estimate": false,
       "why": "No SVG: BASE-INPUT-002 would have to sanitise a scripting format for one logo, on the one surface that must never run anything unexpected."

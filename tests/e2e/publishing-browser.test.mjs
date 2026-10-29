@@ -1,3 +1,4 @@
+import { themeOwnerJourney } from "./helpers/theme-owner-journey.mjs";
 import { stripVTControlCharacters } from "node:util";
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
@@ -229,6 +230,12 @@ async function api(path, method = 'GET', body) {
 }
 const saved = () => page.locator('.autosave-status.is-saved').waitFor();
 const readIncident = async id => (await api(`/api/app/incidents/${id}`)).incident;
+
+test('TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit', { timeout: 300_000 }, async () => {
+  const {actors}=await (await import('./helpers/operator-roles-flow.mjs')).operatorRolesFlow({appFetch,appUrl,persistTo:statePath,configPath});
+  await (await import('./helpers/operator-roles-browser-flow.mjs')).operatorRolesBrowserFlow({page,appUrl,appFetch,actor:actors.viewer});
+  await page.setViewportSize({width:1440,height:1000});
+});
 
 // Preserve the private-note and queued-save journeys in the consolidated operator day.
 async function observeAutosaveAcknowledgement(endpoint, key) {
@@ -642,4 +649,9 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
 
 test('INCIDENT-001 AGENT-004 MOBILE-001 — 390-wide owner sign-in, alert review, publication, resolution and maintenance smoke', { timeout: 600_000 }, async () => {
   await phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink: async () => execFileSync(process.execPath, [resolve('scripts/signin-link.mjs'), '--email', 'operator@example.test', '--origin', appUrl, '--config', configPath, '--persist-to', statePath], { cwd: terminalDirectory, env: process.env, encoding: 'utf8' }).trim() });
+});
+
+
+test('THEME-001 — owner publishes branded themes and layouts within the page budget', { timeout: 600_000 }, async t => {
+  await themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, cookieName: sessionCookieName(appUrl), diagnostic: message => t.diagnostic(message) });
 });

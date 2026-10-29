@@ -49,6 +49,17 @@ function isOperatorDocument(request: Request, pathname: string) {
     && (pathname === "/setup" || pathname === "/app" || pathname.startsWith("/app/"));
 }
 
+function isAgentDoorRequest(pathname: string) {
+  return pathname === "/mcp"
+    || pathname === "/.well-known/oauth-protected-resource"
+    || pathname === "/.well-known/oauth-protected-resource/mcp"
+    || pathname === "/agents" || pathname.startsWith("/agents/")
+    || pathname === "/api/rer/agent-policy"
+    || pathname === "/api/rer/agent-native-proof"
+    || pathname === "/api/rer/business-settings"
+    || pathname === "/rer-business-logo" || pathname === "/rer-business.css";
+}
+
 // Operator sign-in and the Lobby are bound to the configured https origin. A plain-http
 // visit to the same host is sent there rather than failing Base's origin check.
 function secureOperatorRedirect(request: Request, bindings: AppBindings, url: URL) {
@@ -99,6 +110,14 @@ export default withDemo({
     // The generated deployment's ASSETS binding owns emitted client files. In
     // development, the same binding serves Vite and Start's virtual modules.
     if (isAppAssetRequest(surface, url.pathname)) return bindings.ASSETS.fetch(request);
+    let initializedRuntime: ReturnType<typeof createApp> | undefined;
+    const appRuntime = async () => initializedRuntime ??= createApp(await prepareAppMailBindings(bindings, request), request, {
+      deferAgentDoor: !bindings.DB && surface === "page" && (request.method === "GET" || request.method === "HEAD"),
+    });
+    if (surface === "app" && isAgentDoorRequest(url.pathname)) {
+      const agentResponse = await (await appRuntime()).agentDoor.handle(request);
+      if (agentResponse) return agentResponse;
+    }
     if (surface === "app") {
       const secure = secureOperatorRedirect(request, bindings, url);
       if (secure) return secure;
@@ -107,19 +126,17 @@ export default withDemo({
       if (home) return home;
     }
 
-    const runtime = createApp(await prepareAppMailBindings(bindings, request), request);
-    if (surface === "app") {
-      const agentResponse = await runtime.agentDoor.handle(request);
-      if (agentResponse) return agentResponse;
-    }
+    const runtime = await appRuntime();
     if (surface === "app" && (url.pathname === "/signin" || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/.well-known/rer-"))) {
       return authResponse(request, bindings, runtime.services);
     }
     await ensureDevelopmentSnapshot(runtime);
 
     if (isHonoRequest(surface, request, url.pathname)) {
-      const response = await withNativePersonEvents(request, bindings.DB, runtime.agentDoor.people, runtime.agentDoor,
-        async () => runtime.app.fetch(request, bindings, executionContext));
+      const dispatch = async () => runtime.app.fetch(request, bindings, executionContext);
+      const response = surface === "app"
+        ? await withNativePersonEvents(request, bindings.DB, runtime.agentDoor.people, runtime.agentDoor, dispatch)
+        : await dispatch();
       queueDueWork(runtime, bindings, executionContext, request, response);
       return response;
     }

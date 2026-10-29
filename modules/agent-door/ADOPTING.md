@@ -119,7 +119,11 @@ For a tool whose only effect is revocation or reduction, declare `widens: false`
 and `narrowing: {effect: 'revoke', target: 'id'}` (or effect `narrow`) in both
 its runtime definition and surface tool. Include its exact native `inputSchema`
 in the surface. This checked contract accepts a closed object with one required
-string target identifier (`id` or a name ending `_id`); it refuses extra fields,
+string target identifier (`id` or a name ending `_id`), or a nonempty array of
+distinct such identifiers for a composite native target. For example,
+`narrowing: {effect:'revoke', target:['team_id','operator_id']}` accepts only
+those two required string fields. The native grant witness must supply and match
+every identifier. The schema refuses extra fields,
 open objects, references and schema unions. An operation accepting roles, scopes
 or grants to add must retain its escalation fixture. Separate the revoke-only
 operation from an operation that also grants authority when needed.
@@ -286,10 +290,24 @@ admission scope returns `insufficient_scope` and requires fresh preparation;
 revoked consent still returns `consent_revoked` with no effect. Keep the same
 checks in the native effect transaction when concurrent edits need a fence.
 
-Each continuation tool has its own once-only claim under the original operation
-and public key, so replay returns its one recorded result rather than the
-preparation handle. Reusing that continuation with changed arguments returns
-`idempotency_conflict`. Public keys may not contain NUL, which separates these
+For a tool that executes multiple native items from one preparation, register a
+`continuationItem(args, ctx)` resolver on the execution tool. Re-read the native
+queue row and return `{id: job.id, operationId: job.identity.operationId}` or
+`null` if the item is unavailable. The door validates the nonempty item id (at
+most 200 characters, without NUL) and its exact originating operation before
+claiming, replaying or executing it. It resolves the item again before the native
+effect, including delayed approval execution. The resolver must use persisted
+native identity, never a caller-selected replay suffix. Such tools require the
+trusted worker's saved `operationId`; an ordinary MCP call cannot execute them.
+
+Each native item has its own once-only claim under the original operation, tool
+and public key, so replay returns that item's recorded result rather than the
+preparation handle or a sibling effect. Tools without a resolver retain the
+single-continuation claim. Reusing an item with changed arguments returns
+`idempotency_conflict`. The immutable context exposes `continuationItemId` and
+the audit records `continuation_item_id`; the original operation, consent,
+sponsor, scopes, approvers and public idempotency key remain unchanged. Public keys may not contain NUL, which
+separates these
 internal claims from ordinary keys. The existing calls table stores the claims;
 no new schema migration is needed. Keep the originating audit, approvals and
 idempotency records for as long as the queue may execute or replay them.
@@ -313,6 +331,20 @@ proofs do not establish a seed's integrated queue behavior. Client-data custody
 and erasure remain outside this adoption proof until retained fields and fences
 are agreed. This change does not promote those claims or supply seed-side
 `BASE-AGENT-010` contract citations.
+
+The CLI connects this boundary when `agent-surface.json` declares
+`verification.invoke: {module:'tests/agent-invoke.mjs', entrypoint:'NativeJobs'}`.
+The contained module default-exports an async driver receiving
+`{name,args,who,worker}`. `await worker('NativeJobs')` returns an RPC reference to
+that named entrypoint in the real built application Worker. It is available only
+to the verifier, through a private service binding; no HTTP invocation route is
+added. Other entrypoints are refused. The driver must serialize the supplied
+original identity and consent through the seed's native queue, wait for native
+completion and return the real `door.invoke` result. Preserve the originating
+scope, client and operation identity where present. Built Wrangler queue
+producers and consumers both run in the disposable installation, using its
+declared batch, retry and dead-letter settings. Driver failures fail conformance
+with a redacted diagnostic. A missing declaration does not claim queue coverage.
 
 ## Keep runtime and CLI evidence separate
 
@@ -398,6 +430,43 @@ is written to the seed's environment files. Tokens and sessions are never printe
 These aliases configure the seed's existing admission and do not bypass signed
 claim verification. For a signed seed needing just its native issuer and
 installation names, declare the two `bindings` above without an initializer.
+
+A binding needing native JSON or PEM can instead name a contained test generator:
+
+```json
+{"bindings":{"GITHUB_CONNECTION":{"module":"tests/github-binding.mjs"}}}
+```
+
+The module default-exports an async function receiving the same per-run values
+listed above. Return one nonempty string, at most 64 KiB. For Spool's native
+GitHub App connection, generate a fresh RSA key with Node crypto and return
+`JSON.stringify({appId:'42',installationId:'7',privateKey})`, where `privateKey`
+is its real PKCS8 PEM export. These numeric GitHub identifiers are distinct from
+the verifier's installation UUID. The native GitHub parser, key import and App
+JWT signing still run. Generators execute once per named binding per run, before
+owner bootstrap, and configure only the disposable Worker. Keep them outside
+production imports, never read real credentials, and never print or persist their
+output. Invalid output, escaping paths and generator exceptions fail with a
+fixed diagnostic. Signed owner claim verification remains required.
+
+## Verification RPC provider edges
+
+For a production service binding such as `PENNY_EGRESS.send`, declare:
+
+```json
+{"verification":{"rpc":{"PENNY_EGRESS":{"module":"tests/egress-rpc.mjs","entrypoint":"Egress"}}}}
+```
+
+The binding must already appear in the built Worker's `services` declaration.
+Its contained `.mjs` or `.js` module exports the named class extending
+`WorkerEntrypoint` from `cloudflare:workers`. Implement only the provider's real
+RPC interface in that test edge. The application's native adapters, authority,
+privacy, signatures, receipts and persistence still execute. Each declared edge
+runs in a separate Worker in the disposable runtime, without application
+bindings, Node compatibility or outbound network access; undeclared network
+requests return 502. Relative helper imports are snapshotted and contained,
+including symlink targets. Only `cloudflare:workers` is allowed as a runtime
+builtin. This is test tooling and is never added to the production build.
 
 ## Verification provider edges
 
@@ -518,6 +587,67 @@ the run's real agent credential and records calls for that audit; no signer or
 credential is passed to the module. The standard phases still run, and a failed
 native journey fails verification. Errors are redacted to a fixed diagnostic.
 Keep these modules in test tooling outside the production dependency graph.
+
+The same journey module may export async `beforeStep` and `afterStep` functions.
+They run around each completed mandatory journey step in both `autonomous` and
+`held` phases, and around autonomous preparation in `blocked:<class>` phases.
+Along with the usual native context they receive
+`{phase,step,args,outputs,tool}`; `afterStep` also receives the completed
+`structuredContent` as `result`. These are detached copies. `beforeStep` runs
+before the effect/approval witnesses; `afterStep` runs after output, resources,
+narrowing, injection and replay checks. Use the native HTTP/person door to
+record repository consent or prepare queued work between dependent steps.
+Hooks cannot skip mandatory steps or alter the runner's arguments and outputs.
+Failed hooks fail the current phase with the same redacted diagnostic. A step
+that fails or yields no structured output does not receive `afterStep`.
+
+## Native clients and fresh phase fixtures
+
+Declare `verification.fixtures: {"module":"tests/agent-phase-fixtures.mjs"}`
+when a journey needs a real native API client, an operation receipt, or state
+consumed by a previous policy round. Its default async function receives
+`{phase, request, origin, email, cookie, mail, fixtures, tool}`. The request
+function is restricted to the disposable installation; use the native owner
+session to issue clients, then their real credentials to create native records
+and retained operation receipts. No signer, writable database or production
+fixture route is supplied.
+
+Return `{values, clients}`. `values` is an object of named phase-local JSON
+values. `clients` maps names to `{token, clientId, agent:{id,name,specialist}}`
+returned by the native credential lifecycle. The specialist must match the
+surface. Credentials and identities must belong to the signed-in owner and
+retain their actual native scope checks. Generate secret-shaped values at
+runtime and never log them.
+
+A journey step can select `client:"local"`; its MCP calls, proof challenges,
+approval retries, replay, resource reads and post-write event snapshots then use
+that native bearer. Event visibility remains limited to resources readable by
+that client's authenticated identity. Steps without a selected client retain
+the Business credential path.
+Arguments and target IDs can reference prepared values, for example
+`{"$fixture":"operation","pointer":"/key"}`. These references require the
+fixture module and fail when their value or client is absent. Audit verification
+checks each client's own agent, sponsor, client ID and null Business consent;
+Business credential and consent negatives still use the Business credential.
+
+The initial unanswered-policy round can return only clients: its refusal probes
+use unresolved arguments just as they do for `$from` references. Successful
+journeys require the real prepared values. Later preparation runs with the
+autonomous policy in force, before adopting the policy under test, so native
+REST mutations can enter the real agent door to establish receipt custody.
+Their audit rows remain available and their client identity is checked. Only
+rows created inside preparation are separated from the journey's exact audit
+count; every tested call still requires its own matching audit row.
+
+Preparation runs before `initial`, `removed`, `autonomous`, `held`, each
+`blocked:<class>`, `paused`, `negative` and `consent` round, before no-effect
+witnesses are taken. Optional replay, invocation, webhook and record-security
+phases prepare as `replay`, `invocation`, `webhook` and `no-subject`. Every
+preparation replaces the prior values and client handles. Create fresh state
+through the native doors for each round; do not resurrect erased records or
+write application tables directly. Failures remain conformance failures with
+redacted diagnostics. Omitting fixture declarations never supplies missing
+tool/class coverage, credentials or native state.
 
 ## Per-run provider fixture control
 
@@ -684,8 +814,10 @@ The owner initializer receives `reviewers.initialize(label, {cookie})`. Pass its
 real native owner session. The declared reviewer initializer receives
 `{request, origin, label, email, owner: {email,cookie}, returnTo, mail}`. Use the
 same-origin `request` to invite the reviewer, consume their invitation through
-the native confirmation handler, and return its final 303 `Response` with the
-reviewer's session cookie. `initialize` returns `{email,cookie}` to the owner
+the native confirmation handler, and return its final 200 or 303 `Response` with the
+reviewer's session cookie. A native JSON 200 response is accepted alongside a
+303 redirect; other statuses, followed redirects, absent cookies and the owner's
+cookie refuse the lifecycle. The response body grants no authority. `initialize` returns `{email,cookie}` to the owner
 initializer, which then performs the native independent review. No agent token,
 signer, database writer or production test route is supplied. Native roles,
 independence, expiry, one-use proofs and step-up checks remain authoritative.
@@ -702,6 +834,19 @@ reviewers distinct from the owner, and capture is destroyed when verification
 closes. The harness requires every declared reviewer lifecycle to complete;
 its fixed failure diagnostic never prints mail, proofs or initializer errors.
 Keep lifecycle modules in test tooling outside the production graph.
+
+This hook is already available in 0.2.86. To use the admitted second person for
+an agent-door approval, require `person:<reviewer's Business person id>` in the
+signed policy and submit the exact approval revision and summary hash with that
+person's confirmed native session. The signed roster must bind that person to
+the native account before admission; it deliberately refuses to adopt an
+unrelated existing account. The sponsor cannot satisfy this named reference,
+even when the sponsor has an owner or editor role. `sponsor` and broad role
+references express different policies and do not guarantee independence.
+The door records the approver's native id and name in the approval, supplies it
+in `ctx.approvers`, and retains the approver id separately from the sponsor in
+the execution audit. Completing the mail lifecycle never grants the sponsor
+that person's authority.
 
 ## Client custody boundary
 
@@ -843,3 +988,107 @@ the standard level-four clause and Status table shape. Review the contract,
 `ACCEPTANCE.md` and `docs/CLAIMS.md` together, run touched seed checks, then run
 the edition's documented source-lock command **last**, followed by its source
 check. Locking and committing remain explicit edition-authoring steps.
+
+If the coverage source has no historical Homepage claims, refresh the recorded
+`foundation/runtime/contract-docs.mjs` copy before syncing. The generator accepts
+distinct current claims in that case; it still refuses duplicate current claims
+and requires every claim from a non-empty historical list to remain unchanged.
+
+## Conformance probes with native revisions
+
+Injection checks re-read each read-only `$from` prerequisite before resolving the
+probe arguments. Reference native revision reads in `step.args` so every probe
+uses the current revision after the preceding write. Write prerequisites retain
+their original outputs and are never executed again to refresh a probe. The
+additional arguments must still leave computed classes, facts and disposition
+unchanged, and the probe must complete successfully.
+
+Native target checks follow the audit API's `{rows,cursor,differs_from_policy}`
+pagination using `after`, including pages containing no rows for this agent.
+Both pending and execution targets must match the independent fixture identity;
+a target beyond the first page receives the same check.
+
+Base source archives expose their one supplied revision when matching current
+workflow bytes during refresh. Unknown older workflow bytes remain seed-owned;
+the archive provides no historical versions or migration ancestry. Archive
+refresh still refuses legacy records lacking prior source membership and
+migrations whose applicability requires unavailable Git history.
+
+## Native-client receipts and consumed preparation
+
+A native-client receipt reader may require both a retained operation key and a
+real native client. Its journey fixture must obtain those through the seed's
+contained native lifecycle. Empty receipt arguments and the verifier's default
+Business credential do not establish that client or operation. The final native
+journey hook runs after the standard phases; it cannot prepare a mandatory step
+that has already run. Keep native receipt ownership and service-grant checks.
+
+An idempotent native creation can consume its own preparation precondition
+(for example, an unused schedule identity or revision zero). Native target and
+classification callbacks currently run again before returning a saved outcome.
+If those callbacks reject already-completed work, the adapter must distinguish
+current replay authorization from fresh-effect preparation. Returning a cached
+result before native authorization or current policy would remove required
+admission checks. This needs a native replay-admission contract; the shared
+runtime does not infer one from a revision refusal.
+
+## Declare a door subset
+
+The declaration lives in the existing `agent-surface.json` door descriptor:
+
+```json
+{
+  "capabilities": ["tools", "policy", "pause", "audit", "idempotency"]
+}
+```
+
+Pass that same array as `capabilities` to `createAgentDoor`. A descriptor alone
+cannot change a deployed runtime: conformance checks discovery against the
+array and fails a mismatch. Omit the field in both places to retain the legacy
+full-door requirements and checks. An empty array, unknown names, duplicates,
+a boolean map or an array missing any CORE name is rejected when loaded.
+
+The mandatory CORE names are **tools, policy, pause, audit and idempotency**.
+Principal authorization, owner-bound tokens, current scopes, native proofs,
+self-escalation refusal, policy refusal, approval controls and consent revocation
+remain unconditional. These security duties have no off switch. Native tools
+retain their complete declared journeys, classification, output, injection,
+replay and audit checks. Core is not permission to omit a native tool's security.
+
+The currently scopeable optional names are:
+
+| Name | Offered when declared | Refused when omitted |
+| --- | --- | --- |
+| `events` | Built-in `<seed>.events.list`, full retained-event, attribution and cursor checks | Absent from tools/list; typed tool refusal |
+| `resources` | Native resource templates and complete policy-controlled reads of returned links | Empty template list; no resource discovery or resource links; typed read refusal |
+| `prompts` | Specialist prompts and retrieval checks; at least one must exist | Empty prompt list; no prompt discovery; typed get refusal |
+| `subscriptions` | Streaming notification acknowledgement and live pause termination checks; requires `events` | No subscription advertisement; typed listen refusal |
+
+Refusals carry `code: "capability_not_declared"` and the capability name in the
+usual tool error metadata or JSON-RPC `error.data`. Authenticated refused tool
+and resource calls still receive audit rows. Internal event collection and
+native resource visibility adapters may remain in place for audit and event
+visibility; they do not expose an undeclared public resource door.
+
+Discovery metadata `_meta["com.runeditrun/capabilities"]` and the conformance report
+contain `mode`, `declared`, `refused` and `unscoped`. A declared optional
+capability runs its full applicable checks; it is not credited merely for being
+listed. Missing declared resources or prompts reject runtime creation; missing
+built-in events fails catalogue and event checks. Conformance replaces only the
+scopeable omitted families with explicit discovery, listing, typed refusal and
+no-effect checks. Existing event definitions and journey steps in the descriptor
+are excluded from the effective surface when events are omitted. References to
+excluded steps must still validate; dependent native steps are never silently
+removed. Native resource links are withheld when resources are omitted.
+
+This first subset does **not** scope multi-sponsor, mail edges, resource refresh,
+timed lifecycle, dual host, queued lifecycle or owner-native administration.
+They appear under `unscoped`, cannot be selected as capability names, and are
+not claimed as refused or proved by this declaration. Existing extra-sponsor,
+provider, native journey, replay-admission, durable invocation and webhook
+checks continue unchanged wherever supplied. In particular, owner bootstrap,
+owner binding, native approvals and audit APIs cannot be switched off: they
+carry CORE security. A seed-native journey that mixes these duties with a timed
+or second-host scenario must be separated before that family can be scoped.
+Keep the corresponding seed contract clauses partial until independently proved;
+a subset declaration never promotes contract statuses.

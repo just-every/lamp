@@ -1,3 +1,4 @@
+import { createOperatorRolesRepository } from '../../features/operators/roles.repository';
 import { AuthError, createAuthHandler, createSignInHandler, securityHeaders } from '@runeditrun/rer/modules/operator-auth';
 import { createDependencies } from '@runeditrun/rer/modules/dependencies';
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from '@runeditrun/rer/modules/owner-claim';
@@ -8,6 +9,14 @@ import { openDoorAtFirstClaim } from '../../features/statuspage-import/door-clai
 import type { AppBindings } from '../../app/types';
 import type { AppServices } from '../../app/services';
 export async function authResponse(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
+  const response = await authResponseInternal(request,env,services);
+  if (response.status === 403) {
+    const session = await services.auth().getSession(request);
+    if (session) await createOperatorRolesRepository(env.DB).denied(session.operator.id,request.method,new URL(request.url).pathname);
+  }
+  return response;
+}
+async function authResponseInternal(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
   try {
     const auth=services.auth(),config=authConfig(env),url=new URL(request.url);
     const signedIn = await signedInOwnerRedirect(request, auth);
@@ -61,7 +70,7 @@ async function ownerSignInRefused(response:Response):Promise<Response> {
 export async function signedInOwnerRedirect(request: Request, auth: ReturnType<AppServices['auth']>): Promise<Response | null> {
   if (new URL(request.url).pathname !== '/signin' || !['GET', 'HEAD'].includes(request.method)) return null;
   const session = await auth.getSession(request);
-  return session?.operator.role === 'owner'
+  return session
     ? new Response(null, { status: 303, headers: { ...securityHeaders(), Location: '/app' } })
     : null;
 }

@@ -9,6 +9,7 @@ import { policyState } from './policy-store.ts'
 import { nativeTarget } from './target.ts'
 import { nativeProof } from './native-proof.ts'
 import { narrowPrincipal } from './principal.ts'
+import { continuationItem } from './operation.ts'
 
 export interface Effect { type: string; uri: string; data?: Record<string, unknown> }
 export function context(rt: Runtime, principal: Principal, door: ToolContext['door'], effects: Effect[], approvers: ToolContext['approvers'] = []): ToolContext {
@@ -16,6 +17,7 @@ export function context(rt: Runtime, principal: Principal, door: ToolContext['do
   return Object.freeze({ db: rt.options.db, person: Object.freeze({ ...principal.person }), agent: Object.freeze({ ...principal.agent, specialist: principal.agent.specialist ?? null }),
     consent: principal.consent, scopes: Object.freeze([...principal.scopes]), clientId: principal.clientId,
     operationId: principal.operationId!, idempotencyKey: principal.idempotencyKey ?? null,
+    continuationItemId: principal.continuationItemId,
     nativeProof: principal.nativeProof && Object.freeze({ ...principal.nativeProof }),
     actor: Object.freeze({ ...actor, agent: Object.freeze(actor.agent), for: Object.freeze(actor.for) }),
     seed: rt.options.seed, origin: rt.options.origin, now: rt.now, door,
@@ -46,6 +48,7 @@ export async function runTool(rt: Runtime, tool: ToolDefinition, args: Record<st
     if (principal.consent && (await policyState(rt)).revoked.consents.includes(principal.consent)) throw new ToolRefusal('consent_revoked')
     if (tool.scope && !principal.scopes.includes(tool.scope)) throw new ToolRefusal('insufficient_scope')
     principal = await nativeProof(rt, tool, args, principal, principal.nativeProof?.reference)
+    if (await continuationItem(tool, args, context(rt, principal, door, [], approvers), principal.operationId) !== principal.continuationItemId) throw new ToolRefusal('operation_mismatch')
     const value = await tool.run(args, context(rt, principal, door, effects, approvers))
     if (!validateSchema(tool.outputSchema, value.result)) return { result: { ...result, outcome: 'refused', code: 'output_invalid' }, effects, undo: value.undo }
     return { result: { ...result, outcome: 'done', result: value.result, resources: value.resources, untrusted: tool.untrusted }, effects, undo: value.undo }

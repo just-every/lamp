@@ -21,7 +21,10 @@ export class AgentDeliveryHeld extends Error {
   constructor(readonly code: string) { super(`Agent delivery held: ${code}.`); }
 }
 
-export function registerAgentEffectHandler(db: D1Database, kind: string, driver: NativeEffectHandler) {
+export function registerAgentEffectHandler(db: D1Database | undefined, kind: string, driver: NativeEffectHandler) {
+  // Cached public reads can construct native services with no database binding.
+  // Only a real database can own an effect driver or its originating authority.
+  if (!db) return;
   let current = drivers.get(db);
   if (!current) drivers.set(db, current = new Map());
   current.set(kind, driver);

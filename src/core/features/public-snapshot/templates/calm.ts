@@ -14,7 +14,10 @@ function componentRow(component: Component, heading: "h3" | "h4") {
 function components(model: PublicSnapshotModel, parts: TemplateParts) {
   if (!model.visibleComponents.length) return "";
   const named = model.visibleComponents.some((component) => component.groupName !== null);
-  const groups = groupComponentsByHeading(model.visibleComponents).map(([heading, list]) => `${named ? `<h3 class="calm-group">${escapeHtml(heading)}</h3>` : ""}<ul class="calm-list">${list.map((component) => componentRow(component, named ? "h4" : "h3")).join("")}</ul>`).join("");
+  const groups = groupComponentsByHeading(model.visibleComponents).map(([heading, list]) => {
+    const rows = `<ul class="calm-list">${list.map(component => componentRow(component, named ? "h4" : "h3")).join("")}</ul>`;
+    return model.theme.groupsCollapsed ? `<details class="theme-component-group"><summary>${escapeHtml(heading)}</summary>${rows}</details>` : `${named ? `<h3 class="calm-group">${escapeHtml(heading)}</h3>` : ""}${rows}`;
+  }).join("");
   return `<section class="calm-components" aria-labelledby="components-title" data-live="components"><h2 id="components-title" class="tpl-kicker">Components</h2>${groups}<div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>`;
 }
 

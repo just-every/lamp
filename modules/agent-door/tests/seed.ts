@@ -26,14 +26,18 @@ export default {
       scopes: ctx.scopes, person: { id: ctx.person.id }, agent: ctx.agent, clientId: ctx.clientId, approvers: ctx.approvers })
     const queueTools: ToolDefinition[] = [
       defineTool({ name: 'synthetic.queue.prepare', title: 'Queue native work', description: 'Prepare one native queued effect.', scope: 'records:write', readOnly: false,
-        inputSchema: object({ id: text }), outputSchema: object({ id: text, operationId: text }), classes: ['standard'], clauses: ['BASE-AGENT-002'], summary: args => ({ target: { id: String(args.id) } }),
+        inputSchema: object({ id: text, additional: { type: 'array', items: text } }, ['id']), outputSchema: object({ id: text, operationId: text }), classes: ['standard'], clauses: ['BASE-AGENT-002'], summary: args => ({ target: { id: String(args.id) } }),
         classify: () => [{ class: 'standard', facts: { measure: 1 } }],
         async run(args, ctx) {
-          await env.DB.prepare('INSERT INTO test_jobs(id,saved) VALUES(?,?)').bind(args.id, JSON.stringify(snapshot(ctx))).run()
+          for (const id of [args.id, ...(args.additional as string[] ?? [])]) await env.DB.prepare('INSERT INTO test_jobs(id,saved) VALUES(?,?)').bind(id, JSON.stringify(snapshot(ctx))).run()
           return { result: { id: args.id, operationId: ctx.operationId } }
         } }),
       defineTool({ name: 'synthetic.queue.execute', title: 'Execute queued work', description: 'Execute the native saved queue item.', scope: 'records:write', readOnly: false,
-        inputSchema: object({ id: text }), outputSchema: object({ id: text, operationId: text }), classes: ['standard'], clauses: ['BASE-AGENT-002'], summary: args => ({ target: { id: String(args.id) } }),
+        inputSchema: object({ id: text, value: text }, ['id']), outputSchema: object({ id: text, operationId: text }), classes: ['standard'], clauses: ['BASE-AGENT-002'], summary: args => ({ target: { id: String(args.id) } }),
+        async continuationItem(args) {
+          const job = await env.DB.prepare('SELECT id,saved FROM test_jobs WHERE id=?').bind(args.id).first<{ id: string; saved: string }>()
+          return job ? { id: job.id, operationId: JSON.parse(job.saved).operationId } : null
+        },
         classify: () => [{ class: 'standard', facts: { measure: 1 } }],
         async run(args, ctx) {
           await env.DB.prepare('INSERT INTO test_effects(id,saved) VALUES(?,?)').bind(args.id, JSON.stringify(snapshot(ctx))).run()
@@ -89,11 +93,11 @@ export default {
     })
     if (path === '/__queue') {
       if (!await doorPerson(auth, request)) return new Response(null, { status: 401 })
-      const input = await request.json() as { id: string; override?: Record<string, unknown> }
+      const input = await request.json() as { id: string; override?: Record<string, unknown>; args?: Record<string, unknown> }
       const job = await env.DB.prepare('SELECT saved FROM test_jobs WHERE id=?').bind(input.id).first<{ saved: string }>()
       if (!job) return new Response(null, { status: 404 })
       const saved = JSON.parse(job.saved)
-      return Response.json(await door.invoke('synthetic.queue.execute', { id: input.id, idempotency_key: saved.idempotencyKey }, { ...saved, ...input.override }))
+      return Response.json(await door.invoke('synthetic.queue.execute', { id: input.id, ...input.args, idempotency_key: saved.idempotencyKey }, { ...saved, ...input.override }))
     }
     if (path === '/__embedded') {
       const person = await doorPerson(auth, request)

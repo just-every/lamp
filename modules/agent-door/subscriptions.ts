@@ -6,11 +6,13 @@ import { livePrincipal } from './execution.ts'
 import { policyRefusal, policyState } from './policy-store.ts'
 import { templateMatches } from './registry.ts'
 import { answered } from './policy/document.ts'
-import type { Rpc } from './wire.ts'
+import { rpcError, type Rpc } from './wire.ts'
+import { offers } from './capabilities.mjs'
 
 export const subscriptionLifetimeMs = 120000
 export async function subscriptions(rt: Runtime, request: Request, rpc: Rpc, principal: Principal): Promise<Response> {
   const requested = rpc.params?.notifications as { toolsListChanged?: unknown; resourceSubscriptions?: unknown } | undefined
+  if (Array.isArray(requested?.resourceSubscriptions) && requested.resourceSubscriptions.length && !offers(rt.options.capabilities, 'resources')) return rpcError(rpc.id, -32000, 'Capability not declared', 200, { code: 'capability_not_declared', capability: 'resources' })
   const uris: string[] = []
   for (const uri of Array.isArray(requested?.resourceSubscriptions) ? requested.resourceSubscriptions : []) {
     if (typeof uri !== 'string' || uris.includes(uri)) continue

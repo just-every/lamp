@@ -1,3 +1,4 @@
+import { offers } from '../capabilities.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { accessToken } from './crypto.mjs';
 import { narrowingContract } from './narrowing.mjs';
@@ -53,6 +54,7 @@ export async function listedDoor(c) {
  c.add('BASE-AGENT-003.1', isDeepStrictEqual((templates.result?.resourceTemplates ?? []).map(item => item.uriTemplate).sort(), [...c.surface.resources].sort()), 'resources/templates/list must match the Agent surface.');
  const prompts = await c.mcp('prompts/list');
  c.add('BASE-AGENT-013.5.prompts', Array.isArray(prompts.result?.prompts), 'prompts/list must list the declared specialist prompts.');
+ if (c.surface.capabilities !== undefined && offers(c.surface.capabilities, 'prompts')) c.add('BASE-AGENT-subset.prompts.offered', prompts.result?.prompts?.length > 0, 'Declared prompts must offer a specialist prompt.');
  if (prompts.result?.prompts?.length) {
   const prompt = await c.mcp('prompts/get', { name: prompts.result.prompts[0].name });
   c.add('BASE-AGENT-001.1.prompts', Array.isArray(prompt.result?.messages) && prompt.result.messages.length > 0, 'A specialist prompt must be retrievable with Mcp-Name.');

@@ -10,16 +10,17 @@ export async function recordSecurityPhase(c) {
  const tools = c.surface.tools.filter(tool => tool.authority === 'none');
  if (!tools.length) return;
  await c.adopt(autonomousPolicy());
+ await c.prepare('no-subject');
  const outputs = new Map();
  for (const step of c.surface.journey) {
   const prepared = c.args(step, outputs);
-  const answer = await c.tool(step.tool, prepared, await c.proof(step.tool, prepared));
+  const answer = await c.stepTool(step, prepared, await c.proof(step.tool, prepared, undefined, step.client));
   if (answer.result?.isError || answer.result?.structuredContent === undefined) throw new Error('Could not prepare no-subject security journey.');
   outputs.set(step.id, answer.result.structuredContent);
   if (!tools.some(tool => tool.name === step.tool)) continue;
   const prefix = `BASE-AGENT-005.no-subject.${step.id}`;
   const before = await c.witness(), args = { ...c.args(step, outputs), role: 'owner', scopes: ['*'], person_id: c.sponsor.id };
-  const refused = await c.tool(step.tool, args);
+  const refused = await c.stepTool(step, args);
   c.add(`${prefix}.undeclared`, errorCode(refused) === 'undeclared_arguments' && refused.result?.structuredContent === undefined, 'A no-subject tool must refuse undeclared widening arguments.');
   c.add(`${prefix}.unchanged`, isDeepStrictEqual(before, await c.witness()), 'An undeclared authority argument changed native state.');
   const rows = await auditRows(c);

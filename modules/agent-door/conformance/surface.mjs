@@ -1,5 +1,7 @@
+import { offers, capabilitySet } from '../capabilities.mjs';
+import { scopedSurface } from './subset.mjs';
 import { recordOnlyAuthority } from './authority.mjs';
-import { narrowingContract } from './narrowing.mjs';
+import { narrowingContract, narrowingTargets } from './narrowing.mjs';
 import { validToolName } from './tool-name.mjs';
 
 export const AGENT_CLASSES = Object.freeze(['standard', 'external', 'money', 'commitment', 'accounts', 'gated', 'access', 'security', 'destructive', 'sensitive', 'live']);
@@ -9,6 +11,9 @@ const text = value => typeof value === 'string' && value.trim().length > 0;
 
 /** Validate the edition's static declaration without loading application code. */
 export function validateAgentSurface(surface, { contract } = {}) {
+ let set;
+ try { set = capabilitySet(surface?.capabilities); surface = scopedSurface(surface); }
+ catch (error) { return { ok: false, points: [{ id: 'BASE-AGENT-subset.declaration', ok: false, detail: error.message }] }; }
  const points = [], add = (id, ok, detail) => points.push({ id: `BASE-AGENT-013.surface.${id}`, ok: Boolean(ok), ...(!ok ? { detail } : {}) });
  add('schema', object(surface) && surface.schema === 'rer-agent-surface/1', 'Agent surface must use schema rer-agent-surface/1.');
  if (!object(surface)) return { ok: false, points };
@@ -43,10 +48,11 @@ export function validateAgentSurface(surface, { contract } = {}) {
  }
  const references = (value, visit) => {
   if (Array.isArray(value)) value.forEach(item => references(item, visit));
-  else if (object(value)) { if ('$from' in value || '$sponsor' in value) visit(value); else Object.values(value).forEach(item => references(item, visit)); }
+  else if (object(value)) { if ('$from' in value || '$sponsor' in value || '$fixture' in value) visit(value); else Object.values(value).forEach(item => references(item, visit)); }
  };
  const checkReferences = (value, label, available, addPoint = add) => references(value, ref => {
   if ('$sponsor' in ref) addPoint(`${label}.sponsor`, Object.keys(ref).length === 1 && ['id', 'email'].includes(ref.$sponsor), `${label} must reference the sponsor as {$sponsor:'id'} or {$sponsor:'email'}.`);
+  else if ('$fixture' in ref) addPoint(`${label}.fixture`, text(surface.verification?.fixtures?.module) && text(ref.$fixture) && Object.keys(ref).sort().join(',') === '$fixture,pointer' && typeof ref.pointer === 'string' && (ref.pointer === '' || ref.pointer.startsWith('/')), `${label} requires verification.fixtures and a named fixture with a JSON pointer.`);
   else addPoint(`${label}.ref.${ref.$from}`, available.has(ref.$from) && typeof ref.pointer === 'string' && (ref.pointer === '' || ref.pointer.startsWith('/')), `${label} references ${ref.$from} before its structuredContent is available, or has an invalid JSON pointer.`);
  });
  for (const [i, step] of (Array.isArray(surface.journey) ? surface.journey : []).entries()) {
@@ -54,11 +60,12 @@ export function validateAgentSurface(surface, { contract } = {}) {
   add(`journey.${id}`, object(step) && text(step.id) && !steps.has(step.id) && Boolean(tool) && object(step.args) && Array.isArray(step.expect) && step.expect.length > 0, `Invalid or duplicate journey step ${id}, tool ${JSON.stringify(step?.tool)}.`);
   const expect = Array.isArray(step?.expect) ? step.expect : [];
   add(`journey.${id}.classes`, new Set(expect.map(item => item?.class)).size === expect.length && expect.every(item => object(item) && Array.isArray(tool?.classes) && tool.classes.includes(item.class) && (item.facts === undefined || object(item.facts))), `${id} expects duplicate, undeclared or malformed classes.`);
+  if (step?.client !== undefined) add(`journey.${id}.client`, text(step.client) && text(surface.verification?.fixtures?.module), `${id} requires a named native client and verification.fixtures.`);
   for (const item of expect) coverage.get(step?.tool)?.add(item?.class);
   checkReferences(step?.args, `journey.${id}`, steps);
   if (step?.target !== undefined) {
    const target = step.target;
-   add(`journey.${id}.target`, object(target) && Object.keys(target).sort().join(',') === 'id,kind' && text(target.kind) && (text(target.id) || object(target.id) && ('$from' in target.id || '$sponsor' in target.id)), `${id}.target must contain only a nonempty kind and an id string or journey reference.`);
+   add(`journey.${id}.target`, object(target) && Object.keys(target).sort().join(',') === 'id,kind' && text(target.kind) && (text(target.id) || object(target.id) && ('$from' in target.id || '$sponsor' in target.id || '$fixture' in target.id)), `${id}.target must contain only a nonempty kind and an id string or journey reference.`);
    checkReferences(target, `journey.${id}.target`, steps);
   }
   if (step?.inject !== undefined) add(`journey.${id}.inject`, object(step.inject), `${id}.inject must be an object of additional arguments.`);
@@ -76,13 +83,15 @@ export function validateAgentSurface(surface, { contract } = {}) {
  const narrowingTools = new Set();
  for (const [i, fixture] of (Array.isArray(surface.narrowings) ? surface.narrowings : []).entries()) {
   const tool = tools.get(fixture?.tool), witness = fixture?.witness;
-  escalation(`narrowing.${i}`, tool?.widens === false && !narrowingTools.has(fixture.tool) && steps.has(fixture.step) && surface.journey.some(step => step.id === fixture.step && step.tool === fixture.tool) && tools.get(witness?.tool)?.readOnly === true && object(witness?.args) && Object.hasOwn(witness.args, tool.narrowing?.target) && typeof witness?.pointer === 'string' && (witness.pointer === '' || witness.pointer.startsWith('/')), 'Narrowing fixture must name its journey step and a native target grant-set witness.');
+  const targets = narrowingTargets(tool);
+  escalation(`narrowing.${i}`, tool?.widens === false && !narrowingTools.has(fixture.tool) && steps.has(fixture.step) && surface.journey.some(step => step.id === fixture.step && step.tool === fixture.tool) && tools.get(witness?.tool)?.readOnly === true && object(witness?.args) && targets.length > 0 && targets.every(target => Object.hasOwn(witness.args, target)) && typeof witness?.pointer === 'string' && (witness.pointer === '' || witness.pointer.startsWith('/')), 'Narrowing fixture must name its journey step and a native grant-set witness with every target identifier.');
   checkReferences(witness?.args, `narrowing.${i}.witness`, steps, escalation);
   narrowingTools.add(fixture?.tool);
  }
  for (const [name, tool] of tools) if (Array.isArray(tool?.classes) && tool.classes.some(cls => ['access', 'security'].includes(cls))) escalation(`${name}.coverage`, tool.authority === 'none' && recordOnlyAuthority(tool) || (tool.widens === false ? narrowingTools.has(name) : tool.sponsorEscalation === false || escalationTools.has(name)), `${name} has no ${tool.widens === false ? 'narrowing check' : 'sponsor escalation fixture'}.`);
  for (const [name, tool] of tools) for (const cls of Array.isArray(tool?.classes) ? tool.classes : []) add(`${name}.coverage.${cls}`, coverage.get(name).has(cls), `${name} has no journey fixture for declared class ${cls}.`);
- add('events', tools.has(`${surface.seed}.events.list`), `Declare built-in ${surface.seed}.events.list in the Agent surface.`);
+ if (offers(surface.capabilities, 'events')) add('events', tools.has(`${surface.seed}.events.list`), `Declare built-in ${surface.seed}.events.list in the Agent surface.`);
+ if (set.mode === 'declared' && offers(surface.capabilities, 'resources')) add('resources.offered', surface.resources.length > 0, 'Declared resources must offer at least one resource template.');
  add('witness', object(surface.witness) && tools.get(surface.witness.tool)?.readOnly === true && object(surface.witness.args), 'witness must name a declared readOnly tool and arguments.');
  checkReferences(surface.witness?.args, 'witness', new Set());
  return { ok: points.every(point => point.ok), points };
