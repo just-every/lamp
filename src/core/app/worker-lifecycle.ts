@@ -33,9 +33,10 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     // State changes and operator reminders first, at the trigger's own time,
     // so the mail they queue goes out in this same run.
     const changes = await Promise.allSettled([
+      runtime.services.alertRules.processPending(scheduledAt),
       runtime.services.metrics.runDue(scheduledAt),
       runtime.services.trafficAlerts.run(scheduledAt),
-      runtime.services.subscribers.expirePending(),
+      runtime.services.subscribers.expirePending(scheduledAt),
       expireHeldSorrySubscribers(bindings.DB, scheduledAt),
       runtime.services.pageExport.expireHeld(scheduledAt),
       runtime.services.incidents.publishDue(),

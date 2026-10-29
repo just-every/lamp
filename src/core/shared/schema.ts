@@ -34,6 +34,8 @@ export const pageSettings = sqliteTable("page_settings", {
   hostname: text().notNull(),
   footerCreditEnabled: integer("footer_credit_enabled", { mode: "boolean" }).notNull().default(true),
   template: text({ enum: ["default", "calm", "uptime", "regions"] }).notNull().default("default"),
+  theme: text("theme").notNull().default("{}"),
+  themeAssets: text("theme_assets").notNull().default("{}"),
   logoKey: text("logo_key"),
   logoContentType: text("logo_content_type"),
   widgetAllowedOrigins: text("widget_allowed_origins").notNull().default("[]"),
@@ -148,6 +150,8 @@ export const incidentComponents = sqliteTable("incident_components", {
 }, (table) => [index("incident_components_incident_id_idx").on(table.incidentId), index("incident_components_component_id_idx").on(table.componentId)]);
 
 export const incidentUpdates = sqliteTable("incident_updates", {
+  automationAttribution: text("automation_attribution"),
+  automationReceiptId: text("automation_receipt_id"),
   id: text().primaryKey(),
   incidentId: text("incident_id").notNull().references(() => incidents.id),
   lifecycle: text({ enum: ["Investigating", "Identified", "Monitoring", "Resolved"] }).$type<IncidentLifecycle>().notNull(),
