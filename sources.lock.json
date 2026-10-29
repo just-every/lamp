@@ -6904,7 +6904,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-preferences-flow.mjs": {
-      "sha256": "4316fa8f7786e791f8d7aac9a02472bcd3c175306fb9fab2ad6bc77f2e509cb4",
+      "sha256": "380a65a4f9342fb8c71da4180de4046bfb1ed96070aec8971d82f06f4e9e154a",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-queued-unsubscribe.mjs": {
