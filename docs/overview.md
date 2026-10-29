@@ -8,7 +8,7 @@ an operator to review and publish.
 
 ## Choose a task
 
-- [Install Lamp](install.md), or [run it locally](../RUN-LOCALLY.md).
+- [Get started with Lamp](getting-started.md), or [run it locally](../RUN-LOCALLY.md).
 - [Set up your first page](first-run.md), then [add components and groups](components-and-groups.md).
 - [Write incident updates](incidents-and-updates.md) or [schedule maintenance](maintenance.md).
 - Configure [subscribers and notifications](subscribers-and-notifications.md),

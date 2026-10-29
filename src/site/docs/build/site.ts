@@ -9,6 +9,7 @@ import type { ManifestPage } from './manifest.ts';
 import { renderPage } from './render.ts';
 import { readSource } from './source.ts';
 import type { Source } from './source.ts';
+import { runRecipe } from './run-recipe.ts';
 
 // The whole docs site from the tree as it is: every page in docs/site.json cut from the repository's own Markdown, every
 // section accounted for (shown on a page or named in githubOnly), every link and anchor checked, and nothing that names
@@ -43,7 +44,8 @@ export function buildDocs(root: string): DocsSite {
     let source = sources.get(path);
     if (!source) {
       files.push(join(root, path));
-      source = readSource(path, readFileSync(join(root, path), 'utf8'));
+      const markdown = readFileSync(join(root, path), 'utf8');
+      source = readSource(path, path === 'docs/getting-started.md' ? runRecipe(markdown) : markdown);
       source.problems.forEach(problem => problems.push(`${path}: ${problem}`));
       sources.set(path, source);
     }
@@ -114,7 +116,7 @@ export function buildDocs(root: string): DocsSite {
 
   const sections: DocsSection[] = manifest.sections.map(section => ({
     title: section.title,
-    pages: section.pages.map(({ slug, title, summary, source }) => ({ slug, title, summary, source, section: section.title })),
+    pages: section.pages.map(({ slug, title, summary, source, listed }) => ({ slug, title, summary, source, listed, section: section.title })),
   }));
   return { repository, sections, bodies: Object.fromEntries(outputs), files: [...new Set(files)] };
 }

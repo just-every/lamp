@@ -4,7 +4,7 @@
 export type DocsTocEntry = { depth: 2 | 3; id: string; text: string };
 
 /** One page as docs/site.json lists it, with the title of the section it sits in. `source` is the repository Markdown file it is drawn from. */
-export type DocsPageMeta = { slug: string; title: string; summary: string; source: string; section: string };
+export type DocsPageMeta = { slug: string; title: string; summary: string; source: string; section: string; listed?: boolean };
 
 export type DocsSection = { title: string; pages: DocsPageMeta[] };
 

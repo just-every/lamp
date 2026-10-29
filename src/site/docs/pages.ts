@@ -5,7 +5,7 @@ import type { DocsPageMeta, DocsRepository, DocsSection } from './types';
 // The published docs' listing, cut at build time from docs/site.json and the repository's Markdown (build/plugin.ts), and
 // lookups over it. The page bodies are body.ts's: they are read on the server only.
 
-export const docsSections: DocsSection[] = sections;
+export const docsSections: DocsSection[] = sections.map(section => ({ ...section, pages: section.pages.filter(page => page.listed !== false) }));
 export const docsPages: DocsPageMeta[] = sections.flatMap(section => section.pages);
 export const docsRepository: DocsRepository = repository;
 
@@ -19,8 +19,9 @@ export const getDocsMeta = (slug: string) => docsPages.find(page => page.slug ==
 
 /** The pages before and after `slug` in reading order, across sections. */
 export function docsNeighbours(slug: string): { previous?: DocsPageMeta; next?: DocsPageMeta } {
-  const index = docsPages.findIndex(page => page.slug === slug);
-  return index === -1 ? {} : { previous: docsPages[index - 1], next: docsPages[index + 1] };
+  const listed = docsSections.flatMap(section => section.pages);
+  const index = listed.findIndex(page => page.slug === slug);
+  return index === -1 ? {} : { previous: listed[index - 1], next: listed[index + 1] };
 }
 
 /** The page's file on GitHub, where it is edited. */

@@ -17,6 +17,7 @@
         },
         {
           "slug": "install",
+          "listed": false,
           "title": "Install Lamp",
           "source": "docs/install.md",
           "summary": "Prepare a local or Cloudflare installation and choose its two hosts."

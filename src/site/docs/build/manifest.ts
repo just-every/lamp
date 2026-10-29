@@ -40,7 +40,7 @@ export function readManifest(root: string): Manifest {
         else if (!existsSync(join(root, source)) || !statSync(join(root, source)).isFile()) problems.push(`${where}: ${source} does not exist`);
         const include = page.sections === undefined ? undefined : (Array.isArray(page.sections) ? page.sections.map(text).filter(Boolean) : []);
         if (include && !include.length) problems.push(`${where}: "sections" must list at least one section heading`);
-        return { slug, title: pageTitle, summary, source, section: title, ...(include ? { include } : {}) };
+        return { slug, title: pageTitle, summary, source, section: title, listed: page.listed !== false, ...(include ? { include } : {}) };
       }),
     };
   });

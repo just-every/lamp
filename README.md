@@ -52,7 +52,7 @@ brings its own and does the same.
 The app host serves Lamp's public documentation at `/docs`. Start with the
 [overview](docs/overview.md), then choose a task:
 
-- [Install](docs/install.md) or [run Lamp locally](RUN-LOCALLY.md).
+- [Get started](docs/getting-started.md) or [run Lamp locally](RUN-LOCALLY.md).
 - [First-run setup](docs/first-run.md), [components and groups](docs/components-and-groups.md),
   [incidents and updates](docs/incidents-and-updates.md), and [maintenance](docs/maintenance.md).
 - [Public page](docs/public-page.md), [subscribers and notifications](docs/subscribers-and-notifications.md),
