@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 15 | 175 | 48 | 238 |
+| Core | 17 | 173 | 48 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 15 | 175 | 53 | 243 |
+| Full target | 17 | 173 | 53 | 243 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `874d8bbb1cb054fefd6217655dbe6e44e01127e1` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1890,7 +1890,7 @@ Core · target · **partial**
 
 #### DEP-001 — Vendor components that follow vendor status
 
-Core · target · **partial** · Cites BASE-DATA-004
+Core · target · **done** · Cites BASE-DATA-004
 
 **Requirement.** Operators follow third-party status through a complete catalog and documented generic formats. The formats and configuration details are in [Public status mechanisms](docs/contract/public-details.md).
 
@@ -1903,12 +1903,12 @@ Core · target · **partial** · Cites BASE-DATA-004
 6. Every catalog entry ships recorded format fixtures and a mapping table; release validation rejects a missing fixture or table.
 7. For every state each of the twenty vendor formats offers, a generated catalog check asserts the expected mapped component state.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow). Catalog and all native mappings additionally run through `scripts/validate-vendor-catalog.mjs` in release validation.
-**Gap.** Native scheduled reads, attributed history and failure handling pass locally. Final native Settings journey and exact-candidate checks are pending.
+**Evidence.** Points 1–5: `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow); the real scheduled Worker follows all twenty catalog sources, custom Statuspage selection, RSS, Atom and configured JSON, shares the two-minute read window, records source-attributed transitions and marks three consecutive failures with their first unavailable time while retaining the last state. Point 3 mapping display and persisted source configuration: `tests/e2e/publishing-browser.test.mjs` (DEP-001 DEP-002 — owner configures upstream reports under Settings). Points 6–7: `scripts/validate-vendor-catalog.mjs` (validateVendorCatalog), invoked by `scripts/validate-release.mjs` in Verify, validates all twenty fixtures and 162 native state cases and refuses absent fixtures or mappings.
+**Gap.** None.
 
 #### DEP-002 — Vendor state never silently becomes the buyer's outage
 
-Core · target · **partial**
+Core · target · **done**
 
 **Requirement.** A followed vendor component informs the buyer’s response without resolving incidents on its behalf.
 
@@ -1919,8 +1919,8 @@ Core · target · **partial**
 4. An outage under show only leaves buyer states unchanged; draft mode creates one private incident draft on the dependent components without changing public content.
 5. Recovery adds evidence to the incident brief and leaves the buyer incident unresolved.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow).
-**Gap.** Native show-only, explicit rollup, private template draft and recovery evidence pass locally. Final native Settings journey and exact-candidate checks are pending.
+**Evidence.** Points 1–5: `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow); public attribution and links, default buyer-state and rollup isolation, explicit rollup, one private saved-template draft on dependent components, and recovered vendor evidence leave the published buyer incident Identified with its own Major outage claim. Point 3 owner choices persist through the native Settings journey: `tests/e2e/publishing-browser.test.mjs` (DEP-001 DEP-002 — owner configures upstream reports under Settings). The API journey also refuses Viewer configuration, erased-approver drafting and an erased session replay without a new incident.
+**Gap.** None.
 
 #### DEP-003 — Vendor watch for the team
 
