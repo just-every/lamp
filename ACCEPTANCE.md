@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -930,7 +930,7 @@ Core · published · **partial** · Cites BASE-DATA-003
 
 #### SUB-012 — No enumeration
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** The public subscription form does not disclose whether an address is already subscribed.
 
@@ -938,8 +938,8 @@ Core · published · **partial**
 1. Existing and new addresses receive identical status and body without creating another subscription.
 2. An existing address gets one management-only email and no extra message content.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts same status; same body; the existing-address email contains its management link; repeated submissions send no second management email per address. Unasserted: duplicate subscription absence; only management content in email.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-preferences-flow.mjs` (subscriberPreferencesFlow), proves acceptance 1 with identical complete status and body and unchanged sorted subscriber identity inventories across pending and active page repeats, reading every page one record at a time; acceptance 2 with exactly one management email, its complete expected text and no additional email on another repeat. The same suite (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), proves both points for incident repeats: all original identities survive across the independent page and two incident scopes at the same address, and the anchored management-only email assertion is retained.
+**Gap.** None.
 
 ### Notifications
 
