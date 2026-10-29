@@ -16,6 +16,7 @@ export const closedAssertions = Object.freeze({
   targetPagination: 'rer 0.2.88 modules/agent-door/conformance/target.mjs:11 and audit-rows.mjs:6-16: installed CLI target assertions traverse native audit cursors, including empty filtered pages; native target assertions passed in the production rer verify journey',
   queuedVerificationBridge: 'rer 0.2.88 verification.invoke private Worker bridge: real native queue effect, saved consent revocation, both identity-linked audits and no effect after revocation all pass BASE-AGENT-012.invocation-*',
   journeyLifecycleHook: 'rer 0.2.88 verification.journey beforeStep/afterStep: native pages captured before record deletion and approval expiry at 1440 and 390; current-minute, provider pull and native reminder calls use genuine current fixtures',
+  emptyHistoryGenerator: 'Recorded rer 0.2.88 src/base/contract-docs.mjs: write and check pass against the current contract in a temporary Git repository with no commits; no history fallback or generated-document edits',
 });
 export const pendingAssertions = Object.freeze({
   timedLifecycle: 'PENDING BASE 2026-10-29 rer 0.2.88 cli/agent-journey-fixtures.mjs:13-15 and modules/agent-door/conformance/step-hooks.mjs:3: phase-local clocks and native hooks, including blocked-variant preparation, work; late scheduling still needs per-step current-time argument resolution before its real due dispatch',
