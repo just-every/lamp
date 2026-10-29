@@ -11,7 +11,7 @@ const jsonBody = async request => {
 };
 
 export default {
-  async fetch(request, { fixture = {} } = {}) {
+  async fetch(request, { fixture } = {}) {
     const url = new URL(request.url);
     if (url.origin === 'https://lamp-agent-provider.invalid' && url.pathname === '/v1/chat/completions') {
       const body = await jsonBody(request);
@@ -21,7 +21,7 @@ export default {
       requireShape(body.messages[0]?.role === 'system' && body.messages[1]?.role === 'user', 'AI request must preserve instruction and evidence roles');
       const evidence = JSON.parse(body.messages[1].content);
       requireShape(object(evidence) && !Object.hasOwn(evidence, 'internalNotes'), 'Private notes must not enter AI evidence');
-      const suggestion = fixture.suggestion ?? {
+      const suggestion = fixture?.suggestion ?? {
         affectedAudience: { text: 'Customers using the API', sources: [] },
         customerImpact: { text: 'Requests may fail while the team investigates.', sources: [] },
         whatStillWorks: { text: 'The dashboard remains available.', sources: [] },

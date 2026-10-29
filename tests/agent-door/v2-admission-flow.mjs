@@ -88,7 +88,7 @@ export async function runV2AdmissionFlow(t) {
   const incident = await agentDoor.invoke('lamp.incidents.create', { title: 'Role-bound incident',
     components: [{ componentId: publicComponent.result.component.id, state: 'Degraded performance', relationship: 'Primary' }],
     update: { lifecycle: 'Investigating', affectedAudience: 'API customers', customerImpact: 'Some requests are delayed.',
-      whatStillWorks: 'The dashboard is available.', details: 'Current responder evidence.', nextUpdateAt: null },
+      whatStillWorks: 'The dashboard is available.', details: 'Current responder evidence.', nextUpdateAt: new Date(Date.now() + 3600_000).toISOString() },
     idempotency_key: crypto.randomUUID(),
   }, limited);
   assert.equal(incident.outcome, 'done', `Responders retain native drafting: ${incident.code}`);
