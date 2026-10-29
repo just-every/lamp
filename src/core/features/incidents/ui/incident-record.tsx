@@ -7,6 +7,7 @@ import { useOperatorTime } from "../../../app/client/ui/states";
 import { IncidentReach } from "../../communication-performance/ui/incident-reach";
 import { IncidentBriefPanel } from "../../brief/ui/incident-brief";
 import { ReportEditor } from "./incident-composer-tools";
+import { IncidentSubscribers } from "../../subscribers/ui/incident-subscribers";
 
 /** What was already published, newest first, with its reach once something was sent. Nothing before the first update. */
 export function IncidentTimeline({ incident }: { incident: IncidentView }) {
@@ -22,6 +23,7 @@ export function IncidentTimeline({ incident }: { incident: IncidentView }) {
 export function IncidentExtras({ incident, briefRevision, children }: { incident: IncidentView; briefRevision: string | null; children: ReactNode }) {
   return <div className="incident-extras">
     <IncidentBriefPanel incidentId={incident.id} revision={briefRevision} />
+    <IncidentSubscribers incidentId={incident.id} />
     {incident.lifecycle === "Resolved" ? <ReportEditor incidentId={incident.id} /> : null}
     <ClientExtensionSlot id="incident.sidebar.after.v1" context={{ incident: { id: incident.id, reference: incident.reference, lifecycle: incident.lifecycle } }} />
     {children}

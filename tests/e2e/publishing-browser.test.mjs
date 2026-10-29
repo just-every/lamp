@@ -142,7 +142,7 @@ before(async () => {
   await startFailingAiProvider();
   fixtureConfig = isolatedWranglerConfig(configWithAiProvider);
   configPath = fixtureConfig.path;
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), maxBuffer: 8 * 1024 * 1024, stdio: "pipe" });
   const visualSource = resolve('src/editor/visual-edits.json');
   originalVisualSource = readFileSync(visualSource);
   const snapshot = JSON.parse(originalVisualSource);
@@ -230,9 +230,251 @@ async function api(path, method = 'GET', body) {
 const saved = () => page.locator('.autosave-status.is-saved').waitFor();
 const readIncident = async id => (await api(`/api/app/incidents/${id}`)).incident;
 
+// Preserve the private-note and queued-save journeys in the consolidated operator day.
+async function observeAutosaveAcknowledgement(endpoint, key) {
+  await page.evaluate(({ endpoint, key }) => {
+    const nativeFetch = window.fetch;
+    window[key] ??= {};
+    window.fetch = async (input, init) => {
+      const response = await nativeFetch(input, init);
+      const path = new URL(typeof input === 'string' ? input : input.url, location.href).pathname;
+      if (path === endpoint && init?.method === 'PUT') {
+        window[key].nativeAcknowledged = Date.now();
+        window[key].nativeAcknowledgedPerformance = performance.now();
+      }
+      return response;
+    };
+  }, { endpoint, key });
+}
+async function assertAutosaveIntegrity(component, t) {
+  const initial = { lifecycle: 'Investigating', affectedAudience: 'Initial audience', customerImpact: 'Service delays', whatStillWorks: 'Other services', details: 'Private draft', nextUpdateAt: '2027-09-08T14:00:00.000Z' };
+  const openIncident = async () => {
+    const { incident } = await api('/api/app/incidents', 'POST', { title: 'Autosave integrity', components: [{ componentId: component.id, state: 'Major outage', relationship: 'Primary' }] });
+    await api(`/api/app/incidents/${incident.id}/draft`, 'PUT', initial);
+    await page.goto(`${appUrl}/app/incidents/${incident.id}`);
+    await operatorHydrated(page); await page.waitForLoadState('networkidle'); await saved();
+    return incident;
+  };
+  const assertPrivateUnsaved = async () => {
+    assert.equal(await page.getByRole('button', { name: /^(Publish update|Schedule update|Publish historical update)$/ }).isEnabled(), false);
+    assert.equal(await page.locator('.autosave-status.is-saved').count(), 0);
+  };
+  await assertAutosaveDuringRefresh({ page, api, openIncident, assertPrivateUnsaved, initial }, t);
+  await assertQueuedAutosaveDeadline({ page, api, openIncident, assertPrivateUnsaved, initial }, t);
+}
+function configuredDateTimeInput(iso, timezone) {
+  if (!iso) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso));
+  const part = kind => parts.find(entry => entry.type === kind).value;
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+}
+
+
+
+// Delay only delivery of a real native GET, so a private-note refresh overlaps
+// the draft debounce without changing either response bytes or write behavior.
+async function assertAutosaveDuringRefresh({ page, api, openIncident, assertPrivateUnsaved, initial }, t) {
+  const incident = await openIncident();
+  const endpoint = `/api/app/incidents/${incident.id}`;
+  const composer = incidentComposer(page);
+  const field = composer.audience;
+  const audience = "Latest audience while the private note refresh is pending";
+  const note = "Native internal note overlapping an unsaved draft";
+  const timings = {};
+  let releaseRefresh, refreshEntered;
+  const released = new Promise(resolve => { releaseRefresh = resolve; });
+  const entered = new Promise(resolve => { refreshEntered = resolve; });
+  const recordRequest = request => {
+    if (request.method() === "PUT" && request.url().endsWith(`${endpoint}/draft`)) {
+      timings.putDispatched = Date.now();
+      timings.putBytes = JSON.parse(request.postData());
+    }
+  };
+  const recordResponse = response => {
+    if (response.request().method() === "GET" && response.url().endsWith(endpoint) && !timings.refreshReceived) {
+      timings.refreshReceived = Date.now();
+    }
+    if (response.request().method() === "PUT" && response.url().endsWith(`${endpoint}/draft`)) {
+      timings.putAcknowledged = Date.now();
+      timings.putStatus = response.status();
+    }
+  };
+  page.on("request", recordRequest);
+  page.on("response", recordResponse);
+  await page.evaluate(() => {
+    window.autosaveRefreshProbe = {};
+    document.querySelector('[aria-label="Who is affected"]').addEventListener("input", () => {
+      window.autosaveRefreshProbe.finalEdit = Date.now();
+        window.autosaveRefreshProbe.finalEditPerformance = performance.now();
+    }, { once: true });
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(".autosave-status")?.textContent === "Draft saved" && window.autosaveRefreshProbe.finalEdit) {
+        window.autosaveRefreshProbe.saved = Date.now();
+          window.autosaveRefreshProbe.savedPerformance = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
+  await observeAutosaveAcknowledgement(endpoint + "/draft", "autosaveRefreshProbe");
+  let handled = false; // Installed until unrouteAll: a one-shot route can strand a paused request.
+  await page.route(`**${endpoint}`, async route => {
+    if (handled) return route.continue();
+    handled = true;
+    assert.equal(route.request().method(), "GET");
+    const response = await route.fetch();
+    assert.equal(response.status(), 200);
+    refreshEntered();
+    await released;
+    timings.refreshDelivered = Date.now();
+    await route.fulfill({ response });
+  });
+  try {
+    await composer.privateActions();
+    await page.getByLabel("Internal note").fill(note);
+    await page.getByRole("button", { name: "Save internal note", exact: true }).click();
+    await entered;
+    await page.getByText("Internal note saved.", { exact: true }).waitFor();
+    await field.fill(audience);
+    timings.finalEdit = await page.evaluate(() => window.autosaveRefreshProbe.finalEdit);
+    await assertPrivateUnsaved();
+    // Deliver the held refresh while this draft is unsaved. Do not assume a
+    // particular debounce duration: faster autosaves can finish within a second.
+    releaseRefresh();
+    let deadlineError;
+    await page.getByText("Draft saved", { exact: true })
+      .waitFor({ timeout: Math.max(1, timings.finalEdit + 2000 - Date.now()) })
+      .catch(error => { deadlineError = error; });
+    // Preserve timing and persisted-byte evidence even when the deadline fails.
+    await page.getByText("Draft saved", { exact: true }).waitFor();
+    Object.assign(timings, await page.evaluate(() => window.autosaveRefreshProbe));
+    t.diagnostic(JSON.stringify({ phase: "acknowledged", ...timings, elapsedToSaved: timings.saved - timings.finalEdit, deadlinePassed: !deadlineError }));
+    await page.unrouteAll({ behavior: "wait" });
+    const stored = (await api(endpoint)).incident;
+    timings.storedDraft = stored.draft;
+    assert.equal(stored.internalNotes[0].body, note);
+    assert.deepEqual(timings.putBytes, { ...initial, affectedAudience: audience, componentChanges: [] });
+    for (const [key, value] of Object.entries(timings.putBytes)) assert.deepEqual(stored.draft[key], value);
+    await page.reload();
+    await page.getByText("Draft saved", { exact: true }).waitFor();
+    timings.reloadedDraft = {
+      lifecycle: await composer.status(),
+      affectedAudience: await field.inputValue(),
+      customerImpact: await composer.impact.inputValue(),
+      whatStillWorks: await composer.stillWorks.inputValue(),
+      details: await composer.details.inputValue(),
+      nextUpdateAt: await composer.nextUpdate.inputValue(),
+    };
+    t.diagnostic(JSON.stringify({ ...timings, elapsedToSaved: timings.saved - timings.finalEdit, deadlinePassed: !deadlineError }));
+    const { settings } = await api("/api/app/page-settings");
+    const { componentChanges, ...textFields } = timings.putBytes;
+    assert.deepEqual((await api(endpoint)).incident.draft.componentChanges, componentChanges, "reload retains the acknowledged staged choices");
+    assert.deepEqual(timings.reloadedDraft, { ...textFields, nextUpdateAt: configuredDateTimeInput(timings.putBytes.nextUpdateAt, settings.timezone) }, "reload restores every draft field, displaying the saved instant in the page zone");
+    assert.equal(timings.putStatus, 200);
+    assert.ok(timings.refreshDelivered > timings.finalEdit && timings.refreshReceived < timings.putDispatched);
+    t.diagnostic(JSON.stringify({ phase: "acknowledgement-observers", nodeEventAfterSavedMs: timings.putAcknowledged - timings.saved, browserAckBeforeSavedMs: timings.savedPerformance - timings.nativeAcknowledgedPerformance }));
+    assert.ok(timings.savedPerformance >= timings.nativeAcknowledgedPerformance, "Saved must follow the native acknowledgement in the browser");
+    assert.ok(!deadlineError && timings.saved - timings.finalEdit < 2000, "an unrelated incident refresh must not postpone saving beyond two seconds");
+  } finally {
+    releaseRefresh();
+    page.off("request", recordRequest);
+    page.off("response", recordResponse);
+    await page.unrouteAll({ behavior: "wait" });
+  }
+}
+
+// Hold only an acknowledgement from a real native PUT. The latest edit must
+// keep its original debounce while the earlier write retains serialization.
+async function assertQueuedAutosaveDeadline({ page, api, openIncident, assertPrivateUnsaved, initial }, t) {
+  const incident = await openIncident();
+  const endpoint = `/api/app/incidents/${incident.id}/draft`;
+  const field = incidentComposer(page).audience;
+  const earlier = "Earlier audience awaiting its native acknowledgement";
+  const latest = "Latest audience edited while the earlier save is pending";
+  const writes = [];
+  const timings = {};
+  let releaseFirst, enteredFirst;
+  const release = new Promise(resolve => { releaseFirst = resolve; });
+  const entered = new Promise(resolve => { enteredFirst = resolve; });
+  const onRequest = request => {
+    if (request.method() === "PUT" && request.url().endsWith(endpoint)) writes.push({ at: Date.now(), body: JSON.parse(request.postData()) });
+  };
+  const onResponse = response => {
+    if (response.request().method() === "PUT" && response.url().endsWith(endpoint)) {
+      const body = JSON.parse(response.request().postData());
+      timings[body.affectedAudience === earlier ? "earlierAcknowledged" : "latestAcknowledged"] = Date.now();
+      assert.equal(response.status(), 200);
+    }
+  };
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  let handled = false; // Installed until unrouteAll: a one-shot route can strand a paused request.
+  await page.route(`**${endpoint}`, async route => {
+    if (handled) return route.continue();
+    handled = true;
+    const response = await route.fetch();
+    assert.equal(response.status(), 200);
+    timings.earlierPersisted = Date.now();
+    enteredFirst();
+    await release;
+    await route.fulfill({ response });
+  });
+  try {
+    await observeAutosaveAcknowledgement(endpoint, "queuedAutosaveProbe");
+    await field.fill(earlier);
+    await entered;
+    await field.fill("Intermediate audience coalesced into the latest edit");
+    await page.evaluate(() => {
+      window.queuedAutosaveProbe ??= {};
+      document.querySelector('[aria-label="Who is affected"]').addEventListener("input", () => {
+        window.queuedAutosaveProbe.finalEdit = Date.now();
+        window.queuedAutosaveProbe.finalEditPerformance = performance.now();
+      }, { once: true });
+      const observer = new MutationObserver(() => {
+        if (window.queuedAutosaveProbe.finalEdit && document.querySelector(".autosave-status")?.textContent === "Draft saved") {
+          window.queuedAutosaveProbe.saved = Date.now();
+          window.queuedAutosaveProbe.savedPerformance = performance.now();
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    });
+    await field.fill(latest);
+    timings.finalEdit = await page.evaluate(() => window.queuedAutosaveProbe.finalEdit);
+    await assertPrivateUnsaved();
+    assert.equal((await api(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, earlier);
+    await page.waitForTimeout(Math.max(0, timings.finalEdit + 1000 - Date.now()));
+    assert.equal(writes.length, 1, "the latest edit must not overtake the unacknowledged write");
+    releaseFirst();
+    let deadlineError;
+    await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: Math.max(1, timings.finalEdit + 2000 - Date.now()) }).catch(error => { deadlineError = error; });
+    await page.getByText("Draft saved", { exact: true }).waitFor();
+    Object.assign(timings, await page.evaluate(() => window.queuedAutosaveProbe));
+    timings.writes = writes;
+    timings.elapsedToSaved = timings.saved - timings.finalEdit;
+    timings.deadlinePassed = !deadlineError;
+    t.diagnostic(JSON.stringify(timings));
+    assert.equal(writes.length, 2, "pending edits must coalesce into one latest write");
+    assert.deepEqual(writes[1].body, { ...initial, affectedAudience: latest, componentChanges: [] });
+    assert.ok(writes[1].at >= timings.earlierAcknowledged, "writes must remain serialized");
+    t.diagnostic(JSON.stringify({ phase: "acknowledgement-observers", nodeEventAfterSavedMs: timings.latestAcknowledged - timings.saved, browserAckBeforeSavedMs: timings.savedPerformance - timings.nativeAcknowledgedPerformance }));
+    assert.ok(timings.savedPerformance >= timings.nativeAcknowledgedPerformance, "Draft saved must follow the native acknowledgement in the browser");
+    const stored = (await api(`/api/app/incidents/${incident.id}`)).incident.draft;
+    for (const [key, value] of Object.entries(writes[1].body)) assert.deepEqual(stored[key], value);
+    await page.reload();
+    await page.getByText("Draft saved", { exact: true }).waitFor();
+    assert.equal(await field.inputValue(), latest);
+    assert.ok(!deadlineError && timings.elapsedToSaved < 2000, "waiting for an earlier save must count toward the latest edit's two-second deadline");
+  } finally {
+    releaseFirst();
+    page.off("request", onRequest);
+    page.off("response", onResponse);
+    await page.unrouteAll({ behavior: "wait" });
+  }
+}
 // One operator day: configure, draft, recover a failed save, resolve a
 // concurrent edit, schedule a publication, communicate recovery, and report.
-test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async () => {
+test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async t => {
   await verifyCompiledEdits();
   await page.goto(`${appUrl}/app`); await operatorHydrated(page);
   await page.getByRole('region', { name: 'Your public page' }).waitFor();
@@ -286,6 +528,9 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
   const composer = incidentComposer(page);
   await page.reload(); await operatorHydrated(page); await saved();
   assert.equal(await composer.impact.inputValue(), incident.draft.customerImpact);
+  await assertAutosaveIntegrity(component, t);
+  await page.goto(`${appUrl}/app/incidents/${id}`); await operatorHydrated(page); await saved();
+
 
   // The displayed draft survives a transport failure and an explicit retry.
   const endpoint = `**/api/app/incidents/${id}/draft`;

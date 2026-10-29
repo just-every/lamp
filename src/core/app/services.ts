@@ -1,6 +1,7 @@
 import { createRuleWorkRepository } from "../features/intake/rule-work.repository";
 import { createAlertRuleRepository } from "../features/intake/rule-repository";
 import { createAlertRuleService } from "../features/intake/rule-service";
+import { twilioConfigured } from "../features/sms/twilio";
 import { createSocialService } from "../features/social/service";
 import { createTrafficStorage } from "../features/traffic-alerts/storage";
 import { createTrafficIncidentRepository } from "../features/traffic-alerts/repository";
@@ -46,7 +47,7 @@ import { createBriefRepository, createBriefService } from "../features/brief";
 import { createStatuspageImportService } from "../features/statuspage-import";
 import { createChannelsService } from "../features/channels";
 import { createPageExportRepository, createPageExportService } from "../features/page-export";
-import { createAppMailTransport, type MailExecution } from "./mail";
+import { configuredMailReceiptProviders, createAppMailTransport, type MailExecution } from "./mail";
 import { createOpenAiCompatibleProvider } from "../platform/ai";
 import { createDemoAiProvider } from "../platform/ai/demo";
 import { createServerExtensionMount } from "./extensions/server";
@@ -55,7 +56,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const extensions = createServerExtensionMount();
   const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
   const snapshotOrigin = bindings.LAMP_LOCAL_ORIGIN ? publicPageOrigin(bindings.LAMP_LOCAL_ORIGIN, bindings.LAMP_PAGE_HOST) : undefined;
-  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
+  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin, twilioConfigured({accountSid:bindings.TWILIO_ACCOUNT_SID,authToken:bindings.TWILIO_AUTH_TOKEN,fromNumber:bindings.TWILIO_FROM_NUMBER,messagingService:bindings.TWILIO_MESSAGING_SERVICE}) && Boolean(bindings.SUBSCRIBER_TOKEN_SECRET) && bindings.EFFECTS_PAUSED !== "1" && !outboundUnavailable(bindings,"SMS messages")), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const metrics = createMetricsService(bindings.DB, async()=>{await publicSnapshots.retryPendingBuild();}, { webhookSecret: bindings.WEBHOOK_SIGNING_SECRET, effectsPaused: bindings.EFFECTS_PAUSED === "1" });
   const incidentImpact = createIncidentImpactService(createIncidentImpactRepository(bindings.DB), publicSnapshots.rebuild);
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS, bindings.MAIL_PROVIDER !== "rer");
@@ -83,7 +84,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicOrigin: () => notificationOrigin(bindings),
     unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
   });
-  const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
+  const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB, { provider: bindings.MAIL_PROVIDER || "resend", receipts: configuredMailReceiptProviders(bindings) }), {
     operatorChatAlert: input => channels.queueOperatorAlert({ ...input, appOrigin: authOrigin(bindings) }),
     pageStatusRollup: extensions.publicSnapshotPolicies.pageStatusRollup,
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
@@ -121,8 +122,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forIncidentUpdate: async (input) => [
       ...responders.publicationStatements(input),
       ...(input.channels.includes("social") ? social.publicationStatements(input) : []),
-      ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
-      ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
+      ...sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt,ordinaryEnabled:input.channels.includes("sms")}),
+      ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), followChannels: [...allowedIncidentChannels], queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
     ],
   }, extensions.updateReviewPolicy,
@@ -186,8 +187,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => [
-      ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels.filter((channel):channel is "email"|"webhook"=>channel!=="sms"), queuedAt: input.queuedAt }),
-      ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.eventId,kind:"incident-report",incidentReportId:input.eventId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
+      ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels.filter((channel):channel is "email"|"webhook"=>channel!=="sms"), followChannels: [...allowedIncidentChannels], queuedAt: input.queuedAt }),
+      ...sms.publicationStatements({eventId:input.eventId,kind:"incident-report",incidentReportId:input.eventId,componentIds:input.componentIds,queuedAt:input.queuedAt,ordinaryEnabled:input.channels.includes("sms")}),
     ],
   }, briefs, async ({ incidentId, reference, title, week }) => deliveries.queueOperatorAlert({
     eventId: `report-reminder/${incidentId}/${week}`,

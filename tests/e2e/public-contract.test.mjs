@@ -8,7 +8,7 @@ import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
 import { assertVisibleTime } from '../helpers/public-meaning.mjs';
 
 // One catalogue-to-customer journey: no renderer or uptime helper is imported.
-test('PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PAGE-011 PAGE-012 PAGE-013 PAGE-014 PAGE-016 PAGE-017 PAGE-018 PAGE-019 PAGE-020 COMP-001 COMP-002 COMP-003 COMP-004 COMP-005 COMP-007 COMP-009 COMP-010 UPTIME-001 UPTIME-002 UPTIME-003 UPTIME-004 UPTIME-005 UPTIME-006 MOVE-009 — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story', async () => {
+test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PAGE-011 PAGE-012 PAGE-013 PAGE-014 PAGE-016 PAGE-017 PAGE-018 PAGE-019 PAGE-020 COMP-001 COMP-002 COMP-003 COMP-004 COMP-005 COMP-007 COMP-009 COMP-010 UPTIME-001 UPTIME-002 UPTIME-003 UPTIME-004 UPTIME-005 UPTIME-006 MOVE-009 — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story', async () => {
   const j = await openStatusJourney({ pageHost: 'localhost' });
   let browser;
   try {
@@ -96,6 +96,19 @@ test('PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PA
     assert.ok(firstStatus.generatedAt);
     const permalink = await j.publicText(`/incidents/${incident.reference}`);
     assert.ok(permalink.includes(incident.title) && permalink.includes(main.name));
+    assert.match(permalink, /Get updates on this incident/);
+    assert.match(permalink, /action="\/subscribe\/incident"/);
+    assert.ok(permalink.includes(`name="incidentId" value="${incident.id}"`));
+    assert.ok(gzipSync(Buffer.from(permalink)).byteLength <= limits.snapshotMaxBytesGzipped.value, 'SUB-019 retains the initial incident document gzip budget');
+    const staticContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
+    try {
+      const staticPage = await staticContext.newPage();
+      assert.equal((await staticPage.goto(j.publicOrigin + '/incidents/' + incident.reference)).status(), 200);
+      const form = staticPage.locator('form[action="/subscribe/incident"]').first();
+      assert.equal(await form.getAttribute('method'), 'post');
+      assert.equal(await form.getByLabel('Email address', { exact: true }).count(), 1, 'SUB-019 is usable in the initial document without script');
+      assert.ok(await staticPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'the script-free incident form fits its public document');
+    } finally { await staticContext.close(); }
     assert.ok(!permalink.includes(hidden.name));
     const feedBefore = await j.publicText('/feed.atom');
     assert.ok(feedBefore.includes(incident.reference));

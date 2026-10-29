@@ -175,13 +175,22 @@ Choose **Statuspage**. In that account, open the avatar menu and choose **API
 info**; enter the displayed **page ID** and **API key**. Lamp makes bounded `GET`
 requests to `https://api.statuspage.io` and uses the key only in those requests.
 The API calls first read the page and page-access groups, then components, component groups, incidents, scheduled incidents,
-subscribers and incident templates. The key is not saved. See the [official API reference](https://developer.statuspage.io/).
+subscribers and incident templates. For each unresolved incident, it also reads
+`/v1/pages/{page_id}/incidents/{incident_id}/subscribers`. The key is not saved. See the [official API reference](https://developer.statuspage.io/).
 
 For saved responses, include the unchanged object from `GET /v1/pages/{page_id}` as
 `page.json` and the unchanged array from `GET /v1/pages/{page_id}/page_access_groups`
 as `page-access-groups.json`. Also upload the unchanged JSON arrays named:
 `component-groups.json`, `components.json`, `incidents.json`,
 `incidents-scheduled.json`, `subscribers.json` and `incident-templates.json`.
+For an unresolved incident, also include its unchanged incident-subscriber array
+as `incident-subscribers-<incident_id>.json`. Lamp imports supported email
+followers as distinct pending subscriptions to that incident, even when the
+address already holds a page subscription. Resolved incidents, quarantined
+addresses and unsupported channels are named and skipped. Import sends nothing;
+the owner must send invitations, and each recipient must confirm in Lamp. A
+public follow form cannot bypass that invitation action.
+
 An optional `incident-template-groups.json` array of group IDs and names supplies
 template folder names; embedded template groups also supply names. The documented
 management API exposes no group-list read. Without a group name, its source ID
