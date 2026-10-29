@@ -8028,7 +8028,7 @@
       "executable": false
     },
     "tests/agent-door/identity-proof-flow.mjs": {
-      "sha256": "93af0fff62cf474e14c12bb9dcd93dabc89937df256fb6cc662715f0ffd72f24",
+      "sha256": "3423bc243397c2dbd668eb8de7e7394ca16a27bb627c46243f4b6aec11ed1859",
       "executable": false
     },
     "tests/agent-door/import-report-flow.mjs": {
@@ -8080,7 +8080,7 @@
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
-      "sha256": "c311d583fdfa5900ba208606b408263001a621e19f5c820087c13301fd0e062e",
+      "sha256": "a5381f2161edb47f04f5c90b6e7c2dc1a8361fa6922183280367662051005967",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {
