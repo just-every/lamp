@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -1000,15 +1000,15 @@ Core · published · **partial** · Cites BASE-MAIL-001
 
 #### NOTIFY-005 — At most once
 
-Core · published · **partial** · Cites BASE-OPS-003 · Rules D-1
+Core · published · **done** · Cites BASE-OPS-003 · Rules D-1
 
 **Requirement.** Each published update has at most one notification to a subscriber on each selected channel.
 
 **Acceptance.**
 1. Retrying publication or redelivering the queue job never sends that subscriber the update twice on one channel.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts repeated capture leaves one recipient record; repeated capture leaves one dispatcher job; two intended healthy-delivery scenarios produce two healthy-host requests in aggregate. Unasserted: the concurrently dispatched delivery alone produces exactly one request; email queue redelivery never resends.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/webhook-at-most-once-flow.mjs` (webhookAtMostOnceFlow) in push Verify’s public shard: one natively confirmed webhook, a paused publication, competing real Worker Queue dispatches while the receiver acknowledgement is held, redelivery after success and the original publication request with its original If-Match revision retain the complete update, recipient and outbox identity sets and exactly one receiver request for the committed delivery. `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/automation-rules-flow.mjs` (automationRulesFlow) in push Verify’s delivery shard: accepted email remains one receiver submission after repeated alert capture and two real Queue redeliveries. Both journeys exercise D-1 and BASE-OPS-003 through native doors with controlled network edges.
+**Gap.** None.
 
 #### NOTIFY-006 — Operator alerts
 
