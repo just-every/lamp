@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `f6ddaa136297175b97e74d396975a1dc46167afd` (29 October 2026); COMP-003 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -259,7 +259,7 @@ Core · published · **partial**
 
 #### COMP-003 — Append-only state history
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Public-state history is attributable and append-only; a correction adds a superseding fact.
 
@@ -267,8 +267,8 @@ Core · published · **partial**
 1. Every public-state change appends previous state, new state, change instant and the causing operator or incident.
 2. Prior entries are neither modified nor removed, including when UPTIME-004 corrects an interval by appending a superseding entry.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading componentHistoryJourney: acceptance 1 checks each native standing and incident transition's exact previous state, new state, controlled change instant and operator or incident identity; acceptance 2 compares complete ordered original history rows byte for byte after a closed-interval correction, with exactly one superseding fact, its operator, interval, reason and audit, and unchanged history after viewer, anonymous, empty-reason and future-interval refusals. `tests/e2e/publishing-contract.test.mjs` (INCIDENT-012 — linked operators run a whole private incident draft, preview and explicit publication through signed Slack and Teams), loading `tests/chat-desk/flow.mjs` (chatDeskNativeFlow), retains the chat publication transition controls.
+**Gap.** None.
 
 #### COMP-004 — State note
 
