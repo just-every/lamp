@@ -8039,6 +8039,10 @@
       "sha256": "39d3bcb53448afad3199d5a4e23bded8f9ff5582a53d42fc3eb362cb50767181",
       "executable": false
     },
+    "tests/agent-door/native-page-browser.mjs": {
+      "sha256": "93acef42906fc8faecc13c20782d084f7cbd05629486e050c6b8056ff760afd4",
+      "executable": false
+    },
     "tests/agent-door/native-pages.mjs": {
       "sha256": "e8caf581591666665636b4026f30fd3be0ae40dd61ac707b4fced89a9cd7ed9d",
       "executable": false
