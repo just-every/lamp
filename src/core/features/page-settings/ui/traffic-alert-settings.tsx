@@ -1,25 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError, appApi, useAppData } from '../../../app/client/ui/api';
+import { appApi, useAppData } from '../../../app/client/ui/api';
 import { Button } from '../../../app/client/ui/button';
 import { leaveWhenSaved, useLeaveGuard } from '../../../app/client/ui/leave-guard';
+import { saveFailureReason, useReportSave, type CardSave, type SavePhase } from './settings-save-state';
 
 type Settings = { settings: { multiple: number } };
-export type TrafficSavePhase = 'saved' | 'waiting' | 'saving' | 'error';
 const outOfRange = 'Choose a multiple from 1.1 to 100.';
 const valid = (value: string) => value !== '' && Number(value) >= 1.1 && Number(value) <= 100;
-// A refusal from the server already reads plainly; a lost connection or a server fault does not.
-const reason = (cause: unknown) => cause instanceof ApiError ? cause.status >= 500 ? 'The server had a problem saving it.' : cause.message : 'The server could not be reached.';
 
-/** The multiple saves on its own, so its state joins the tab's one save note through `onPhase`. */
-export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: TrafficSavePhase) => void }) {
+/** The multiple saves on its own, so its state, failure and Retry join the tabs' one save note through `onSave`. */
+export function TrafficAlertSettings({ onSave }: { onSave: (save: CardSave) => void }) {
   const data = useAppData<Settings>('/api/app/traffic-alerts');
   const [value, setValue] = useState<string | null>(null);
-  const [phase, setPhase] = useState<TrafficSavePhase>('saved');
+  const [phase, setPhase] = useState<SavePhase>('saved');
   const [error, setError] = useState<string | null>(null);
   const queue = useRef({ value: '', revision: 0, completed: 0, stopped: -1, leaving: 0, released: false, answered: new Set<() => void>(), sending: false, sentOnUnload: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined });
-  const report = useRef(onPhase);
-  report.current = onPhase;
-  useEffect(() => report.current(phase), [phase]);
+  useReportSave(onSave, phase, error, retry);
   async function flush(unloading = false) {
     const q = queue.current;
     clearTimeout(q.timer);
@@ -37,7 +33,7 @@ export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: TrafficSave
           if (q.revision === revision) { setPhase('saved'); data.refresh(); }
         } catch (cause) {
           q.stopped = revision;
-          if (q.revision === revision) { setPhase('error'); setError(`Traffic alerts could not be saved: ${cause instanceof Error && cause.message === outOfRange ? outOfRange : reason(cause)} Your change is kept here.`); }
+          if (q.revision === revision) { setPhase('error'); setError(`Traffic alerts could not be saved: ${cause instanceof Error && cause.message === outOfRange ? outOfRange : saveFailureReason(cause)} Your change is kept here.`); }
         }
         for (const answer of [...q.answered]) answer();
       }
@@ -61,6 +57,7 @@ export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: TrafficSave
     };
   }, []);
   useLeaveGuard(() => leaveWhenSaved(queue.current, () => void flush(), 'Traffic alert changes have not saved. Leave them behind?'), () => queue.current.completed !== queue.current.revision && !queue.current.released);
+  function retry() { queue.current.stopped = -1; void flush(); }
   function edit(next: string) {
     const q = queue.current;
     q.value = next; q.revision++; q.released = false;
@@ -71,7 +68,7 @@ export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: TrafficSave
     <p className="card-kicker" id="traffic-alert-title">Traffic alerts</p>
     {data.data ? <>
       <label className="form-label">Traffic spike multiple<input aria-label="Traffic spike multiple" aria-invalid={(phase === 'error' && value !== null && !valid(value)) || undefined} aria-describedby={error ? 'traffic-alert-error' : undefined} type="number" min="1.1" max="100" step="0.1" value={value ?? String(data.data.settings.multiple)} onChange={event => edit(event.target.value)} onBlur={() => void flush()} /><small>Alert operators when public-page traffic reaches this many times its usual level.</small></label>
-      {error && <p className="save-message" id="traffic-alert-error" role="alert">{error} <Button type="button" variant="secondary" className="table-action" onClick={() => { queue.current.stopped = -1; void flush(); }}>Retry</Button></p>}
+      {error && <p className="save-message" id="traffic-alert-error" role="alert">{error} <Button type="button" variant="secondary" className="table-action" onClick={retry}>Retry</Button></p>}
     </> : <p role="status">{data.error ?? 'Loading traffic alerts…'}</p>}
   </section>;
 }

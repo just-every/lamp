@@ -45,6 +45,9 @@
 .embed-preview-status .page-preview-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; }
 .embed-preview-status p { flex: 1 1 100%; margin: 2px 0 0; border-top: 1px solid var(--line); padding-top: 10px; white-space: pre-line; }
 .embed-preview-dot { justify-self: start; border: 0; padding: 4px 0; }
+@media (max-width: 900px) {
+  .settings-tabs a { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+}
 @media (max-width: 600px) {
   .settings-tabs { flex-wrap: wrap; gap: 0 22px; overflow: visible; }
 }
