@@ -794,6 +794,14 @@
         "0005_delivery_contract.sql"
       ]
     },
+    "TEAM-004": {
+      "change": "added",
+      "summary": "Roles: Lamp defines Owner/Admin, Communicator, Responder and Viewer privileges and protects its last Owner.",
+      "now": "Roles: **Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role; review under UPDATE-007 remains additional. **Acceptance.** 1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers. 2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages. 3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings. 4. The setup operator is an Owner and the last Owner cannot be demoted or removed. 5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time. 6. Only Owners and Admins can read the audit log; a Communicator is refused.",
+      "migrationIds": [
+        "0069_operator_roles.sql"
+      ]
+    },
     "UPDATE-001": {
       "change": "changed",
       "summary": "Template: Updates describe customer impact and the next communication commitment in bounded plain-text fields.",
@@ -943,6 +951,10 @@
     {
       "id": "0068_incident_report_deliveries.sql",
       "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
+    },
+    {
+      "id": "0069_operator_roles.sql",
+      "buyerSteps": "Apply after 0068. Adds role metadata for Communicators, Responders and Viewers while preserving existing native Owner and Admin authority. Setup remains Owner; Settings lets Owners and Admins invite operators with a role and change roles. The last active Owner cannot be demoted or removed. No provider credentials or other owner action are required."
     }
   ],
   "breaking": false,
