@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
@@ -86,6 +86,55 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const page = await scripted.newPage();
     await page.clock.install();
     await page.goto(j.publicOrigin);
+
+    // Competing standing claims exercise the supplied page rollup through the
+    // operator API and the same snapshot a customer reads. An internal outage
+    // must not outweigh a visible service, even when every public service recovers.
+    await j.json(`/api/app/components/${hidden.id}/standing-claim`, 'PUT', { state: 'Major outage' });
+    const rollupCases = [
+      ['Operational', 'Under maintenance', 'Under maintenance'],
+      ['Under maintenance', 'Degraded performance', 'Degraded performance'],
+      ['Degraded performance', 'Partially unavailable', 'Partially unavailable'],
+      ['Partially unavailable', 'Major outage', 'Major outage'],
+      ['Operational', 'Operational', 'Operational'],
+    ];
+    for (const ordered of [[main, other], [other, main]]) {
+      for (const [displayOrder, component] of ordered.entries()) {
+        await j.json(`/api/app/components/${component.id}`, 'PUT', {
+          name: component.name, groupId: component.groupId, description: component.description,
+          internal: component.internal, note: component.note, onlyShowIfDegraded: component.onlyShowIfDegraded, displayOrder,
+        });
+      }
+      for (const [mainState, otherState, expected] of rollupCases) {
+        await j.json(`/api/app/components/${main.id}/standing-claim`, 'PUT', { state: mainState });
+        await j.json(`/api/app/components/${other.id}/standing-claim`, 'PUT', { state: otherState });
+        const status = await eventually(async () => (await j.publicResponse('/api/public/status')).json(), value => value.overall === expected, `${expected} reaches the public rollup`);
+        assert.equal(status.overall, expected);
+        assert.equal(status.incident, null, 'standing claims determine the rollup without an incident');
+        const visible = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
+        assert.ok(!visible.some(component => component.id === hidden.id), 'the internal severe component is absent');
+        assert.deepEqual(visible.map(component => component.id), ordered.filter(component => component.id !== other.id || otherState !== 'Operational').map(component => component.id));
+        assert.equal(visible.find(component => component.id === main.id).state, mainState);
+        if (otherState !== 'Operational') assert.equal(visible.find(component => component.id === other.id).state, otherState);
+        await page.reload();
+        assert.equal(await page.locator('#overall-status').count(), 1);
+        assert.equal(await page.locator('#overall-status').innerText(), expected);
+        assert.ok(await page.locator('#overall-status').evaluate(label => Boolean(label.closest('[aria-labelledby="overall-status"]'))), 'the single label remains in the top status section');
+        assert.ok(!(await page.locator('body').innerText()).includes(hidden.name));
+        if (process.env.LAMP_PAGE004_SCREENSHOTS && ordered[0].id === other.id && expected === 'Partially unavailable') {
+          await mkdir(process.env.LAMP_PAGE004_SCREENSHOTS, { recursive: true });
+          for (const width of [1440, 390]) {
+            await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+            await page.screenshot({ path: `${process.env.LAMP_PAGE004_SCREENSHOTS}/page-004-${width}.png`, fullPage: true });
+          }
+          await page.setViewportSize({ width: 1440, height: 1000 });
+        }
+      }
+    }
+    // Return the catalogue to its original order before the existing incident,
+    // recovery, uptime, subscription and retained-history journey continues.
+    await j.json(`/api/app/components/${main.id}/move`, 'POST', { direction: 'up', expectedIds: [other.id, main.id], groupId: firstGroup.id });
+    await j.json(`/api/app/components/${hidden.id}/standing-claim`, 'PUT', { state: 'Operational' });
     assert.equal(await page.locator('#status-live').getAttribute('aria-live'), 'polite');
     const generation = page.locator('[data-generated-at] time');
     assertVisibleTime(await generation.getAttribute('title'), await generation.getAttribute('datetime'), 'America/Los_Angeles');
