@@ -20,7 +20,11 @@ export async function cardReadability(page, { directory, name, dark = false }) {
   }
   const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
   const violations = results.violations.flatMap(rule => rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })));
-  await writeFile(`${directory}/${name}.json`, JSON.stringify({ cards, violations }, null, 2) + '\n');
+  const typography = await page.locator('body *').evaluateAll(elements => elements.filter(element => {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 1 && rect.height > 1 && getComputedStyle(element).visibility !== 'hidden' && [...element.childNodes].some(node => node.nodeType === 3 && node.textContent.trim());
+  }).map(element => ({ tag: element.tagName, className: element.className, size: getComputedStyle(element).fontSize })).filter(element => parseFloat(element.size) < 13));
+  await writeFile(`${directory}/${name}.json`, JSON.stringify({ cards, violations, typography }, null, 2) + '\n');
   await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
   assert.deepEqual(violations, [], `${name} has no Axe colour contrast violations`);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name} fits its viewport`);

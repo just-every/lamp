@@ -57,8 +57,8 @@ function publicPaint(name: string, foreground: Colour, background: Colour, selec
 }
 
 // Overview does not receive the owner's public palette. These are its actual fixed text
-// tokens, from app/client/ui/{tokens,surfaces,records,page-live,states}.css and
-// communication-performance/ui/performance.css, including nested and alternate fills.
+// tokens in the operator and communication performance stylesheets, including
+// nested and alternate fills.
 const dashboard = {
   ink: "#182d24", secondary: "#44544c", muted: "#5f6d66", card: "#ffffff",
   tint: "#fbfaf7", chip: "#f5f4ef", amberWash: "#fff7e2", amberInk: "#8a5a06",
