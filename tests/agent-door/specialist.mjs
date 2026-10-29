@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { nativeFixture } from './fixture-state.mjs';
 import { pendingAssertions } from './pending.mjs';
 import { inspectNativePages } from './native-pages.mjs';
-let pagesInspected = false;
+const pagesInspected = new Set();
 const errorCode = answer => answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.body?.error?.data?.code;
 const result = (answer, label) => {
   assert.equal(answer.status, 200, `${label}: HTTP ${answer.status}`);
@@ -13,7 +13,7 @@ const result = (answer, label) => {
 };
 /** Specialist work uses the production MCP, intake, person and import doors. */
 export default async function specialist({ request, origin, email, cookie, mail, tool }) {
-  assert.ok(pagesInspected, 'Native pages were inspected while held requests were still pending');
+  assert.deepEqual([...pagesInspected].sort(), ['approval', 'delivery', 'incident', 'maintenance'], 'Native pages were inspected before later native deletion or policy expiry');
   const person = async (path, method = 'GET', body) => {
     const response = await request(new URL(path, origin).href, { method, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     assert.ok(response.ok, `Native person ${method} ${path}: HTTP ${response.status}`);
@@ -98,12 +98,17 @@ export default async function specialist({ request, origin, email, cookie, mail,
 }
 
 /** Keep a real proposed public edit pending while its current policy is held. */
-export async function afterStep({ phase, step, result, tool, request, origin, cookie }) {
-  if (phase !== 'held' || step.id !== 'public-component') return;
-  const proposed = await tool('lamp.components.update', { ...step.args, id: result.component.id,
-    name: 'Customer API publication review', idempotency_key: randomUUID() });
-  assert.equal(proposed.result?.resultType, 'input_required');
-  assert.ok(proposed.result?._meta?.['com.runeditrun/approval']?.id);
-  await inspectNativePages({ request, origin, cookie });
-  pagesInspected = true;
+export async function afterStep({ phase, step, args, result, tool, request, origin, cookie }) {
+  let area;
+  if (phase === 'autonomous') area = ({ 'report-publish': 'incident', 'maintenance-cancel': 'maintenance', deliveries: 'delivery' })[step.id];
+  if (phase === 'held' && step.id === 'public-component') {
+    const proposed = await tool('lamp.components.update', { ...step.args, id: result.component.id,
+      name: 'Customer API publication review', idempotency_key: randomUUID() });
+    assert.equal(proposed.result?.resultType, 'input_required');
+    assert.ok(proposed.result?._meta?.['com.runeditrun/approval']?.id);
+    area = 'approval';
+  }
+  if (!area) return;
+  await inspectNativePages({ request, origin, cookie, area, incidentId: args.id });
+  pagesInspected.add(area);
 }
