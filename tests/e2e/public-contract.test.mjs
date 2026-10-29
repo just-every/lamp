@@ -81,6 +81,75 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const customerReview = await j.json('/api/app/components/bulk/preview', 'POST', { catalogue: customerCatalogue, revision: populatedCatalogue.revision });
     await j.json('/api/app/components/bulk/apply', 'POST', { catalogue: customerReview.catalogue, revision: customerReview.revision, reviewToken: customerReview.reviewToken });
 
+    // Read component aggregation itself, independently of the page-wide rollup.
+    const claimsComponent = await j.component('Synthetic claim service');
+    const standingPath = `/api/app/components/${claimsComponent.id}/standing-claim`;
+    const assertComponentState = async (expected, description) => {
+      assert.equal((await j.json('/api/app/components')).components.find(row => row.id === claimsComponent.id).publicState, expected, `${description}: operator state`);
+      const published = await eventually(async () => (await (await j.publicResponse('/api/public/v1/components')).json()).data.find(row => row.id === claimsComponent.id), row => row?.state === expected, `${description}: public component state`);
+      assert.equal(published.state, expected, `${description}: public state`);
+    };
+    const invalidState = await j.json(standingPath, 'PUT', { state: 'Unavailable' }, 400);
+    assert.deepEqual(invalidState.issues.find(issue => issue.path[0] === 'state').values, [
+      'Operational', 'Degraded performance', 'Partially unavailable', 'Major outage', 'Under maintenance',
+    ], 'the native door accepts exactly the contractual state vocabulary');
+    await assertComponentState('Operational', 'refusing an unknown state leaves the component unchanged');
+    for (const state of ['Operational', 'Degraded performance', 'Partially unavailable', 'Major outage', 'Under maintenance']) {
+      await j.json(standingPath, 'PUT', { state });
+      await assertComponentState(state, `standing claim ${state}`);
+    }
+    await j.json(standingPath, 'PUT', { state: 'Operational' });
+    const firstClaim = await j.incident('First competing service incident', [claimsComponent]);
+    const secondClaim = await j.incident('Second competing service incident', [claimsComponent]);
+    for (const [higher, lower, expected] of [
+      ['Major outage', 'Partially unavailable', 'Major outage'],
+      ['Partially unavailable', 'Degraded performance', 'Partially unavailable'],
+      ['Degraded performance', 'Operational', 'Degraded performance'],
+    ]) {
+      // Reverse both the incident identities holding the claims and write order.
+      // The lower claim is published last, so latest-write selection also fails.
+      for (const assignments of [
+        [[firstClaim, higher], [secondClaim, lower]],
+        [[secondClaim, higher], [firstClaim, lower]],
+      ]) {
+        for (const [claim, state] of assignments) {
+          await j.save(claim.id, { componentChanges: [{ componentId: claimsComponent.id, state }] });
+          await j.publish(claim.id);
+        }
+        await assertComponentState(expected, `${higher} outranks ${lower}, ${assignments[0][0].title} holds the higher claim`);
+      }
+    }
+    for (const claim of [firstClaim, secondClaim]) {
+      await j.save(claim.id, { lifecycle: 'Resolved', nextUpdateAt: null });
+      await j.publish(claim.id);
+    }
+    await assertComponentState('Operational', 'resolved incident claims leave the standing Operational claim');
+    const window = (await j.json('/api/app/maintenance', 'POST', {
+      title: 'Synthetic claim service maintenance', affectedAudience: 'Service customers', customerImpact: 'Routine service maintenance.',
+      startsAt: new Date(Date.now() + 3600000).toISOString(), endsAt: new Date(Date.now() + 7200000).toISOString(),
+      componentIds: [claimsComponent.id], autoStart: false, autoComplete: false,
+    }, 201)).maintenance;
+    await j.json(`/api/app/maintenance/${window.id}/start`, 'POST', {});
+    await assertComponentState('Under maintenance', 'maintenance outranks an earlier standing Operational claim');
+    await j.json(standingPath, 'PUT', { state: 'Operational' });
+    await assertComponentState('Under maintenance', 'maintenance outranks a later standing Operational claim');
+    await j.json(standingPath, 'PUT', { state: 'Degraded performance' });
+    await assertComponentState('Degraded performance', 'standing degradation outranks active maintenance');
+    await j.json(standingPath, 'PUT', { state: 'Under maintenance' });
+    await j.save(firstClaim.id, { componentChanges: [{ componentId: claimsComponent.id, state: 'Degraded performance' }] });
+    await j.publish(firstClaim.id);
+    await assertComponentState('Degraded performance', 'incident degradation outranks standing and active maintenance');
+    await j.json(standingPath, 'PUT', { state: 'Under maintenance' });
+    await assertComponentState('Degraded performance', 'a later maintenance claim cannot hide incident degradation');
+    await j.save(firstClaim.id, { lifecycle: 'Resolved', nextUpdateAt: null });
+    await j.publish(firstClaim.id);
+    await j.json(standingPath, 'PUT', { state: 'Operational' });
+    await assertComponentState('Under maintenance', 'resolving degradation retains active maintenance');
+    await j.json(`/api/app/maintenance/${window.id}/complete`, 'POST', {});
+    await eventually(() => j.json('/api/app/components'), body => body.components.find(row => row.id === claimsComponent.id).publicState === 'Operational', 'completion releases the maintenance claim');
+    await assertComponentState('Operational', 'completion restores the standing Operational state');
+    await j.json(`/api/app/components/${claimsComponent.id}`, 'DELETE', undefined, 204);
+
     browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
     const scripted = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'America/New_York' });
     const page = await scripted.newPage();

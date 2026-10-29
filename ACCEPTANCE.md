@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -233,7 +233,7 @@ Core · published · **partial** · Cites BASE-ACCESSIBILITY-001
 
 #### COMP-001 — States and their order
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Components have one public state from a fixed vocabulary, and all severity comparisons use one order.
 
@@ -241,8 +241,8 @@ Core · published · **partial**
 1. The only component states are Operational, Degraded performance, Partially unavailable, Major outage and Under maintenance.
 2. Severity is ordered Major outage, Partially unavailable, Degraded performance, Under maintenance, Operational.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): acceptance 1 exercises all five native standing states, refuses an unknown state without mutation and reconciles the exact allowed vocabulary; acceptance 2 reconciles literal operator and public component states for every adjacent severity comparison and Degraded performance over Operational, with reversed competing incident claims, standing claims, active maintenance and recovery controls.
+**Gap.** None.
 
 #### COMP-002 — Grouping and order
 

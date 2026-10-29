@@ -3120,11 +3120,13 @@ Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d341
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
+COMP-001 is rechecked from the code and tests on this landing candidate; its exact commit and Verify receipt accompany the judgment request. All other clause judgments remain inherited.
+
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 9 | 98 | 0 | 107 |
+| Published | 10 | 97 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 18 | 171 | 54 | 243 |
+| All | 19 | 170 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3161,7 +3163,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `I18N-001` | Pages in several languages | target | missing |  | Multi-language publication and templates are absent. This scope replaces the old manifest exclusion of multi-language pages. |
 | `I18N-003` | Subscriber language choice and reporting | target | missing |  | Subscriber language selection, management, reporting and language-aware CSV preview are absent. |
 | `I18N-002` | Translated updates | target | missing |  | Not built. |
-| `COMP-001` | States and their order | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational. |
+| `COMP-001` | States and their order | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): acceptance 1 exercises all five native standing states, refuses an unknown state without mutation and reconciles the exact allowed vocabulary; acceptance 2 reconciles literal operator and public component states for every adjacent severity comparison and Degraded performance over Operational, with reversed competing incident claims, standing claims, active maintenance and recovery controls. |  |
 | `COMP-002` | Grouping and order | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded. |
 | `COMP-003` | Append-only state history | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present. |
 | `COMP-004` | State note | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty. |
