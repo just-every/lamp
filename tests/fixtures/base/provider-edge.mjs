@@ -1,8 +1,9 @@
 // Fake dependency provider only at the network edge; signatures, client proof,
 // durable one-use codes and the app's public linking protocol remain real.
 import { parseIdToken, verifySignature } from '@runeditrun/rer/internal/modules/operator-auth/identity/oidc/jwt.mjs';
+import { openDependencyKey } from '@runeditrun/rer/internal/modules/dependencies/sealing.mjs';
 import { publicKey } from '@runeditrun/rer/internal/modules/dependencies/crypto.mjs';
-export function linkEdge(db,issuer,clientId,now) {
+export function linkEdge(db,issuer,clientId,now,config) {
   const get=async key=>{const row=await db.prepare('SELECT value FROM fixture_state WHERE key=?').bind(key).first();return row?JSON.parse(row.value):null;};
   const put=(key,value)=>db.prepare('INSERT INTO fixture_state(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(key,JSON.stringify(value)).run();
   const gateKey='link-gate:'+issuer;
@@ -20,7 +21,7 @@ export function linkEdge(db,issuer,clientId,now) {
     async code() {
       const key=await db.prepare("SELECT private_key FROM rer_dependency_keys WHERE interface='oidc-provider@1'").first();
       const sector=await db.prepare('SELECT sector_id FROM rer_dependency_installation').first();
-      const code=crypto.randomUUID();await put('link:'+code,{key:publicKey(JSON.parse(key.private_key)),sector:sector.sector_id});return code;
+      const code=crypto.randomUUID();await put('link:'+code,{key:publicKey((await openDependencyKey(config,'oidc-provider@1',key.private_key)).key),sector:sector.sector_id});return code;
     },
     async fetch(uri,init={}) {
       if(uri===issuer+'/.well-known/rer-provider')return Response.json({issuer,interface:'oidc-provider@1',version:1,initiate:issuer+'/link',redeem:issuer+'/redeem',deregister:issuer+'/remove'});

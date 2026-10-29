@@ -50,6 +50,22 @@ export function createImportDoorRepository(db: D1Database) {
     async save(key: string, actor: Session, changes: {enabled:boolean;revokedKids?:string[]}) {
       await writeImportDoorSettings(db,key,changes,sessionAuthority(actor));
     },
+    /** Agent admission supplies a current native-owner proof fence, never a
+     * manufactured session. The same native writer repeats it transactionally. */
+    async saveForAuthority(key: string, changes: {enabled:boolean;revokedKids?:string[]}, authority: D1Sql) {
+      if (!await allowed(authority)) throw new AuthError('owner_required',403);
+      await writeImportDoorSettings(db,key,changes,authority);
+    },
+    async settingsForAuthority(key: string, claim: OwnerClaimConfig | null, authority: D1Sql) {
+      if (!await allowed(authority)) throw new AuthError('owner_required',403);
+      if (!claim) return {configured:false,enabled:false,keys:[]};
+      const [settings,revoked] = await Promise.all([
+        db.prepare('SELECT enabled FROM ik_door_settings WHERE installation_id=?').bind(key).first<{enabled:number}>(),
+        db.prepare('SELECT kid FROM ik_door_revoked_keys WHERE installation_id=?').bind(key).all<{kid:string}>(),
+      ]);
+      if (!await allowed(authority)) throw new AuthError('owner_required',403);
+      return {configured:true,enabled:settings?.enabled===1,keys:[...new Set([...Object.keys(claim.publicKeys),...revoked.results.map(row=>row.kid)])].sort().map(kid=>({kid,revoked:revoked.results.some(row=>row.kid===kid)}))};
+    },
     /** A complete door upload's bytes in this installation and namespace, as the door itself reads them. */
     async uploadBytes(installationId: string, namespace: string, uploadId: string) {
       const upload = await db.prepare('SELECT bundle_sha256,total_bytes,total_chunks FROM ik_door_uploads WHERE id=? AND installation_id=? AND namespace=?').bind(uploadId,installationId,namespace).first<{bundle_sha256:string;total_bytes:number;total_chunks:number}>();

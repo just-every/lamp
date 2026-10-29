@@ -65,7 +65,7 @@ jobs:
           LAMP_VERIFY_SHARD: build
           LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
         run: |
-          pnpm run verify:app
+          pnpm exec rer verify --non-interactive
           tar -czf "$RUNNER_TEMP/lamp-built-worker.tar.gz" dist .wrangler/deploy/config.json
       - name: Retain commit-bound build completion
         if: ${{ always() }}

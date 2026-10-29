@@ -4,7 +4,7 @@ import type { AppEnv } from "../../app/types";
 import { createAuditLogRepository, type AuditEntry } from "./repository";
 
 const filter = z.object({ actorId: z.string().min(1).max(200).optional(), action: z.string().min(1).max(100).optional(), from: z.iso.datetime().optional(), until: z.iso.datetime().optional(), limit: z.coerce.number().int().min(1).max(100).default(50), offset: z.coerce.number().int().min(0).max(1_000_000_000).default(0), format: z.enum(["json", "csv"]).optional() }).strict().refine(value => !value.from || !value.until || value.from < value.until, "The end must follow the start.");
-const columns = ["id", "createdAt", "actorId", "actorName", "action", "entityType", "entityId", "reason"] as const;
+const columns = ["id", "createdAt", "actorId", "actorName", "action", "entityType", "entityId", "reason", "approvedBy", "nativeReviewedBy"] as const;
 function cell(value: string | null) { const text = value ?? ""; return `"${(/^[=+\-@\t\r]/.test(text) ? "'" + text : text).replaceAll('"', '""')}"`; }
 export function auditCsv(rows: AuditEntry[]) { return [columns.join(","), ...rows.map(row => columns.map(key => cell(row[key])).join(","))].join("\r\n") + "\r\n"; }
 

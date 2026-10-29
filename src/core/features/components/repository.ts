@@ -1,6 +1,8 @@
 import { componentNotificationStatements } from "../deliveries/component-notifications.repository";
 import { currentStateHistoryStatement } from "./state-history-repository";
 import { deletionAudit } from "./deletion-audit";
+import { currentAgentActor } from '../agent-door/actor';
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 import { and, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -61,6 +63,13 @@ export interface ComponentRepository {
 
 export function createComponentRepository(binding: D1Database): ComponentRepository {
   const database = createDatabase(binding);
+  const agentMutation = (entityType: string, entityId: string, at: string, action: string, guard?: { sql: string; params?: unknown[] }) => {
+    const actor = currentAgentActor();
+    if (!actor) return [];
+    return [binding.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+      SELECT ?,?,?,?,?, '{}',?,?${guard ? ` WHERE ${guard.sql}` : ''}`).bind(createUlid(),entityType,entityId,action,actor.sponsor.id,at,at,...(guard?.params ?? [])),
+      ...agentAttributionStatements(binding,{entityType,entityId,operatorId:actor.sponsor.id,at,guard})];
+  };
 
   return {
     async listComponents() {
@@ -120,6 +129,7 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       // range, then assign the complete contiguous order in the same batch.
       if (kind === "groups") statements.push(binding.prepare("UPDATE component_groups SET display_order = -display_order - 1"));
       statements.push(...orderedIds.map((id, index) => binding.prepare(`UPDATE ${table} SET display_order = ?, updated_at = ? WHERE id = ?`).bind(index, timestamp, id)));
+      statements.push(...orderedIds.flatMap(id => agentMutation(kind === 'groups' ? 'component-group' : 'component',id,timestamp,'reordered')));
       try { await binding.batch(statements); }
       catch (cause) { if (cause instanceof Error && cause.message.includes("malformed JSON")) throw new Error("Ordering changed in another tab. Refresh and try again."); throw cause; }
     },
@@ -274,6 +284,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       const [history] = await binding.batch<{ previousState: ComponentState; newState: ComponentState }>([
         currentStateHistoryStatement(binding, input),
         ...componentNotificationStatements(binding, input.id, input.createdAt),
+        ...(input.cause.operatorId ? agentAttributionStatements(binding, {entityType: 'component-state-history',entityId: input.id,operatorId: input.cause.operatorId,at: input.createdAt,
+          guard: {sql: 'EXISTS(SELECT 1 FROM component_state_history WHERE id=?)',params:[input.id]}}) : []),
       ]);
       return history.results[0] ?? null;
     },
@@ -324,8 +336,9 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       await database.insert(componentStateCorrections).values(input);
     },
     async appendCorrectionAudit(input) {
-      await binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, 'component-state-history', ?, 'corrected', ?, ?, ?, ?, ?)`)
-        .bind(input.id, input.historyId, input.operatorId, input.reason, input.payloadJson, input.createdAt, input.updatedAt).run();
+      await binding.batch([binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, 'component-state-history', ?, 'corrected', ?, ?, ?, ?, ?)`)
+        .bind(input.id, input.historyId, input.operatorId, input.reason, input.payloadJson, input.createdAt, input.updatedAt),
+        ...agentAttributionStatements(binding,{entityType:'component-state-history',entityId:input.historyId,operatorId:input.operatorId,at:input.createdAt})]);
     },
     async replaceStandingClaim(input) {
       const audit = input.state === null
@@ -340,16 +353,19 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         : binding.prepare(`DELETE FROM component_standing_claims WHERE component_id = ?`).bind(input.componentId);
       const event = binding.prepare(`INSERT INTO component_claim_events (id, component_id, cause_type, cause_id, state, changed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(input.event.id, input.event.componentId, input.event.causeType, input.event.causeId, input.event.state, input.event.changedAt, input.event.createdAt, input.event.updatedAt);
-      await binding.batch([...(audit ? [audit] : []), claim, event]);
+      await binding.batch([...(audit ? [audit] : []), claim, event,
+        ...agentMutation('component-standing-claim', input.componentId, input.updatedAt, input.state === null ? 'claim-cleared' : 'claim-changed')]);
     },
     async insertGroup(input) {
-      await database.insert(componentGroups).values(input);
+      const query = database.insert(componentGroups).values(input).toSQL();
+      await binding.batch([binding.prepare(query.sql).bind(...query.params), ...agentMutation('component-group',input.id,input.updatedAt,'created')]);
     },
     async updateGroup(groupId, input) {
       // A name edit must not read and rewrite a position that can move meanwhile.
       if (input.displayOrder === undefined) {
-        const result = await database.update(componentGroups).set({ name: input.name, updatedAt: input.updatedAt }).where(eq(componentGroups.id, groupId)).returning({ id: componentGroups.id });
-        return result.length > 0;
+        const query = database.update(componentGroups).set({ name: input.name, updatedAt: input.updatedAt }).where(eq(componentGroups.id, groupId)).returning({ id: componentGroups.id }).toSQL();
+        const [result] = await binding.batch<{id:string}>([binding.prepare(query.sql).bind(...query.params), ...agentMutation('component-group',groupId,input.updatedAt,'updated',{sql:'EXISTS(SELECT 1 FROM component_groups WHERE id=? AND updated_at=?)',params:[groupId,input.updatedAt]})]);
+        return result.results.length > 0;
       }
       const current = await database.select().from(componentGroups).where(eq(componentGroups.id, groupId)).get();
       if (!current) return false;
@@ -357,8 +373,9 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         ? null
         : await database.select().from(componentGroups).where(eq(componentGroups.displayOrder, input.displayOrder)).get();
       if (!displaced) {
-        const result = await database.update(componentGroups).set(input).where(eq(componentGroups.id, groupId)).returning({ id: componentGroups.id });
-        return result.length > 0;
+        const query = database.update(componentGroups).set(input).where(eq(componentGroups.id, groupId)).returning({ id: componentGroups.id }).toSQL();
+        const [result] = await binding.batch<{id:string}>([binding.prepare(query.sql).bind(...query.params), ...agentMutation('component-group',groupId,input.updatedAt,'updated',{sql:'EXISTS(SELECT 1 FROM component_groups WHERE id=? AND updated_at=?)',params:[groupId,input.updatedAt]})]);
+        return result.results.length > 0;
       }
 
       // `display_order` is unique. Free the target's old position before
@@ -369,13 +386,17 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         binding.prepare("UPDATE component_groups SET display_order = ?, updated_at = ? WHERE id = ?").bind(-1, input.updatedAt, current.id),
         binding.prepare("UPDATE component_groups SET display_order = ?, updated_at = ? WHERE id = ?").bind(current.displayOrder, input.updatedAt, displaced.id),
         binding.prepare("UPDATE component_groups SET name = ?, display_order = ?, updated_at = ? WHERE id = ?").bind(input.name, input.displayOrder, input.updatedAt, current.id),
+        ...agentMutation('component-group',current.id,input.updatedAt,'updated'),
+        ...agentMutation('component-group',displaced.id,input.updatedAt,'reordered'),
       ]);
       return true;
     },
     async deleteGroup(groupId, operatorId) {
+      const at = new Date().toISOString();
       const [, deleted] = await binding.batch<{ id: string }>([
-        deletionAudit(binding, "component-group", groupId, operatorId, new Date().toISOString()),
+        deletionAudit(binding, "component-group", groupId, operatorId, at),
         binding.prepare("DELETE FROM component_groups WHERE id = ? RETURNING id").bind(groupId),
+        ...agentAttributionStatements(binding,{entityType:'component-group',entityId:groupId,operatorId,at,guard:{sql:"EXISTS(SELECT 1 FROM audit_entries WHERE entity_type='component-group' AND entity_id=? AND created_at=?)",params:[groupId,at]}}),
       ]);
       return deleted.results.length > 0;
     },
@@ -387,18 +408,24 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
           .bind(initialState.event.id, initialState.event.componentId, initialState.event.causeType, initialState.event.causeId, initialState.event.state, initialState.event.changedAt, initialState.event.createdAt, initialState.event.updatedAt),
         binding.prepare(`INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`)
           .bind(initialState.history.id, initialState.history.componentId, initialState.history.previousState, initialState.history.newState, initialState.history.cause.type, initialState.history.cause.id, initialState.history.cause.operatorId, initialState.history.changedAt, initialState.history.createdAt, initialState.history.updatedAt),
+        ...agentMutation('component',input.id,input.updatedAt,'created'),
+        ...(initialState.history.cause.operatorId ? agentAttributionStatements(binding,{entityType:'component-state-history',entityId:initialState.history.id,operatorId:initialState.history.cause.operatorId,at:initialState.history.createdAt}) : []),
       ]);
     },
     async updateComponent(componentId, input) {
       // Drizzle omits undefined fields: an edit without an explicit order leaves
       // display_order untouched in the UPDATE itself, even across concurrent moves.
-      const result = await database.update(components).set(input).where(eq(components.id, componentId)).returning({ id: components.id });
-      return result.length > 0;
+      const query = database.update(components).set(input).where(eq(components.id, componentId)).returning({ id: components.id }).toSQL();
+      const [result] = await binding.batch<{id:string}>([binding.prepare(query.sql).bind(...query.params),
+        ...agentMutation('component',componentId,input.updatedAt,'updated',{sql:'EXISTS(SELECT 1 FROM components WHERE id=? AND updated_at=?)',params:[componentId,input.updatedAt]})]);
+      return result.results.length > 0;
     },
     async deleteComponent(componentId, operatorId) {
+      const at = new Date().toISOString();
       const [, deleted] = await binding.batch<{ id: string }>([
-        deletionAudit(binding, "component", componentId, operatorId, new Date().toISOString()),
+        deletionAudit(binding, "component", componentId, operatorId, at),
         binding.prepare("DELETE FROM components WHERE id = ? RETURNING id").bind(componentId),
+        ...agentAttributionStatements(binding,{entityType:'component',entityId:componentId,operatorId,at,guard:{sql:"EXISTS(SELECT 1 FROM audit_entries WHERE entity_type='component' AND entity_id=? AND created_at=?)",params:[componentId,at]}}),
       ]);
       return deleted.results.length > 0;
     },

@@ -1,0 +1,14 @@
+CREATE TABLE people(id TEXT PRIMARY KEY,workspace TEXT NOT NULL,email TEXT NOT NULL,role TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',version INTEGER NOT NULL DEFAULT 1,password INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE bindings(issuer TEXT NOT NULL,subject TEXT NOT NULL,person_id TEXT NOT NULL REFERENCES people(id),PRIMARY KEY(issuer,subject));
+CREATE TABLE sessions(id TEXT PRIMARY KEY,person_id TEXT NOT NULL REFERENCES people(id),token_hash TEXT NOT NULL UNIQUE,version INTEGER NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,revoked_at INTEGER,issuer TEXT,subject TEXT,sid TEXT,provider TEXT,linked_at INTEGER,generation INTEGER,proof_at INTEGER,proof_version INTEGER);
+CREATE TABLE proofs(id TEXT PRIMARY KEY,hash TEXT NOT NULL UNIQUE,kind TEXT NOT NULL,person_id TEXT NOT NULL,version INTEGER NOT NULL,email TEXT NOT NULL,session_id TEXT,action TEXT,return_to TEXT NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER,revoked_at INTEGER);
+CREATE TABLE limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,start INTEGER NOT NULL);
+CREATE TABLE settings(id INTEGER PRIMARY KEY,idp_sign_in INTEGER NOT NULL,generation INTEGER NOT NULL,first_setup INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE audit(action TEXT NOT NULL,person_id TEXT,value TEXT,created_at INTEGER NOT NULL);
+CREATE TABLE domains(domain TEXT PRIMARY KEY,provider TEXT NOT NULL);
+CREATE TABLE guards(id INTEGER PRIMARY KEY,value INTEGER NOT NULL CHECK(value=1));
+CREATE TABLE logouts(issuer TEXT NOT NULL,jti TEXT NOT NULL,PRIMARY KEY(issuer,jti));
+INSERT INTO settings VALUES(1,1,1,0);
+INSERT INTO people(id,workspace,email,role) VALUES('native-owner','workspace-a','owner@example.com','owner');
+INSERT INTO people(id,workspace,email,role) VALUES('native-contact','workspace-a','contact@example.com','contact');
+INSERT INTO people(id,workspace,email,role) VALUES('other-owner','workspace-b','outside@example.com','owner');

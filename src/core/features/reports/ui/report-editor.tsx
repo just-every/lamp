@@ -5,7 +5,7 @@ import { Button } from "../../../app/client/ui/button";
 import { useOperatorTime } from "../../../app/client/ui/states";
 import { REPORT_PROMPTS, reportReview, type ReportReview } from "../draft";
 
-type Report = { summary: string; timeline: string; cause: string; remediation: string; publishedAt: string | null };
+type Report = { summary: string; timeline: string; cause: string; remediation: string; publishedAt: string | null; agentAttribution?: {label:string;approvers:Array<{id:string;name:string}>}|null };
 const emptyReport: Report = { summary: "", timeline: "", cause: "", remediation: "", publishedAt: null };
 
 export function ReportEditor({ incidentId }: { incidentId: string }) {
@@ -17,7 +17,7 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   useEffect(() => { if (data && !dirty) setReport(data.report ?? emptyReport); }, [data]);
-  if (report.publishedAt) return <section className="context-section"><h2>Post-incident report</h2><p>Published {formatOperatorTime(report.publishedAt)}.</p></section>;
+  if (report.publishedAt) return <section className="context-section"><h2>Post-incident report</h2><p>Published {formatOperatorTime(report.publishedAt)}.</p>{report.agentAttribution ? <p style={{overflowWrap:"anywhere"}}>{report.agentAttribution.label}{report.agentAttribution.approvers.length ? ` · Approved by ${report.agentAttribution.approvers.map(person => person.name).join(", ")}` : ""}.</p> : null}</section>;
   const review = reportReview(report);
   const busy = pending || loading || !data;
   const update = (field: keyof Omit<Report, "publishedAt">, value: string) => { setDirty(true); setReport((current) => ({ ...current, [field]: value })); };
@@ -46,6 +46,7 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
   return <section className="context-section report-editor">
     <ReportWaiver incidentId={incidentId} waiver={data?.waiver ?? null} onChanged={refresh} />
     <h2>Post-incident report</h2><p>Publish one factual report when this incident is complete.</p>
+    {report.agentAttribution ? <p style={{overflowWrap:"anywhere"}}>Prepared by {report.agentAttribution.label}.</p> : null}
     <Button type="button" variant="secondary" disabled={busy || Boolean(data?.report) || dirty} onClick={draft}>Draft report</Button>
     <p>{data?.report || dirty ? "Keep editing your report. Drafting never replaces existing work." : "Draft a private report from the incident's alerts and published updates."}</p>
     {data?.review?.limitations.map((limitation) => <p key={limitation}>{limitation}</p>)}
