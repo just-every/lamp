@@ -6992,7 +6992,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "49102125e0c69ac4d25767bec46a23ea4f9121664ff118ca287cc9156b24fb09",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
