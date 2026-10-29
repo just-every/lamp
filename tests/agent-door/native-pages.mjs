@@ -47,7 +47,7 @@ export async function inspectNativePages({ request, origin, cookie }) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       const serious = (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze())
         .violations.filter(item => ['serious', 'critical'].includes(item.impact));
-      const smallControls = await page.locator('form[data-approval-action] button, form[data-agents-pause] button, :is(.incident-page, .maintenance-workspace, .agent-deliveries-page, #audit-log) :is(button, select, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), summary)').evaluateAll(buttons =>
+      const smallControls = await page.locator('button[data-approval-action], button[data-agents-pause], :is(.incident-page, .maintenance-workspace, .agent-deliveries-page, #audit-log) :is(button, select, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), summary)').evaluateAll(buttons =>
         buttons.filter(button => { const box = button.getBoundingClientRect(); return box.width > 0 && box.height > 0 && (box.width < 44 || box.height < 44); }).map(button => button.textContent));
       console.log(`PAGE_CHECK ${JSON.stringify({ label, width, overflow, serious: serious.map(item => item.id), smallControls })}`);
       if (!process.env.GITHUB_ACTIONS) console.log(`PAGE_IMAGE ${label}-${width} ${(await page.screenshot({ fullPage: !label.startsWith('agents-') })).toString('base64')}`);
@@ -64,7 +64,7 @@ export async function inspectNativePages({ request, origin, cookie }) {
     for (const width of [1440, 390]) {
       await view('agents-pending', '/agents', width);
       await view('approval-pending', `/agents/approvals/${pending.id}`, width);
-      const evidence = page.locator('form[data-approval-action="approve"] input[name="revision"]');
+      const evidence = page.locator('form:has(button[data-approval-action="approve"]) input[name="revision"]');
       assert.equal(await evidence.count(), 1);
       await evidence.evaluate(input => { input.value = '-1'; });
       await page.getByRole('button', { name: 'Approve', exact: true }).click();

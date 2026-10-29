@@ -8040,7 +8040,7 @@
       "executable": false
     },
     "tests/agent-door/native-pages.mjs": {
-      "sha256": "7e1aa91cee27b33ed047ea57ef9651f6ea26f4063ac7cf1fccadfe9719d2007d",
+      "sha256": "c50fd727f300676654ed035dc13a813fad66af52f6274b3b279fb8ef1403b0af",
       "executable": false
     },
     "tests/agent-door/owner-fixtures.mjs": {
