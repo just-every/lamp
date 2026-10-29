@@ -33,7 +33,7 @@ async function auditSubscriberEmails(messages) {
 /** Operator adds exercise the same public confirmation and real publication
  * doors as self-service consent, with recipient selection observed at Resend. */
 export async function subscriberAddFlow() {
-  const fixture = await openSubscriberManagementFixture();
+  const fixture = await openSubscriberManagementFixture({ workerEntry: 'tests/e2e/helpers/status-journey.worker.ts' });
   const { api, post, list, messagesFor } = fixture;
   try {
     const owner = (await api("/api/app/session")).body.operator;

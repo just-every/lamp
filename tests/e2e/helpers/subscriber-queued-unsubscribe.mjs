@@ -5,7 +5,10 @@ export async function subscriberQueuedUnsubscribe({ fixture, component, subscrib
   const { api, post, raw } = fixture;
   const unsubscribe = fixture.messagesFor(email).map(message => message.text.match(/https?:\/\/\S+\/unsubscribe\/\S+/)?.[0]).find(Boolean);
   assert.ok(unsubscribe, 'a delivered publication supplies the signed unsubscribe link');
-  assert.equal((await raw('/test/queue', { method: 'PUT', body: JSON.stringify({ outage: true }) })).status, 204);
+  // Pause the existing Worker effects boundary so both inline dispatch and the
+  // Queue consumer retain the committed recipient until the customer opts out.
+  const pause = async paused => assert.equal((await raw('/test/effects', { method: 'PUT', body: JSON.stringify({ paused }) })).status, 204);
+  await pause(true);
   try {
     const created = await post('/api/app/incidents', { title: 'Queued customer notification', components: [{ componentId: component.id, state: 'Partially unavailable', relationship: 'Primary' }] });
     assert.equal(created.status, 201, created.text);
@@ -21,11 +24,12 @@ export async function subscriberQueuedUnsubscribe({ fixture, component, subscrib
     const committed = await deliveries();
     assert.equal(committed.length, 1);
     assert.equal(committed[0].outcome, 'queued', 'the recipient was committed while the subscription was active');
+    assert.equal(committed[0].providerAcceptedAt, null, 'dispatch has not crossed the provider edge');
     const before = fixture.messagesFor(email).length;
     const stopped = await raw(unsubscribe, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: pageOrigin }, body: 'List-Unsubscribe=One-Click' });
     assert.equal(stopped.status, 200, await stopped.text());
     assert.equal((await fixture.list()).find(row => row.id === subscriberId).state, 'deactivated');
-    assert.equal((await raw('/test/queue', { method: 'PUT', body: JSON.stringify({ outage: false }) })).status, 204);
+    await pause(false);
     const followUps = await api('/api/app/overview/follow-ups');
     assert.equal(followUps.status, 200, followUps.text);
     for (const item of followUps.body.followUps.filter(row => row.kind === 'notification-dispatch')) {
@@ -36,6 +40,6 @@ export async function subscriberQueuedUnsubscribe({ fixture, component, subscrib
     assert.equal(suppressed[0].id, committed[0].id);
     assert.equal(fixture.messagesFor(email).length, before, 'no send occurs after the committed deactivation');
   } finally {
-    assert.equal((await raw('/test/queue', { method: 'PUT', body: JSON.stringify({ outage: false }) })).status, 204);
+    await pause(false);
   }
 }
