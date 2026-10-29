@@ -3116,15 +3116,15 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained.
+Judged from the code and tests at commit `31d3f4fe0d6240e2a676a2855bbd555acbd8c13d` (29 October 2026); INCIDENT-004 is rechecked on the landing candidate, which retains that proof and adds independent correction readback. Earlier clause judgments, including SUB-007 at `3dc898cb600137dab8979f671f0fbefb46d3419b`, remain inherited.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 9 | 98 | 0 | 107 |
+| Published | 10 | 97 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 18 | 171 | 54 | 243 |
+| All | 19 | 170 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3188,7 +3188,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `INCIDENT-001` | Lifecycle | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: Investigating; Identified; Resolved; starts Investigating; published lifecycle. Unasserted in old cited evidence: Monitoring; exactly one lifecycle; no unpublished lifecycle change. |
 | `INCIDENT-002` | Impact | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: peak impact; resolved peak impact. Unasserted in old cited evidence: no-component impact absent; no-component publication refused. |
 | `INCIDENT-003` | Reference | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts numeric reference; The numeric-reference permalink returns that incident’s title; increasing sequence; legacy reference unchanged. Unasserted: manual and intake share sequence; public address unchanged. |
-| `INCIDENT-004` | Published updates are immutable | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: original wording retained; correction identifies original; both updates retained. Unasserted in old cited evidence: published deletion refused; public publication order. |
+| `INCIDENT-004` | Published updates are immutable | published | done | `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): authenticated PUT and DELETE of the exact published update are refused, with complete native and persisted original update rows unchanged; correction publishes a distinct update with the exact correctsUpdateId and preserves all original fields; the public incident timeline associates distinctive original and correction wording with their exact publication instants in newest-first order. `tests/e2e/publishing-browser.test.mjs` (compiled visual edits and the operator publication journey): later publication preserves the complete original update. |  |
 | `INCIDENT-005` | Reopening | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: reopened lifecycle; resolution retained; reopening retained. Unasserted in old cited evidence: both public. |
 | `INCIDENT-006` | Overdue update | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: operator overdue; no public overdue label. Unasserted in old cited evidence: public committed time. |
 | `INCIDENT-007` | Deletion | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts missing reason refused. Unasserted: public page removal; history removal after demonstrated pre-deletion public visibility; Atom removal after demonstrated pre-deletion public visibility; ten-second removal; deletion actor; deletion reason; deletion time. |

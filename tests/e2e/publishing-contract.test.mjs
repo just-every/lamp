@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { parseFragment } from 'parse5';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
 import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
@@ -70,7 +71,8 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     }
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Major outage');
 
-    await saveReviewed(incident.id, { lifecycle: 'Monitoring', customerImpact: 'Payments are recovering.', componentChanges: [{ componentId: component.id, state: 'Degraded performance' }] });
+    const originalRecovery = { lifecycle: 'Monitoring', customerImpact: 'Payments are recovering.', details: 'The original recovery estimate is based on the first restored payment queue.' };
+    await saveReviewed(incident.id, { ...originalRecovery, componentChanges: [{ componentId: component.id, state: 'Degraded performance' }] });
     const monitoring = (await j.publish(incident.id)).update;
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Degraded performance');
     assert.equal((await j.read(incident.id)).impact, 'Major outage');
@@ -85,14 +87,51 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal(stale.status, 409);
 
     await owner();
-    await j.save(incident.id, { lifecycle: 'Monitoring', details: 'Corrected recovery wording.', nextUpdateAt: new Date(Date.now() - 60000).toISOString() });
+    const originalUpdates = (await j.read(incident.id)).updates;
+    const storedUpdates = async () => (await j.db.prepare('SELECT * FROM incident_updates WHERE incident_id = ? ORDER BY id').bind(incident.id).all()).results;
+    const originalRows = await storedUpdates();
+    assert.deepEqual(originalUpdates.map(update => update.id), [monitoring.id, first.id]);
+    assert.deepEqual(originalRows.map(row => row.id).sort(), [first.id, monitoring.id].sort());
+    for (const method of ['PUT', 'DELETE']) {
+      const refused = await j.request(`${endpoint}/updates/${monitoring.id}`, {
+        method, body: JSON.stringify({ ...wording, customerImpact: 'An unsafe rewrite must never replace the published recovery update.', nextUpdateAt: monitoring.nextUpdateAt }),
+      });
+      assert.equal(refused.status, 404, `${method} cannot mutate a published update`);
+      assert.deepEqual((await j.read(incident.id)).updates, originalUpdates, `${method} preserves every complete original update`);
+      assert.deepEqual(await storedUpdates(), originalRows, `${method} leaves all persisted publication fields unchanged`);
+    }
+    const correctedRecovery = { lifecycle: 'Monitoring', customerImpact: 'Payment retries are recovering more slowly than the first estimate.', details: 'Corrected recovery wording: the remaining payment queue is still draining.' };
+    await j.save(incident.id, { ...correctedRecovery, nextUpdateAt: new Date(Date.now() - 60000).toISOString() });
     await j.json(`${endpoint}/draft/correction`, 'POST', { updateId: monitoring.id });
     await review(incident.id);
     const corrected = (await j.publish(incident.id)).update;
     assert.equal(corrected.correctsUpdateId, monitoring.id);
     const correctedView = await j.read(incident.id);
+    const savedCorrection = correctedView.updates.find(row => row.id === corrected.id);
+    assert.equal(savedCorrection.correctsUpdateId, monitoring.id, 'the independently read publication identifies the original update');
+    assert.equal(savedCorrection.customerImpact, correctedRecovery.customerImpact);
+    assert.equal(savedCorrection.details, correctedRecovery.details);
     assert.deepEqual(correctedView.updates.find(row => row.id === first.id), first);
     assert.deepEqual(correctedView.updates.find(row => row.id === monitoring.id), monitoring);
+    assert.deepEqual((await storedUpdates()).filter(row => row.id !== corrected.id), originalRows, 'a correction adds a publication without rewriting any original field');
+    assert.notEqual(corrected.id, monitoring.id);
+    assert.ok(Date.parse(corrected.publishedAt) > Date.parse(monitoring.publishedAt));
+    assert.ok(Date.parse(monitoring.publishedAt) > Date.parse(first.publishedAt));
+    const timeline = await j.visible(`/incidents/${incident.reference}`, correctedRecovery.details);
+    const descendants = (node, predicate) => (node.childNodes ?? []).flatMap(child => [...(predicate(child) ? [child] : []), ...descendants(child, predicate)]);
+    const attribute = (node, name) => node.attrs?.find(attr => attr.name === name)?.value;
+    const text = node => node.nodeName === '#text' ? node.value : (node.childNodes ?? []).map(text).join('');
+    const articles = descendants(parseFragment(timeline), node => node.tagName === 'article' && attribute(node, 'class') === 'update');
+    const publicUpdates = articles.map(article => {
+      const head = descendants(article, node => attribute(node, 'class') === 'update-head')[0];
+      const fields = Object.fromEntries(descendants(article, node => node.tagName === 'div').filter(node => node.childNodes?.some(child => child.tagName === 'dt')).map(node => [text(node.childNodes.find(child => child.tagName === 'dt')), text(node.childNodes.find(child => child.tagName === 'dd'))]));
+      return { lifecycle: text(descendants(head, node => node.tagName === 'strong')[0]), publishedAt: attribute(descendants(head, node => node.tagName === 'time')[0], 'datetime'), customerImpact: fields['Customer impact'], details: fields['Additional details'] };
+    });
+    assert.deepEqual(publicUpdates, [
+      { ...correctedRecovery, publishedAt: corrected.publishedAt },
+      { ...originalRecovery, publishedAt: monitoring.publishedAt },
+      { lifecycle: wording.lifecycle, customerImpact: wording.customerImpact, details: wording.details, publishedAt: first.publishedAt },
+    ], 'the public timeline associates each complete original and correction with its exact publication instant, newest first');
     assert.equal(correctedView.overdue, true);
     assert.ok(!(await j.publicText(`/incidents/${incident.reference}`)).includes('overdue'));
 
