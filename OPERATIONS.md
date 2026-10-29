@@ -77,6 +77,10 @@ not put in the file, or put the new value in the file and add
 `LAMP_REPLACE_SECRETS=NAME` (comma-separated) for that one deploy. Replacing
 `SESSION_SECRET` signs every operator out, and replacing `SUBSCRIBER_TOKEN_SECRET`
 ends every emailed subscriber link. Each must contain at least 32 characters.
+`INSTALLATION_KEY` is separate custody for dependency identities: exactly 64
+lowercase hexadecimal characters. Native redeploys retain the current key and
+refuse its direct replacement through the rotation options above. Keep its
+private custody; `INSTALLATION_KEY_PREVIOUS` is never generated independently.
 For recovery, supply and keep your original secrets in the private file: a
 restore into a new installation needs the original session, subscriber and
 webhook secrets. Direct
