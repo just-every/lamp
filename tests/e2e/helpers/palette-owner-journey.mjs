@@ -34,6 +34,7 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     await context.addCookies([{ name: cookieName, value: sessionId, url: appUrl }]);
     const settings = await context.newPage();
     const publicPage = await context.newPage();
+    const themeCard = settings.locator('section[aria-labelledby="theme-title"]');
     const openSettings = async () => {
       await settings.goto(`${appUrl}/app/settings`, { waitUntil: 'domcontentloaded' });
       await operatorHydrated(settings);
@@ -74,7 +75,7 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     for (const width of [1440, 390]) {
       await settings.setViewportSize({ width, height: 1000 });
       await settings.locator('#theme-title').scrollIntoViewIfNeeded();
-      await settings.screenshot({ path: `${directory}/palette-on-${width}.png`, fullPage: true });
+      await themeCard.screenshot({ path: `${directory}/palette-on-${width}.png` });
     }
     let dialogs = 0;
     settings.on('dialog', async dialog => { dialogs++; await dialog.dismiss(); });
@@ -88,7 +89,7 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     for (const width of [1440, 390]) {
       await settings.setViewportSize({ width, height: 1000 });
       await settings.locator('#theme-title').scrollIntoViewIfNeeded();
-      await settings.screenshot({ path: `${directory}/palette-off-${width}.png`, fullPage: true });
+      await themeCard.screenshot({ path: `${directory}/palette-off-${width}.png` });
     }
     const layout = settings.locator('section[aria-labelledby="theme-title"] details').filter({ has: settings.locator(':scope > summary', { hasText: 'Layout and history' }) });
     await layout.locator('summary').click();

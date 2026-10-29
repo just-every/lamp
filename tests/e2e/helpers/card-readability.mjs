@@ -18,6 +18,14 @@ export async function cardReadability(page, { directory, name, dark = false }) {
     const channels = card.background.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [];
     assert.ok(channels.length === 3 && Math.max(...channels) < 100, `${name} ${card.type} keeps a dark card background: ${card.background}`);
   }
+  const disclosure = page.locator('.tl-fold > summary:visible').first();
+  if (await disclosure.count()) {
+    await disclosure.focus();
+    const focused = await disclosure.evaluate(element => ({ content: getComputedStyle(element, '::after').content, opacity: getComputedStyle(element, '::after').opacity }));
+    assert.notEqual(focused.content, 'none', `${name} history icon explains its action`);
+    assert.equal(focused.opacity, '1', `${name} history tooltip appears immediately on keyboard focus`);
+    await disclosure.evaluate(element => element.blur());
+  }
   const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
   const violations = results.violations.flatMap(rule => rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })));
   const typography = await page.locator('body *').evaluateAll(elements => elements.filter(element => {
