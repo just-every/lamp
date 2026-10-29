@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
-import { openStatusJourney } from './helpers/status-journey.mjs';
+import { eventually, openStatusJourney } from './helpers/status-journey.mjs';
 
 const aiEndpoint = 'https://ai.example.test/v1/chat/completions';
 
@@ -54,7 +54,9 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.equal(firing.error, null);
     const replay = await alert(payload); assert.equal(replay.status, 202); assert.equal((await replay.json()).incidentId, id);
     const changed = await alert({ ...payload, monitor: { ...payload.monitor, presentation: { summary: 'PRIVATE changed monitor wording' } } });
-    assert.equal(changed.status, 202); assert.equal((await changed.json()).incidentId, id);
+    assert.equal(changed.status, 202);
+    const changedResult = await changed.json();
+    assert.equal(changedResult.incidentId, id);
     const missingKey = await alert({ ...payload, monitor: { ...payload.monitor, identity: {} } });
     assert.equal(missingKey.status, 400);
     const invalid = await receipt((await missingKey.json()).receiptId);
@@ -92,7 +94,46 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.deepEqual((await j.read(id)).updates, before.updates);
     await j.publish(id);
     await j.visible(`/incidents/${before.reference}`, 'Some checkout requests fail.');
+    const settledPublication = () => eventually(async () => {
+      const work = await j.db.prepare('SELECT requested_revision, completed_revision FROM public_snapshot_work').first();
+      const building = await j.db.prepare("SELECT COUNT(*) AS n FROM snapshot_builds WHERE status = 'building'").first();
+      return work.requested_revision === work.completed_revision && building.n === 0;
+    }, Boolean, 'all requested publications finish before comparing recovery effects');
+    const publicSnapshot = async () => {
+      await settledPublication();
+      const bucket = await j.runtime.getR2Bucket('SNAPSHOTS');
+      const pointer = await (await bucket.get('snapshots/current.json')).json();
+      const bundle = await (await bucket.get(`snapshots/${pointer.version}/retained.json`)).json();
+      assert.equal(bundle.version, pointer.version);
+      assert.equal(bundle.generation, pointer.generation);
+      assert.equal(bundle.generatedAt, pointer.generatedAt);
+      const artifacts = bundle.artifacts.sort((a, b) => a.key.localeCompare(b.key));
+      assert.ok(artifacts.length > 0);
+      const responses = [];
+      for (const artifact of artifacts) {
+        let path = '/' + artifact.key;
+        if (artifact.key === 'page.html') path = '/';
+        else if (artifact.key === 'status.json') path = '/api/public/status';
+        else if (artifact.key === 'not-found.html') path = '/incidents/synthetic-lamp-missing';
+        else if (artifact.key.startsWith('aliases/')) path = decodeURIComponent(artifact.key.slice('aliases/'.length, -5));
+        else if (artifact.key.endsWith('.html')) path = path.slice(0, -5);
+        const collection = /^api\/public\/v1\/(components|incidents|maintenance)(?:\/([^/]+))?\.json$/.exec(artifact.key);
+        if (collection) path = `/api/public/v1/${collection[1]}${collection[2] ? `?cursor=${collection[2]}` : ''}`;
+        const response = await j.publicResponse(path);
+        assert.equal(response.status, artifact.key === 'not-found.html' ? 404 : artifact.contentType === 'application/vnd.lamp.redirect+json' ? 301 : 200, path);
+        responses.push({ path, bytes: Buffer.from(await response.arrayBuffer()), location: response.headers.get('Location'), version: response.headers.get('X-Lamp-Snapshot-Version'), generatedAt: response.headers.get('X-Lamp-Snapshot-Generated-At') });
+      }
+      for (const path of ['/', '/history', `/incidents/${before.reference}`, '/feed.atom', '/feed.rss', '/history.atom', '/history.rss', '/widget.js', '/embed/script.js', '/badge.svg', '/badge.json', '/api/public/status', '/api/public/v1/components', '/api/public/v1/incidents', '/api/public/v1/summary.json', '/api/v2/summary.json', '/api/v2/incidents.json']) {
+        assert.ok(responses.some(row => row.path === path), `populated recovery proof includes ${path}`);
+      }
+      return { pointer, artifacts, responses };
+    };
+    const beforeRecovery = await j.read(id);
+    assert.ok(beforeRecovery.updates.length > 0);
+    const publicBeforeRecovery = await publicSnapshot();
+    const recoveryStarted = Date.now();
     const recovered = await alert({ ...payload, monitor: { ...payload.monitor, health: { phase: 'service-restored' } } });
+    const recoveryFinished = Date.now();
     assert.equal(recovered.status, 202);
     const recoveredResult = await recovered.json();
     assert.equal(recoveredResult.incidentId, id);
@@ -101,6 +142,17 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.equal(recoveredReceipt.incidentId, id);
     assert.equal(recoveredReceipt.state, 'recovered');
     assert.equal(recoveredReceipt.error, null);
+    assert.equal(recoveredReceipt.recoveredAt, recoveredReceipt.receivedAt);
+    assert.ok(Date.parse(recoveredReceipt.recoveredAt) >= recoveryStarted && Date.parse(recoveredReceipt.recoveredAt) <= recoveryFinished, 'recovery time is the independently bounded receipt instant');
+    const recoveredFiring = await receipt(changedResult.receiptId);
+    assert.equal(recoveredFiring.state, 'firing');
+    assert.equal(recoveredFiring.deduplicationKey, 'checkout-outage');
+    assert.equal(recoveredFiring.incidentId, id);
+    assert.equal(recoveredFiring.recoveredAt, recoveredReceipt.recoveredAt);
+    const afterRecovery = await j.read(id);
+    assert.equal(afterRecovery.lifecycle, beforeRecovery.lifecycle);
+    assert.deepEqual(afterRecovery.updates, beforeRecovery.updates, 'generic recovery preserves every committed publication value');
+    assert.deepEqual(await publicSnapshot(), publicBeforeRecovery, 'generic recovery preserves the complete retained artifact inventory, generation and public response bytes');
     const recovery = (await j.json(`/api/app/incidents/${id}/recovery-check`)).recovery;
     assert.equal(recovery.passed, false);
     assert.ok(recovery.items.some(row => row.state === 'holding'));
