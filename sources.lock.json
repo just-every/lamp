@@ -452,7 +452,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "7d5d4824291bc5f61d8e5ecd804bdc6f9b5ed483660a310ecac933c45278cbee",
+      "sha256": "99b0fb89d00de75db53aff245a5302fe912bf54cddb3914b614b4e3c1feba65b",
       "executable": false
     },
     "AGENTS.md": {
@@ -4816,7 +4816,7 @@
       "executable": false
     },
     "src/core/features/agent-door/witness.repository.ts": {
-      "sha256": "6cb526b0eba16189efd32aa04036e88a027fafd2ff5b3563b239beb0e8005396",
+      "sha256": "f0f855d06c42c3073e0fa9a7ee1c29b68ebc3db0fe3984b27fd47a5c35fe7fd5",
       "executable": false
     },
     "src/core/features/agent-door/witness.ts": {
@@ -8056,7 +8056,7 @@
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
-      "sha256": "acddbd9f7590035a51c913ab73fc96e9f2416eedfdc10c96465e14a6e8071346",
+      "sha256": "ff73366956aa4914309a96982dcad0b096140908d1b40faafa63b8c350638994",
       "executable": false
     },
     "tests/agent-door/proof.mjs": {

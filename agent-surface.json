@@ -3885,8 +3885,8 @@
       "tool": "lamp.maintenance.remind",
       "args": {
         "id": {
-          "$from": "maintenance",
-          "pointer": "/maintenance/id"
+          "$fixture": "publicReminder",
+          "pointer": "/id"
         }
       },
       "expect": [

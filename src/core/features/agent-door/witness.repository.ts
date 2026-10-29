@@ -6,8 +6,10 @@ export function createAgentWitnessRepository(db: D1Database) {
     const records: Record<string, Array<{id: string; digest: string; event: {uri:string;type:string} | null}>> = {};
     for (const {name} of tables) {
       // Policy, credential-use counters and transport audits change during a
-      // refusal. The shared harness checks those separately.
-      if (/^(agent_door_|bs_|oa_sessions$|oa_tokens$|oa_rate_|d1_migrations$)/.test(name)) continue;
+      // refusal. The shared harness checks those separately. The private RPC
+      // transport retains refused job receipts too; its native effects remain
+      // in their original object, schedule and outbox tables below.
+      if (/^(agent_door_|bs_|oa_sessions$|oa_tokens$|oa_rate_|d1_migrations$|lamp_agent_jobs$)/.test(name)) continue;
       const quoted = '"' + name.replaceAll('"', '""') + '"';
       const rows = (await db.prepare(`SELECT * FROM ${quoted}`).all<Record<string, unknown>>()).results;
       records[name] = await Promise.all(rows.map(async row => {
