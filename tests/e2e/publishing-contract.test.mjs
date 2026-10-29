@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { parse } from 'parse5';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
 import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
@@ -137,17 +138,70 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     // incident on the component: replay must preserve the current claim.
     const live = await j.incident('Current payment investigation', [component]);
     await saveReviewed(live.id, {}); await j.publish(live.id);
-    const start = new Date(Date.now() - 2 * 365 * 86400000).toISOString();
-    const end = new Date(Date.parse(start) + 3600000).toISOString();
+    const settings = (await j.json('/api/app/page-settings')).settings;
+    await j.json('/api/app/page-settings', 'PUT', {
+      pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor,
+      hostname: settings.hostname, mailFromAddress: settings.mailFromAddress,
+      footerCreditEnabled: settings.footerCreditEnabled, timezone: 'America/Los_Angeles',
+    });
+    const start = '2020-07-14T23:17:00.000Z';
+    const end = '2020-07-15T00:23:00.000Z';
+    const investigatingImpact = 'Archived payment requests stalled during the original investigation.';
+    const resolvedImpact = 'Archived payment requests resumed after the original recovery.';
     const historical = await j.incident('Historical payment degradation', [component], { openedAt: start });
-    await saveReviewed(historical.id, { lifecycle: 'Investigating' }); await j.publish(historical.id, { publishedAt: start });
-    await saveReviewed(historical.id, { lifecycle: 'Resolved', nextUpdateAt: null }); await j.publish(historical.id, { publishedAt: end });
+    const historicalEndpoint = `/api/app/incidents/${historical.id}`;
+    await saveReviewed(historical.id, { lifecycle: 'Investigating', customerImpact: investigatingImpact, nextUpdateAt: '2020-07-14T23:47:00.000Z' });
+    const historicalStart = (await j.publish(historical.id, { publishedAt: start, channels: ['email'] })).update;
+    await saveReviewed(historical.id, { lifecycle: 'Resolved', customerImpact: resolvedImpact, nextUpdateAt: null });
+    const historicalEnd = (await j.publish(historical.id, { publishedAt: end, channels: ['email'] })).update;
+    assert.equal(historicalStart.publishedAt, start);
+    assert.equal(historicalEnd.publishedAt, end);
+    const archived = await j.read(historical.id);
+    assert.equal(archived.updates.find(row => row.id === historicalStart.id).publishedAt, start);
+    assert.equal(archived.updates.find(row => row.id === historicalEnd.id).publishedAt, end);
+
+    const elements = (node, tag) => [
+      ...(node.tagName === tag ? [node] : []),
+      ...(node.childNodes ?? []).flatMap(child => elements(child, tag)),
+    ];
+    const text = node => node.nodeName === '#text' ? node.value : (node.childNodes ?? []).map(text).join('');
+    for (const path of [`/incidents/${historical.reference}`, `/history/${start.slice(0, 7)}`]) {
+      const document = parse(await j.visible(path, resolvedImpact));
+      for (const [lifecycle, impact, instant, displayed] of [
+        ['Investigating', investigatingImpact, start, 'Jul 14, 2020, 16:17 UTC-07:00'],
+        ['Resolved', resolvedImpact, end, 'Jul 14, 2020, 17:23 UTC-07:00'],
+      ]) {
+        const articles = elements(document, 'article').filter(article =>
+          elements(article, 'article').length === 1
+          && elements(article, 'strong').some(label => text(label) === lifecycle)
+          && elements(article, 'dd').some(field => text(field) === impact));
+        assert.equal(articles.length, 1, `${path}: the distinctive ${lifecycle} update has its own article`);
+        const heading = articles[0].childNodes.find(node => elements(node, 'strong').some(label => text(label) === lifecycle));
+        const times = elements(heading, 'time');
+        assert.equal(times.length, 1, `${path}: ${lifecycle} has one publication time`);
+        assert.equal(times[0].attrs.find(attribute => attribute.name === 'datetime')?.value, instant, `${path}: ${lifecycle} retains its original instant`);
+        assert.equal(text(times[0]), displayed, `${path}: ${lifecycle} displays the original time in the configured zone`);
+      }
+    }
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Major outage');
+    const historicalStates = (await j.json(`/api/app/components/${component.id}/history`)).history.filter(row => row.causeType === 'incident' && row.causeId === historical.id);
+    assert.ok(historicalStates.some(row => row.changedAt === start && row.newState === 'Major outage'));
+    assert.ok(historicalStates.some(row => row.changedAt === end && row.newState === 'Operational'));
     const month = start.slice(0, 7);
     const availability = await j.json(`/api/app/availability-report?component=${component.id}&month=${month}&format=json`);
     assert.ok(availability.incidents.some(row => row.id === historical.id));
     assert.ok(Number(availability.downtimeMinutes) > 0);
+    assert.equal(Number(availability.downtimeMinutes), 66, 'the original 66-minute claim contributes to historical uptime');
     await j.visible(`/history/${start.slice(0, 7)}`, historical.title);
+    await saveReviewed(historical.id, { lifecycle: 'Monitoring', customerImpact: 'The archived incident received a current-time follow-up.' });
+    const currentFollowUp = (await j.publish(historical.id, { channels: ['email'] })).update;
+    assert.ok(Date.parse(currentFollowUp.publishedAt) > Date.parse(end));
+    await j.tick(Date.now());
+    const historicalReach = await j.json(`${historicalEndpoint}/reach`);
+    for (const update of [historicalStart, historicalEnd, currentFollowUp]) {
+      assert.equal(historicalReach.updates.find(row => row.updateId === update.id).channels.find(row => row.channel === 'email').committed, 0, 'historical incidents never commit subscriber notifications, including current-time follow-ups');
+    }
+    assert.ok(!j.messages.some(mail => mail.to.includes(subscriber) && mail.text.includes(historical.title)), 'the active subscriber receives no historical incident notification');
     const performance = await j.json(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}`);
     assert.ok(performance.incidents.some(row => row.incidentId === incident.id));
     assert.ok(performance.summary.commitments.evaluated > 0);

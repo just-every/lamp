@@ -7000,7 +7000,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "cde1f024f476d32e8c97b1dd26780f7cb34c89bb9ea860e93b921d7cb72f754c",
+      "sha256": "9f6e6036fb9384f3e4c8cb9b396e23f5ac358e701fef0d6a098c181550eb65b2",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {
