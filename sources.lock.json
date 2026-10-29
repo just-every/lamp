@@ -8080,7 +8080,7 @@
       "executable": false
     },
     "tests/agent-door/specialist.mjs": {
-      "sha256": "e06c165ddafae0373d4a309db9b5d128c217f4d60e6a7a9510c10aa47af749af",
+      "sha256": "af0f89707ab0996e8ad098651fd3ec86e36fc10638c2ae184980ee3a354cb003",
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
