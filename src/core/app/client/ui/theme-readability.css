@@ -1,0 +1,11 @@
+/* Public palette mode keeps overview captions readable without changing the
+   default dashboard or applying the owner's public colours to operator cards. */
+.operator-shell[data-palette-readable]:has(.overview-grid) .operator-identity small,
+.operator-shell[data-palette-readable]:has(.overview-grid) .communication-metrics small,
+.operator-shell[data-palette-readable]:has(.overview-grid) .record-row .state-pill {
+  font-size: 13px;
+}
+
+.settings-page section[aria-labelledby="theme-title"] .card-kicker {
+  font-size: 13px;
+}

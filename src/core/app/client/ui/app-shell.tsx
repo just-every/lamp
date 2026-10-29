@@ -13,6 +13,7 @@ import { ClientExtensionProvider } from "../extensions";
 import { FormError } from "./states";
 import { useVisitSnapshot } from "./visit-snapshot";
 import { mayLeave } from "./leave-guard";
+import "./theme-readability.css";
 
 type NavigationItem = {
   to: "/app" | "/app/page" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/deliveries" | "/app/alerts" | "/app/settings";
@@ -44,7 +45,7 @@ export function OperatorShell({ initialSession }: { initialSession: OperatorSess
 
 function OperatorWorkspace({ initialSession }: { initialSession: OperatorSessionView }) {
   const sessionRequest = useAppData<{ operator: StoredOperator; publicPageHost: string }>("/api/app/session");
-  const pageSettingsRequest = useAppData<{ settings: { timezone: string } }>("/api/app/page-settings");
+  const pageSettingsRequest = useAppData<{ settings: { timezone: string; theme: { paletteEnabled: boolean } } }>("/api/app/page-settings");
   useEffect(() => {
     const changed = () => pageSettingsRequest.refresh();
     window.addEventListener("lamp:page-settings-changed", changed);
@@ -95,7 +96,7 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
     <PageTimezoneContext.Provider value={pageSettingsRequest.data?.settings.timezone ?? initialSession.timezone}>
     <ClientExtensionProvider operatorId={operator.id}>
     <EditorLauncher authorized={operator.isSetupOperator && !sessionRequest.error} initialConfig={initialSession.data["/api/app/editor-config"]?.error ? undefined : initialSession.data["/api/app/editor-config"]?.data as EditorConfig | undefined} />
-    <div className="operator-shell" data-hydrated={hydrated || undefined}>
+    <div className="operator-shell" data-hydrated={hydrated || undefined} data-palette-readable={pageSettingsRequest.data?.settings.theme.paletteEnabled || undefined}>
       <aside className="operator-rail" aria-label="Operator navigation">
         <div className="operator-brand-row"><Brand /><button ref={menuButton} type="button" className="button button-secondary operator-menu-button" aria-expanded={menuOpen} aria-controls="operator-navigation-panel" onClick={() => setMenuOpen(open => !open)}>Menu</button></div>
         <div id="operator-navigation-panel" className={`operator-navigation-panel${menuOpen ? " is-open" : ""}`} onKeyDown={event => { if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); } }}>

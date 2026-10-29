@@ -146,6 +146,7 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
       await settings.setViewportSize({ width, height: 1000 });
       await settings.goto(`${appUrl}/app`);
       await operatorHydrated(settings);
+      await settings.locator('.operator-shell[data-palette-readable]').waitFor();
       await expect(settings.getByRole('region', { name: 'Active incidents', exact: true })).toContainText('Palette checkout availability');
       await expect(settings.getByText('Palette database maintenance', { exact: true })).toBeVisible();
       await cardReadability(settings, { directory, name: `dashboard-${width}` });
