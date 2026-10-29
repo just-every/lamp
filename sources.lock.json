@@ -6616,7 +6616,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "cb6196f68d5820be47bc5d4821592d7ec13d397cb682d7501fd275588b4061b2",
+      "sha256": "5301cd2e8cd185825e7e9e9d57fd446c894186756f234a3645042cfca0d995c4",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {

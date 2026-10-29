@@ -168,8 +168,9 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   assert.doesNotMatch(teamsBody, /\]\((?:javascript:|http:|data:|https:\/\/x\.test)/);
   assert.ok(teamsBody.includes("\\*\\*markdown\\*\\*"), "Teams keeps author markup literal");
   assert.ok(teamsBody.includes("javascript:alert\\(1\\)") && teamsBody.includes("data:text/html,x"), "Teams keeps other schemes literal");
-  assert.ok(teamsBody.includes("http://example\\.com/x"), "Teams keeps the HTTP scheme as literal text");
-  assert.ok(teamsBody.includes('&lt;a href=&quot;https://x\\.test&quot;&gt;x&lt;/a&gt;'), "Teams retains HTML markup as escaped literal text");
+  const teamsDetails = JSON.parse(teams[0].body).attachments[0].content.body.find(block => block.text.startsWith("Additional details: ")).text;
+  assert.ok(teamsDetails.includes("http://example\\.com/x"), "Teams keeps the HTTP scheme as literal text");
+  assert.ok(teamsDetails.includes('&lt;a href=&quot;https://x\\.test&quot;&gt;x&lt;/a&gt;'), "Teams retains HTML markup as escaped literal text");
   assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
   assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
   const channels = (await api("/api/app/channels")).body.channels;
