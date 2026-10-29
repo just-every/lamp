@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `31d3f4fe0d6240e2a676a2855bbd555acbd8c13d` (29 October 2026); INCIDENT-004 is rechecked on the landing candidate, which retains that proof and adds independent correction readback. Earlier clause judgments, including SUB-007 at `3dc898cb600137dab8979f671f0fbefb46d3419b`, remain inherited. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -454,7 +454,7 @@ Core · published · **partial**
 
 #### INCIDENT-004 — Published updates are immutable
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Corrections add to the public record without changing earlier wording.
 
@@ -463,8 +463,8 @@ Core · published · **partial**
 2. A correction is a new publication identifying the update it corrects.
 3. Original and correction remain on the public timeline in publication order.
 
-**Evidence.** `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: original wording retained; correction identifies original; both updates retained. Unasserted in old cited evidence: published deletion refused; public publication order.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): authenticated PUT and DELETE of the exact published update are refused, with complete native and persisted original update rows unchanged; correction publishes a distinct update with the exact correctsUpdateId and preserves all original fields; the public incident timeline associates distinctive original and correction wording with their exact publication instants in newest-first order. `tests/e2e/publishing-browser.test.mjs` (compiled visual edits and the operator publication journey): later publication preserves the complete original update.
+**Gap.** None.
 
 #### INCIDENT-005 — Reopening
 
