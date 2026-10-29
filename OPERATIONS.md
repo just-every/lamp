@@ -62,7 +62,7 @@ shell. The [deployment guide](docs/deploy.md#step-1-make-a-private-input-file) g
 file creation, contents and secret-generation commands. File values override the
 environment; this is a plain `KEY=VALUE` file, not a shell script.
 
-`rer deploy` generates `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`
+`rer deploy` generates `SETUP_TOKEN`, `SESSION_SECRET`, `INSTALLATION_KEY`, `SUBSCRIBER_TOKEN_SECRET`
 and `WEBHOOK_SIGNING_SECRET` when absent. These are required runtime bindings,
 not mandatory manual inputs for a first deploy. rer keeps the values it generates
 in `.rer/deploy/<environment>.secrets.env` (private, ignored by Git) and reuses

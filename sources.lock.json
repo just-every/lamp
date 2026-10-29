@@ -516,7 +516,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "5d9ddd5b6ef53a8e71e726fa3726384ef2f13ff3861f6fd964675fffdaa0191e",
+      "sha256": "f4ac360e3a8331cbb5f5357dab5718745b6fe52c49e42c3e6041814be92fea97",
       "executable": false
     },
     "docs/accessibility/vpat.md": {
@@ -2492,7 +2492,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "beeaf711c5f4ec1e68ef0433fbbe125bc915dcc7380e57aea579fc0bfe9baa90",
+      "sha256": "96ce243a2b574d462a0a476aad9700d4eb4ccf1b3cf308808341129ab3dfce3b",
       "executable": false
     },
     "package.json": {

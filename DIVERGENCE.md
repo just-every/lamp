@@ -1658,3 +1658,7 @@ installation having its generated key. No secret is derived from another binding
 the existing provider approval and native setup journeys cover the integration.
 New migration 0075 adds Base's sealed-custody marker and nonsecret key-id history
 to existing dependency installations without changing an applied migration.
+The setup manifest generates current custody and never generates a previous key.
+Local setup, hosted declarations and credential-free delivery metadata carry the
+same binding names; native deployment preserves an existing installation key.
+The provider-edge fixture reads public discovery/JWKS instead of private D1 keys.
