@@ -4949,10 +4949,6 @@
     "policy",
     "pause",
     "audit",
-    "idempotency",
-    "events",
-    "resources",
-    "prompts",
-    "subscriptions"
+    "idempotency"
   ]
 }

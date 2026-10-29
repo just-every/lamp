@@ -4,10 +4,10 @@ Import portable delivery, signed webhook, token and D1 APIs from `./index.ts`.
 Import Node adapters explicitly from `./sqlite.ts` and `./node-transport.ts`.
 Node 26 is the tested runtime; no runtime npm dependency is needed.
 
-The [consumer guide](../README.md) contains fresh SQLite migration, enqueue and
+The [consumer guide](https://github.com/runeditrun/base/blob/main/modules/integrations/README.md) contains fresh SQLite migration, enqueue and
 Worker scheduling examples. The [public contract](CONTRACT.md) defines exact
 HMAC framing, retry outcomes, durable replay and same-database token authority.
-The [receiver guide](../receiver.md) supplies executable Node and Fetch receiver
+The [receiver guide](https://github.com/runeditrun/base/blob/main/modules/integrations/receiver.md) supplies executable Node and Fetch receiver
 boundaries that verify original bytes before claiming replay identities.
 
 Apply `schema.sql` once through the application's numbered migration ledger.

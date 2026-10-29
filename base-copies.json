@@ -4,106 +4,133 @@
     {
       "path": ".github/workflows/run-demo.yml",
       "originPath": "export/run-demo.yml",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         ".github/workflows/run-demo.yml": "41365ec7c002e9451166313b085f9e64ed2e3ea002c27f3d5ead845bc9c302b2"
       },
       "modes": {
         ".github/workflows/run-demo.yml": "100644"
-      }
+      },
+      "originFiles": [
+        "export/run-demo.yml"
+      ]
     },
     {
       "path": ".github/workflows/run-site.yml",
       "originPath": "export/run-site.yml",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         ".github/workflows/run-site.yml": "ef3626b149bbfd6220659264f072b83d63800c2de5c137910fe77426aaaea103"
       },
       "modes": {
         ".github/workflows/run-site.yml": "100644"
-      }
+      },
+      "originFiles": [
+        "export/run-site.yml"
+      ]
     },
     {
       "path": ".node-version",
       "originPath": "default-seed/.node-version",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         ".node-version": "a0e27aeeac42d6102f4ff2bce40d8fb011c07e5cb28eff3c9d77e68df29e5dd6"
       },
       "modes": {
         ".node-version": "100644"
-      }
+      },
+      "originFiles": [
+        "default-seed/.node-version"
+      ]
     },
     {
       "path": "BASELINE.md",
       "originPath": "export/BASELINE.md",
-      "revision": "0fe27af9a5cb1bd9dc5e41da024784082e609010",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "BASELINE.md": "7edf11ce7f54181e40afcf424209b9527bd1e0f7cf6fee7bf84d7811f082042f"
+        "BASELINE.md": "c94f7e8f2ff6974ba0240fe7c12a23649d7e37501c970b04d37bd25ffb8a5f02"
       },
       "modes": {
         "BASELINE.md": "100644"
-      }
+      },
+      "originFiles": [
+        "export/BASELINE.md"
+      ]
     },
     {
       "path": "CLAUDE.md",
       "originPath": "export/CLAUDE.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
       },
       "modes": {
         "CLAUDE.md": "100644"
-      }
+      },
+      "originFiles": [
+        "export/CLAUDE.md"
+      ]
     },
     {
       "path": "composition/modules/owner-migrations/LICENSE",
       "originPath": "LICENSE",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "composition/modules/owner-migrations/LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324"
       },
       "modes": {
         "composition/modules/owner-migrations/LICENSE": "100644"
-      }
+      },
+      "originFiles": [
+        "LICENSE"
+      ]
     },
     {
       "path": "composition/modules/owner-migrations/README.md",
       "originPath": "deployment/OWNER-MIGRATIONS.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "composition/modules/owner-migrations/README.md": "b6829b3bbd31a5aa6a3aa0aad9d213ca64dfc478174df26241c022e4f1eea6ac"
       },
       "modes": {
         "composition/modules/owner-migrations/README.md": "100644"
-      }
+      },
+      "originFiles": [
+        "deployment/OWNER-MIGRATIONS.md"
+      ]
     },
     {
       "path": "composition/modules/sendgrid-email/LICENSE",
       "originPath": "modules/sendgrid-email/LICENSE",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "composition/modules/sendgrid-email/LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324"
       },
       "modes": {
         "composition/modules/sendgrid-email/LICENSE": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/sendgrid-email/LICENSE"
+      ]
     },
     {
       "path": "composition/modules/sendgrid-email/README.md",
       "originPath": "modules/sendgrid-email/README.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "composition/modules/sendgrid-email/README.md": "4e2ed1aaf568098eb48883ec8e763aea01d1df915e7060ad434d22b2240ede8c"
       },
       "modes": {
         "composition/modules/sendgrid-email/README.md": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/sendgrid-email/README.md"
+      ]
     },
     {
       "path": "foundation/runtime/icon-head.ts",
       "originPath": "foundation/runtime/icon-head.ts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "foundation/runtime/icon-head.ts": "ce4fa9ca48534d926469829abd372d1c81c6de31fb18cb4df567bc84a598e86f"
       },
@@ -117,7 +144,7 @@
     {
       "path": "foundation/runtime/theme-frame.ts",
       "originPath": "foundation/runtime/theme-frame.ts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "foundation/runtime/theme-frame.ts": "70d2024eae2a29772e577924dc2542e33685ef25b4f99d32aa12b6f8540dce0b"
       },
@@ -131,21 +158,24 @@
     {
       "path": "LICENSE",
       "originPath": "LICENSE",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324"
       },
       "modes": {
         "LICENSE": "100644"
-      }
+      },
+      "originFiles": [
+        "LICENSE"
+      ]
     },
     {
       "path": "modules/agent-door",
       "originPath": "modules/agent-door",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/agent-door/admission.ts": "c67ee28a1ae61b963619ffc64807baaa37b618aec41d6a2d90f1852f5beebf9e",
-        "modules/agent-door/ADOPTING.md": "7c52cbdbc2f76db48205f58eeb3168020fcfb21e8eea3d7af9da9ab9fce6c4c1",
+        "modules/agent-door/ADOPTING.md": "f92e6df2b1c61ff752c21e513d6146421cacdac2edaedf229ddf6d7b573348dc",
         "modules/agent-door/approval-execution.ts": "184b7fd7f016fb58121746873f4bf8fab621c4d09a1a00e61cf53eedad2fc3b3",
         "modules/agent-door/approvals.ts": "45757936fac519de054ca754fd45ea3e6def75f18f1e71cb6a651e6451bf767c",
         "modules/agent-door/audit.ts": "cb45fb29821cfa9fd544198154dde76efb0d3c2800e264a318282fdb622e7725",
@@ -197,7 +227,7 @@
         "modules/agent-door/pages.ts": "a7feefe27dbdffa0b8e0c09fda373f3f89620fc3d78ce77febca67585d4ac716",
         "modules/agent-door/people.ts": "b9aeb6c3190be3b4ca1f38345a55634cc7e34eda671f0467839b005406e4ac9e",
         "modules/agent-door/person-doors.ts": "ae6ca4f854809578d3b3402a9779a0dc4def0ff1a887d9dc3b8ec924e644b190",
-        "modules/agent-door/pipeline.ts": "90641d220b2a752b3496bf50935df4d17840cd5844885cef72bcc8e7ee3d982e",
+        "modules/agent-door/pipeline.ts": "2318f7d8410c765c5768a2b9275c744be85dd93d4021c457d39485fe98a59293",
         "modules/agent-door/policy-store.ts": "79caa78b1afd31e960aafe7a3eaf848ab17ca7c18116a3deea253d8c022304c9",
         "modules/agent-door/policy/catalogue.ts": "7c15685b0f2a308da0cc6645f066dd8e64948c1da582550b387f69c230f8d179",
         "modules/agent-door/policy/decide.ts": "b88c4b049a3000b5a823178ea400b9d097fcdb45a54c3f3a2c0b2ff7bbbc864d",
@@ -219,10 +249,11 @@
         "modules/agent-door/tests/identity.test.ts": "62680421ec3a37382e73ce61c54b4801bb0af85786b45a9d0da2efc1c0454998",
         "modules/agent-door/tests/principal.test.ts": "c6db7161be6d25e20f221b28617a290e6394090923478133852853883932018d",
         "modules/agent-door/tests/queued-context.test.ts": "8b6abdbd1fbc00a30aafd59f742d6e0800be8becf15eed1b10a6f645cbf71daf",
+        "modules/agent-door/tests/read-replay.test.ts": "82cc86e0d5fc2e69d4c1e94d9661c4d719926ee5324e375ac92389159379d258",
         "modules/agent-door/tests/revision-probes.fixture.mjs": "75d4c1ea7f0e24ecedb7a960378a693d16f4ead5041cedd234a71152a296e1cd",
-        "modules/agent-door/tests/runtime.mjs": "b2651541158bc28bf6c5f33a75ed7839c90e600d4082f55d0bc8cf5f275021cd",
+        "modules/agent-door/tests/runtime.mjs": "a3e98a42cd2cb0b498c5dbdb9c0a6a5a0547f3681e7f475d15be4b6bc8fab96e",
         "modules/agent-door/tests/schema.test.ts": "99beb7bad64492ae63b02ac15797d535a62f425e66570b1da3504fe37797c29d",
-        "modules/agent-door/tests/seed.ts": "9b7bc81796964182d0654fd92f4a9283b47d1c48fbdf961becd75ef3396e98cf",
+        "modules/agent-door/tests/seed.ts": "903ac2dddec9681f83e792be16bd3684246f8e56bc0606711deb09219c67eb9c",
         "modules/agent-door/tests/sponsor-surface.fixture.mjs": "696a36f644946b9006805bde08bd11d9473042d0ad2143a61166dbe13180f202",
         "modules/agent-door/tests/sponsor-surface.test.ts": "3adf1bee0f81ab569da915734fe65bf0b412c203895febbfd30e892d5066e7de",
         "modules/agent-door/tests/sponsor-tools.ts": "53cb783d2fed4474fe913586225e1ff0c1560c49937d367c7c62f31e4e9eda90",
@@ -309,6 +340,7 @@
         "modules/agent-door/tests/identity.test.ts": "100644",
         "modules/agent-door/tests/principal.test.ts": "100644",
         "modules/agent-door/tests/queued-context.test.ts": "100644",
+        "modules/agent-door/tests/read-replay.test.ts": "100644",
         "modules/agent-door/tests/revision-probes.fixture.mjs": "100644",
         "modules/agent-door/tests/runtime.mjs": "100644",
         "modules/agent-door/tests/schema.test.ts": "100644",
@@ -399,6 +431,7 @@
         "modules/agent-door/tests/identity.test.ts",
         "modules/agent-door/tests/principal.test.ts",
         "modules/agent-door/tests/queued-context.test.ts",
+        "modules/agent-door/tests/read-replay.test.ts",
         "modules/agent-door/tests/revision-probes.fixture.mjs",
         "modules/agent-door/tests/runtime.mjs",
         "modules/agent-door/tests/schema.test.ts",
@@ -417,7 +450,7 @@
     {
       "path": "modules/business-settings",
       "originPath": "modules/business-settings",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/business-settings/ADOPTING.md": "5d7383182eb0ca92ce53b51d93f0199412366873ba7281cc0610857f76e77884",
         "modules/business-settings/apply.ts": "037784c7d783c36577d351c9a6bddab5780393e192883ec08616a4d480e9df48",
@@ -479,49 +512,81 @@
     {
       "path": "modules/d1-transport",
       "originPath": "modules/d1-transport",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/d1-transport/index.d.mts": "b1dcfba529210c9237fa257faa0da8c9062bef946961ba8edeb8af7e171611f3",
-        "modules/d1-transport/index.mjs": "a8a79a0c2673536e221facd892e688000bfae71485d864b4fff9801eb7aaf4a9"
+        "modules/d1-transport/index.mjs": "f3de81d8dc2726fca11d401a73edfad6a5f9efc42aa6cd3d63bd3b25be26d2a6"
       },
       "modes": {
         "modules/d1-transport/index.d.mts": "100644",
         "modules/d1-transport/index.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/d1-transport/index.d.mts",
+        "modules/d1-transport/index.mjs"
+      ]
     },
     {
       "path": "modules/demo",
       "originPath": "modules/demo",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
+        "modules/demo/declaration.mjs": "5ae8b487b46ac8483594fa96bd93b3ff1bfdaf8bec6c2d6c8ea945b21cd78c3d",
         "modules/demo/effects.mjs": "e74d46fec165fdb5eafc62e53d6691e3064d5b9b5257c53f3cd6dd9a40386226",
         "modules/demo/index.d.mts": "71caa39f5001ab8bd2891ae5bdb9bf1ab4910c121fb038d83ae549adaf8fcf10",
         "modules/demo/index.mjs": "a90f58afaf7d7d54121f1e49746a51631c1b12c603e44edba81b1570eaa68d96",
-        "modules/demo/label.d.mts": "96a4692d568cfb6fd5593c9d7d4296bced338e0f54c2d17f80ae1da105287285",
-        "modules/demo/label.mjs": "5a879dba78bcebfa5f12ce79856998ac1f54706955a0346b94babed7da5a8cf5",
-        "modules/demo/README.md": "8fb9b98295fa59c8d4bdd6bd0d0b9940dc1113bb4a6d01813e76b5c878a445fc",
+        "modules/demo/input-path.mjs": "8af0b0ef529dfd70ac9f8152c55719776a718ccf2a6501603d852b627cfcca5a",
+        "modules/demo/label.d.mts": "f6f859527d589be2104a82348adfce8bfc8f59076e49e5e545c4274be6af4918",
+        "modules/demo/label.mjs": "7ca757507f3d3495a8777f3058dfa55d946b1656d6e31bec1c9c774dde1f3fb3",
+        "modules/demo/navigation.mjs": "7fdcc00237d250934c8e9963534c062baa2d326f2de28aacdeb5021841cfca00",
+        "modules/demo/README.md": "9af51ce8172da9bfd34f45e5670c8abd56c6c7d5bbc2aabbc47a19fb45543e11",
         "modules/demo/responses.mjs": "f91b6cb14dfde5c30750e6d248820f7218a855353e43e2defbc10fcc25fedc5d",
+        "modules/demo/run-url.mjs": "b8726c289cb528cde1b885133d138113884ef445358b3a7a1659864e67caa561",
         "modules/demo/sockets.mjs": "af88b298b721b3b2a9fe2425b9a8b7c95d842f28b56b3c48cf4366226ec90389",
-        "modules/demo/vite.d.mts": "f43b152b4a993feaf96afdbc276922bfa20d64725ea0150a12ec6ec805a7c7b3",
-        "modules/demo/vite.mjs": "e38556e50c954814ee8e12278babd627d5cdd051a7ea2c242a61d6c5d84d12f8"
+        "modules/demo/vite.d.mts": "6dc5833ed7bd9b1f60813bde8735cdc73d375afdeca4979105f1608ecba403b7",
+        "modules/demo/vite.mjs": "eacc84b40a8d61e07d121ebf9b35e79d176cbe2977fe745bb654d90bc726976a"
       },
       "modes": {
+        "modules/demo/declaration.mjs": "100644",
         "modules/demo/effects.mjs": "100644",
         "modules/demo/index.d.mts": "100644",
         "modules/demo/index.mjs": "100644",
+        "modules/demo/input-path.mjs": "100644",
         "modules/demo/label.d.mts": "100644",
         "modules/demo/label.mjs": "100644",
+        "modules/demo/navigation.mjs": "100644",
         "modules/demo/README.md": "100644",
         "modules/demo/responses.mjs": "100644",
+        "modules/demo/run-url.mjs": "100644",
         "modules/demo/sockets.mjs": "100644",
         "modules/demo/vite.d.mts": "100644",
         "modules/demo/vite.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/demo/README.md",
+        "modules/demo/declaration.mjs",
+        "modules/demo/effects.mjs",
+        "modules/demo/index.d.mts",
+        "modules/demo/index.mjs",
+        "modules/demo/input-path.mjs",
+        "modules/demo/label.d.mts",
+        "modules/demo/label.mjs",
+        "modules/demo/navigation.mjs",
+        "modules/demo/responses.mjs",
+        "modules/demo/run-url.mjs",
+        "modules/demo/sockets.mjs",
+        "modules/demo/tests/effects.test.ts",
+        "modules/demo/tests/fixture.mjs",
+        "modules/demo/tests/label.test.ts",
+        "modules/demo/tests/navigation.test.ts",
+        "modules/demo/vite.d.mts",
+        "modules/demo/vite.mjs"
+      ]
     },
     {
       "path": "modules/dependencies",
       "originPath": "modules/dependencies",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/dependencies/approval.mjs": "7398c2f5ec6c8505f7fa24d5fab7848967dfb3f61720892d1f31494a68237a69",
         "modules/dependencies/auth.mjs": "e1a7f9877f03a3f3e3e7d72485ee65a20610a13e4a3ab9540d9facbdc6e766e1",
@@ -604,29 +669,35 @@
     {
       "path": "modules/import-kit/CONTRACT.md",
       "originPath": "modules/import-kit/CONTRACT.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/CONTRACT.md": "dc310d9c91e9b8eca857e5b1a3539694ecb43675ceadc44e8233078839d597ce"
       },
       "modes": {
         "modules/import-kit/CONTRACT.md": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/CONTRACT.md"
+      ]
     },
     {
       "path": "modules/import-kit/README.md",
       "originPath": "modules/import-kit/README.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "modules/import-kit/README.md": "64305ae9baf79d9531db7822a4282152b0d63a6b9c41bba61d8ff0c1c27257a3"
+        "modules/import-kit/README.md": "e5519c2754901085ab4ec6d52ce50f6cf6bc127fa8c206b0d4a0ea44e0e01337"
       },
       "modes": {
         "modules/import-kit/README.md": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/README.md"
+      ]
     },
     {
       "path": "modules/import-kit/schema",
       "originPath": "modules/import-kit/schema",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/schema/importer-verification-receipt.schema.json": "710740a418fbd1fda5dd7a9017c247040c2bef98a6eadbec2a59220a5afa0ae7",
         "modules/import-kit/schema/importers.schema.json": "70ffac46763ab493388cad8fb0bc40946be819b8e8036274a7bff30cf3b4d9c3"
@@ -634,20 +705,27 @@
       "modes": {
         "modules/import-kit/schema/importer-verification-receipt.schema.json": "100644",
         "modules/import-kit/schema/importers.schema.json": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/schema/importer-verification-receipt.schema.json",
+        "modules/import-kit/schema/importers.schema.json"
+      ]
     },
     {
       "path": "modules/import-kit/src/d1",
       "originPath": "modules/import-kit/src/d1",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "modules/import-kit/src/d1/apply.ts": "68ef23214fa11ca8fed729e4ef38661be5a7d3d14415c04cd6ab7d271839ce52",
-        "modules/import-kit/src/d1/budget.ts": "b555798bf820bafbbe1e1162f8fb4432dcd9f7037304f0fe63aa5cd12443410b",
-        "modules/import-kit/src/d1/compressed-plan.ts": "b96a798a51902178361933ac2509a7ccb549c932a778a7c3662b604f3b7a1430",
-        "modules/import-kit/src/d1/creation.ts": "8f860e99f638efa3bb450da9ad1c8b975808034927639412e4a90f94d2864a7c",
+        "modules/import-kit/src/d1/apply-effects.ts": "4d384011459557e64530728be72fc309e1c6f8e2419ae04b9cb1af29923dd553",
+        "modules/import-kit/src/d1/apply.ts": "ca224ce45e3df9b35a9dc675e72d14b29d3c840a27fbf5d63b71c7ab6638f5cd",
+        "modules/import-kit/src/d1/atomic-prefix.ts": "1be9a47574fb33666d0e5e6f1a71e8c50cfb923cc3214c7642ea0358b0e505b5",
+        "modules/import-kit/src/d1/budget.ts": "287300276449bc7a4a7e28d351d033cdf15c5c9a0d63be3067d4d9746e51ebc2",
+        "modules/import-kit/src/d1/column-layout.ts": "411277a146a5237d1ab13edc366761ddfd7352d9f26b91e0c52d5fea31077bad",
+        "modules/import-kit/src/d1/compressed-plan.ts": "c99ab903f40fd0a8b1ed722adfa9a072610ca369f21007d86e372fddd15c2812",
+        "modules/import-kit/src/d1/creation.ts": "9d7ffc3a673dc812b2a7a2a6cbece552e0f6ea36abbf89800fc85d8e36a23471",
         "modules/import-kit/src/d1/custody-fence.ts": "22b2a06ecda5f93a551985411941352454e0c6bfe8b5d915a982188ada494dcd",
         "modules/import-kit/src/d1/custody-state-schema.ts": "384d12266379b4efdb3a7171756777c26930a86bc4e8a259c446ebf08896bf98",
-        "modules/import-kit/src/d1/database.ts": "a21b6602f1727a016febdcf1adbc5c758b558dacb571b6f8dc8fc84f04d8e484",
+        "modules/import-kit/src/d1/database.ts": "8551fc65186feffbfcd65662f0ce7caa3625efb1b1c5309f4870a7b552b57fd7",
         "modules/import-kit/src/d1/entry-locator.ts": "b758e00dfd10785762c2d65e4368d89e552c12886f386e849ef78b46f8a60b27",
         "modules/import-kit/src/d1/erased-artifacts.ts": "e2766643f0653bef87672698295be3aecf9fd221f0455bba629de9c9503878bd",
         "modules/import-kit/src/d1/erased-custody.ts": "64792af544f4f618a5aaed4c5fefcd29db137a47f9aff53d2c70635aa24ab5cc",
@@ -659,7 +737,7 @@
         "modules/import-kit/src/d1/erasure-disposition.ts": "d6edd39b94d4c063845d92f11ff435dd4f76898588f2d386b2d383e0df0cf045",
         "modules/import-kit/src/d1/erasure-fragments.ts": "ae89ece94abd237ce2ebc5776988a0832e2156c39b8bf827a795f77ccee4151f",
         "modules/import-kit/src/d1/erasure-index.ts": "995f8641fff4a7f2060a145be38fc13c7852b8093ea392d1f197936743e16cb4",
-        "modules/import-kit/src/d1/erasure-pages.ts": "0224a40b3466a1b61f5b226ae614f7db8d160bbecfad9470c900de88c706f698",
+        "modules/import-kit/src/d1/erasure-pages.ts": "f6471fb5d3467d2df8bf62cf78a003672ded6dbbfdee949dd0409f479a4f9285",
         "modules/import-kit/src/d1/erasure-progress-schema.ts": "cf0650ba10181b80244a4e5aaf4029afae7863098b02b04c2a270544f6a13c61",
         "modules/import-kit/src/d1/erasure-progress.ts": "e47ba101cf7359649eb792e80d1673ccab0bea1b81ddeee5be3ff2f94375418a",
         "modules/import-kit/src/d1/erasure-related.ts": "c07448313510c116c9f2fc96d1d35a415674f284700257bfafadcc94c6dd1f1a",
@@ -672,16 +750,16 @@
         "modules/import-kit/src/d1/erasure-superseded.ts": "c4323c1d8af17120150ce1a526d655c603d7ee28f2c72de8c34c6f9199a46b81",
         "modules/import-kit/src/d1/erasure-values.ts": "57ccad1fc84f020c6b8d4d8bed2d2018028455961e38bc793acc5f27865094fe",
         "modules/import-kit/src/d1/erasure-writes.ts": "2dc08bead90f4ff95fb338f70eb14aef27d31c14bd474dfb0c71dbd0db8ee084",
-        "modules/import-kit/src/d1/erasure.ts": "c9b9c0d7aa9795a53c3ef7cf0aca52f349782132318d44037262d59025d0520f",
+        "modules/import-kit/src/d1/erasure.ts": "74b6eb164ac2df0091514bc4faf6871eb8088c77fcbfdba26bee17ff256ae1cf",
         "modules/import-kit/src/d1/evolutions/0001-preserved-undo.ts": "8def72f17f375aeddfc3fabd4c3756fc26f4e1fed492cd70cf821d48847e0fe1",
-        "modules/import-kit/src/d1/expected-state.ts": "bd5b5bc97ee20b910646161186717418951da673a4c294e09e75653c98892df0",
+        "modules/import-kit/src/d1/expected-state.ts": "d7089d28f22ddba823e6edd682d6caca3d025372d8d735976c36fd2066725725",
         "modules/import-kit/src/d1/field-redaction.ts": "f7320418e95c0cba58048e526e561b567739b263f6e66299cc159d060fd3566f",
         "modules/import-kit/src/d1/guards.ts": "7f8c7d43a1d5f41d88017a24435d88f9c7b5cb58140ca8d9d0a343697ec09e44",
         "modules/import-kit/src/d1/history.ts": "6d4e90a5fa63146a8ad1ee968d4f2e5f5584af7740ec05fb45d1c2c701aebcf4",
-        "modules/import-kit/src/d1/index.ts": "700b2a694780cce4b4aa87a48a69fe13f5d7bdae5b712a8783d45c4e7c343f11",
-        "modules/import-kit/src/d1/integrity.ts": "bca91ca3bf5d9a1b868a8f53a9989dee12ddfa69c1b6edee10a9ee84d51c6b14",
+        "modules/import-kit/src/d1/index.ts": "ce9ad37e046ddd6fc67a21950c0950ab357f8d9fedf2823bb1876771e266d66c",
+        "modules/import-kit/src/d1/integrity.ts": "3f06bf5e3b759bad974088bd41d4667d82adae6e558c69b9c56593f56a9a93ba",
         "modules/import-kit/src/d1/inventory-snapshot.ts": "687f41c9ef55f372e4af0e1c63a70945a9808036d118acfe97978f9c6ec04d6f",
-        "modules/import-kit/src/d1/jobs.ts": "2823ebd50ea2d2adbaaf52394a6c8a4f414e051241eb716e77bdcbe7344cdc07",
+        "modules/import-kit/src/d1/jobs.ts": "c92f901e0e1dd26e1223e8ea297a9f01a786d3791f6638673f86f42656ef6e68",
         "modules/import-kit/src/d1/native-set.ts": "508634ed4bf44d4f14f44f5d55444a654d56ee37fac14fec49d093f71c136fcd",
         "modules/import-kit/src/d1/native-staging-admission.ts": "3ef2ca0bc8e8f2f64d68606f8d61de78cdc1daf8b762cc5952eb05514cb052a7",
         "modules/import-kit/src/d1/native-staging-context.ts": "726735c573ba08a308dfb89d50c5be63eb88dfb98e027be180db54032337535d",
@@ -693,10 +771,10 @@
         "modules/import-kit/src/d1/native-staging-state.ts": "d68629de82451055aa022c57131a5fec4db53762b37a6f792c12f74fdddc1ed3",
         "modules/import-kit/src/d1/native-staging.ts": "5a91f76b297f059108622c18628fc5d23c0ca8dec01362cf5b5a8096e066573f",
         "modules/import-kit/src/d1/original-copies.ts": "1c4d830a36c4a7300879dd842daff3b185b2d14caf6372141144e6c4c74adef6",
-        "modules/import-kit/src/d1/original-storage.ts": "48838aef6291fdf3a6b9108bd4ea80664c157064209e5aadccad6b6d65df968e",
-        "modules/import-kit/src/d1/originals.ts": "a28d07b21afba1f50bb272d709b540db1bbde728559a6c441d1e7540860af8a1",
+        "modules/import-kit/src/d1/original-storage.ts": "affe636899b54d99cd5e383d7b3d6a55f3469f1808de3dc14788df43c6d10387",
+        "modules/import-kit/src/d1/originals.ts": "2419e873aec0f9ff8556e91caeccc321b37456d28474ee1225a703d671772ef7",
         "modules/import-kit/src/d1/plan-dictionary.ts": "408ba1ffeb295efc67fae52759da284e2eea627b21a00331d391868ded195782",
-        "modules/import-kit/src/d1/plans.ts": "9c1ffe0aac6c699ef8db2a56372a79451291a6057a82f1d86123d4fbbd42ceb1",
+        "modules/import-kit/src/d1/plans.ts": "1601f76d14db9ea8b0c7e11e6d9b59469292c197be8c10e335cad97927a62b13",
         "modules/import-kit/src/d1/preparation-fingerprint.ts": "566ffe073ab090265cf3d2d745bad012d355e41bbe3cb454c486824ec6bf9e8c",
         "modules/import-kit/src/d1/preparation-header.ts": "9b9f7a678ee0bdfd596bb6e9812c8b018c6b137c4e5e14f1521650250a2469b9",
         "modules/import-kit/src/d1/preparation-reader.ts": "4f0a152f7c2a16e0d52eb60260e3fc6213c918accf0cda21d2b7fd7a1e98d0c7",
@@ -709,17 +787,18 @@
         "modules/import-kit/src/d1/preparation-steps-schema.ts": "b085e0b64abc7b045178ed2e27c0a77db2766b668150f8acf3c6191547237888",
         "modules/import-kit/src/d1/preparation-steps.ts": "d23442e368506740ce0acbfdf1f44c4934f2735db445965c290d30eaa421bb7c",
         "modules/import-kit/src/d1/preparations.ts": "3e674caf01c9f104df6bc038563018dfcbac4f25c0e1fe87ddafd7ac94f7d4d2",
+        "modules/import-kit/src/d1/preserved-preview.ts": "8ee7999f369bd062aefe57bf3992c0865a3982b6224643fd03e1e30014aa654c",
         "modules/import-kit/src/d1/preserved-reverse.ts": "72ea2770b1d7cddb292f50bb2715d02c2edef94be118a1724367545822732170",
-        "modules/import-kit/src/d1/provenance-set.ts": "c769e025887b695b0a7c766319f8dd7a4fb50d234fffde630ed614fcb2ebdb92",
+        "modules/import-kit/src/d1/provenance-set.ts": "4962d7241e93f7ea297a265db91715faf7c25eecb068bf90d6c9a53eeb7e9364",
         "modules/import-kit/src/d1/publication-fence.ts": "b8fd1857119e520bec5cf10d07b3c81a2fbc1caf066b05c774394a8f2ba2c14a",
         "modules/import-kit/src/d1/publication-receipt-schema.ts": "a8562507cad8506e7c3ceaade0161b6de82a202f5bad368ea322187c62be1929",
         "modules/import-kit/src/d1/published-stream.ts": "8e672ca3c1921fce0dc2fe37fa4470a5ada1dd38924a9b39db0cb5a97060a222",
         "modules/import-kit/src/d1/read-fence.ts": "e77cf651e56af1d6d37c78ac68ae339b7a5e98049dad2e3f501b602b01b203b3",
         "modules/import-kit/src/d1/read-results.ts": "75fe5cb009f41c2aa850941e8db21bfe77261baeccf5a0203505871d4ef66e2d",
-        "modules/import-kit/src/d1/README.md": "63bb9054232b437bc5eb55d2ad33a031df30123b00f4a25729d059a0e49f4826",
+        "modules/import-kit/src/d1/README.md": "c3b4cf6387d435b6b8df992f7556acb4f68b897f0fea42caec8522cb9cd826a0",
         "modules/import-kit/src/d1/redacted-custody.ts": "4ff48e38c5063bab4911c4a117fc89fb32898f3924a35d01340e106a87fa2692",
         "modules/import-kit/src/d1/redaction-step.ts": "f80c6181f3941e5c2e9ac9c7618c4b4c87b959eb61aa912e36936c19266d5edd",
-        "modules/import-kit/src/d1/referenced-plans.ts": "71db1440bd8e8e14e5a1802915893de71c994d6ef51be17d807b80b2f3256b68",
+        "modules/import-kit/src/d1/referenced-plans.ts": "4f170e199c2b2fed2794b85f216404622931706a1949bdcbc8cb0eca363b2f4a",
         "modules/import-kit/src/d1/retained-values.ts": "d864ad9edcfe335507dcc64c478bb6133a3633ea5e91040887381bf8e8f2d889",
         "modules/import-kit/src/d1/retirement-bounded.ts": "a3bc34ddc4e3975d37f5148d6bb9a178b40169fe653b69abf116149649df433b",
         "modules/import-kit/src/d1/retirement-door.ts": "970ddc2810e275a1be9c578868ee4293b97da4a67878c3afb9303238361ba4f9",
@@ -727,12 +806,17 @@
         "modules/import-kit/src/d1/retirement-scope.ts": "243228a0414dcdd580a3c0feba606f9336415de8f72d102063fbfa2f11fd83db",
         "modules/import-kit/src/d1/retirement-steps.ts": "24bb6325cfb725a2c665b12793a53e20333d91a8c84328b9760d923196853223",
         "modules/import-kit/src/d1/retirement-tally.ts": "30904f97a6c38955c10148d820bb077099590fce1422bbaf717a2ad736684985",
-        "modules/import-kit/src/d1/retirement.ts": "8dea57607323dcb6c3896c53bb7d9ddd6706eb6782325f4db47201e553147015",
+        "modules/import-kit/src/d1/retirement.ts": "15f3e0f7feac73c8daf5b3c2a31c0af6547d0b921899932eb4645dd4849bc43e",
+        "modules/import-kit/src/d1/reversal-conversion-record.ts": "32da3b3f2ef0c0c5a91ef1a93c67679c34617f2cfb1f7da8de6a257241685462",
+        "modules/import-kit/src/d1/reversal-conversion-schema.ts": "936d3fad4c297fab616e8ada464f738a56c0046dc08ef78a846915496429dabc",
+        "modules/import-kit/src/d1/reversal-conversion.ts": "37e97dcb3be5ddaa838b8b18424d94190e7bbdc0f08702c7ed6261666bca7a72",
         "modules/import-kit/src/d1/reversal-fence-schema.ts": "85850e6eee015c05355769fd4b933b8d8c2175711ca11081e46157bf58ad3cdb",
         "modules/import-kit/src/d1/reversal-fence.ts": "fbc9dcde629b75cf19c14f9f97cb18a8c0f040417016170c5cc7cf3d161457d4",
+        "modules/import-kit/src/d1/reversal-journal.ts": "ff0a626e1e6fce79191a00de53323400f07884f7124aef3e7b6006b0879c9332",
         "modules/import-kit/src/d1/reverse.ts": "e179031882f2de156f8680c77d5e51dff14c825611732598670c6efd88f9d7a7",
         "modules/import-kit/src/d1/reviewed-source.ts": "fa3d5a6847476721b0d1d4a0ff3546e394f8d2ab6ecf4ce63a4598a131014b84",
-        "modules/import-kit/src/d1/sets.ts": "f1a6572f8a5701fd3d72cf5793dcb0302dc05e7ef6f33c941636562291d179bd",
+        "modules/import-kit/src/d1/sets.ts": "a8852934880a015c3f9a58dd062ce078256ae40d039294de7d86ec5dc4aa1b9e",
+        "modules/import-kit/src/d1/staged-creation.ts": "4bdca5668ea08f7c275498fcdd272e979307343623b638aa909b5267e216bf2a",
         "modules/import-kit/src/d1/staging-admission.ts": "dcf561f9098294c33b0d85c52d3a85d7737f203c5cd09d502db6244a2300b343",
         "modules/import-kit/src/d1/staging-control.ts": "4fb9c1677578f06d5f449c9e5b2d16f0698313a2454533b72507dabe13ba5b06",
         "modules/import-kit/src/d1/staging-erasure.ts": "b334d4d6f381c49bec8acad7add6c830e81a5ac1c8ab11fa3a763b461b6051f4",
@@ -764,14 +848,18 @@
         "modules/import-kit/src/d1/transport.ts": "2aee9daa6d18cb2d43f2e9fe426ba6ab9c2571bda46d450d82c6229c1661584f",
         "modules/import-kit/src/d1/types.ts": "6aa12c766998a259e38675ad69270b32073c9138b8101e6be7ea9cd1e0940e64",
         "modules/import-kit/src/d1/undo-observations.ts": "aa5c7eac0fd202244fe7a5518a95dcab377809b9eda12c52b610fe03b00f9958",
-        "modules/import-kit/src/d1/undo-report.ts": "10776e6240f7090e59023aa2e9ed212ead66b37c2c696ec0d44dba424be34b71",
+        "modules/import-kit/src/d1/undo-report.ts": "2cb8e87b505fc70cd6e3327bf376bafceedd0db6883b51a479ef7a0a250a13d2",
         "modules/import-kit/src/d1/undo-snapshot.ts": "e92301721da9d72c37213a99a308701c94c882657d2fe0a263ad95614d3928d2",
-        "modules/import-kit/src/d1/undo-state.ts": "170ade2e4b9430ab1f96e713a6a7e11f7093f7bf19586647874cf751ecd37db1",
-        "modules/import-kit/src/d1/undo-types.ts": "6690cc39744fdd257925a541af770e6c243eb923e23f4b7582570cae30edbfd5"
+        "modules/import-kit/src/d1/undo-state.ts": "640737644d3c5136dd0580b1a9a668f64f7e7ab0e6502307e119b5b632e9723e",
+        "modules/import-kit/src/d1/undo-types.ts": "7fca5fc80bd8d73e04009a8237e5e6e02c5c1edf074aa3e38447bd78200bba6e",
+        "modules/import-kit/src/d1/verified-plan.ts": "182e14d710ad7aeb869d7c437023c5481d665165b4f632570f364646f7e52e9c"
       },
       "modes": {
+        "modules/import-kit/src/d1/apply-effects.ts": "100644",
         "modules/import-kit/src/d1/apply.ts": "100644",
+        "modules/import-kit/src/d1/atomic-prefix.ts": "100644",
         "modules/import-kit/src/d1/budget.ts": "100644",
+        "modules/import-kit/src/d1/column-layout.ts": "100644",
         "modules/import-kit/src/d1/compressed-plan.ts": "100644",
         "modules/import-kit/src/d1/creation.ts": "100644",
         "modules/import-kit/src/d1/custody-fence.ts": "100644",
@@ -838,6 +926,7 @@
         "modules/import-kit/src/d1/preparation-steps-schema.ts": "100644",
         "modules/import-kit/src/d1/preparation-steps.ts": "100644",
         "modules/import-kit/src/d1/preparations.ts": "100644",
+        "modules/import-kit/src/d1/preserved-preview.ts": "100644",
         "modules/import-kit/src/d1/preserved-reverse.ts": "100644",
         "modules/import-kit/src/d1/provenance-set.ts": "100644",
         "modules/import-kit/src/d1/publication-fence.ts": "100644",
@@ -857,11 +946,16 @@
         "modules/import-kit/src/d1/retirement-steps.ts": "100644",
         "modules/import-kit/src/d1/retirement-tally.ts": "100644",
         "modules/import-kit/src/d1/retirement.ts": "100644",
+        "modules/import-kit/src/d1/reversal-conversion-record.ts": "100644",
+        "modules/import-kit/src/d1/reversal-conversion-schema.ts": "100644",
+        "modules/import-kit/src/d1/reversal-conversion.ts": "100644",
         "modules/import-kit/src/d1/reversal-fence-schema.ts": "100644",
         "modules/import-kit/src/d1/reversal-fence.ts": "100644",
+        "modules/import-kit/src/d1/reversal-journal.ts": "100644",
         "modules/import-kit/src/d1/reverse.ts": "100644",
         "modules/import-kit/src/d1/reviewed-source.ts": "100644",
         "modules/import-kit/src/d1/sets.ts": "100644",
+        "modules/import-kit/src/d1/staged-creation.ts": "100644",
         "modules/import-kit/src/d1/staging-admission.ts": "100644",
         "modules/import-kit/src/d1/staging-control.ts": "100644",
         "modules/import-kit/src/d1/staging-erasure.ts": "100644",
@@ -896,34 +990,181 @@
         "modules/import-kit/src/d1/undo-report.ts": "100644",
         "modules/import-kit/src/d1/undo-snapshot.ts": "100644",
         "modules/import-kit/src/d1/undo-state.ts": "100644",
-        "modules/import-kit/src/d1/undo-types.ts": "100644"
-      }
+        "modules/import-kit/src/d1/undo-types.ts": "100644",
+        "modules/import-kit/src/d1/verified-plan.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/d1/README.md",
+        "modules/import-kit/src/d1/apply-effects.ts",
+        "modules/import-kit/src/d1/apply.ts",
+        "modules/import-kit/src/d1/atomic-prefix.ts",
+        "modules/import-kit/src/d1/budget.ts",
+        "modules/import-kit/src/d1/column-layout.ts",
+        "modules/import-kit/src/d1/compressed-plan.ts",
+        "modules/import-kit/src/d1/creation.ts",
+        "modules/import-kit/src/d1/custody-fence.ts",
+        "modules/import-kit/src/d1/custody-state-schema.ts",
+        "modules/import-kit/src/d1/database.ts",
+        "modules/import-kit/src/d1/entry-locator.ts",
+        "modules/import-kit/src/d1/erased-artifacts.ts",
+        "modules/import-kit/src/d1/erased-custody.ts",
+        "modules/import-kit/src/d1/erased-plan.ts",
+        "modules/import-kit/src/d1/erased-reversal.ts",
+        "modules/import-kit/src/d1/erasure-bounded.ts",
+        "modules/import-kit/src/d1/erasure-claims.ts",
+        "modules/import-kit/src/d1/erasure-compiler.ts",
+        "modules/import-kit/src/d1/erasure-disposition.ts",
+        "modules/import-kit/src/d1/erasure-fragments.ts",
+        "modules/import-kit/src/d1/erasure-index.ts",
+        "modules/import-kit/src/d1/erasure-pages.ts",
+        "modules/import-kit/src/d1/erasure-progress-schema.ts",
+        "modules/import-kit/src/d1/erasure-progress.ts",
+        "modules/import-kit/src/d1/erasure-related.ts",
+        "modules/import-kit/src/d1/erasure-report.ts",
+        "modules/import-kit/src/d1/erasure-schema.ts",
+        "modules/import-kit/src/d1/erasure-selection.ts",
+        "modules/import-kit/src/d1/erasure-snapshot.ts",
+        "modules/import-kit/src/d1/erasure-stage.ts",
+        "modules/import-kit/src/d1/erasure-step.ts",
+        "modules/import-kit/src/d1/erasure-superseded.ts",
+        "modules/import-kit/src/d1/erasure-values.ts",
+        "modules/import-kit/src/d1/erasure-writes.ts",
+        "modules/import-kit/src/d1/erasure.ts",
+        "modules/import-kit/src/d1/evolutions/0001-preserved-undo.ts",
+        "modules/import-kit/src/d1/expected-state.ts",
+        "modules/import-kit/src/d1/field-redaction.ts",
+        "modules/import-kit/src/d1/guards.ts",
+        "modules/import-kit/src/d1/history.ts",
+        "modules/import-kit/src/d1/index.ts",
+        "modules/import-kit/src/d1/integrity.ts",
+        "modules/import-kit/src/d1/inventory-snapshot.ts",
+        "modules/import-kit/src/d1/jobs.ts",
+        "modules/import-kit/src/d1/native-set.ts",
+        "modules/import-kit/src/d1/native-staging-admission.ts",
+        "modules/import-kit/src/d1/native-staging-context.ts",
+        "modules/import-kit/src/d1/native-staging-lifecycle.ts",
+        "modules/import-kit/src/d1/native-staging-offset.ts",
+        "modules/import-kit/src/d1/native-staging-publication.ts",
+        "modules/import-kit/src/d1/native-staging-rows.ts",
+        "modules/import-kit/src/d1/native-staging-schema.ts",
+        "modules/import-kit/src/d1/native-staging-state.ts",
+        "modules/import-kit/src/d1/native-staging.ts",
+        "modules/import-kit/src/d1/original-copies.ts",
+        "modules/import-kit/src/d1/original-storage.ts",
+        "modules/import-kit/src/d1/originals.ts",
+        "modules/import-kit/src/d1/plan-dictionary.ts",
+        "modules/import-kit/src/d1/plans.ts",
+        "modules/import-kit/src/d1/preparation-fingerprint.ts",
+        "modules/import-kit/src/d1/preparation-header.ts",
+        "modules/import-kit/src/d1/preparation-reader.ts",
+        "modules/import-kit/src/d1/preparation-schema.ts",
+        "modules/import-kit/src/d1/preparation-state.ts",
+        "modules/import-kit/src/d1/preparation-step-combine.ts",
+        "modules/import-kit/src/d1/preparation-step-control.ts",
+        "modules/import-kit/src/d1/preparation-step-hash.ts",
+        "modules/import-kit/src/d1/preparation-step-pages.ts",
+        "modules/import-kit/src/d1/preparation-steps-schema.ts",
+        "modules/import-kit/src/d1/preparation-steps.ts",
+        "modules/import-kit/src/d1/preparations.ts",
+        "modules/import-kit/src/d1/preserved-preview.ts",
+        "modules/import-kit/src/d1/preserved-reverse.ts",
+        "modules/import-kit/src/d1/provenance-set.ts",
+        "modules/import-kit/src/d1/publication-fence.ts",
+        "modules/import-kit/src/d1/publication-receipt-schema.ts",
+        "modules/import-kit/src/d1/published-stream.ts",
+        "modules/import-kit/src/d1/read-fence.ts",
+        "modules/import-kit/src/d1/read-results.ts",
+        "modules/import-kit/src/d1/redacted-custody.ts",
+        "modules/import-kit/src/d1/redaction-step.ts",
+        "modules/import-kit/src/d1/referenced-plans.ts",
+        "modules/import-kit/src/d1/retained-values.ts",
+        "modules/import-kit/src/d1/retirement-bounded.ts",
+        "modules/import-kit/src/d1/retirement-door.ts",
+        "modules/import-kit/src/d1/retirement-schema.ts",
+        "modules/import-kit/src/d1/retirement-scope.ts",
+        "modules/import-kit/src/d1/retirement-steps.ts",
+        "modules/import-kit/src/d1/retirement-tally.ts",
+        "modules/import-kit/src/d1/retirement.ts",
+        "modules/import-kit/src/d1/reversal-conversion-record.ts",
+        "modules/import-kit/src/d1/reversal-conversion-schema.ts",
+        "modules/import-kit/src/d1/reversal-conversion.ts",
+        "modules/import-kit/src/d1/reversal-fence-schema.ts",
+        "modules/import-kit/src/d1/reversal-fence.ts",
+        "modules/import-kit/src/d1/reversal-journal.ts",
+        "modules/import-kit/src/d1/reverse.ts",
+        "modules/import-kit/src/d1/reviewed-source.ts",
+        "modules/import-kit/src/d1/sets.ts",
+        "modules/import-kit/src/d1/staged-creation.ts",
+        "modules/import-kit/src/d1/staging-admission.ts",
+        "modules/import-kit/src/d1/staging-control.ts",
+        "modules/import-kit/src/d1/staging-erasure.ts",
+        "modules/import-kit/src/d1/staging-lifecycle.ts",
+        "modules/import-kit/src/d1/staging-plan.ts",
+        "modules/import-kit/src/d1/staging-privacy.ts",
+        "modules/import-kit/src/d1/staging-publication.ts",
+        "modules/import-kit/src/d1/staging-schema.ts",
+        "modules/import-kit/src/d1/staging-statements.ts",
+        "modules/import-kit/src/d1/staging-transport.ts",
+        "modules/import-kit/src/d1/stream-boundary.ts",
+        "modules/import-kit/src/d1/stream-create.ts",
+        "modules/import-kit/src/d1/stream-identity-admission.ts",
+        "modules/import-kit/src/d1/stream-input.ts",
+        "modules/import-kit/src/d1/stream-layout.ts",
+        "modules/import-kit/src/d1/stream-origin.ts",
+        "modules/import-kit/src/d1/stream-page-integrity.ts",
+        "modules/import-kit/src/d1/stream-partition.ts",
+        "modules/import-kit/src/d1/stream-plan.ts",
+        "modules/import-kit/src/d1/stream-receipt.ts",
+        "modules/import-kit/src/d1/stream-revision-schema.ts",
+        "modules/import-kit/src/d1/stream-snapshot.ts",
+        "modules/import-kit/src/d1/stream-stage.ts",
+        "modules/import-kit/src/d1/stream-state.ts",
+        "modules/import-kit/src/d1/stream-working-set.ts",
+        "modules/import-kit/src/d1/streams.ts",
+        "modules/import-kit/src/d1/target-guards.ts",
+        "modules/import-kit/src/d1/target-identities.ts",
+        "modules/import-kit/src/d1/transport.ts",
+        "modules/import-kit/src/d1/types.ts",
+        "modules/import-kit/src/d1/undo-observations.ts",
+        "modules/import-kit/src/d1/undo-report.ts",
+        "modules/import-kit/src/d1/undo-snapshot.ts",
+        "modules/import-kit/src/d1/undo-state.ts",
+        "modules/import-kit/src/d1/undo-types.ts",
+        "modules/import-kit/src/d1/verified-plan.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/door",
       "originPath": "modules/import-kit/src/door",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "modules/import-kit/src/door/admission.ts": "be300af64f0572d69c09567c5129f5d83564ae0f753b344526655260321d94ac",
-        "modules/import-kit/src/door/ADOPTING.md": "11b12c525bf176c62040ea57cfb27e5e069ac31d53349a59ef7dc3d608e94575",
-        "modules/import-kit/src/door/archive.ts": "ea3ce0e1520d92b7b1b57f700def0a357c014dfcf8736293f1615b55b7ab4551",
-        "modules/import-kit/src/door/authority.ts": "bc5fa04f2c86ef6b5dc09b6c443752ab172774ea11e1688c0b20822b132b11ef",
-        "modules/import-kit/src/door/failures.ts": "5dbf118cd5ea2f5e565f1fe868559d197cb2bcdf6cd13ea73d3cedf38cdcfc91",
-        "modules/import-kit/src/door/grants.ts": "b14288d1593b8829de219cde92fcfee9075580e8b5a6eeb87cc44f2d39c664f8",
-        "modules/import-kit/src/door/handler.ts": "138739208a46728a69e33c00b6eb492e6bef1d3953f4162e4aac6224bc1b71e4",
-        "modules/import-kit/src/door/index.ts": "d8479f3a2b18b12ae1e0fc54dc0af6ecd4151cdb10f3d35db39d19076233511c",
+        "modules/import-kit/src/door/admission.ts": "8f35144e2dce9518dca504783b288a5d496919649f71f0f580d8066b3af784e8",
+        "modules/import-kit/src/door/ADOPTING.md": "4e817164806b382efb1dbd950aee33b8810a892d37243bc8e464ab241f436525",
+        "modules/import-kit/src/door/archive.ts": "349a6c4ba23cacb21b6e6a7c014ac7373d278b5a668966ef0246cebb5a0aa354",
+        "modules/import-kit/src/door/authority.ts": "1ce2dc859d114e076bc2ad9a731565b18527bde20109ee1ff83e3342c0c9ca6a",
+        "modules/import-kit/src/door/failures.ts": "74bf5247fb8976924ce4b6de84fabd0aedd82bb8fcf03e4d8aa8b6baa3105f1e",
+        "modules/import-kit/src/door/grants.ts": "93d87a2673a5e6c2ea33eee4e42aec4e9afe5fa32a795bb1dd56dfc5ae9b3b52",
+        "modules/import-kit/src/door/handler.ts": "ffc70cf01cfb91035edfe567fcc058127567254873350311bd262c4ffab5ceaa",
+        "modules/import-kit/src/door/index.ts": "67489c928b090225818971d89f4ed66a4f940bc9d3bb751514386e8c629234da",
+        "modules/import-kit/src/door/intake-policy.ts": "c8814605021d9bd32b7f36af0d344530154707e736c93c863a3a4bc693021f59",
+        "modules/import-kit/src/door/intake-upload.ts": "e0c740e9650a649f36d640cdeb8dad5dfa11ed934d2086caa59c2acb58ac8131",
+        "modules/import-kit/src/door/intake/csv.ts": "5f34704d2e9e3814330342e50e8866471c924c0bab423109470f6bf48165d9f2",
+        "modules/import-kit/src/door/intake/json.ts": "a5eea8e5c5fd5dae01275a8fe7b6ca1c66841f5ea1b41751da3f0d79e80de415",
+        "modules/import-kit/src/door/intake/projection.ts": "cd9c439f60c9c5180acea395d8ed0edd285624851a56b942197d3ea2c063a039",
+        "modules/import-kit/src/door/intake/types.ts": "97fea2ccdb3bfb85bec82f8429fe11ebbdbcff437383ea20b1293d2e147426a1",
         "modules/import-kit/src/door/inventory.ts": "0e080c4d14fb501099bf3dece0a2dcb624c4aa4e3a6ec0fe35fc07a944ef9e46",
-        "modules/import-kit/src/door/jobs.ts": "15fb1d0ab65c0626173a5ed11848dc23c429a989e70fc752d43603153276f2db",
-        "modules/import-kit/src/door/limits.ts": "3838303bd3d8521eb44b237c51aac838aef0e88f6ab3172a2df9c5d6de52f016",
-        "modules/import-kit/src/door/operator.ts": "5dadb86bb47792009ddae79c0e3db4c84c327a7047e2035b4415d1e2d57a532d",
-        "modules/import-kit/src/door/planning.ts": "d06a2a4116ffa42a45e3f51a3a1742948f4e94a69bd22ee5b5c903710b0b2c56",
-        "modules/import-kit/src/door/protocol.ts": "69d3a7f33e55d9eef7a64ab6784576d650fdbd6fec1aa808e8ee18c260f8a57c",
-        "modules/import-kit/src/door/README.md": "cee2e5c87023e7eaa5910cb7ebd3d102cb00dd2e1b61b8e13ad1d891af08bf45",
-        "modules/import-kit/src/door/refusals.ts": "1c03c2366bac97733ba30ad9e0f69311191735dcddced839a5e804dc2e4f6d6e",
-        "modules/import-kit/src/door/schema.ts": "50326e8ce5bc7ef11946d882177b4e476db0ef15dcd82ba479e30be05efb9c5f",
-        "modules/import-kit/src/door/store.ts": "43dc779bf2ab8acdd949ed75677328e3e0a461002d1dd81ad519d9b4214a6b39",
-        "modules/import-kit/src/door/types.ts": "d7fd88f710a00937a15aa839f26bea9fd9060973d2dcee5e5460941e63a201e2",
-        "modules/import-kit/src/door/uploads.ts": "4c2cd00b5ff86521ae288df4c0b68b5eaea4023e40c26dc8c3a6dffb0adac915"
+        "modules/import-kit/src/door/jobs.ts": "556787ef97ee3988edf1eec3a8a2993e4150c5b2e344d67edf0e0ae7b0205010",
+        "modules/import-kit/src/door/limits.ts": "3e9c4c9d6ff062c94531dfb1e8621e9a30983aa23e4893ae664f1cb2bc074b5d",
+        "modules/import-kit/src/door/operator.ts": "2ba4c679bb17edd92697a890f50957e84223eb8e16efdd1b07e0d2dc3fb6cd43",
+        "modules/import-kit/src/door/planning.ts": "dd6ccb3069ff0c8bb29a82bd408bd8fa4a030fee230bd39433b05dc728a025bc",
+        "modules/import-kit/src/door/protocol.ts": "2c1a9b04609a64b27768cded64bdef3f3155405882c5a74a6c9336fa6a631d4c",
+        "modules/import-kit/src/door/raw.ts": "bd1717c736d62367081ef57601b3dedb72dba9cb7afb770b45b9fa330573e3c1",
+        "modules/import-kit/src/door/README.md": "14e940323738d713b07cdc07e8eb602638be20208136fda638da8251cec08969",
+        "modules/import-kit/src/door/refusals.ts": "4c8c0c4f3a2c3da2fe666fde2dfb829e4c369032b1062928fac421debe0d2d24",
+        "modules/import-kit/src/door/schema.ts": "51f8231be89be178e31fd78c07198d6f6661fe246d9b38f94236298f35d3d5d7",
+        "modules/import-kit/src/door/store.ts": "ab418e02292a52929b3560a241ead4047252873eae685701dad2783010afab69",
+        "modules/import-kit/src/door/types.ts": "7413afb4be8765c89f83a839fea570e336c002be66bc86f957a43bd03c1d2ed1",
+        "modules/import-kit/src/door/uploads.ts": "31b6ae6e7d1a615ed3f348209d907fd160b1a331af0efb0e7e8ba71782d44c82"
       },
       "modes": {
         "modules/import-kit/src/door/admission.ts": "100644",
@@ -934,24 +1175,60 @@
         "modules/import-kit/src/door/grants.ts": "100644",
         "modules/import-kit/src/door/handler.ts": "100644",
         "modules/import-kit/src/door/index.ts": "100644",
+        "modules/import-kit/src/door/intake-policy.ts": "100644",
+        "modules/import-kit/src/door/intake-upload.ts": "100644",
+        "modules/import-kit/src/door/intake/csv.ts": "100644",
+        "modules/import-kit/src/door/intake/json.ts": "100644",
+        "modules/import-kit/src/door/intake/projection.ts": "100644",
+        "modules/import-kit/src/door/intake/types.ts": "100644",
         "modules/import-kit/src/door/inventory.ts": "100644",
         "modules/import-kit/src/door/jobs.ts": "100644",
         "modules/import-kit/src/door/limits.ts": "100644",
         "modules/import-kit/src/door/operator.ts": "100644",
         "modules/import-kit/src/door/planning.ts": "100644",
         "modules/import-kit/src/door/protocol.ts": "100644",
+        "modules/import-kit/src/door/raw.ts": "100644",
         "modules/import-kit/src/door/README.md": "100644",
         "modules/import-kit/src/door/refusals.ts": "100644",
         "modules/import-kit/src/door/schema.ts": "100644",
         "modules/import-kit/src/door/store.ts": "100644",
         "modules/import-kit/src/door/types.ts": "100644",
         "modules/import-kit/src/door/uploads.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/door/ADOPTING.md",
+        "modules/import-kit/src/door/README.md",
+        "modules/import-kit/src/door/admission.ts",
+        "modules/import-kit/src/door/archive.ts",
+        "modules/import-kit/src/door/authority.ts",
+        "modules/import-kit/src/door/failures.ts",
+        "modules/import-kit/src/door/grants.ts",
+        "modules/import-kit/src/door/handler.ts",
+        "modules/import-kit/src/door/index.ts",
+        "modules/import-kit/src/door/intake-policy.ts",
+        "modules/import-kit/src/door/intake-upload.ts",
+        "modules/import-kit/src/door/intake/csv.ts",
+        "modules/import-kit/src/door/intake/json.ts",
+        "modules/import-kit/src/door/intake/projection.ts",
+        "modules/import-kit/src/door/intake/types.ts",
+        "modules/import-kit/src/door/inventory.ts",
+        "modules/import-kit/src/door/jobs.ts",
+        "modules/import-kit/src/door/limits.ts",
+        "modules/import-kit/src/door/operator.ts",
+        "modules/import-kit/src/door/planning.ts",
+        "modules/import-kit/src/door/protocol.ts",
+        "modules/import-kit/src/door/raw.ts",
+        "modules/import-kit/src/door/refusals.ts",
+        "modules/import-kit/src/door/schema.ts",
+        "modules/import-kit/src/door/store.ts",
+        "modules/import-kit/src/door/types.ts",
+        "modules/import-kit/src/door/uploads.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/engine",
       "originPath": "modules/import-kit/src/engine",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/engine/apply.ts": "f7b73708e4ecd05b7835cd384595bcf577239bf4e36fbffdf49609cedc8e6c2a",
         "modules/import-kit/src/engine/index.ts": "b7570a4ab5a12e9df4eb427aec3ab3bdc2c55330c50fefcd42815ad76cd7c91f",
@@ -961,23 +1238,31 @@
         "modules/import-kit/src/engine/apply.ts": "100644",
         "modules/import-kit/src/engine/index.ts": "100644",
         "modules/import-kit/src/engine/reverse.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/engine/apply.ts",
+        "modules/import-kit/src/engine/index.ts",
+        "modules/import-kit/src/engine/reverse.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/index.ts",
       "originPath": "modules/import-kit/src/index.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "modules/import-kit/src/index.ts": "3d6c29b0cd2449988f6973da43ba44ef1d5d1ff66ec99a99d0a4daf556e718c6"
+        "modules/import-kit/src/index.ts": "360565bf200008b589f4c83403dd7209c64526aacfa6f4f750e7953337051381"
       },
       "modes": {
         "modules/import-kit/src/index.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/index.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/journal",
       "originPath": "modules/import-kit/src/journal",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/journal/authority.ts": "45934861cf653954615329c2ac003a106d8abad33a8e42c633cde43832af7b37",
         "modules/import-kit/src/journal/boundary.ts": "ee0ef90f37adaae55859d4875b56c12bf9de8eabbbcac892f9fc91d76c79cde0",
@@ -989,12 +1274,18 @@
         "modules/import-kit/src/journal/boundary.ts": "100644",
         "modules/import-kit/src/journal/jobs.ts": "100644",
         "modules/import-kit/src/journal/originals.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/journal/authority.ts",
+        "modules/import-kit/src/journal/boundary.ts",
+        "modules/import-kit/src/journal/jobs.ts",
+        "modules/import-kit/src/journal/originals.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/plan",
       "originPath": "modules/import-kit/src/plan",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/plan/budget.ts": "4a97e89a91edf916720fab61815a62ac50b35a975d52fff8cc9f346f2f26a837",
         "modules/import-kit/src/plan/index.ts": "f8ae35ef3b15d8f4e7be257a02af767d4ba16d10cc2aa77390c9d24647f179a7",
@@ -1004,12 +1295,17 @@
         "modules/import-kit/src/plan/budget.ts": "100644",
         "modules/import-kit/src/plan/index.ts": "100644",
         "modules/import-kit/src/plan/size.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/plan/budget.ts",
+        "modules/import-kit/src/plan/index.ts",
+        "modules/import-kit/src/plan/size.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/provenance",
       "originPath": "modules/import-kit/src/provenance",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/provenance/canonical-hash.ts": "e0acc9e93bacbe75ccc8f71f2c5297fb6a7772c832c20ad77a8f97e80d46b964",
         "modules/import-kit/src/provenance/canonical-stream.ts": "94b9bef088d1d907edd4de44b74132ba257fa488a1ca447ad2cceb0f1d049890",
@@ -1031,12 +1327,23 @@
         "modules/import-kit/src/provenance/numeric-credentials.ts": "100644",
         "modules/import-kit/src/provenance/resumable-sha256.ts": "100644",
         "modules/import-kit/src/provenance/validate-json.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/provenance/canonical-hash.ts",
+        "modules/import-kit/src/provenance/canonical-stream.ts",
+        "modules/import-kit/src/provenance/credential-names.ts",
+        "modules/import-kit/src/provenance/credentials.ts",
+        "modules/import-kit/src/provenance/identity.ts",
+        "modules/import-kit/src/provenance/json-snapshot.ts",
+        "modules/import-kit/src/provenance/numeric-credentials.ts",
+        "modules/import-kit/src/provenance/resumable-sha256.ts",
+        "modules/import-kit/src/provenance/validate-json.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/readers",
       "originPath": "modules/import-kit/src/readers",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/readers/api-policy.ts": "ebbe7df062cc4dee2e2fc42e1d7c8aa40570c39b2f7f4ff1fd505278b38b9380",
         "modules/import-kit/src/readers/api.ts": "e7ffd06ea57383553296e5904d1e5773ab7fc101f1e9022e4388a05a587f6747",
@@ -1062,29 +1369,45 @@
         "modules/import-kit/src/readers/original.ts": "100644",
         "modules/import-kit/src/readers/README.md": "100644",
         "modules/import-kit/src/readers/records.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/readers/README.md",
+        "modules/import-kit/src/readers/api-policy.ts",
+        "modules/import-kit/src/readers/api.ts",
+        "modules/import-kit/src/readers/bytes.ts",
+        "modules/import-kit/src/readers/errors.ts",
+        "modules/import-kit/src/readers/file.ts",
+        "modules/import-kit/src/readers/index.ts",
+        "modules/import-kit/src/readers/json.ts",
+        "modules/import-kit/src/readers/numeric-lexemes.ts",
+        "modules/import-kit/src/readers/original.ts",
+        "modules/import-kit/src/readers/records.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/reconcile",
       "originPath": "modules/import-kit/src/reconcile",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/reconcile/index.ts": "0d73e5867657405de295b20e3aaaf659062a4f2e357b3a3ae18d1b5289d54f54"
       },
       "modes": {
         "modules/import-kit/src/reconcile/index.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/reconcile/index.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/status",
       "originPath": "modules/import-kit/src/status",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/status/encoding.ts": "27c23888a400c38e63fad8febda18d339d9a6114a3f2fa6db79d3e1c7e18c49d",
-        "modules/import-kit/src/status/evidence.ts": "f253b3e73ba183fec6c9a15da2f476bac35e9bdf70778cd081b00cdc9ef7f362",
+        "modules/import-kit/src/status/evidence.ts": "4951210dd9a334d27a7673c27d6bfc9faa07a31cee661c6e7d0ad7aec1a94222",
         "modules/import-kit/src/status/index.ts": "ae8a6d4e5081f29407a407d0d028f030ad5a8abffade573bd3985a80830aa225",
-        "modules/import-kit/src/status/schema.ts": "00a0255dd540b42140218f6b4832590d8be18ad8f7f70b6c414310d257d33f17",
-        "modules/import-kit/src/status/types.ts": "c77fdb0801f3b49fefa302540cfb42bccd421dc94e61fa047e511a252d4d4138"
+        "modules/import-kit/src/status/schema.ts": "a389e028b0789838edd6c090063460977149d3138d199eedebc2da9792b31586",
+        "modules/import-kit/src/status/types.ts": "0b13220856d7a7fe8eb5b921a03c4c0b153b74b5d1c5d7bad5cdda24cbaca44a"
       },
       "modes": {
         "modules/import-kit/src/status/encoding.ts": "100644",
@@ -1092,16 +1415,23 @@
         "modules/import-kit/src/status/index.ts": "100644",
         "modules/import-kit/src/status/schema.ts": "100644",
         "modules/import-kit/src/status/types.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/status/encoding.ts",
+        "modules/import-kit/src/status/evidence.ts",
+        "modules/import-kit/src/status/index.ts",
+        "modules/import-kit/src/status/schema.ts",
+        "modules/import-kit/src/status/types.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/storage",
       "originPath": "modules/import-kit/src/storage",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/import-kit/src/storage/cleanup.ts": "d07d231a526948e59ec89ef5113b01cf4a7b25b8e897e53bc6ede19183cdb58e",
         "modules/import-kit/src/storage/integrity.ts": "d9dc5e580e97e6355e7b092bedaf9e6ecc395e53dd085f10f0fb440ac1cdf5c4",
-        "modules/import-kit/src/storage/originals.ts": "e746d31d06d6fd06fd6ff768633407a0587f37a7af40b9818094477a8a1d4a0f",
+        "modules/import-kit/src/storage/originals.ts": "66a12da0328088340c4791454c2689a3b536faeb2058273fa7f478ba34700041",
         "modules/import-kit/src/storage/provenance.ts": "3451afc924b65570aff588773c75223d3a1b956c7e599b0573777c93aa611047",
         "modules/import-kit/src/storage/schema.ts": "4173d0e3d1c02ee49899cbe651986363c4bb5d8a8c7d59fc068313d4c00ad5df",
         "modules/import-kit/src/storage/sqlite.ts": "e13a6a0902ea266a40e5db7a95c32017e0c4341b8ad7c0d7587d3919729f545c"
@@ -1113,23 +1443,34 @@
         "modules/import-kit/src/storage/provenance.ts": "100644",
         "modules/import-kit/src/storage/schema.ts": "100644",
         "modules/import-kit/src/storage/sqlite.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/storage/cleanup.ts",
+        "modules/import-kit/src/storage/integrity.ts",
+        "modules/import-kit/src/storage/originals.ts",
+        "modules/import-kit/src/storage/provenance.ts",
+        "modules/import-kit/src/storage/schema.ts",
+        "modules/import-kit/src/storage/sqlite.ts"
+      ]
     },
     {
       "path": "modules/import-kit/src/types.ts",
       "originPath": "modules/import-kit/src/types.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "modules/import-kit/src/types.ts": "ce31b0bae06aca21b3350c86344c981d53022e4fa502f1423e0027cd6bc1bc3c"
+        "modules/import-kit/src/types.ts": "05032f757310fffa07ef9bd8168047fd4fe855d895a31fb3d1f81677b6f025c9"
       },
       "modes": {
         "modules/import-kit/src/types.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/import-kit/src/types.ts"
+      ]
     },
     {
       "path": "modules/integrations/core",
       "originPath": "modules/integrations/core",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/integrations/core/CONTRACT.md": "ebe5045698c7bcf54641b6b89c1185589a3d2e7f71f1c0b7d3f1ecb16c0c1431",
         "modules/integrations/core/crypto.ts": "efb7ccc35949d54ae6964cb2910a33abb123cf5f57944777f003d38ff6781dd8",
@@ -1139,7 +1480,7 @@
         "modules/integrations/core/index.ts": "282c843fed821e26f5728163d2d7d055c094df3f5b1d191025e66331855ba5c0",
         "modules/integrations/core/node-transport.ts": "5a74bc51f88c6bff03bda514a1ab17009804bdbd2f2f19eb608176b708f26180",
         "modules/integrations/core/public-address.ts": "f8db1719d2e5361c4bc87a1e8de9721911d9f767db91b185aad8cea22b218eb7",
-        "modules/integrations/core/README.md": "47a7d8f8e2bf05cddd3a9d82cea88655fb094a911b22a5ee721c4a3698e0a1e5",
+        "modules/integrations/core/README.md": "8869814b81d20d77e5306382b6c31086b2fa9105b46b0e70ad1d549dd5eb944d",
         "modules/integrations/core/repository.ts": "9ece52823868fd984380b940172b8aadb2724cc4da45f6f0ab439b2a326fbd0c",
         "modules/integrations/core/schema.sql": "1a24ad5a3b682c5bb3ab53966732a62ea97a7e7a23a16effbefbd0a908722509",
         "modules/integrations/core/sqlite.ts": "11ea753841d9b0d4cd123dfc10976fa826b5a5e31c1e66c86b75caff63b8b82c",
@@ -1167,23 +1508,45 @@
         "modules/integrations/core/types.ts": "100644",
         "modules/integrations/core/upgrade-token-usage-context.sql": "100644",
         "modules/integrations/core/webhook.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/integrations/core/CONTRACT.md",
+        "modules/integrations/core/README.md",
+        "modules/integrations/core/crypto.ts",
+        "modules/integrations/core/database.ts",
+        "modules/integrations/core/delivery.ts",
+        "modules/integrations/core/destination.ts",
+        "modules/integrations/core/index.ts",
+        "modules/integrations/core/node-transport.ts",
+        "modules/integrations/core/public-address.ts",
+        "modules/integrations/core/repository.ts",
+        "modules/integrations/core/schema.sql",
+        "modules/integrations/core/sqlite.ts",
+        "modules/integrations/core/timestamped-body-signature.ts",
+        "modules/integrations/core/tokens.ts",
+        "modules/integrations/core/types.ts",
+        "modules/integrations/core/upgrade-token-usage-context.sql",
+        "modules/integrations/core/webhook.ts"
+      ]
     },
     {
       "path": "modules/integrations/README.md",
       "originPath": "modules/integrations/README.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/integrations/README.md": "55728631250b43958a7735563d6f2dabe84fb2f97bb9b32497ef8ff4385f645d"
       },
       "modes": {
         "modules/integrations/README.md": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/integrations/README.md"
+      ]
     },
     {
       "path": "modules/integrations/slack",
       "originPath": "modules/integrations/slack",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/integrations/slack/classify.ts": "d1c2b30c3fef5259a773ed44cf2c8ed836f16742102533cb9c958db313e5e537",
         "modules/integrations/slack/index.ts": "358f792302a156b6c9501add34ee0a4943c63d86944107a59aafe45fa61f7444",
@@ -1199,16 +1562,24 @@
         "modules/integrations/slack/notifier.ts": "100644",
         "modules/integrations/slack/protocol.ts": "100644",
         "modules/integrations/slack/README.md": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/integrations/slack/README.md",
+        "modules/integrations/slack/classify.ts",
+        "modules/integrations/slack/index.ts",
+        "modules/integrations/slack/message.ts",
+        "modules/integrations/slack/notifier.ts",
+        "modules/integrations/slack/protocol.ts"
+      ]
     },
     {
       "path": "modules/mail",
       "originPath": "modules/mail",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/mail/index.mjs": "c0501b55f9ba53796926bed1abb22c8690ad2a66b03e09407a84a632c5a4a0c0",
         "modules/mail/LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324",
-        "modules/mail/README.md": "7a041dddfa7161acfb2d53c7fd4522551c5e0c8a6061a8001eefaf9d0539be33",
+        "modules/mail/README.md": "00154803c5caf2fa952b4b1a26f849dc44fd9fbbc23db18a5715eb592f63fef9",
         "modules/mail/src/adapters/cloudflare/headers.mjs": "6bee46c1edb6228b9d3df8b26ca1acbb163c36d94ecbd8e28ace1a6811095f23",
         "modules/mail/src/adapters/cloudflare/index.mjs": "377e4a322ac7803a1c56986ac909c35c1328896cff07c0610abbad5e8f8c3f86",
         "modules/mail/src/adapters/cloudflare/README.md": "80531ce460180b853b7db0480b4ff3d4f919fa5ccc119f71255fb1ac13485c5a",
@@ -1326,12 +1697,142 @@
         "modules/mail/src/sendgrid-email/index.d.mts": "100644",
         "modules/mail/src/sendgrid-email/index.mjs": "100644",
         "modules/mail/src/unsubscribe/index.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/mail/.gitignore",
+        "modules/mail/LICENSE",
+        "modules/mail/README.md",
+        "modules/mail/doctor.mjs",
+        "modules/mail/index.mjs",
+        "modules/mail/live-proof/README.md",
+        "modules/mail/live-proof/run.mjs",
+        "modules/mail/package.json",
+        "modules/mail/pnpm-lock.yaml",
+        "modules/mail/src/adapters/cloudflare/README.md",
+        "modules/mail/src/adapters/cloudflare/headers.mjs",
+        "modules/mail/src/adapters/cloudflare/index.mjs",
+        "modules/mail/src/adapters/cloudflare/response.mjs",
+        "modules/mail/src/adapters/messaging/README.md",
+        "modules/mail/src/adapters/messaging/contract.mjs",
+        "modules/mail/src/adapters/messaging/event-schema.mjs",
+        "modules/mail/src/adapters/messaging/index.mjs",
+        "modules/mail/src/adapters/messaging/jws.mjs",
+        "modules/mail/src/adapters/messaging/request.mjs",
+        "modules/mail/src/adapters/messaging/serialize.mjs",
+        "modules/mail/src/adapters/rer/contract.mjs",
+        "modules/mail/src/adapters/rer/index.mjs",
+        "modules/mail/src/adapters/rer/list-headers.mjs",
+        "modules/mail/src/adapters/resend/README.md",
+        "modules/mail/src/adapters/resend/index.mjs",
+        "modules/mail/src/adapters/resend/response.mjs",
+        "modules/mail/src/adapters/resend/serialize.mjs",
+        "modules/mail/src/adapters/resend/size.mjs",
+        "modules/mail/src/adapters/sendgrid/README.md",
+        "modules/mail/src/adapters/sendgrid/index.mjs",
+        "modules/mail/src/adapters/sendgrid/serialize.mjs",
+        "modules/mail/src/core/errors.mjs",
+        "modules/mail/src/core/transport.mjs",
+        "modules/mail/src/core/validation.mjs",
+        "modules/mail/src/development/index.d.mts",
+        "modules/mail/src/development/index.mjs",
+        "modules/mail/src/development/outbox.mjs",
+        "modules/mail/src/development/schema.sql",
+        "modules/mail/src/doctor/README.md",
+        "modules/mail/src/doctor/common.mjs",
+        "modules/mail/src/doctor/dns.mjs",
+        "modules/mail/src/doctor/index.mjs",
+        "modules/mail/src/doctor/probe.mjs",
+        "modules/mail/src/doctor/receive.mjs",
+        "modules/mail/src/doctor/records.mjs",
+        "modules/mail/src/events/README.md",
+        "modules/mail/src/events/d1-schema.sql",
+        "modules/mail/src/events/d1-storage.mjs",
+        "modules/mail/src/events/index.mjs",
+        "modules/mail/src/events/intake.mjs",
+        "modules/mail/src/events/storage.mjs",
+        "modules/mail/src/events/verify.mjs",
+        "modules/mail/src/inbound/README.md",
+        "modules/mail/src/inbound/bytes.mjs",
+        "modules/mail/src/inbound/headers.mjs",
+        "modules/mail/src/inbound/index.mjs",
+        "modules/mail/src/inbound/mime.mjs",
+        "modules/mail/src/inbound/multipart.mjs",
+        "modules/mail/src/inbound/resend-attachment.mjs",
+        "modules/mail/src/inbound/resend.mjs",
+        "modules/mail/src/inbound/sendgrid.mjs",
+        "modules/mail/src/sender.mjs",
+        "modules/mail/src/sendgrid-email/index.d.mts",
+        "modules/mail/src/sendgrid-email/index.mjs",
+        "modules/mail/src/unsubscribe/index.mjs",
+        "modules/mail/tests/all.test.ts",
+        "modules/mail/tests/assembly/doctor-fixture.mjs",
+        "modules/mail/tests/assembly/public-optional-settings.test.mjs",
+        "modules/mail/tests/assembly/runtime.mjs",
+        "modules/mail/tests/assembly/worker.mjs",
+        "modules/mail/tests/assembly/workerd.test.mjs",
+        "modules/mail/tests/cloudflare/fixtures.mjs",
+        "modules/mail/tests/cloudflare/request.test.mjs",
+        "modules/mail/tests/cloudflare/response.test.mjs",
+        "modules/mail/tests/core/transport.test.mjs",
+        "modules/mail/tests/core/validation.test.mjs",
+        "modules/mail/tests/development/bundle-entry.mjs",
+        "modules/mail/tests/development/bundle.test.mjs",
+        "modules/mail/tests/development/development.test.mjs",
+        "modules/mail/tests/development/outbox.test.mjs",
+        "modules/mail/tests/doctor/cli.test.mjs",
+        "modules/mail/tests/doctor/dns.test.mjs",
+        "modules/mail/tests/doctor/poll-boundary.test.mjs",
+        "modules/mail/tests/doctor/probe.test.mjs",
+        "modules/mail/tests/events/boundaries.test.mjs",
+        "modules/mail/tests/events/d1-workerd.test.mjs",
+        "modules/mail/tests/events/fixtures.mjs",
+        "modules/mail/tests/events/verify.test.mjs",
+        "modules/mail/tests/events/worker.mjs",
+        "modules/mail/tests/events/workerd.test.mjs",
+        "modules/mail/tests/fixtures/development-outbox.mjs",
+        "modules/mail/tests/inbound/boundaries.test.mjs",
+        "modules/mail/tests/inbound/fixtures.mjs",
+        "modules/mail/tests/inbound/hydration.test.mjs",
+        "modules/mail/tests/inbound/normalization.test.mjs",
+        "modules/mail/tests/inbound/worker.mjs",
+        "modules/mail/tests/inbound/workerd.test.mjs",
+        "modules/mail/tests/messaging/fixtures.mjs",
+        "modules/mail/tests/messaging/runtime.mjs",
+        "modules/mail/tests/messaging/transport-workerd.test.mjs",
+        "modules/mail/tests/messaging/transport.test.mjs",
+        "modules/mail/tests/messaging/worker.mjs",
+        "modules/mail/tests/rer/relay-worker.mjs",
+        "modules/mail/tests/rer/relay.test.mjs",
+        "modules/mail/tests/rer/workerd.test.mjs",
+        "modules/mail/tests/resend/fixtures.mjs",
+        "modules/mail/tests/resend/response.test.mjs",
+        "modules/mail/tests/resend/size.test.mjs",
+        "modules/mail/tests/resend/validation.test.mjs",
+        "modules/mail/tests/resend/wire.test.mjs",
+        "modules/mail/tests/runtime/core-worker.mjs",
+        "modules/mail/tests/runtime/core-workerd.test.mjs",
+        "modules/mail/tests/runtime/development-runtime.mjs",
+        "modules/mail/tests/runtime/development-worker.mjs",
+        "modules/mail/tests/runtime/development-workerd.test.mjs",
+        "modules/mail/tests/runtime/harness.mjs",
+        "modules/mail/tests/runtime/provider-fixtures.mjs",
+        "modules/mail/tests/runtime/provider-worker.mjs",
+        "modules/mail/tests/runtime/workerd.test.mjs",
+        "modules/mail/tests/sendgrid-email/compat.test.mjs",
+        "modules/mail/tests/sendgrid/conformance.mjs",
+        "modules/mail/tests/sendgrid/portable.test.mjs",
+        "modules/mail/tests/sendgrid/sandbox.mjs",
+        "modules/mail/tests/sendgrid/transport.test.mjs",
+        "modules/mail/tests/sendgrid/validation.test.mjs",
+        "modules/mail/tests/sendgrid/wire.test.mjs",
+        "modules/mail/tests/sendgrid/worker.mjs",
+        "modules/mail/tests/unsubscribe/unsubscribe.test.mjs"
+      ]
     },
     {
       "path": "modules/operator-auth",
       "originPath": "modules/operator-auth",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/operator-auth/accounts/adapter.mjs": "989fca51e86ecc80cb150661b6d6cb8b6a57f82a85eb408d1fa6286a8372a3aa",
         "modules/operator-auth/accounts/admin.mjs": "654cebd373d88d11cd089b8de71b8b75b4acafbedc65484d1ef02f4cea043560",
@@ -1957,7 +2458,7 @@
     {
       "path": "modules/owner-claim",
       "originPath": "modules/owner-claim",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/owner-claim/idp.mjs": "edb09dfeb0b66849cd84b651099d46c6420d1dc3f270446ae96595d91754d3e6",
         "modules/owner-claim/index.d.mts": "33fc8d1b756cb2c0a4317ea4dbc29ae704dd137f76993278859d98ae5e9ad184",
@@ -2031,7 +2532,7 @@
     {
       "path": "modules/sendgrid-email",
       "originPath": "modules/sendgrid-email",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "modules/sendgrid-email/LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324",
         "modules/sendgrid-email/README.md": "4e2ed1aaf568098eb48883ec8e763aea01d1df915e7060ad434d22b2240ede8c",
@@ -2041,448 +2542,1007 @@
         "modules/sendgrid-email/LICENSE": "100644",
         "modules/sendgrid-email/README.md": "100644",
         "modules/sendgrid-email/src/sender.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/sendgrid-email/LICENSE",
+        "modules/sendgrid-email/README.md",
+        "modules/sendgrid-email/src/sender.ts",
+        "modules/sendgrid-email/tests/equivalence.test.ts",
+        "modules/sendgrid-email/tests/sender.test.ts"
+      ]
     },
     {
       "path": "schema/dependencies.mjs",
       "originPath": "schema/dependencies.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "schema/dependencies.mjs": "4bfc30fa75029db2727a9d1fb095d4969dc756c5317ac55ce768202bb869e2b7"
       },
       "modes": {
         "schema/dependencies.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/dependencies.mjs"
+      ]
     },
     {
       "path": "schema/json-schema.mjs",
       "originPath": "schema/json-schema.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "schema/json-schema.mjs": "ed601a8f68d25769ff3706a90f69f1a9e18dd6eb4b3b5f81a18b7cd0dcfc8fa3"
+        "schema/json-schema.mjs": "f964a1f8bab23bfad0c8b6552d8e717091619fa438e0d6e65a9801e1d97782bc"
       },
       "modes": {
         "schema/json-schema.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/json-schema.mjs"
+      ]
     },
     {
       "path": "schema/SEED.schema.json",
       "originPath": "schema/SEED.schema.json",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "schema/SEED.schema.json": "90acf2cef301c8989b6c02ecc90cd3173225c39a5b19e8fd66ede134097f3861"
+        "schema/SEED.schema.json": "f728a968f5285f865592b5b7fd75901dc6a5b15668cb7aa4181e65595c7df5c1"
       },
       "modes": {
         "schema/SEED.schema.json": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/SEED.schema.json"
+      ]
     },
     {
       "path": "schema/setup-validation.mjs",
       "originPath": "schema/setup-validation.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "schema/setup-validation.mjs": "7ee1a46a742570cd5d3df605732c0777473f419f7b63b6c5ad1c238406a1625f"
+        "schema/setup-validation.mjs": "89327f524f2e7cfcaf9c750e9a5aa7249c91199a9afd0c14afe9efcf444ad14a"
       },
       "modes": {
         "schema/setup-validation.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/setup-validation.mjs"
+      ]
     },
     {
       "path": "schema/validate.mjs",
       "originPath": "schema/validate.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "schema/validate.mjs": "f3e55d30c2cfea12ca1f6e085804459cbc420792132b0a4f4b2f2894db1e5888"
       },
       "modes": {
         "schema/validate.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/validate.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/artifact.mjs",
       "originPath": "modules/delivery-producer/artifact.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/artifact.mjs": "129f210f1556e816ba94ffe74359ac553cd26466aaf8c6c299765e9cea29aa07"
       },
       "modes": {
         "scripts/delivery/base/artifact.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/artifact.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/bindings.mjs",
       "originPath": "modules/delivery-producer/bindings.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/bindings.mjs": "5548f71b7bb32c6e6c75442f0e6cf0af9da3226aebcaf964c7702ea549e48392"
       },
       "modes": {
         "scripts/delivery/base/bindings.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/bindings.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/capabilities.mjs",
       "originPath": "modules/delivery-producer/capabilities.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/capabilities.mjs": "5e4db1f4428f107c91b51be3c9c18e7757d7e23574dd977a872f6944abd32a1d"
       },
       "modes": {
         "scripts/delivery/base/capabilities.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/capabilities.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/cli.mjs",
       "originPath": "modules/delivery-producer/cli.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/cli.mjs": "5d60954f6b03216613d17ec0d19464c339ce3a8a441c7972bf3f80ceea4f7ad5"
+        "scripts/delivery/base/cli.mjs": "85cd5d5fb7f9a002f5dd44ace279702834823794cbd4a24ed9f1bdb5d1ad0f23"
       },
       "modes": {
         "scripts/delivery/base/cli.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/cli.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/declarations.mjs",
       "originPath": "modules/delivery-producer/declarations.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/declarations.mjs": "bf63076ba1c203c948fe57f41f28fe6ad06ec1e057eecf2b55aab5aeee7c5e2c"
       },
       "modes": {
         "scripts/delivery/base/declarations.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/declarations.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/export.mjs",
       "originPath": "modules/delivery-producer/export.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/export.mjs": "0e36cf60c02ff737528018c5f027b96970e9154dd9464d3de08c19c3a3a5f5a5"
+        "scripts/delivery/base/export.mjs": "fbf9c22198f3fb07015f486cf80d0fbaefe087b60b628a50e6c6d74c687890b2"
       },
       "modes": {
         "scripts/delivery/base/export.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/export.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/generators/integration.mjs",
       "originPath": "modules/delivery-producer/generators/integration.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/generators/integration.mjs": "ec9689f03b339466ee20c4a77da5227ba39789cc3de52d33687127148d4889f3"
       },
       "modes": {
         "scripts/delivery/base/generators/integration.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/generators/integration.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/generators/managed.mjs",
       "originPath": "modules/delivery-producer/generators/managed.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/generators/managed.mjs": "275131025f7b1810b7757053caa7439f9cd8119bfec94512c4fa4cf1ee1a5c60"
       },
       "modes": {
         "scripts/delivery/base/generators/managed.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/generators/managed.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/generators/project.mjs",
       "originPath": "modules/delivery-producer/generators/project.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/generators/project.mjs": "29540e3e2d9ef0529a07c04ed70eb3e7fe0f73906fe826e53c55678ad8a364de"
       },
       "modes": {
         "scripts/delivery/base/generators/project.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/generators/project.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/generators/validation.mjs",
       "originPath": "modules/delivery-producer/generators/validation.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/generators/validation.mjs": "ec5e0cdd38e4143530fd1366930b9e8e0e081a0729687926ed13a256834519a9"
       },
       "modes": {
         "scripts/delivery/base/generators/validation.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/generators/validation.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/mail.mjs",
       "originPath": "modules/delivery-producer/mail.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/mail.mjs": "2323205c7cbc1aea81ec85509d597df2e486abfc9443981ceaee04950db913a4"
+        "scripts/delivery/base/mail.mjs": "fbe18b3678e88db8f98d760d72d39f4a94552c4685e3b8ce27e15d761ed6a981"
       },
       "modes": {
         "scripts/delivery/base/mail.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/mail.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/migrations.mjs",
       "originPath": "modules/delivery-producer/migrations.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/migrations.mjs": "41650d5f2c22c0dbf8c4d8640bc89d872907828b558df4af89c4f70059d4878f"
       },
       "modes": {
         "scripts/delivery/base/migrations.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/migrations.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/native-export.mjs",
       "originPath": "modules/delivery-producer/native-export.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/native-export.mjs": "5c0f90e688f5242dbc2f62416259cbb3074647298df8daa431a7022aa10d1a41"
       },
       "modes": {
         "scripts/delivery/base/native-export.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/native-export.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/package.mjs",
       "originPath": "modules/delivery-producer/package.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/package.mjs": "5a32dec3274b66474e12d5141e973542248ceeecf0f8464f6e9da87d60228cb4"
       },
       "modes": {
         "scripts/delivery/base/package.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/package.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/paths.mjs",
       "originPath": "modules/delivery-producer/paths.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/paths.mjs": "32af2ee0d6e8ce048d04978e2d70f476bdc2a690b1a270d580056641f87a1731"
       },
       "modes": {
         "scripts/delivery/base/paths.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/paths.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/payloads.mjs",
       "originPath": "modules/delivery-producer/payloads.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/payloads.mjs": "da3a9d09860c33bdd0b287bca9abc6210b12d13439e569d178a5b31fec563ee5"
       },
       "modes": {
         "scripts/delivery/base/payloads.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/payloads.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/schema/dependencies.mjs",
       "originPath": "schema/dependencies.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/schema/dependencies.mjs": "4bfc30fa75029db2727a9d1fb095d4969dc756c5317ac55ce768202bb869e2b7"
       },
       "modes": {
         "scripts/delivery/base/schema/dependencies.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/dependencies.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/schema/json-schema.mjs",
       "originPath": "schema/json-schema.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/schema/json-schema.mjs": "ed601a8f68d25769ff3706a90f69f1a9e18dd6eb4b3b5f81a18b7cd0dcfc8fa3"
+        "scripts/delivery/base/schema/json-schema.mjs": "f964a1f8bab23bfad0c8b6552d8e717091619fa438e0d6e65a9801e1d97782bc"
       },
       "modes": {
         "scripts/delivery/base/schema/json-schema.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/json-schema.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/schema/setup-validation.mjs",
       "originPath": "schema/setup-validation.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/schema/setup-validation.mjs": "7ee1a46a742570cd5d3df605732c0777473f419f7b63b6c5ad1c238406a1625f"
+        "scripts/delivery/base/schema/setup-validation.mjs": "89327f524f2e7cfcaf9c750e9a5aa7249c91199a9afd0c14afe9efcf444ad14a"
       },
       "modes": {
         "scripts/delivery/base/schema/setup-validation.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/setup-validation.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/schema/SETUP.schema.json",
       "originPath": "schema/SETUP.schema.json",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/schema/SETUP.schema.json": "946adc2e484ace3dfee960a58a6215fa55a600079aa7e2cf52264704ece74998"
+        "scripts/delivery/base/schema/SETUP.schema.json": "ac52bac39e7e7e4dace1c22dce370f76df52e7f5bb167730ecfd96b0b7961c86"
       },
       "modes": {
         "scripts/delivery/base/schema/SETUP.schema.json": "100644"
-      }
+      },
+      "originFiles": [
+        "schema/SETUP.schema.json"
+      ]
     },
     {
       "path": "scripts/delivery/base/sign-in.mjs",
       "originPath": "modules/delivery-producer/sign-in.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/sign-in.mjs": "951aada2c00131ab7c808974827654b0fda20bcaeed1f2f97194b25441c03aff"
       },
       "modes": {
         "scripts/delivery/base/sign-in.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/sign-in.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/spec.mjs",
       "originPath": "modules/delivery-producer/spec.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/delivery/base/spec.mjs": "65179ca5222485513260e8d58aaae6740ae6fe1b27065e96f0d95d197fc6d3f0"
+        "scripts/delivery/base/spec.mjs": "8096a77005cfbed5c620ab52a5eb6fe77f579927c5e2a867387e9063553fbcd2"
       },
       "modes": {
         "scripts/delivery/base/spec.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/spec.mjs"
+      ]
     },
     {
       "path": "scripts/delivery/base/sql-statements.mjs",
       "originPath": "modules/delivery-producer/sql-statements.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/delivery/base/sql-statements.mjs": "8819f7f91b7781905796ea35b01dd1a55e08ed3893ff6d8aafaf03d2f35c1c9a"
       },
       "modes": {
         "scripts/delivery/base/sql-statements.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/delivery-producer/sql-statements.mjs"
+      ]
     },
     {
       "path": "scripts/deployment/OWNER-MIGRATIONS.md",
       "originPath": "deployment/OWNER-MIGRATIONS.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/deployment/OWNER-MIGRATIONS.md": "b6829b3bbd31a5aa6a3aa0aad9d213ca64dfc478174df26241c022e4f1eea6ac"
       },
       "modes": {
         "scripts/deployment/OWNER-MIGRATIONS.md": "100644"
-      }
+      },
+      "originFiles": [
+        "deployment/OWNER-MIGRATIONS.md"
+      ]
     },
     {
       "path": "scripts/deployment/owner-migrations.mjs",
       "originPath": "deployment/owner-migrations.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/deployment/owner-migrations.mjs": "ce67d3b8d562ba2dff12ce16bc3c682c84b3910d33629038899e0018747e86b5"
       },
       "modes": {
         "scripts/deployment/owner-migrations.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "deployment/owner-migrations.mjs"
+      ]
     },
     {
       "path": "scripts/edition-authoring",
       "originPath": "edition-authoring",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "scripts/edition-authoring/base-copies.mjs": "ca2e3b86aec67aaa5cb28d1a8311612a905fbd2116fac999a34185fa776cf876",
-        "scripts/edition-authoring/cli.mjs": "d9bc25b361c056ec4bebe2b8e506baff95fdd06ec4d4f54a63f20d873025a89b",
-        "scripts/edition-authoring/files.mjs": "eb0b8a0b9958c4ed84735d85f5298f3d1307ef60ddee1c2a3329c6ed7af0902e",
+        "scripts/edition-authoring/adopt.mjs": "c9cf80207b5f14164ce18cce63e08e0fcbb254d93b66263911ba74cdd4079c8f",
+        "scripts/edition-authoring/ADOPTING.md": "d511e72b087667dd990e636f4068194ca4772ce537e1cb40306d16537ff6e9e8",
+        "scripts/edition-authoring/archive-source.mjs": "c59a6a97abfdf80b2874a461ba7800e8604a3141db4594a584d6a0cfedac5f46",
+        "scripts/edition-authoring/base-acknowledgements.mjs": "ff1fa5d6ba32b519387581eab82842c1bfff71cf053050293cf133e3be3d3f79",
+        "scripts/edition-authoring/base-copies.mjs": "d1b005d4dd096488e7d4ddf94ada571957b29e7d2cb2859ed4e77ba4ec2882fa",
+        "scripts/edition-authoring/cli.mjs": "d4302ecd51794bbf9d92ea08c23fc1447f043088952c53689418c03e8750bb7f",
+        "scripts/edition-authoring/copy-checkout.mjs": "20c76c63ddfbac3ebaf668f79df3bbd74735e01594d050909d98a10098b51e3d",
+        "scripts/edition-authoring/copy-namespaces.mjs": "2e7f2bcd34c575e9b7ac72ee41f5e676fd6ac22ab27d5b64a313326fd9b42ed9",
+        "scripts/edition-authoring/edition-migrations.mjs": "7e9837c9a373cf7f394a575230c9f386a289786a15cc9685e4f11911e9a84e88",
+        "scripts/edition-authoring/files.mjs": "cd8ca780ed1f49977b183f025433227c12f844ff845b89a3a4a1d2d66f14e3e7",
+        "scripts/edition-authoring/lock.mjs": "c95f09ff1e0d7f457cc15a333d96d0c12c81337e2b37f7f10ddf2d10b60e72f2",
         "scripts/edition-authoring/manifest.mjs": "0c93bd39b1dd869b23a9d2727671fe8f9c933a9d56c7a3df1ba83c4a6f816e7b",
+        "scripts/edition-authoring/module-closure.mjs": "fb9cf1caa9760948e256464054647671c6800937cb20e43ef5ca180ad90c4e38",
+        "scripts/edition-authoring/module-edges.mjs": "78961972b44c158e75416629ae1149c419b0cafe2b2cb1336130bbeba2f6620a",
+        "scripts/edition-authoring/module-resolution.mjs": "8c8efd3e59e668cb3271b1b3fd1556a7acb505cf2b193bc6e8155712c3b4ccc1",
+        "scripts/edition-authoring/module-syntax.mjs": "eb5a1d2da81c2cfde8587ecf395c4543bcb97b8f293946e73ee5a73b4d7e50fb",
+        "scripts/edition-authoring/offline-git.mjs": "ef86d89a1c7df9fef306b24032629c2e8e60b589376ccddbe9b4e3c91d11543c",
+        "scripts/edition-authoring/package-target.mjs": "f0d3168d7fffcc86cd9f0ac385dcaa73bd0312bf20da5ff096d9a93091d1db76",
         "scripts/edition-authoring/parent-comparison.mjs": "fba6c894e2fe5a48c2f8706ab74b09d1935bd7fa38049a264d3d91ff6d336003",
         "scripts/edition-authoring/projection-lock.mjs": "bbb939b4e5bc6b5db8bf51156ec770fa30fc5df7a8fbb21a751c8ede69b1444b",
-        "scripts/edition-authoring/README.md": "26988b6b5d0426377ee85fa7d61cbbaa29ad2ad93744159a842ab448b60a6c3a",
+        "scripts/edition-authoring/README.md": "4248f5ae1129ecd90eabc0d25233911c0bdfa724c6bcb14da6a10b0dc9f47a05",
         "scripts/edition-authoring/release.mjs": "40acdb670edbde2eafa731f535bbe7403360a3327b576ed47355936bcc4a543a",
+        "scripts/edition-authoring/runtime-dependencies.mjs": "f80f59284b27a9610a96baa6b0f1d0f59f68e075a3c4ae20e85fb153d7def4f3",
         "scripts/edition-authoring/sources.mjs": "1033adaaa5f1f52053c34552c0979b6f868907f00cc1005d39fd8f845df4be09",
-        "scripts/edition-authoring/updates.mjs": "54e7246025a618ed16ee042c22dc9a8dc27b06175c30f81c4c6568992ed04799"
+        "scripts/edition-authoring/updates.mjs": "54e7246025a618ed16ee042c22dc9a8dc27b06175c30f81c4c6568992ed04799",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-string-parser/index.mjs": "79c5329b757f4aef92ab32e701f0587b0b469bb73fcfc8b4387b07572103903b",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/identifier.mjs": "96c7f08c06171788dd3d612c41b2c4bbeeac6632867d7d8eaec6e2d82a1fe507",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/index.mjs": "dc3a12f1276104e25dda3697e26b2fc7e7785ef2b708c9e3aa2ec6b86b3d1554",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/keyword.mjs": "e8f3eaa64807800726bfb23d6ea29dbcbb9947e139b518578f765763ea044014",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/index.mjs": "fb528c027ed1afa7bf7318f44c82f23dd54a03646c247b51ef4eab3b9b327a90",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/options.mjs": "50d27f3585df78b2bbd25ad2a6f89b779ad5e288669a945aa04a42ad1642ee8c",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error.mjs": "7a8ebf3e2ccd7109a767b01e88d40f03dda05c30f9dcef0ad0a05f5ccf5f7f0e",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/bind-operator-errors.mjs": "7ccd8271f6cbbad7d1fd2115919336a6c52488bac074b5b6e45b97ea747ca12b",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/module-errors.mjs": "92c0d0284fda16496376377a38f17979e44864b3cc3f55115b44291979c2320a",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/parse-expression-errors.mjs": "e9749768b9fd91a038f0b28721c8b9fd4da2fb2effe2c488558f9ae0723d45df",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/pipeline-operator-errors.mjs": "8bfac7fefb82e13e5a0ca8f759519a2074acb54f135f22f8bb773b38d2aeda70",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/standard-errors.mjs": "0f8cef5a33e069874d9b515b36f113b65e3653e06f99ab1b4c47d9a8b991bc61",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/strict-mode-errors.mjs": "776411adeb8b6648acdccdf1bf0e40e2c2688d05a80bb804ce0041d60c535d52",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/to-node-description.mjs": "fd95735fb141d4626acc1c80aef5cb453381f231e9a13cb52609225178cc9e30",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/base.mjs": "02da28b8159e6df6c9f1fbc6b3326283782d8fdffc0f5d7c5151e5e833ee7c3d",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/comments.mjs": "071794af5a25d879be7589ea026c9ba61534a57a2ff92e5cf239359dac26e2fb",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/expression.mjs": "854a6d320bf64245f456068c5680cc063b2932d5bc7d618e8b61ea353601319c",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/index.mjs": "1a2ddbb040066a640d4d91b493513a16140bc9f945868fa1a809f2824f13abc3",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/lval.mjs": "c9152a612afe62cae2a6dbd9f90c142cb51751770cba7539824b46da2e91aed1",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/node.mjs": "d26e42b4a06f15ab67be17794b581a0fd8cf668da86bb4eb7e46b75a2fbfd442",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/statement.mjs": "d7c74eca0b0ef263d860070d0dc1d5dfd7fa5a0fe2727c6d9c1fb697ed3082fd",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/util.mjs": "dde0ff114feacd5ce448906432c40be8ae6704398c39ec133ee119668077770e",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugin-utils.mjs": "3dc924773d500f909b3b3caa582f571526a4b1c544a3604e3267830cfdbfbfe2",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/estree.mjs": "3f0758e14f0745614496042baa4865f8a7a61569dc16f5d3246224706ac0d03c",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/flow/index.mjs": "d15a7c4741f12c167119913ec147ec828d3e25bb237671be2d96594faaa7f39e",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/flow/scope.mjs": "75567406d5c855f58e8cf149ba22495cdb96b913ce923c1b606a5f641479adf1",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/jsx/index.mjs": "db44cb69416293c2110aef1f94790e3cf849afe52d6e00cb06aa7213401ffff5",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/jsx/xhtml.mjs": "e4162785fe91410df9d5f16a37b2a75862c2c0c8fe86df015aa91f1dd1685906",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/placeholders.mjs": "f04c6fe32e86242032acaef0ccc1032147bc359c06c94dd28d56ca6347309486",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/typescript/index.mjs": "075fd3d378600b13db9ae7c89cab8a6c3d0f5d1e6921eae02faf2fc502b7720c",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/typescript/scope.mjs": "6a2a33ef47df6d961381c924ea769830d8bc2503062e6ea8e2bab86ac4a89c1d",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/v8intrinsic.mjs": "bc5c25cc42359df18ba0da8643bb270bcadb4805d051b3851226aca9a420a069",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/context.mjs": "a52b9a0cd4878cacb196e89961170d34ce1ae6b0a7d2fe2b32170c7845f0f767",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/index.mjs": "c3eb5b431ed4ccd0f3727e9cb32f90f99f5f9c1e2e24f7aaaaeb2f8a4453c00b",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/state.mjs": "08345203d621c9a0f4223ace7898fa59986f3c52da0b85a95a88ad1738ac98d1",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/types.mjs": "91f57c5f80c40ca21576629278fc991b8032918ae96d17301c3433c9f2387347",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/types.mjs": "7220719c4d56a39b2b63d28ebe4131f2b59e55c7de96533cd4b1dcdc3a2e02d0",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/class-scope.mjs": "4ad4eff3aabb23b6834aee30370b3f1691d5278d9befb882ba3228593db9a5a2",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/expression-scope.mjs": "669d87b7373855d2013c08584b5c84c9f9c49d8ee3d8ac48799e94f83d5e5e45",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/identifier.mjs": "915cbccee5460da1c5a7a9d60f56fdcfb8a2816e355ac56c5e9f4ed62049a8f6",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/location.mjs": "b9b93ff1ceb418387d4f5c654fc25bacd864a9fe16529ce09a0e6351d70b1813",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/production-parameter.mjs": "259a7843694360df30e9a6269fac44162591bc36110aa40c6b9ccca15df95654",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/scope.mjs": "eb85dc3fe59bc0f71b0a3e44baa7a2bc37d35334a315bfce01eb3bcbaca6c0f8",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/scopeflags.mjs": "93dbea40745ea00fc5767510d8caad8a70dd4ff64bbfe674ed34b1aa69c0a6f0",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/whitespace.mjs": "4598e97a1f0d4a5918d8ad1227d526b491d502ba964236f38d85bac1ff08e59a",
+        "scripts/edition-authoring/vendor/babel-parser/LICENSE": "117da2af0d4ce0fe1c8e19b5cff9dcd806adf973d328d27b11d4448c4ff24f76",
+        "scripts/edition-authoring/vendor/babel-parser/README.md": "e7ee8625baac8ac14c2d458dd719de1551317ba8b640614bfcadd6dc4b6af857",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-collection.mjs": "13125588d0e6f925c98b13f7a5ce74d99d7bd1c63e6733cde404781d296108d0",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-doc.mjs": "a63f228a7d82fccc230a7d456c502f745345ccc27fa83438f5e2d6aaa1eb5ba2",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-node.mjs": "d860a6edd8c37c146be2b962868029b50123e9bd1c2d48f1c33e0f50d5ea6afd",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-scalar.mjs": "a527a5f13c4f82dcec36249258de8d3d9b5b421e486d6fccf73e6f8bd876ba61",
+        "scripts/edition-authoring/vendor/yaml/compose/composer.mjs": "d45a9899e7e3965de5ec4e19f1af44783499f5f5dfd966ae71870a7cf08cfe0c",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-block-map.mjs": "fed77d3faec4dc55368c2f3a06f04256dae6df7d0abbf73d75b768eefe79facb",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-block-scalar.mjs": "583eeff9f7ec30361be813a43f13e8ce771769f1669dca9fce5276390faf9ca5",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-block-seq.mjs": "fe50d6411a540d57ec0f4da90a5b74b7723b5f75935a602cd2f7e7310342c75e",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-end.mjs": "e0a32e1b8c5649ea14152b0c0d45fbd64d46dbfa299a7328b71421e49ee48db2",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-flow-collection.mjs": "16edd43b7b6bac50a244c943985e4bd94aca4dcba707ae69653510c6afd2c3fd",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-flow-scalar.mjs": "10612dd033708c46f9151605bbb219f4c17211461b968628e4919c691392e5c5",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-props.mjs": "343c7827441fceca412e26a450028d195cc3433c9c3708980b285449df7e223d",
+        "scripts/edition-authoring/vendor/yaml/compose/util-contains-newline.mjs": "4810ffba0d74ebb913731e1369ea17f6fef20df2feb2ef0bd8553e439f4a6b78",
+        "scripts/edition-authoring/vendor/yaml/compose/util-empty-scalar-position.mjs": "7a6f0afe9909cc32557156c05a7499a87fe78881d4f57c37ba09805b959509c7",
+        "scripts/edition-authoring/vendor/yaml/compose/util-flow-indent-check.mjs": "ca3648e4d5ee337448f409ea997a59b5fd195573070416282bd35ad1568226a7",
+        "scripts/edition-authoring/vendor/yaml/compose/util-map-includes.mjs": "90d45ac60812727160c1798bd9b10595e50e34e88a1aedfe43f5d27bc894699f",
+        "scripts/edition-authoring/vendor/yaml/doc/anchors.mjs": "dd0184df10028d12ae9dde16c00c75820e38ec4683fc1818ec47bc879806e45e",
+        "scripts/edition-authoring/vendor/yaml/doc/applyReviver.mjs": "f09ad07a73144157cc584a8d9f890b6ca142abf8f24bc0031e9d24784ed815e8",
+        "scripts/edition-authoring/vendor/yaml/doc/createNode.mjs": "c8cac858816bb6f87a3a16038b448dfe310666697fd2a08bdf5146cd990eeabf",
+        "scripts/edition-authoring/vendor/yaml/doc/directives.mjs": "7f1a1fb7f580601b2b1dbdcdad02f888a2d6a53cb7df9c0eb29503722523d807",
+        "scripts/edition-authoring/vendor/yaml/doc/Document.mjs": "008ef5d6c1f75e9250f9b89d1ef6feb304da97bbce03d9066de32ae9b38bd10c",
+        "scripts/edition-authoring/vendor/yaml/errors.mjs": "410bb3397beb0d3a8c649d048b6e087bddf1f7114832eaf94be0fcbb4a8af29b",
+        "scripts/edition-authoring/vendor/yaml/index.mjs": "ac6be7be5716e70422ca9992d3942f336ff4fc986b45a37f196fadc196963cd8",
+        "scripts/edition-authoring/vendor/yaml/LICENSE": "5bba27375d93e9119f76c1015f7672cf9ad5f70952296e0842fb2243d6376869",
+        "scripts/edition-authoring/vendor/yaml/log.mjs": "2e7d7edee783c901f36a8f986d126f15f33ac504fe17d4655e6846869d07b9e4",
+        "scripts/edition-authoring/vendor/yaml/nodes/addPairToJSMap.mjs": "43b2c31ac993d29f828595f4a5b9c025b97bf7f50dd8a6cbd810405f18ee3105",
+        "scripts/edition-authoring/vendor/yaml/nodes/Alias.mjs": "60b073b1793a6bbef0e9b665ae3d206b4251bf235c27e7e8813b71b4f0a0d5fc",
+        "scripts/edition-authoring/vendor/yaml/nodes/Collection.mjs": "ba8984c3012efe283b59024029d434c74791fef04ea8dcdb9a63866da9114c13",
+        "scripts/edition-authoring/vendor/yaml/nodes/identity.mjs": "da71af70da393500ab6e3cdbceba9c66965bc89c3401388c9ad422c91abf467f",
+        "scripts/edition-authoring/vendor/yaml/nodes/Node.mjs": "27d8f8b1cb126934bf3303410257326c32756aea07d82b18938c32d79d802946",
+        "scripts/edition-authoring/vendor/yaml/nodes/Pair.mjs": "663c3905a34ed3e7b880882856f01990746f699380acde5275657b014b5ff598",
+        "scripts/edition-authoring/vendor/yaml/nodes/Scalar.mjs": "61873e6c416bab96af2320e1c7220e49da6c3498411118b2998eed9a1ef8f4c3",
+        "scripts/edition-authoring/vendor/yaml/nodes/toJS.mjs": "4d41d68a91607838600d813d08800e99cb52e1dd8da518fcba3049724914ff81",
+        "scripts/edition-authoring/vendor/yaml/nodes/YAMLMap.mjs": "3e728e6e9b8a07231c6f56a57c4bfdf728018474ae5b84f3900fb502af44e7d4",
+        "scripts/edition-authoring/vendor/yaml/nodes/YAMLSeq.mjs": "fbc1434c7bb867663d417b1d9b993b7d25e80d8e70ba625a95577a9ed305b2f0",
+        "scripts/edition-authoring/vendor/yaml/parse/cst-scalar.mjs": "9f9724f39c25bd995d9ca05fc588235a052000d3fe6074ac7b34419df847e43d",
+        "scripts/edition-authoring/vendor/yaml/parse/cst-stringify.mjs": "275b500e3f1a0067d5d8671af5c536963a46d4921e49cf156547f796067b8810",
+        "scripts/edition-authoring/vendor/yaml/parse/cst-visit.mjs": "0baadd57686b26163ba71e7323a9208fcba81978e9ecebbad80afaa8baa61788",
+        "scripts/edition-authoring/vendor/yaml/parse/cst.mjs": "54ac13b91a6721104a716badaf46b021a80a6271302b43f14845f7011f71ca2e",
+        "scripts/edition-authoring/vendor/yaml/parse/lexer.mjs": "980aef0546cff1a804c7a13f1c79c9035dccef66a3bc682e9000130e39d0d62d",
+        "scripts/edition-authoring/vendor/yaml/parse/line-counter.mjs": "2428d1b9a18ad7d8dabc7e12276e0fd90446c9e3433f1501e6bb43e111ad63c0",
+        "scripts/edition-authoring/vendor/yaml/parse/parser.mjs": "e191b5d90eb695766121c8be1e3fa371702f0e5ec04d98a8ea013d7029f3ac71",
+        "scripts/edition-authoring/vendor/yaml/public-api.mjs": "40c785a329b688abfb41aa02cff16a12e30bf187957860f889b23461e7c92121",
+        "scripts/edition-authoring/vendor/yaml/README.md": "7d1979439cb82d413f9e97c6c0cfd0ca3027e662e2ce574fddc7ec7860363d01",
+        "scripts/edition-authoring/vendor/yaml/schema/common/map.mjs": "3dd7dc390919af03b7404b0ee6715f78de421c12afe8fb78e3da999e694d6f43",
+        "scripts/edition-authoring/vendor/yaml/schema/common/null.mjs": "5d8b9de0716843b67a311417b67a3fd9508e057f1ea36c9ac2f0546ba5119b5b",
+        "scripts/edition-authoring/vendor/yaml/schema/common/seq.mjs": "941e62fdf4b1693ea07b88b73417515f348e784c3c0657bf2642432512feb1e8",
+        "scripts/edition-authoring/vendor/yaml/schema/common/string.mjs": "f7c26c4fed96722a71a5ada0defa275169dbd129f874f3e1119c7292d68a4db8",
+        "scripts/edition-authoring/vendor/yaml/schema/core/bool.mjs": "a7be77cffe27d9f38d812d96cf91d86a04d6f243d0f1180c1c8352e1fa285439",
+        "scripts/edition-authoring/vendor/yaml/schema/core/float.mjs": "5dc2983e1963813748a731bdf35b06b828314710a648cda744fa84847e4eb041",
+        "scripts/edition-authoring/vendor/yaml/schema/core/int.mjs": "9b8cc5a8796396a6f4028061985272debc68da24c0ec87fae32fe9149dce1780",
+        "scripts/edition-authoring/vendor/yaml/schema/core/schema.mjs": "641e2b83116546d2a3ed1ee7763d55cb87044e9c9c5996d30b13c86be9c1d70c",
+        "scripts/edition-authoring/vendor/yaml/schema/json/schema.mjs": "efc2713b12f344eede662c9927e508c072c68b209470e2784a027da8b0ebf1b5",
+        "scripts/edition-authoring/vendor/yaml/schema/Schema.mjs": "15aed0d6ba9a45fce5bfd1c91351595b39006bdefb6be2c35506e5fc93eb9682",
+        "scripts/edition-authoring/vendor/yaml/schema/tags.mjs": "768368a452c2b6d26415ff66c4dc4c15648fb633c8f79f2060bfcd3d0f92b69b",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/binary.mjs": "40959bfa6ba10d8c96cadd513e7ec039f932e572f6565a9d38266088b213d65a",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/bool.mjs": "898602784a4dcc42a7a75c8241937afe57276713456fd62c3719c91127b00db0",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/float.mjs": "2ef1d06060e0ffc89f6705d824448344f8ef56dc5bc1fff28245a7d90a1c1f86",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/int.mjs": "fd14d2f40d9296a7b2da4f6382122fc156b93fa4cb6bcaf158b6f80b27d79228",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/merge.mjs": "39e329954b41824d9fa2b9b5f4d865cb8d3710ef36a53eefce39cb95fe0bb458",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/omap.mjs": "e60534abb7f89e04c39fe60c23c2e013c3cfc8557fd8b3a0abc5a54108c1b5b0",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/pairs.mjs": "b359d5a6cd7c858a7ed1b49d152402d91cc10eee1c41834b61e9e1131708c890",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/schema.mjs": "75a94d66561f5b1da188311c198dcbded6fc38a0a73dd74a3c22d55b2e2d5f4f",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/set.mjs": "30e71b433a5c8346a8b35f3ea63e79ee3b6c2537d47bfffbd2f48769f61eccc5",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/timestamp.mjs": "2b426a75a9087e31a6da03499220195abfc1f3e2234b91d2711bbdd651a75bc7",
+        "scripts/edition-authoring/vendor/yaml/stringify/foldFlowLines.mjs": "1a6360496e3cb52767d4c346655307c978cb2c94853229152f97017c4209745a",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringify.mjs": "51961de1b2aaa7b08bd3b8c0edc9d59a9d185b127f05eecc1c2cf3b73206fd6c",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyCollection.mjs": "ea39504928f1f2e052a1ac11ac8e6686a6ffdae002c0827fe1ed331bf9311670",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyComment.mjs": "20d3dc6bebda3efc2394ca162455ce9e4691b6c60995b5b4418b30659e09e03e",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyDocument.mjs": "1941c07929e6ba2203632c5eacb81d2021e3c674b50bca4b069ebf6bdf304709",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyNumber.mjs": "e0d02220e66fedc267b435e5d13d2383e24c8460562d815f670a169dadc2859f",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyPair.mjs": "3c47f3c822fda98bdbe279df1602878cf47572f58532faea663813588a963300",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyString.mjs": "c6510e7e90fff12258d72d910a9992675392a72025732dc6b767871e7e33326f",
+        "scripts/edition-authoring/vendor/yaml/util.mjs": "365dc12f67de4e3a8d31ceb6f86986879d745e4d65fa3e6f3b6df577ef0ca667",
+        "scripts/edition-authoring/vendor/yaml/visit.mjs": "ac2f199b2eb4c2930b05e976af5e0505f4e8e3a56adee99b8edd9343120e085e",
+        "scripts/edition-authoring/workflow-copies.mjs": "be15199b125ca10e19991469f65efe49e441d8e518df234b4f47ebb1d3727ec7",
+        "scripts/edition-authoring/workflow-scripts.mjs": "d0e747277142e54d86acd1c01549ee8b76bf15c060366387bd074c57f77f7d2d"
       },
       "modes": {
+        "scripts/edition-authoring/adopt.mjs": "100644",
+        "scripts/edition-authoring/ADOPTING.md": "100644",
+        "scripts/edition-authoring/archive-source.mjs": "100644",
+        "scripts/edition-authoring/base-acknowledgements.mjs": "100644",
         "scripts/edition-authoring/base-copies.mjs": "100644",
         "scripts/edition-authoring/cli.mjs": "100644",
+        "scripts/edition-authoring/copy-checkout.mjs": "100644",
+        "scripts/edition-authoring/copy-namespaces.mjs": "100644",
+        "scripts/edition-authoring/edition-migrations.mjs": "100644",
         "scripts/edition-authoring/files.mjs": "100644",
+        "scripts/edition-authoring/lock.mjs": "100644",
         "scripts/edition-authoring/manifest.mjs": "100644",
+        "scripts/edition-authoring/module-closure.mjs": "100644",
+        "scripts/edition-authoring/module-edges.mjs": "100644",
+        "scripts/edition-authoring/module-resolution.mjs": "100644",
+        "scripts/edition-authoring/module-syntax.mjs": "100644",
+        "scripts/edition-authoring/offline-git.mjs": "100644",
+        "scripts/edition-authoring/package-target.mjs": "100644",
         "scripts/edition-authoring/parent-comparison.mjs": "100644",
         "scripts/edition-authoring/projection-lock.mjs": "100644",
         "scripts/edition-authoring/README.md": "100644",
         "scripts/edition-authoring/release.mjs": "100644",
+        "scripts/edition-authoring/runtime-dependencies.mjs": "100644",
         "scripts/edition-authoring/sources.mjs": "100644",
-        "scripts/edition-authoring/updates.mjs": "100644"
-      }
+        "scripts/edition-authoring/updates.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-string-parser/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/identifier.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/keyword.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/options.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/bind-operator-errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/module-errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/parse-expression-errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/pipeline-operator-errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/standard-errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/strict-mode-errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parse-error/to-node-description.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/base.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/comments.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/expression.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/lval.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/node.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/statement.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/parser/util.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugin-utils.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/estree.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/flow/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/flow/scope.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/jsx/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/jsx/xhtml.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/placeholders.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/typescript/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/typescript/scope.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/plugins/v8intrinsic.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/context.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/state.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/tokenizer/types.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/types.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/class-scope.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/expression-scope.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/identifier.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/location.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/production-parameter.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/scope.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/scopeflags.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/babel-parser/util/whitespace.mjs": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/LICENSE": "100644",
+        "scripts/edition-authoring/vendor/babel-parser/README.md": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-collection.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-doc.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-node.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/compose-scalar.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/composer.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-block-map.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-block-scalar.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-block-seq.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-end.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-flow-collection.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-flow-scalar.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/resolve-props.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/util-contains-newline.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/util-empty-scalar-position.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/util-flow-indent-check.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/compose/util-map-includes.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/doc/anchors.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/doc/applyReviver.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/doc/createNode.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/doc/directives.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/doc/Document.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/errors.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/index.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/LICENSE": "100644",
+        "scripts/edition-authoring/vendor/yaml/log.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/addPairToJSMap.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/Alias.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/Collection.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/identity.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/Node.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/Pair.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/Scalar.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/toJS.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/YAMLMap.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/nodes/YAMLSeq.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/cst-scalar.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/cst-stringify.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/cst-visit.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/cst.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/lexer.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/line-counter.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/parse/parser.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/public-api.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/README.md": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/common/map.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/common/null.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/common/seq.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/common/string.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/core/bool.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/core/float.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/core/int.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/core/schema.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/json/schema.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/Schema.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/tags.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/binary.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/bool.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/float.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/int.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/merge.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/omap.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/pairs.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/schema.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/set.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/schema/yaml-1.1/timestamp.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/foldFlowLines.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringify.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyCollection.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyComment.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyDocument.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyNumber.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyPair.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/stringify/stringifyString.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/util.mjs": "100644",
+        "scripts/edition-authoring/vendor/yaml/visit.mjs": "100644",
+        "scripts/edition-authoring/workflow-copies.mjs": "100644",
+        "scripts/edition-authoring/workflow-scripts.mjs": "100644"
+      },
+      "originFiles": [
+        "edition-authoring/ADOPTING.md",
+        "edition-authoring/README.md",
+        "edition-authoring/adopt.mjs",
+        "edition-authoring/archive-source.mjs",
+        "edition-authoring/base-acknowledgements.mjs",
+        "edition-authoring/base-copies.mjs",
+        "edition-authoring/base-copies.test.mjs",
+        "edition-authoring/cli.mjs",
+        "edition-authoring/compare-mappings.test.mjs",
+        "edition-authoring/copy-checkout.mjs",
+        "edition-authoring/copy-namespaces.mjs",
+        "edition-authoring/edition-migrations.mjs",
+        "edition-authoring/files.mjs",
+        "edition-authoring/lifecycle.test.mjs",
+        "edition-authoring/lock.mjs",
+        "edition-authoring/manifest.mjs",
+        "edition-authoring/module-closure.mjs",
+        "edition-authoring/module-edges.mjs",
+        "edition-authoring/module-resolution.mjs",
+        "edition-authoring/module-syntax.mjs",
+        "edition-authoring/offline-git.mjs",
+        "edition-authoring/package-target.mjs",
+        "edition-authoring/parent-comparison.mjs",
+        "edition-authoring/projection-lock.mjs",
+        "edition-authoring/projections.test.mjs",
+        "edition-authoring/release.mjs",
+        "edition-authoring/runtime-dependencies.mjs",
+        "edition-authoring/snapshot-integrity.test.mjs",
+        "edition-authoring/sources.mjs",
+        "edition-authoring/tests/archive-cases.mjs",
+        "edition-authoring/tests/closure-cases.mjs",
+        "edition-authoring/tests/import-kit-cases.mjs",
+        "edition-authoring/tests/package-cases.mjs",
+        "edition-authoring/tests/shared-namespace-cases.mjs",
+        "edition-authoring/tests/vendor-namespace-cases.mjs",
+        "edition-authoring/updates.mjs",
+        "edition-authoring/updates.test.mjs",
+        "edition-authoring/vendor/babel-parser/LICENSE",
+        "edition-authoring/vendor/babel-parser/README.md",
+        "edition-authoring/vendor/babel-parser/babel-helper-string-parser/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/identifier.mjs",
+        "edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-helper-validator-identifier/keyword.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/options.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/bind-operator-errors.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/module-errors.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/parse-expression-errors.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/pipeline-operator-errors.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/standard-errors.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/strict-mode-errors.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parse-error/to-node-description.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/base.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/comments.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/expression.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/lval.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/node.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/statement.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/parser/util.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugin-utils.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/estree.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/flow/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/flow/scope.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/jsx/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/jsx/xhtml.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/placeholders.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/typescript/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/typescript/scope.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/plugins/v8intrinsic.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/tokenizer/context.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/tokenizer/index.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/tokenizer/state.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/tokenizer/types.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/types.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/class-scope.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/expression-scope.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/identifier.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/location.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/production-parameter.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/scope.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/scopeflags.mjs",
+        "edition-authoring/vendor/babel-parser/babel-parser/util/whitespace.mjs",
+        "edition-authoring/vendor/yaml/LICENSE",
+        "edition-authoring/vendor/yaml/README.md",
+        "edition-authoring/vendor/yaml/compose/compose-collection.mjs",
+        "edition-authoring/vendor/yaml/compose/compose-doc.mjs",
+        "edition-authoring/vendor/yaml/compose/compose-node.mjs",
+        "edition-authoring/vendor/yaml/compose/compose-scalar.mjs",
+        "edition-authoring/vendor/yaml/compose/composer.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-block-map.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-block-scalar.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-block-seq.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-end.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-flow-collection.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-flow-scalar.mjs",
+        "edition-authoring/vendor/yaml/compose/resolve-props.mjs",
+        "edition-authoring/vendor/yaml/compose/util-contains-newline.mjs",
+        "edition-authoring/vendor/yaml/compose/util-empty-scalar-position.mjs",
+        "edition-authoring/vendor/yaml/compose/util-flow-indent-check.mjs",
+        "edition-authoring/vendor/yaml/compose/util-map-includes.mjs",
+        "edition-authoring/vendor/yaml/doc/Document.mjs",
+        "edition-authoring/vendor/yaml/doc/anchors.mjs",
+        "edition-authoring/vendor/yaml/doc/applyReviver.mjs",
+        "edition-authoring/vendor/yaml/doc/createNode.mjs",
+        "edition-authoring/vendor/yaml/doc/directives.mjs",
+        "edition-authoring/vendor/yaml/errors.mjs",
+        "edition-authoring/vendor/yaml/index.mjs",
+        "edition-authoring/vendor/yaml/log.mjs",
+        "edition-authoring/vendor/yaml/nodes/Alias.mjs",
+        "edition-authoring/vendor/yaml/nodes/Collection.mjs",
+        "edition-authoring/vendor/yaml/nodes/Node.mjs",
+        "edition-authoring/vendor/yaml/nodes/Pair.mjs",
+        "edition-authoring/vendor/yaml/nodes/Scalar.mjs",
+        "edition-authoring/vendor/yaml/nodes/YAMLMap.mjs",
+        "edition-authoring/vendor/yaml/nodes/YAMLSeq.mjs",
+        "edition-authoring/vendor/yaml/nodes/addPairToJSMap.mjs",
+        "edition-authoring/vendor/yaml/nodes/identity.mjs",
+        "edition-authoring/vendor/yaml/nodes/toJS.mjs",
+        "edition-authoring/vendor/yaml/parse/cst-scalar.mjs",
+        "edition-authoring/vendor/yaml/parse/cst-stringify.mjs",
+        "edition-authoring/vendor/yaml/parse/cst-visit.mjs",
+        "edition-authoring/vendor/yaml/parse/cst.mjs",
+        "edition-authoring/vendor/yaml/parse/lexer.mjs",
+        "edition-authoring/vendor/yaml/parse/line-counter.mjs",
+        "edition-authoring/vendor/yaml/parse/parser.mjs",
+        "edition-authoring/vendor/yaml/public-api.mjs",
+        "edition-authoring/vendor/yaml/schema/Schema.mjs",
+        "edition-authoring/vendor/yaml/schema/common/map.mjs",
+        "edition-authoring/vendor/yaml/schema/common/null.mjs",
+        "edition-authoring/vendor/yaml/schema/common/seq.mjs",
+        "edition-authoring/vendor/yaml/schema/common/string.mjs",
+        "edition-authoring/vendor/yaml/schema/core/bool.mjs",
+        "edition-authoring/vendor/yaml/schema/core/float.mjs",
+        "edition-authoring/vendor/yaml/schema/core/int.mjs",
+        "edition-authoring/vendor/yaml/schema/core/schema.mjs",
+        "edition-authoring/vendor/yaml/schema/json/schema.mjs",
+        "edition-authoring/vendor/yaml/schema/tags.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/binary.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/bool.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/float.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/int.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/merge.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/omap.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/pairs.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/schema.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/set.mjs",
+        "edition-authoring/vendor/yaml/schema/yaml-1.1/timestamp.mjs",
+        "edition-authoring/vendor/yaml/stringify/foldFlowLines.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringify.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringifyCollection.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringifyComment.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringifyDocument.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringifyNumber.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringifyPair.mjs",
+        "edition-authoring/vendor/yaml/stringify/stringifyString.mjs",
+        "edition-authoring/vendor/yaml/util.mjs",
+        "edition-authoring/vendor/yaml/visit.mjs",
+        "edition-authoring/workflow-copies.mjs",
+        "edition-authoring/workflow-scripts.mjs"
+      ]
     },
     {
       "path": "scripts/installer/ui/background.svg",
       "originPath": "default-seed/scripts/installer/ui/background.svg",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/installer/ui/background.svg": "b234f98362d278ad8fb176ede8a88b8bd66d016147ab758ecb81a096c7115d26"
       },
       "modes": {
         "scripts/installer/ui/background.svg": "100644"
-      }
+      },
+      "originFiles": [
+        "default-seed/scripts/installer/ui/background.svg"
+      ]
     },
     {
       "path": "scripts/operations.mjs",
       "originPath": "operations/operations.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/operations.mjs": "c0af9edbc9ded47063b31f352fb76c83b0d236d00caa63b5f6b8a44cce59da88"
       },
       "modes": {
         "scripts/operations.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "operations/operations.mjs"
+      ]
     },
     {
       "path": "scripts/project-operations.mjs",
       "originPath": "operations/project-operations.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "scripts/project-operations.mjs": "583a32cabf96c13a53b3cd493d8dd798c8a3e1ad4ff460b33512c4a37ef43385"
       },
       "modes": {
         "scripts/project-operations.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "operations/project-operations.mjs"
+      ]
     },
     {
       "path": "SEED-COMMAND-CONTRACT.md",
       "originPath": "export/SEED-COMMAND-CONTRACT.md",
-      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "SEED-COMMAND-CONTRACT.md": "c3fe456bafe528e88cef89284fb943a99d4d103452fb02a81721c982cd931881"
+        "SEED-COMMAND-CONTRACT.md": "7e3d58e9b0b50fe2778d75f5cda533b5a2b78204c4aad607c1827d6ced78dbcc"
       },
       "modes": {
         "SEED-COMMAND-CONTRACT.md": "100644"
-      }
+      },
+      "originFiles": [
+        "export/SEED-COMMAND-CONTRACT.md"
+      ]
     },
     {
       "path": "src/base/actor.ts",
       "originPath": "foundation/runtime/actor.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/actor.ts": "a51af00fe7b50c6552a585f00d089c8ab66717cb741a6b5eda41c5bc0e6dafab"
       },
       "modes": {
         "src/base/actor.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/actor.ts"
+      ]
     },
     {
       "path": "src/base/command-receipts.sql",
       "originPath": "foundation/runtime/command-receipts.sql",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/command-receipts.sql": "8064fe877c22bf0500ff5c20d274cbd4e8b2e0dea986fa9e3e4fef4faf2c54a0"
       },
       "modes": {
         "src/base/command-receipts.sql": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/command-receipts.sql"
+      ]
     },
     {
       "path": "src/base/command-receipts.ts",
       "originPath": "foundation/runtime/command-receipts.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/command-receipts.ts": "2f2411c94af00854c4d040ae74a8e6bd11da98308e7d5b0211473f46679d791a"
       },
       "modes": {
         "src/base/command-receipts.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/command-receipts.ts"
+      ]
     },
     {
       "path": "src/base/contract-docs.mjs",
       "originPath": "foundation/runtime/contract-docs.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/contract-docs.mjs": "e43dc064aaedaff9309c5c52a42814784e761b82a618cf397cd91251177551e5"
       },
@@ -2496,29 +3556,44 @@
     {
       "path": "src/base/contract-filter.ts",
       "originPath": "foundation/runtime/contract-filter.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/contract-filter.ts": "eec5be7da15653b69dd343fb3cf9f7a2e695eb215c5ee118f3508090e9c29232"
       },
       "modes": {
         "src/base/contract-filter.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/contract-filter.ts"
+      ]
     },
     {
       "path": "src/base/contract-page.ts",
       "originPath": "foundation/runtime/contract-page.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "src/base/contract-page.ts": "aee83fd5243c8ccf267048a31de0b5d04099de8ee9a912b1bfa03f314bda975b"
+        "src/base/contract-page.ts": "836c0a5f618dd40d43363bd9cb6667c3542cb6c2b3378f6fab5752f4fc667fdc"
       },
       "modes": {
         "src/base/contract-page.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/contract-page.ts"
+      ],
+      "adapted": {
+        "src/base/contract-page.ts": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb"
+      },
+      "acknowledged": {
+        "src/base/contract-page.ts": {
+          "sha256": "aee83fd5243c8ccf267048a31de0b5d04099de8ee9a912b1bfa03f314bda975b",
+          "mode": "100644"
+        }
       }
     },
     {
       "path": "src/base/contract-prose-patterns.mjs",
       "originPath": "foundation/runtime/contract-prose-patterns.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/contract-prose-patterns.mjs": "5519a7439e28f7c2635a0170749c43ccdc96eaccc0c313f55a2294d0665c8ba4"
       },
@@ -2532,7 +3607,7 @@
     {
       "path": "src/base/contract-prose.mjs",
       "originPath": "foundation/runtime/contract-prose.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/contract-prose.mjs": "7f606da0b4ac6f259fdaaa2a263250c1b6a20d5c906104c5a961271d23e818e0"
       },
@@ -2546,172 +3621,244 @@
     {
       "path": "src/base/contract-style.ts",
       "originPath": "foundation/runtime/contract-style.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "src/base/contract-style.ts": "979444af1f8dabb18ccfcc5d622359da18ef6815e094c11bea3d278f3fdb7b06"
+        "src/base/contract-style.ts": "81fa208653dd1b7149b59a3a9c3d3313038b4bb4af9ab9f153269a0eda7574a1"
       },
       "modes": {
         "src/base/contract-style.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/contract-style.ts"
+      ],
+      "adapted": {
+        "src/base/contract-style.ts": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb"
+      },
+      "acknowledged": {
+        "src/base/contract-style.ts": {
+          "sha256": "979444af1f8dabb18ccfcc5d622359da18ef6815e094c11bea3d278f3fdb7b06",
+          "mode": "100644"
+        }
       }
     },
     {
       "path": "src/base/deployment-health.ts",
       "originPath": "foundation/runtime/deployment-health.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/deployment-health.ts": "49f4dac80429ea7d9477b40799a6242f9af4870f3229df70d0ac1f635476b8b7"
       },
       "modes": {
         "src/base/deployment-health.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/deployment-health.ts"
+      ]
     },
     {
       "path": "src/base/dispatch.ts",
       "originPath": "foundation/runtime/dispatch.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/dispatch.ts": "695ff1bf5bdcf65a429e3853eb80bcb477297c29e55221f6cad08dcff6ba610c"
       },
       "modes": {
         "src/base/dispatch.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/dispatch.ts"
+      ]
     },
     {
       "path": "src/base/font-head.ts",
       "originPath": "foundation/runtime/font-head.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/font-head.ts": "937fe339a397abee96e4279f2e310fa336eb30b2ec3aeb98f2c09ed0ba7d5dac"
       },
       "modes": {
         "src/base/font-head.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/font-head.ts"
+      ]
     },
     {
       "path": "src/base/font-response.ts",
       "originPath": "foundation/runtime/font-response.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/font-response.ts": "55abc935a78085735ae5b7f2d441ee7a5a67d9c797417f9b5ac3c2449f8c91a8"
       },
       "modes": {
         "src/base/font-response.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/font-response.ts"
+      ]
     },
     {
       "path": "src/base/hydration/intro-guard.ts",
       "originPath": "foundation/runtime/hydration/intro-guard.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/hydration/intro-guard.ts": "abc289d53537b631ad6de323b9123c843aea7498aa50d429a4786d7819194fcd"
       },
       "modes": {
         "src/base/hydration/intro-guard.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/hydration/intro-guard.ts"
+      ]
     },
     {
       "path": "src/base/hydration/README.md",
       "originPath": "foundation/runtime/hydration/README.md",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/hydration/README.md": "a25e8a1a787e141590c9b46efb313b8ba6d9b135fad880d3aacfd5289c205244"
       },
       "modes": {
         "src/base/hydration/README.md": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/hydration/README.md"
+      ]
     },
     {
       "path": "src/base/hydration/report.ts",
       "originPath": "foundation/runtime/hydration/report.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/hydration/report.ts": "38792ad67dc33c9ccd9537bcfc41b7f21a57f0d6f6266d045cb71d70630cf3d7"
       },
       "modes": {
         "src/base/hydration/report.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/hydration/report.ts"
+      ]
     },
     {
       "path": "src/base/hydration/unit.tsx",
       "originPath": "foundation/runtime/hydration/unit.tsx",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/hydration/unit.tsx": "932bf2aa40a05c76f3a2c25a121db282e17c7bc839f9c37cd102ffe7f4e7ceca"
       },
       "modes": {
         "src/base/hydration/unit.tsx": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/hydration/unit.tsx"
+      ]
     },
     {
       "path": "src/base/icon-head.ts",
       "originPath": "foundation/runtime/icon-head.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/icon-head.ts": "ce4fa9ca48534d926469829abd372d1c81c6de31fb18cb4df567bc84a598e86f"
       },
       "modes": {
         "src/base/icon-head.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/icon-head.ts"
+      ]
     },
     {
       "path": "src/base/identity.ts",
       "originPath": "foundation/runtime/identity.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/identity.ts": "0bc7faa1ce3d7fe3839a6a68135160be45387b052e4699dc7b45d13f67cb2106"
       },
       "modes": {
         "src/base/identity.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/identity.ts"
+      ]
     },
     {
       "path": "src/base/lobby.ts",
       "originPath": "foundation/runtime/lobby.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "src/base/lobby.ts": "9b43f26b89276e0551d8a1b0b10c7f98dece6ae0d0220b5f199a460c0f637636"
+        "src/base/lobby.ts": "ca827c50f357a110153d94d5afa5116c99303abf2c2b5a292d4467636f134b07"
       },
       "modes": {
         "src/base/lobby.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/lobby.ts"
+      ],
+      "adapted": {
+        "src/base/lobby.ts": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb"
+      },
+      "acknowledged": {
+        "src/base/lobby.ts": {
+          "sha256": "9b43f26b89276e0551d8a1b0b10c7f98dece6ae0d0220b5f199a460c0f637636",
+          "mode": "100644"
+        }
       }
     },
     {
       "path": "src/base/page-style.ts",
       "originPath": "foundation/runtime/page-style.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/page-style.ts": "8e55d14647ffe9d31bcf922c43f272b2f6920a2bff3c685d0a36e8a7b646c8e6"
       },
       "modes": {
         "src/base/page-style.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/page-style.ts"
+      ]
     },
     {
       "path": "src/base/rejected-response.ts",
       "originPath": "foundation/runtime/rejected-response.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/rejected-response.ts": "4aa9861a20497b9dde6f95951dcbecf60cee69e8dad1923c1110ef35abc10686"
       },
       "modes": {
         "src/base/rejected-response.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/rejected-response.ts"
+      ]
     },
     {
       "path": "src/base/run-site.ts",
       "originPath": "foundation/runtime/run-site.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "src/base/run-site.ts": "804346c53da72315009e2923d6bdb565042b9b9255141023675669253ee7c5bd"
+        "src/base/run-site.ts": "427d81ff57333a16768ebc28920e41db0814e59956e002e2e8a66d92c43683ca"
       },
       "modes": {
         "src/base/run-site.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-site.ts"
+      ],
+      "adapted": {
+        "src/base/run-site.ts": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb"
+      },
+      "acknowledged": {
+        "src/base/run-site.ts": {
+          "sha256": "804346c53da72315009e2923d6bdb565042b9b9255141023675669253ee7c5bd",
+          "mode": "100644"
+        }
       }
     },
     {
       "path": "src/base/seed-contract.d.mts",
       "originPath": "foundation/runtime/seed-contract.d.mts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/seed-contract.d.mts": "89a49eeec744b201f66b3c5d599dad839174e28d3c463944823de25ecfae738d"
       },
@@ -2725,7 +3872,7 @@
     {
       "path": "src/base/seed-contract.mjs",
       "originPath": "foundation/runtime/seed-contract.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/seed-contract.mjs": "7beada5d271beaaf63d76e1f8cf2712ba906ec7d430f8312f4abedfad57428b4"
       },
@@ -2739,101 +3886,328 @@
     {
       "path": "src/base/select-style.ts",
       "originPath": "foundation/runtime/select-style.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/select-style.ts": "4fdee657176f62f425e4d41afd564752e30374d8806043a47661218080f629b7"
       },
       "modes": {
         "src/base/select-style.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/select-style.ts"
+      ]
     },
     {
       "path": "src/base/setup-state.ts",
       "originPath": "foundation/runtime/setup-state.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/setup-state.ts": "e4be71efeeec308d7a1ace213a2d58001cfdab2488140aac807bc71d70e47403"
       },
       "modes": {
         "src/base/setup-state.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/setup-state.ts"
+      ]
     },
     {
       "path": "src/base/setup.ts",
       "originPath": "foundation/runtime/setup.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "src/base/setup.ts": "151782b3a1d0984ef1e2d5938bba013a63a5fb679d7fd76e3c42632d47b5061f"
+        "src/base/setup.ts": "1248c32bbfab58389878a9b6c8216d7c2134d469efcbe6bee7d8e5fb46915d93"
       },
       "modes": {
         "src/base/setup.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/setup.ts"
+      ],
+      "adapted": {
+        "src/base/setup.ts": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb"
+      },
+      "acknowledged": {
+        "src/base/setup.ts": {
+          "sha256": "151782b3a1d0984ef1e2d5938bba013a63a5fb679d7fd76e3c42632d47b5061f",
+          "mode": "100644"
+        }
       }
     },
     {
       "path": "src/base/static-assets.ts",
       "originPath": "foundation/runtime/static-assets.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/base/static-assets.ts": "d6ed4098fbee2dc6d557eb1365e9a56b5f5435ad869357cb7d8472a8d0c70e76"
       },
       "modes": {
         "src/base/static-assets.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/static-assets.ts"
+      ]
     },
     {
       "path": "src/base/theme-frame.ts",
       "originPath": "foundation/runtime/theme-frame.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
-        "src/base/theme-frame.ts": "b65a43496156ee6ebe86ab9d0158ea0d18659146aa1d22aaa380ac14d83d64d0"
+        "src/base/theme-frame.ts": "70d2024eae2a29772e577924dc2542e33685ef25b4f99d32aa12b6f8540dce0b"
       },
       "modes": {
         "src/base/theme-frame.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/theme-frame.ts"
+      ],
+      "adapted": {
+        "src/base/theme-frame.ts": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb"
+      },
+      "acknowledged": {
+        "src/base/theme-frame.ts": {
+          "sha256": "b65a43496156ee6ebe86ab9d0158ea0d18659146aa1d22aaa380ac14d83d64d0",
+          "mode": "100644"
+        }
       }
     },
     {
       "path": "src/editor/editor-surface.ts",
       "originPath": "modules/editor/src/widget/editor-surface.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/editor/editor-surface.ts": "f0d692922abe6f9fe341eca3cc0872b1a0a52f0a9b87d0ad0829fd3fb6359efc"
       },
       "modes": {
         "src/editor/editor-surface.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/editor/src/widget/editor-surface.ts"
+      ]
     },
     {
       "path": "src/editor/live-edit-contracts.ts",
       "originPath": "modules/editor/src/widget/live-edit-contracts.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/editor/live-edit-contracts.ts": "2577ccb77819532e18776174b8997fdb3da4b3e6ef20051081b8371694dd1358"
       },
       "modes": {
         "src/editor/live-edit-contracts.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/editor/src/widget/live-edit-contracts.ts"
+      ]
     },
     {
       "path": "src/editor/live-edit-dom.ts",
       "originPath": "modules/editor/src/widget/live-edit-dom.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/editor/live-edit-dom.ts": "6c1b455d1fdadf989ea3fb104e666f78c896e568c13bd007adbe55fcae7b30b4"
       },
       "modes": {
         "src/editor/live-edit-dom.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/editor/src/widget/live-edit-dom.ts"
+      ]
     },
     {
       "path": "src/editor/visual-style.ts",
       "originPath": "modules/editor/src/widget/visual-style.ts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
       "files": {
         "src/editor/visual-style.ts": "29f8f23c5347e699a0ff207b9d62cc80032562e7b8831bb4e0accb3eba052c10"
       },
       "modes": {
         "src/editor/visual-style.ts": "100644"
-      }
+      },
+      "originFiles": [
+        "modules/editor/src/widget/visual-style.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-pricing.ts",
+      "originPath": "foundation/runtime/run-pricing.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "src/base/run-pricing.ts": "f95bdf9b5e62c7d302e97a57ae4dcb580846197fa4cf2222e17a5e1b2c0a02fd"
+      },
+      "modes": {
+        "src/base/run-pricing.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-pricing.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/index.ts",
+      "originPath": "modules/import-kit/src/receipt/index.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "modules/import-kit/src/receipt/index.ts": "874cafbaeb509f7a7eb465aadd6d5587caef209a235787ab2c5866a29d51f9e0"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/index.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/index.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/uri.ts",
+      "originPath": "modules/import-kit/src/receipt/uri.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "modules/import-kit/src/receipt/uri.ts": "39622c514ee2561dbada81a693a3a0b0766d5391cbc3d77f0e3e4cb2445cc961"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/uri.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/uri.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/types.ts",
+      "originPath": "modules/import-kit/src/receipt/types.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "modules/import-kit/src/receipt/types.ts": "338a32b4ba184236c37211a1902c4dd3aeb50b063882199b11db0871c3fbe87d"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/types.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/types.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/encoding.ts",
+      "originPath": "modules/import-kit/src/receipt/encoding.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "modules/import-kit/src/receipt/encoding.ts": "2e408d84dfeea6251d9f4406469688e09c1bd37b24e2f1be687a9219e0d1b410"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/encoding.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/encoding.ts"
+      ]
+    },
+    {
+      "path": "schema/business-field-inputs.mjs",
+      "originPath": "schema/business-field-inputs.mjs",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "schema/business-field-inputs.mjs": "b028b576bc85758c4ed400d059d4aae4fdda7a29eeb290fd1032ea15aaf957d1"
+      },
+      "modes": {
+        "schema/business-field-inputs.mjs": "100644"
+      },
+      "originFiles": [
+        "schema/business-field-inputs.mjs"
+      ]
+    },
+    {
+      "path": "scripts/delivery/base/schema/business-field-inputs.mjs",
+      "originPath": "schema/business-field-inputs.mjs",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "scripts/delivery/base/schema/business-field-inputs.mjs": "b028b576bc85758c4ed400d059d4aae4fdda7a29eeb290fd1032ea15aaf957d1"
+      },
+      "modes": {
+        "scripts/delivery/base/schema/business-field-inputs.mjs": "100644"
+      },
+      "originFiles": [
+        "schema/business-field-inputs.mjs"
+      ]
+    },
+    {
+      "path": "src/base/hosting-page.ts",
+      "originPath": "foundation/runtime/hosting-page.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "src/base/hosting-page.ts": "280e291c4d74cc27560379876044be55c7b2ba8d827ddb76b58e2a1b90b21569"
+      },
+      "modes": {
+        "src/base/hosting-page.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/hosting-page.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-chooser-style.ts",
+      "originPath": "foundation/runtime/run-chooser-style.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "src/base/run-chooser-style.ts": "62cd0b43762dbe406958d929ee6d27440658ffaead40bb51229eca7c4aea0756"
+      },
+      "modes": {
+        "src/base/run-chooser-style.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-chooser-style.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/policy.ts",
+      "originPath": "modules/import-kit/src/receipt/policy.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "modules/import-kit/src/receipt/policy.ts": "ea954dfdbd0518c19addd13d94c7ed1f56e116eb690ee46b91a749ab00069695"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/policy.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/policy.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/validation.ts",
+      "originPath": "modules/import-kit/src/receipt/validation.ts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "modules/import-kit/src/receipt/validation.ts": "ba8554d180c988c3ea7110685e3ffa2a069db0006ddc3c23a4d13201a70a0308"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/validation.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/validation.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-data.mjs",
+      "originPath": "foundation/runtime/run-data.mjs",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "src/base/run-data.mjs": "e27f7c181fe17f54771893a0988098f49395511a8264b4fd3b848ecda1f5c1c9"
+      },
+      "modes": {
+        "src/base/run-data.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-data.mjs"
+      ]
+    },
+    {
+      "path": "src/base/run-data.d.mts",
+      "originPath": "foundation/runtime/run-data.d.mts",
+      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
+      "files": {
+        "src/base/run-data.d.mts": "8b8f8e6b6030abe061027eef4b1b1560fdc77f54b25c82048839887da4fe56c1"
+      },
+      "modes": {
+        "src/base/run-data.d.mts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-data.d.mts"
+      ]
     }
   ],
   "ignore": []

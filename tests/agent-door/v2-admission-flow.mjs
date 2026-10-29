@@ -66,10 +66,13 @@ export async function runV2AdmissionFlow(t) {
     }));
     return response.json();
   };
+  const { lampDoorCapabilities } = await load('src/core/features/agent-door/index.server.ts');
+  const resourcesDeclared = lampDoorCapabilities.includes('resources');
   const hidden = await resource(`lamp://components/${id}`), absent = await resource('lamp://components/01AAAAAAAAAAAAAAAAAAAAAAAA');
-  assert.equal(hidden.error?.data?.code, 'resource_unavailable', JSON.stringify(hidden));
+  assert.equal(hidden.error?.data?.code, resourcesDeclared ? 'resource_unavailable' : 'capability_not_declared', JSON.stringify(hidden));
+  if (!resourcesDeclared) assert.equal(hidden.error.data.capability, 'resources');
   assert.deepEqual(hidden, absent, 'Hidden and missing native records have identical machine refusals');
-  assert.equal((await resource('unregistered://record')).error.data.code, 'tool_not_found');
+  assert.equal((await resource('unregistered://record')).error.data.code, resourcesDeclared ? 'tool_not_found' : 'capability_not_declared');
   const teammate = await r.invite('role-limited@example.test', true);
   const setRole = async role => {
     const response = await app.fetch(r.request(`/api/app/operators/${teammate.id}/role`, {

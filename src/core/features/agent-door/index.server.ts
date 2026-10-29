@@ -21,7 +21,7 @@ import { withNativeTarget } from './targets';
 import { invokeQueuedAgentOperation } from './provenance.repository';
 import { nativeAuthority } from './native-authority';
 
-export const lampDoorCapabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency', 'events', 'resources', 'prompts', 'subscriptions'] as const;
+export const lampDoorCapabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency'] as const;
 
 function installationTrust(bindings: AppBindings): Trust | null {
   const configured = [bindings.RER_OWNER_CLAIM_PUBLIC_KEYS, bindings.RER_OWNER_CLAIM_ISSUER,

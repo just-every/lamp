@@ -691,10 +691,19 @@ credential, sponsor, agent and consent revocation, scope, pause, native
 classification and policy before returning saved content. A refusal has its own
 audit row and never includes the saved result. A new approval or review
 requirement returns `approval_required` or `review_required`; an old approval
-cannot authorize a newer policy revision. Accepted replay does not execute or
-count the native effect again. Record revision preconditions guard first
+cannot authorize a newer policy revision. Accepted mutation replay does not
+execute or count the native effect again. Record revision preconditions guard first
 execution; they do not reject a successful replay merely because that execution
 advanced the record revision.
+
+Completed read-only approval replays, including aggregate tools, execute the
+native read again with the caller's current identity and grants. Target and
+classification checks alone cannot establish aggregate row visibility. The
+response carries only the current native payload, or the native refusal without
+saved content; unchanged visible data returns the same result and approval
+receipt. The original approval outcome remains recorded, and pending approvals
+remain pending. Keep native read implementations free of mutations: once-only
+effect replay applies to mutating tools, while read visibility is always current.
 
 For an explicit current-authority proof, declare
 `verification.replayAdmission: {prepare:['create']}`. Preparation names existing
