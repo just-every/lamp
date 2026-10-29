@@ -15,7 +15,7 @@ export async function connectIncidentChannel(input, componentId) {
 
 /** Ordinary requests also run due work: make this window due immediately before its real call. */
 export async function prepareReminder(input) {
-  if (input.phase !== 'autonomous' || input.step.id !== 'pending-base-2026-10-28-reminder-window') return;
+  if (input.step.id !== 'pending-base-2026-10-28-reminder-window') return;
   const now = Date.now(), instant = hours => new Date(now + hours * 3600_000).toISOString();
   await person(input, `/api/app/maintenance/${input.args.id}/window`, 'PUT', {
     startsAt: instant(23), endsAt: instant(24), autoStart: false, autoComplete: false, social: false });

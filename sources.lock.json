@@ -8040,7 +8040,7 @@
       "executable": false
     },
     "tests/agent-door/journey-fixtures.mjs": {
-      "sha256": "27795cf7d4ad5ca09125d24c7b6d414c00597a24ef5a93b00b858999c7c8a6f5",
+      "sha256": "ab103b0c294fab5b2b4ce0bfa70768962ed96c6efec99e380ee1b5602d4584df",
       "executable": false
     },
     "tests/agent-door/native-page-browser.mjs": {
@@ -8064,7 +8064,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "3c4128d70f6341de237b2c957994f57ffb63004b7301ace303d850c784333a8b",
+      "sha256": "7a449d016848d3fa359e866f72135de86b5837461cdc4607b1d6185400cecc47",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
