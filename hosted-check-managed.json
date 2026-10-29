@@ -8,7 +8,9 @@
     "MAIL_PROVIDER": "rer",
     "MAIL_FROM": "proof@rer-hosted-check.invalid",
     "MAIL_FROM_ADDRESS": "proof@rer-hosted-check.invalid",
-    "MAIL_RELAY_URL": "https://mail.rer-hosted-check.invalid/api/managed-mail/send"
+    "MAIL_RELAY_URL": "https://mail.rer-hosted-check.invalid/api/managed-mail/send",
+    "AI_PROVIDER_URL": "https://lamp-agent-provider.invalid/v1/chat/completions",
+    "AI_PROVIDER_MODEL": "lamp-conformance-structured"
   },
   "secrets": [
     {
@@ -18,6 +20,17 @@
     {
       "binding": "SESSION_SECRET",
       "environment": "SESSION_SECRET"
+    },
+    {
+      "binding": "INSTALLATION_KEY",
+      "environment": "INSTALLATION_KEY",
+      "verifyStandIn": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    {
+      "binding": "INSTALLATION_KEY_PREVIOUS",
+      "environment": "INSTALLATION_KEY_PREVIOUS",
+      "optional": true,
+      "verifyStandIn": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
     },
     {
       "binding": "SUBSCRIBER_TOKEN_SECRET",
@@ -45,6 +58,11 @@
       "binding": "MAIL_RELAY_URL",
       "environment": "MAIL_RELAY_URL",
       "verifyStandIn": "https://mail.rer-hosted-check.invalid/api/managed-mail/send"
+    },
+    {
+      "binding": "AI_PROVIDER_API_KEY",
+      "environment": "AI_PROVIDER_API_KEY",
+      "verifyStandIn": "synthetic-lamp-agent-provider-key"
     }
   ]
 }

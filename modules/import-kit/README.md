@@ -14,9 +14,12 @@ here, not installation `.rer` archives. Editions adopt this same door
 with their own supported readers and native adapters.
 
 The import kit plans and applies reviewed, inert data imports. It preserves the
-source records, exact available source bytes, and the provenance needed to inspect,
-resume, reconcile, or reverse an import. It does not send messages, enqueue work,
-activate access, or run application lifecycle hooks.
+source records, available custody bytes, and the provenance needed to inspect,
+resume, reconcile, or reverse an import. Without an intake declaration, custody
+keeps the exact available source bytes. A door source that declares an intake
+allowlist drops other fields before any persistent write and keeps the sanitized
+NDJSON as its original custody; it never stores the raw export. It does not send
+messages, enqueue work, activate access, or run application lifecycle hooks.
 
 ## Adopt the shared door
 
@@ -25,6 +28,31 @@ The signed-in screen, RER and Business share upload, plan, reviewed fingerprint,
 apply, reconcile and undo. Keep product readers, mappings and native adapters;
 remove separate importer routes and their job creation/apply callers. Owner
 history and Undo include jobs from either authority.
+
+Use the door's optional static `intake: {formats, allow}` declaration when a
+seed's source contract prohibits retaining fields outside an allowlist, including
+in uploads and originals. CSV lists exact case-sensitive decoded headers; JSON
+and NDJSON list exact RFC 6901 pointers to scalar leaves. The door streams the
+raw request through that drop-only declaration into NDJSON before storage;
+parsers and mappings still run during planning with `credentials: 'remove'`.
+No sanitizer callback or client-supplied sanitizer/hash is accepted. See the
+[intake protocol](src/door/README.md#optional-intake-before-custody) and the
+[Auth adoption example](src/door/ADOPTING.md#example-auth-source-contract).
+
+The declaration belongs to the source returned to both door mounts:
+
+```ts
+const source: ImportDoorSource = {
+  parse, mapping,
+  intake: {
+    formats: ['csv', 'ndjson'],
+    allow: {
+      csv: ['user_id', 'email', 'name', 'blocked'],
+      ndjson: ['/user_id', '/email', '/name', '/blocked'],
+    },
+  },
+};
+```
 
 ## Engine primitives
 
@@ -260,7 +288,9 @@ paths, and after stored-plan, custody and inventory reads before replay's atomic
 boundary. Pure preflight confers no authority; transactions still check current
 authority and the original reviewed fingerprint.
 
-The cap follows the second 8 October 2026 ruling. Historical boundary probes on
+The cap follows the second 8 October 2026 ruling. The following historical local
+observations are unverified here; no corresponding benchmark receipts are
+retained in this repository. Historical boundary probes on
 Node 26.8.1 showed that fresh input reaches V8's 536,870,888-character string
 bound or the module runner's 4 GiB heap limit before exhausting the 1,000-request
 D1 budget. At the earlier encoding boundary, one `JSON.stringify` output buffer
@@ -268,7 +298,7 @@ can abort at 256 MiB; `canonicalJson` therefore escapes strings longer than 1 Mi
 in slices without splitting surrogate pairs. The byte cap is about 56% of V8's
 string bound, with room for the fingerprint overhead.
 
-Fresh 9 October checks of this guard implementation, on Node 26.8.1 with
+The recorded 9 October 2026 checks of this guard implementation, on Node 26.8.1 with
 `--max-old-space-size=4096`, measured:
 
 - A 55,570,000-byte original: 56 actual create executions, equal to preflight,
@@ -284,9 +314,9 @@ Fresh 9 October checks of this guard implementation, on Node 26.8.1 with
   is not a 4 GiB total-memory promise, especially with buffers, input copies and
   the native runtime. Allocate process capacity accordingly.
 
-The twenty distinct 10 MiB original-custody lifecycle case retains exact bytes
-through undo. It does **not** prove every twenty-file maximum-content CSV import
-fits. A representative valid twenty-table CSV shape (105 rows/table, two fields,
+The historical twenty distinct 10 MiB original-custody lifecycle report recorded
+exact bytes through undo. It does **not** prove every twenty-file maximum-content
+CSV import fits. A representative valid twenty-table CSV shape (105 rows/table, two fields,
 10 MiB/file, cells <=100,000 characters) requires 910,382,498 canonical plan
 content bytes: originals alone contribute 279,620,320 base64 bytes, and parsed
 source is retained both in the source and entries before effects are counted.
@@ -351,6 +381,119 @@ to resolve and verify the referenced evidence. A `documented format` row records
 `validation: "synthetic-only"` and `realExport: "not-supplied"`; only the required
 real-export evidence can establish `verified` status.
 
+### Signing receipts and supplying a trust policy
+
+The public API exports `canonicalReceiptJson`, `signImporterVerificationReceipt`,
+`verifyImporterVerificationReceipt` and `createReceiptEvidencePort`. The receipt
+and status entry points (`src/receipt/index.ts` and `src/status/index.ts`) use only
+WebCrypto and Web APIs and can run in a Worker or Node. The root entry also
+exports these APIs alongside the existing Node SQLite engine. Package consumers
+use `@runeditrun/rer/modules/import-kit/receipt` for signing, portable verification
+and trust policy, and `@runeditrun/rer/modules/import-kit/status` for
+`validateImporters`; both entries avoid the Node SQLite engine. Bundle these
+TypeScript package entries for your Node or Worker target.
+
+The signer takes a caller-supplied Ed25519 private `CryptoKey` with `sign` usage
+and a payload satisfying
+[`importer-verification-receipt` v1](./schema/importer-verification-receipt.schema.json).
+It validates the schema, snapshots the payload and signs its canonical UTF-8
+bytes. Canonical JSON sorts every object's keys recursively by JavaScript's
+UTF-16 code-unit ordering, preserves array order, and uses `JSON.stringify`
+scalar escaping and number representation, without whitespace. Non-JSON values,
+non-finite numbers, sparse arrays and cycles are refused. The signature is padded
+base64. Only `payload` is signed, as required by v1; envelope key IDs select a
+public key and do not independently attest an issuer name. Reordering an object's
+keys before verification is harmless; signing insertion-order JSON instead of
+canonical JSON produces an invalid signature.
+
+The verifier returns `{ valid, issues }`. It checks the complete schema
+(including `source.sha256`, every dry-run/apply count and `byKind`), the signature,
+and the existing mapping, count, reconciliation, unmapped-manifest and safe-text
+rules. Unmapped items must be sorted by `sourceIdentitySha256` in the same UTF-16
+code-unit order as canonical keys, never by locale, so every host reaches the
+same verdict.
+For the same reason the export origin, `source.origin`, is read by the module's
+own ASCII grammar, never by the runtime's URL parser, whose IDNA tables differ
+between Node and Workers releases. It must be `https://` (scheme letters in
+either case), then a host, an optional port from 1 to 65535 without leading
+zeros, and an optional RFC 3986 path (`/` and unreserved, sub-delimiter, `:`,
+`@` and well-formed `%XX` characters), with no credentials, `?` or `#`. The
+host is either a dotted-quad IPv4 address without leading zeros or labels of
+ASCII letters (either case), digits and inner hyphens, optionally ending in one
+dot, whose last label is not numeric (all digits, or `0x` hex). Write an
+internationalized host as its `xn--` labels; they are not decoded, so every
+runtime treats them as ASCII. Non-ASCII text anywhere, IPv6 literals and
+WHATWG's lenient forms (backslashes, missing slashes, short or hexadecimal IPv4
+numbers, empty labels) are refused.
+`synthetic: true` always fails. A policy maps each `keyId` to a public
+Ed25519 `CryptoKey` with `verify` usage or an SPKI PEM public key. Its `environment`
+is a non-empty string chosen by the consumer; a key's optional `environments` array
+restricts its use to the environments it names. An empty array refuses it
+everywhere; omitting `environments` permits every environment, and any other
+value (such as a string, `null` or `false`) refuses the key. Unknown IDs and keys
+outside these rules fail closed.
+The policy is trusted consumer configuration and must never come from the receipt
+or registry being checked.
+
+For example, given a real verification payload and its reviewed registry, this
+Node example signs with a temporary development key, then checks pinned artifacts:
+
+```ts
+import { readFile } from 'node:fs/promises';
+import {
+  signImporterVerificationReceipt, verifyImporterVerificationReceipt,
+  createReceiptEvidencePort, validateImporters,
+} from './src/index.ts';
+
+const payload = JSON.parse(await readFile('verification-payload.json', 'utf8'));
+const registry = JSON.parse(await readFile('importers.json', 'utf8'));
+const keys = await crypto.subtle.generateKey('Ed25519', false, ['sign', 'verify']);
+const policy = {
+  environment: 'stage',
+  keys: { 'stage-development': { publicKey: keys.publicKey, environments: ['stage'] } },
+};
+const receipt = await signImporterVerificationReceipt(payload, 'stage-development', keys.privateKey);
+const verified = await verifyImporterVerificationReceipt(receipt, policy);
+if (!verified.valid) throw new Error(JSON.stringify(verified.issues));
+// Publish JSON.stringify(receipt) and the finished research artifact. Pin the
+// SHA-256 and byte size of those exact published bytes in registry evidence.
+const evidence = createReceiptEvidencePort({
+  trustedHosts: ['evidence.example.test'], // Use your controlled publisher host.
+  async resolve(link) {
+    const response = await fetch(link, { redirect: 'error' });
+    if (!response.ok) return undefined;
+    return { url: response.url, bytes: new Uint8Array(await response.arrayBuffer()) };
+  },
+}, policy);
+const result = await validateImporters(registry, evidence);
+if (!result.valid) throw new Error(JSON.stringify(result.issues));
+```
+
+`validateImporters` accepts that port directly. It additionally binds the receipt
+to the row's incumbent/product and the resolved research bytes, and retains URL,
+publisher-host, size and artifact hash checks. An evidence link's scheme,
+credentials, host and port are read by the same grammar: an `https` link needs
+`//` and a host of that form, which must equal an entry of `trustedHosts`
+ignoring ASCII case (pin an internationalized host by its `xn--` form); a host
+in the consumer's `evidence:` scheme may be any RFC 3986 registered name. The
+path, query and fragment reach the resolver as written. A link may contain no
+spaces or control characters, no credentials and no query key naming a token,
+password, secret, API key or authorization. A valid result's
+`evidence.verifiedReceipts` counts only verified rows whose receipts pass every
+check. It does not promote or mutate registry rows; `documented format` keeps its
+synthetic-only meaning. Existing `receiptPublicKeys` PEM pins remain an unrestricted
+public-key policy when `receiptTrustPolicy` is absent; an explicit trust policy
+takes precedence and never falls back to those pins on refusal.
+
+Signing attests the caller's claims; it does not capture exports, recalculate the
+source digest, run an importer or perform the review. The caller must calculate
+those values from the actual export, preview, apply and reconciliation results.
+The signer never generates, stores or retrieves production keys. The consumer
+lists public keys only. Production private-key custody, issuer authorization and
+rotation are owner decisions outside this module; this contract chooses none of
+them. A stage-only key must be explicitly restricted to `['stage']` and cannot
+authorize a production receipt.
+
 Base keeps its edition registry and source-specific guides in its private
 authoring tree. They retain exact source identities and evidence pins and are
 not part of this reusable module. Review any consumer registry and its source
@@ -364,7 +507,8 @@ suites. The targeted crash and evidence-validation checks can be run with:
 ```sh
 TMPDIR="$PWD/../scratch" node --test \
   modules/import-kit/tests/core/crash.test.ts \
-  modules/import-kit/tests/status.test.ts
+  modules/import-kit/tests/status.test.ts \
+  modules/import-kit/tests/receipt.test.ts
 ```
 
 Set `TMPDIR` to an existing writable directory inside the work area before
@@ -376,7 +520,8 @@ limits and byte custody.
 ## Cloudflare D1 Workers
 
 The additive asynchronous [D1 port](./src/d1/README.md) is available through
-`src/d1/index.ts`. It supports native SQL effects, reviewed jobs, durable bounded
+`@runeditrun/rer/modules/import-kit/d1` in a supplying rer release after 0.2.77
+(or `src/d1/index.ts` when working in Base source). It supports native SQL effects, reviewed jobs, durable bounded
 resume, original custody and conflict-safe undo in the same D1 batch as its
 journal. Products supply native snapshot predicates and current-session SQL
 permission predicates. Use its D1-specific API and numbered schema migration;
@@ -387,6 +532,23 @@ and omitted-policy jobs remain strict. The adapter supplies exact native
 ownership/dependency snapshots; retained edits keep their original attribution.
 See [D1 evolution 0001 and adoption instructions](./src/d1/README.md#adopting-preserved-conflict-undo-evolution-0001)
 before updating a deployed D1 schema or adapter.
+
+Existing strict D1 jobs switch policy only through the public reviewed
+`previewD1PreservedUndo` / `convertD1ReversalPolicy` flow. Eligible jobs are
+`completed` or `undoing`; conversion checks current undo authority, the job's
+binding and the exact reviewed snapshot, then atomically appends its conversion
+record and journal evidence with the new policy binding. It leaves provenance,
+originals, claims and history unchanged. See the
+[conversion decision table and migration requirements](./src/d1/README.md#reviewed-conversion-of-existing-strict-jobs).
+Use `readD1ImportUndoReport().outcome` (`pending`, `undone` or `compensated`) for
+the product result: the engine's terminal `job.state` remains `undone`, including
+compensated work.
+
+Historically, rer 0.2.77 lacked these APIs. Adoption through the package requires
+a pinned supplying release, `@runeditrun/rer/modules/import-kit/d1`, the additive
+conversion migration, a complete native adapter and proof through the seed's own
+public door. Updating Base alone does not adopt or release the capability in a
+seed.
 
 ### Erasing fields in retained shared records
 
@@ -414,8 +576,9 @@ both paths when the source and mapped values use different nesting. The default
 seed demonstrates `['details', 'reactions', '*', 'users', '*']`, resolving
 references from the native person ID and their optional `details.sourceUserId`.
 
-Each distinct path must match at least one exact leaf; an unmatched path refuses
-with `IMPORT_REDACTION_PATH_UNMATCHED` before native, custody, journal or checkpoint
+Each distinct path with a required selector must match at least one exact leaf;
+a path whose selectors are all `optional: true` may match nothing. An unmatched
+required path refuses with `IMPORT_REDACTION_PATH_UNMATCHED` before native, custody, journal or checkpoint
 writes. Multiple values for the same path share its count, so an absent alternate
 identifier is allowed when another value matches. A different matching path cannot
 hide a typo. Successful results include `fieldMatches: [{ path, matches }]`, never
@@ -423,10 +586,12 @@ selected values. Counts cover each logical retained source payload, effect value
 native value and stored reversal before-image; repeated custody copies count
 separately. `readD1ImportFieldMatches(fields, context)` provides read-only discovery
 for optional references as `{ fieldMatches, snapshot }`. Carry `snapshot` in
-`related.snapshot` and omit fields whose paths have no matches. The snapshot
-fences the discovery against custody/native changes before publication and
-cancels incomplete private preparations even when fields are empty. Erasure
-rechecks every supplied selector; a snapshot never permits a zero-match path.
+`related.snapshot` and preserve the selector set when using a scoped redaction
+adapter, whose snapshot depends on those selectors. Mark references that may be
+absent as `optional: true`. The snapshot fences discovery against custody/native
+changes before publication and cancels incomplete private preparations even when
+fields are empty. Erasure rechecks every supplied selector; a snapshot never
+permits a required path to match nothing.
 
 The kit rebinds payload/effect hashes, source claims, entry decisions, active and
 historical provenance, before-images and plan/reversal fingerprints. Peer source

@@ -5,8 +5,10 @@ import type { LampEventDispatcher } from "../../api/extensions";
 import type { ComponentsService } from "../components";
 import { defaultMaintenanceRemindersPolicy, type MaintenanceRemindersPolicy } from "./policies";
 import type { MaintenanceNotice, MaintenanceRepository, StoredMaintenance, StoredMaintenanceComponent } from "./repository";
+import type { CallResult } from '../../../../modules/agent-door/types.ts';
+import type { NativeAttribution } from '../agent-door/provenance.repository';
 
-export type MaintenanceView = StoredMaintenance & MaintenanceAutomation & { components: StoredMaintenanceComponent[]; notices: MaintenanceNotice[]; importedUpdates: Awaited<ReturnType<MaintenanceRepository["listImportedUpdates"]>>; overrunning: boolean };
+export type MaintenanceView = StoredMaintenance & MaintenanceAutomation & { components: StoredMaintenanceComponent[]; notices: MaintenanceNotice[]; importedUpdates: Awaited<ReturnType<MaintenanceRepository["listImportedUpdates"]>>; overrunning: boolean; preparedBy: NativeAttribution | null };
 
 export interface MaintenanceNotificationStatements {
   forMaintenanceNotice(input: { eventId: string; maintenanceId: string; componentIds: string[]; kind: MaintenanceNotice["kind"]; queuedAt: string; recipientScope: "eligible" | "previous"; previousEventIds: string[]; social?: boolean }): Promise<D1PreparedStatement[]>;
@@ -22,7 +24,9 @@ export interface MaintenanceOverrunAlertEvent {
 export type MaintenanceRuntimeEvents = Pick<LampEventDispatcher, "maintenanceScheduled" | "maintenanceStarted" | "maintenanceCompleted">;
 
 export interface MaintenanceService {
-  list(): Promise<MaintenanceView[]>;
+  list(options?: { notifyOverruns?: boolean }): Promise<MaintenanceView[]>;
+  /** Read one native record without dispatching reminders or public work. */
+  get(maintenanceId: string): Promise<MaintenanceView | null>;
   getAutomationDefault(): Promise<MaintenanceAutomation>;
   saveAutomationDefault(value: MaintenanceAutomation): Promise<MaintenanceAutomation>;
   create(input: MaintenanceInput, operatorId: string): Promise<MaintenanceView>;
@@ -30,6 +34,8 @@ export interface MaintenanceService {
   reschedule(maintenanceId: string, input: Pick<MaintenanceInput, "startsAt" | "endsAt" | "autoStart" | "autoComplete" | "social"> & Partial<Pick<MaintenanceInput, "affectedAudience" | "customerImpact">>, operatorId: string): Promise<MaintenanceView | null>;
   cancel(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
   complete(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
+  remind(maintenanceId: string, operatorId: string, now?: string): Promise<MaintenanceView | null>;
+  setAgentScheduledAdmission(admit: (kind: string, id: string) => Promise<CallResult | null>): void;
   finishCompletion(maintenanceId: string, operatorId: string): Promise<void>;
   runDue(now?: string): Promise<{ started: string[]; completed: string[]; reminded: string[] }>;
   refreshPublic(): Promise<void>;
@@ -67,15 +73,17 @@ export function createMaintenanceService(
   events?: MaintenanceRuntimeEvents,
   onStartDue?: (event: { maintenanceId: string; startsAt: string }) => Promise<void>,
 ): MaintenanceService {
+  let admitAgentSchedule: ((kind: string, id: string) => Promise<CallResult | null>) | undefined;
   const view = async (record: StoredMaintenance): Promise<MaintenanceView> => {
-    const [components, notices, importedUpdates, automation] = await Promise.all([
+    const [components, notices, importedUpdates, automation, preparedBy] = await Promise.all([
       repository.listComponents(record.id), repository.listNotices(record.id), repository.listImportedUpdates(record.id), repository.automation.get(record.id),
+      repository.agentAttribution(record.id,record.updatedAt),
     ]);
-    return { ...record, ...automation, components, notices, importedUpdates, overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now() };
+    return { ...record, ...automation, components, notices, importedUpdates, preparedBy, overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now() };
   };
   const prepareNotice = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous", social=false) => {
     if (!notificationStatements) throw new Error("Maintenance notification transaction wiring is required.");
-    const timestamp = nowIso(); const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
+    const timestamp = kind === 'reminder' ? nowIso() : record.updatedAt; const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
     const previousEventIds = recipientScope === "previous" ? (await repository.listNotices(record.id)).map((prior) => prior.id) : [];
     const statements = await notificationStatements.forMaintenanceNotice({ eventId: notice.id, maintenanceId: record.id, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), kind, queuedAt: timestamp, recipientScope, previousEventIds, social });
     return { notice, statements };
@@ -85,22 +93,28 @@ export function createMaintenanceService(
     return repository.writeNotice(notice, statements);
   };
   return {
+    setAgentScheduledAdmission(admit) { admitAgentSchedule = admit; },
+    async get(maintenanceId) {
+      const record = await repository.find(maintenanceId);
+      return record ? view(record) : null;
+    },
     getAutomationDefault: () => repository.automation.getDefault(),
     saveAutomationDefault: value => repository.automation.saveDefault(value),
-    async list() {
+    async list(options) {
       const [records, details, automation] = await Promise.all([repository.listMaintenance(), repository.listCollectionDetails(), repository.automation.list()]);
       const components = groupByMaintenance(details.components);
       const notices = groupByMaintenance(details.notices);
       const importedUpdates = groupByMaintenance(details.importedUpdates);
       const result = records.map((record): MaintenanceView => ({
         ...record,
+        preparedBy: details.agentAttributions.get(record.id) ?? null,
         ...(automation.get(record.id) ?? defaultMaintenanceAutomation),
         components: components.get(record.id) ?? [],
         notices: notices.get(record.id) ?? [],
         importedUpdates: (importedUpdates.get(record.id) ?? []).map(({ maintenanceId, ...update }) => update),
         overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now(),
       }));
-      await Promise.all(result.filter((record) => record.overrunning).map((record) => onOverrun({ maintenanceId: record.id, endsAt: record.endsAt })));
+      if (options?.notifyOverruns !== false) await Promise.all(result.filter((record) => record.overrunning).map((record) => onOverrun({ maintenanceId: record.id, endsAt: record.endsAt })));
       return result;
     },
     async create(input, operatorId) {
@@ -144,12 +158,12 @@ export function createMaintenanceService(
     async start(maintenanceId, operatorId) {
       const record = await repository.find(maintenanceId); if (!record) return null;
       const automation = await repository.automation.get(maintenanceId);
-      if (record.state !== "Scheduled" || automation.autoStart) throw new Error("Only scheduled maintenance with auto-start off can be started by this action.");
+      if (record.state !== "Scheduled" || (automation.autoStart && Date.parse(record.startsAt) > Date.now())) throw new Error("Only scheduled maintenance with auto-start off, or an automatic window that is due, can be started by this action.");
       const timestamp = nowIso();
       const components = await repository.listComponents(maintenanceId);
       const changed = { ...record, state: "In progress" as const, updatedAt: timestamp };
       const { notice, statements } = await prepareNotice(changed, components, "started", operatorId, "eligible");
-      if (!(await repository.transitionWithNotice(maintenanceId,"Scheduled","In progress",null,timestamp,notice,statements,{startsAt:record.startsAt,endsAt:record.endsAt,autoStart:false}))) throw new Error("The maintenance changed before it could be started.");
+      if (!(await repository.transitionWithNotice(maintenanceId,"Scheduled","In progress",null,timestamp,notice,statements,{startsAt:record.startsAt,endsAt:record.endsAt,autoStart:automation.autoStart}))) throw new Error("The maintenance changed before it could be started.");
       await Promise.all(components.flatMap(component => component.componentId ? [componentsService.recomputePublicState(component.componentId,{type:"maintenance",id:maintenanceId,operatorId},timestamp)] : []));
       await events?.maintenanceStarted({ maintenanceId, reference: record.reference, state: "In progress", occurredAt: timestamp });
       await onPublicDataChanged();
@@ -180,6 +194,14 @@ export function createMaintenanceService(
       await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "maintenance", id: maintenanceId, operatorId }, changedAt)] : []));
       await onPublicDataChanged();
     },
+    async remind(maintenanceId, operatorId, now = nowIso()) {
+      const record = await repository.find(maintenanceId); if (!record) return null;
+      if (!(await repository.listReminderDue(now)).some(item => item.id === maintenanceId)
+        || !reminderPolicy.shouldNotify({ kind: 'scheduled', state: record.state, startsAt: record.startsAt, now })) throw new Error('This maintenance reminder is not due.');
+      await notify(record, await repository.listComponents(maintenanceId), 'reminder', operatorId, 'eligible');
+      await onPublicDataChanged();
+      return view(record);
+    },
     async runDue(now = nowIso()) {
       const due = await repository.listDue(now); const started: string[] = []; const completed: string[] = []; const reminded: string[] = [];
       for (const record of due) {
@@ -191,6 +213,16 @@ export function createMaintenanceService(
         if (record.state === "In progress" && !automation.autoComplete) {
           if (Date.parse(now) >= Date.parse(record.endsAt) + 15 * 60_000) await onOverrun({ maintenanceId: record.id, endsAt: record.endsAt });
           continue;
+        }
+        // A saved agent plan is not standing permission to dispatch. Any agent
+        // outcome (including pending or refused) owns this attempt and cannot
+        // fall through to the native person's/system execution path.
+        if (admitAgentSchedule) {
+          const admitted = await admitAgentSchedule(record.state === 'Scheduled' ? 'maintenance-start' : 'maintenance-complete', record.id);
+          if (admitted) {
+            if (admitted.outcome === 'done') (record.state === 'Scheduled' ? started : completed).push(record.id);
+            continue;
+          }
         }
         const components = await repository.listComponents(record.id);
         if (record.state === "Scheduled") {
@@ -214,6 +246,10 @@ export function createMaintenanceService(
       }
       for (const record of await repository.listReminderDue(now)) {
         if (!reminderPolicy.shouldNotify({ kind: "scheduled", state: record.state, startsAt: record.startsAt, now })) continue;
+        if (admitAgentSchedule) {
+          const admitted = await admitAgentSchedule('maintenance-reminder', record.id);
+          if (admitted) { if (admitted.outcome === 'done') reminded.push(record.id); continue; }
+        }
         const components = await repository.listComponents(record.id); if (await notify(record, components, "reminder", null, "eligible")) reminded.push(record.id);
       }
       if (started.length || completed.length || reminded.length) await onPublicDataChanged();

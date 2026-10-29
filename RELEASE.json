@@ -973,8 +973,36 @@
       "buyerSteps": "Apply after 0072. Adds role metadata for Communicators, Responders and Viewers while preserving existing native Owner and Admin authority. Setup remains Owner; Settings lets Owners and Admins invite operators with a role and change roles. The last active Owner cannot be demoted or removed. No provider credentials or other owner action are required."
     },
     {
+      "id": "0074_agent_door.sql",
+      "buyerSteps": "Apply after 0073. Adds the shared agent policy, decision, approval, audit, event and idempotency stores. Existing operator and publication history is preserved; no agent action is authorized until company policy is adopted."
+    },
+    {
       "id": "0074_alert_rule_guards.sql",
       "buyerSteps": "Apply after 0073. Adds per-rule firing delay and recovery hold, durable scheduled windows and attributed Undo receipts. Rules default to a two-minute firing delay and five-minute recovery hold; existing active claims are retained. Review these values in Settings before relying on immediate automation. Undo releases only its automatic claim and retains earlier public updates, component history and internal attribution. No account or credential is required."
+    },
+    {
+      "id": "0075_business_settings.sql",
+      "buyerSteps": "Apply after 0074. Adds signed Business settings and native team mapping storage. Only the existing installation trust may apply settings; this does not authorize imports or send subscriber mail."
+    },
+    {
+      "id": "0076_business_people.sql",
+      "buyerSteps": "Apply after 0075. Adds durable Business owner and teammate IDs beside their native operator mappings. Existing settings remain valid, but unmapped Business subjects receive no agent authority."
+    },
+    {
+      "id": "0077_agent_native_attribution.sql",
+      "buyerSteps": "Apply after 0076. Retains native agent preparer, sponsor, real approvers and queued operation identity. Queued effects must recheck current native authority and company policy before final admission."
+    },
+    {
+      "id": "0078_agent_native_proofs.sql",
+      "buyerSteps": "Apply after 0077. Adds opaque, action-bound native email-proof references. They contain no bearer or session cookie; native admission, expiry and revocation still govern their use."
+    },
+    {
+      "id": "0079_dependency_keys_sealed.sql",
+      "buyerSteps": "Apply after 0078. Adds dependency signing-key encryption custody markers without replacing existing keys. The normal setup/deploy lifecycle generates and retains INSTALLATION_KEY; retain it for the installation and use INSTALLATION_KEY_PREVIOUS during an explicit rotation. Archives contain neither secret."
+    },
+    {
+      "id": "0080_agent_jobs.sql",
+      "buyerSteps": "Apply after 0079. Retains private worker invocation input and outcomes for the existing native queue. Every execution re-enters the shared door with its original sponsor, scopes, client and consent; no HTTP invocation route is added."
     }
   ],
   "breaking": false,

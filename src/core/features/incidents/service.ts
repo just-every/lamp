@@ -1,3 +1,4 @@
+import type { NativeAttribution } from '../agent-door/provenance.repository';
 import type { CommunicationOwnership } from "./communication-owner.repository";
 import { incidentImpact, type IncidentImpact } from "../../shared/incident-impact";
 import { createIncidentTemplateService, type IncidentTemplateService } from "./template-service";
@@ -24,9 +25,9 @@ export interface IncidentView extends StoredIncident, CommunicationOwnership {
   derivedImpact: IncidentImpact;
   effectiveImpact: IncidentImpact;
   components: StoredIncidentComponent[];
-  updates: StoredIncidentUpdate[];
+  updates: Array<StoredIncidentUpdate & {agentAttribution?: NativeAttribution | null}>;
   draft: PublishingDraft | null;
-  internalNotes: Array<{ id: string; body: string; createdAt: string; updatedAt: string; authorOperatorId: string }>;
+  internalNotes: Array<{ id: string; body: string; createdAt: string; updatedAt: string; authorOperatorId: string; agentAttribution?: NativeAttribution | null }>;
   /** The committed next-update time once it is within the update-due lead or has passed. */
   updateDueAt: string | null;
   /** Within the lead before the committed time (INCIDENT-010). */
@@ -36,6 +37,7 @@ export interface IncidentView extends StoredIncident, CommunicationOwnership {
 }
 
 export class InvalidIncidentUpdateError extends Error {}
+export class NativeReviewRequiredError extends Error {}
 
 export type IncidentComponentChange =
   | { action: "attach"; componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }
@@ -53,6 +55,8 @@ export interface IncidentComponentChangePreview {
 
 export interface IncidentsService extends IncidentTemplateService {
   communicationOwners: IncidentRepository["communicationOwners"];
+  setAgentScheduledAdmission(admit: (draft: PublishingDraft) => Promise<boolean>): void;
+  dispatchScheduled(incidentId: string, operatorId: string, expectedVersion: string, now?: string): Promise<StoredIncidentUpdate | null>;
   previewComponentChange(incidentId: string, change: IncidentComponentChange): Promise<IncidentComponentChangePreview>;
   attachComponent(incidentId: string, claim: { componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }, operatorId: string): Promise<void>;
   detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
@@ -105,7 +109,11 @@ async function toIncidentView(repository: IncidentRepository, incident: StoredIn
     repository.communicationOwners.get(incident.id),
   ]);
   const impact = peakImpact ?? (components.length === 0 ? null : mostSevereState(components.map((component) => component.state)));
-  return { ...incident, ...ownership, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft, internalNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
+  const attribution=await repository.agentAttributions([...updates.map(update=>update.id),...internalNotes.map(note=>note.id),...(draft?[draft.id]:[])]);
+  const attributedUpdates=updates.map(update=>({...update,agentAttribution:attribution.get(`incident-update:${update.id}`)??null}));
+  const attributedNotes=internalNotes.map(note=>({...note,agentAttribution:attribution.get(`incident-note:${note.id}`)??null}));
+  const attributedDraft=draft?{...draft,agentAttribution:attribution.get(`incident-draft:${draft.id}`)??null}:null;
+  return { ...incident, ...ownership, impact, ...incidentImpact(impact, incident.impactOverride), components, updates:attributedUpdates, draft:attributedDraft, internalNotes:attributedNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
 }
 
 function assertPublishableDraft(draft: PublishingDraft, components: StoredIncidentComponent[]) {
@@ -125,6 +133,7 @@ export function createIncidentsService(
   updateDuePolicy: UpdateDuePolicy = defaultUpdateDuePolicy,
   runtime: IncidentRuntimeHooks = {},
 ): IncidentsService {
+  let agentScheduledAdmission: ((draft: PublishingDraft) => Promise<boolean>) | null = null;
   const finishPublication = async (update: StoredIncidentUpdate) => {
     if (!update.isRetroactive) await componentsService.announceCommittedTransitions(update.componentSnapshot.flatMap(component => component.componentId ? [component.componentId] : []), update.incidentId, update.publishedAt, update.createdAt);
     await onPublicDataChanged();
@@ -148,7 +157,7 @@ export function createIncidentsService(
     assertPublishableDraft(draft, components);
     const requiresReview = reviewPolicy.requiresReview({ authorOperatorId: draft.authorOperatorId, draft: { ...draft, componentChanges: stagedChanges } });
     if (requiresReview && JSON.stringify(stagedChanges) !== JSON.stringify(draft.componentChanges)) throw new DraftConflictError("Save and review these component states before publishing.");
-    if (requiresReview && !draft.reviewedAt) throw new Error("This update requires review by another operator.");
+    if (requiresReview && !draft.reviewedAt) throw new NativeReviewRequiredError("This update requires review by another operator.");
     if (!publicationStatements) throw new Error("Incident publication requires the notification transaction wiring.");
     const timestamp = nowIso();
     let recovery: IncidentPublishRecord["recovery"];
@@ -199,7 +208,7 @@ export function createIncidentsService(
     const historyEntries: ComponentStateHistoryInput[] = isRetroactive
       ? (await Promise.all(claimEvents.map((claimEvent) => componentsService.prepareHistoricalStateTransitions({ componentId: claimEvent.componentId, cause: { type: "incident", id: incidentId, operatorId }, claimEvent })))).flat()
       : [];
-    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, components, baselineComponents, stagedChanges, componentChanges, componentSnapshot, claimEventCounts, claimEvents, historyEntries, recovery, automation: input.automation };
+    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, components, baselineComponents, stagedChanges, componentChanges, componentSnapshot, claimEventCounts, claimEvents, historyEntries, recovery, automation: input.automation, ...(draft.reviewedByOperatorId && draft.reviewedAt ? {nativeReviewer:{id:draft.reviewedByOperatorId,at:draft.reviewedAt}} : {}) };
     const channels = isRetroactive || hasRetroactiveUpdate ? [] : input.channels;
     const recipientStatements = await publicationStatements.forIncidentUpdate({ updateId: record.id, incidentId, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), channels, queuedAt: publishedAt });
     await repository.publishDraft(record, recipientStatements);
@@ -207,11 +216,20 @@ export function createIncidentsService(
     if (!update) return null;
     await runtime.events?.incidentUpdatePublished({ incidentId, updateId: update.id, lifecycle: update.lifecycle, publishedAt: update.publishedAt });
     if (update.lifecycle === "Resolved") await runtime.events?.incidentResolved({ incidentId, updateId: update.id, resolvedAt: update.publishedAt });
-    return update;
+    const attribution = await repository.agentAttributions([update.id]);
+    return {...update, agentAttribution: attribution.get(`incident-update:${update.id}`) ?? null};
   };
 
   return {
     communicationOwners: repository.communicationOwners,
+    setAgentScheduledAdmission(admit) { agentScheduledAdmission = admit; },
+    async dispatchScheduled(incidentId, operatorId, expectedVersion, now = nowIso()) {
+      const [draft, updates] = await Promise.all([repository.findPublishingDraft(incidentId),repository.listUpdates(incidentId)]);
+      if (!draft || `${draft.id}:${updates.length}` !== expectedVersion) throw new DraftConflictError();
+      if (draft.authorOperatorId !== operatorId) throw new Error('Only the scheduling operator can dispatch this update.');
+      if (!draft.scheduledPublishAt || draft.scheduledPublishAt > now) throw new Error('This saved publication is not due.');
+      return publish(incidentId,operatorId,{channels:draft.scheduledChannels,publishedAt:draft.scheduledPublishAt,expectedVersion},true);
+    },
     async recoveryCheck(incidentId) {
       const snapshot = await repository.loadRecoverySnapshot(incidentId);
       if (!snapshot) return null;
@@ -334,7 +352,7 @@ export function createIncidentsService(
       if (new Date(publishAt).getTime() <= Date.now()) throw new Error("Scheduled publish time must be in the future.");
       assertPublishableDraft(draft, publicationComponents(incidentId, await repository.listComponents(incidentId), draft.componentChanges, nowIso()));
       const replacementId = createUlid(); const updatedAt = nowIso();
-      if (!await repository.scheduleDraft(incidentId, publishAt, channels, updatedAt, draft.id, replacementId)) throw new DraftConflictError();
+      if (!await repository.scheduleDraft(incidentId, publishAt, channels, updatedAt, draft.id, replacementId, Number(expectedVersion.split(':')[1]))) throw new DraftConflictError();
       return { ...draft, id: replacementId, scheduledPublishAt: publishAt, scheduledChannels: channels, updatedAt };
     },
     async review(incidentId, operatorId, expectedVersion) { return repository.reviewDraft(incidentId, operatorId, nowIso(), expectedVersion); },
@@ -350,6 +368,9 @@ export function createIncidentsService(
       const due = await repository.listDueScheduledDrafts(now);
       const published: string[] = []; const heldForReview: string[] = []; const heldForRecovery: string[] = [];
       for (const draft of due) {
+        // Machine custody is re-admitted through the shared door at the final
+        // native boundary; refused/pending work never becomes a person action.
+        if (agentScheduledAdmission && await agentScheduledAdmission(draft)) continue;
         if (!await repository.canPublish(draft.authorOperatorId)) { heldForReview.push(draft.incidentId); continue; }
         if (reviewPolicy.requiresReview({ authorOperatorId: draft.authorOperatorId, draft }) && !draft.reviewedAt) {
           heldForReview.push(draft.incidentId);

@@ -1,3 +1,6 @@
+import { readIncidentAgentAttributions } from '../agent-door/incident-attribution.repository';
+import type { NativeAttribution } from '../agent-door/provenance.repository';
+import { agentAttributionStatements, agentQueuedOperationStatements } from '../agent-door/provenance.repository';
 import { createOperatorRolesRepository } from '../operators/roles.repository';
 import { publishes } from '../operators/permissions';
 import { createCommunicationOwnerRepository } from "./communication-owner.repository";
@@ -32,6 +35,7 @@ export type StoredIncidentDraft = typeof incidentDrafts.$inferSelect;
 export type StoredIncidentUpdate = typeof incidentUpdates.$inferSelect;
 
 export type PublishingDraft = StoredIncidentDraft & {
+  agentAttribution?: NativeAttribution | null;
   agentPreparation?: import("./promise-draft").AgentDraftPreparation | null;
   scheduledPublishAt: string | null;
   scheduledChannels: Array<UpdateChannel>;
@@ -66,9 +70,11 @@ export interface IncidentPublishRecord {
   claimEvents: ComponentClaimEventInput[];
   historyEntries: ComponentStateHistoryInput[];
   recovery?: { snapshot: string; result: RecoveryCheck; overrideReason: string | null };
+  nativeReviewer?: { id: string; at: string };
 }
 
 export interface IncidentRepository {
+  agentAttributions(ids: string[]): Promise<Map<string,NativeAttribution>>;
   canPublish(operator: string): Promise<boolean>;
   communicationOwners: ReturnType<typeof createCommunicationOwnerRepository>;
   previewComponentChange(incidentId: string, componentId: string): Promise<{ remainingStates: ComponentState[]; emailRecipients: number; webhookRecipients: number }>;
@@ -89,7 +95,7 @@ export interface IncidentRepository {
   create(input: Omit<typeof incidents.$inferInsert, "reference">, components: Array<typeof incidentComponents.$inferInsert>, draft: typeof incidentDrafts.$inferInsert): Promise<string>;
   nextReference(): Promise<string>;
   upsertDraft(input: typeof incidentDrafts.$inferInsert, expectedVersion: string): Promise<void>;
-  scheduleDraft(incidentId: string, scheduledPublishAt: string | null, channels: Array<UpdateChannel>, updatedAt: string, expectedDraftId?: string, replacementDraftId?: string): Promise<boolean>;
+  scheduleDraft(incidentId: string, scheduledPublishAt: string | null, channels: Array<UpdateChannel>, updatedAt: string, expectedDraftId?: string, replacementDraftId?: string, expectedUpdateCount?: number): Promise<boolean>;
   reviewDraft(incidentId: string, reviewerOperatorId: string, reviewedAt: string, expectedVersion: string): Promise<boolean>;
   setDraftCorrection(incidentId: string, correctsUpdateId: string, updatedAt: string, expectedVersion: string): Promise<boolean>;
   listDueScheduledDrafts(now: string): Promise<PublishingDraft[]>;
@@ -112,6 +118,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
 
   return {
     communicationOwners: createCommunicationOwnerRepository(binding),
+    agentAttributions: ids => readIncidentAgentAttributions(binding,ids),
     loadRecoverySnapshot: (incidentId) => loadRecoverySnapshot(binding, incidentId),
     listRelations: () => listIncidentRelations(binding),
     previewComponentChange: (incidentId, componentId) => previewComponentChange(binding, incidentId, componentId),
@@ -166,7 +173,10 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       return database.select().from(incidentInternalNotes).where(eq(incidentInternalNotes.incidentId, incidentId)).orderBy(desc(incidentInternalNotes.createdAt)).all();
     },
     async addInternalNote(input) {
-      await database.insert(incidentInternalNotes).values(input);
+      await binding.batch([
+        binding.prepare('INSERT INTO incident_internal_notes(id,incident_id,body,author_operator_id,created_at,updated_at) VALUES(?,?,?,?,?,?)').bind(input.id,input.incidentId,input.body,input.authorOperatorId,input.createdAt,input.updatedAt),
+        ...agentAttributionStatements(binding,{entityType:'incident-note',entityId:input.id,operatorId:input.authorOperatorId,at:input.createdAt}),
+      ]);
     },
     async create(input, attached, draft) {
       const reference = await allocateReference(binding, "INC");
@@ -174,6 +184,8 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
         binding.prepare(`INSERT INTO incidents (id,reference,title,lifecycle,opened_at,resolved_at,created_by_operator_id,deleted_at,deletion_reason,created_at,updated_at) VALUES (?,?,?,'Investigating',?,NULL,?,NULL,NULL,?,?)`).bind(input.id, reference, input.title, input.openedAt, input.createdByOperatorId, input.createdAt, input.updatedAt),
         ...attached.map((component) => binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).bind(component.id, component.incidentId, component.componentId, component.componentName, component.state, component.relationship, component.createdAt, component.updatedAt)),
         binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).bind(draft.id, draft.incidentId, draft.lifecycle, draft.affectedAudience, draft.customerImpact, draft.whatStillWorks, draft.details, draft.nextUpdateAt ?? null, draft.authorOperatorId, draft.createdAt, draft.updatedAt),
+        ...agentAttributionStatements(binding,{entityType:'incident',entityId:input.id,operatorId:input.createdByOperatorId,at:input.createdAt}),
+        ...agentAttributionStatements(binding,{entityType:'incident-draft',entityId:draft.id,operatorId:draft.authorOperatorId,at:draft.createdAt}),
       ]);
       return reference;
     },
@@ -190,11 +202,18 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       const [result] = await binding.batch([
         mutation,
         binding.prepare(`UPDATE incident_agent_draft_preparations SET active=0 WHERE incident_id=? AND changes()=1`).bind(input.incidentId),
+        ...agentAttributionStatements(binding,{entityType:'incident-draft',entityId:input.id,operatorId:input.authorOperatorId,at:input.updatedAt,exists:{sql:'EXISTS(SELECT 1 FROM incident_drafts WHERE id=? AND updated_at=?)',params:[input.id,input.updatedAt]}}),
       ]);
       if (!result.results.length) throw new DraftConflictError();
     },
-    async scheduleDraft(incidentId, scheduledPublishAt, channels, updatedAt, expectedDraftId, replacementDraftId) {
-      return Boolean(await binding.prepare(`UPDATE incident_drafts SET id = COALESCE(?, id), scheduled_publish_at = ?, scheduled_channels_json = ?, updated_at = ? WHERE incident_id = ? AND (? IS NULL OR id = ?) RETURNING id`).bind(replacementDraftId ?? null, scheduledPublishAt, JSON.stringify(channels), updatedAt, incidentId, expectedDraftId ?? null, expectedDraftId ?? null).first());
+    async scheduleDraft(incidentId, scheduledPublishAt, channels, updatedAt, expectedDraftId, replacementDraftId, expectedUpdateCount) {
+      const nextId=replacementDraftId??expectedDraftId;
+      const [result]=await binding.batch([
+        binding.prepare(`UPDATE incident_drafts SET id=COALESCE(?,id),scheduled_publish_at=?,scheduled_channels_json=?,updated_at=? WHERE incident_id=? AND (? IS NULL OR id=?) AND (? IS NULL OR (SELECT count(*) FROM incident_updates WHERE incident_id=?)=?) RETURNING id`)
+          .bind(replacementDraftId??null,scheduledPublishAt,JSON.stringify(channels),updatedAt,incidentId,expectedDraftId??null,expectedDraftId??null,expectedUpdateCount??null,incidentId,expectedUpdateCount??null),
+        ...(nextId ? agentQueuedOperationStatements(binding,{kind:'incident-publish',id:nextId,tool:'lamp.updates.dispatch',args:{id:incidentId,version:`${nextId}:${expectedUpdateCount??0}`,idempotency_key:`incident-dispatch/${nextId}`},at:updatedAt,exists:{sql:'EXISTS(SELECT 1 FROM incident_drafts WHERE id=? AND updated_at=?)',params:[nextId,updatedAt]}}) : []),
+      ]);
+      return Boolean(result.results.length);
     },
     async reviewDraft(incidentId, reviewerOperatorId, reviewedAt, expectedVersion) {
       const [draftId, count] = expectedVersion.split(":");

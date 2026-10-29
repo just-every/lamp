@@ -1,5 +1,6 @@
 export type LampJob =
   | { type: "health-probe"; requestedAt: string }
+  | { type: 'agent-invocation'; id: string }
   | { type: "delivery-dispatch"; eventId: string };
 
 export interface JobDispatcher {
