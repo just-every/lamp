@@ -139,11 +139,12 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const live = await j.incident('Current payment investigation', [component]);
     await saveReviewed(live.id, {}); await j.publish(live.id);
     const settings = (await j.json('/api/app/page-settings')).settings;
-    await j.json('/api/app/page-settings', 'PUT', {
+    const pageSettings = {
       pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor,
       hostname: settings.hostname, mailFromAddress: settings.mailFromAddress,
-      footerCreditEnabled: settings.footerCreditEnabled, timezone: 'America/Los_Angeles',
-    });
+      footerCreditEnabled: settings.footerCreditEnabled, timezone: settings.timezone,
+    };
+    await j.json('/api/app/page-settings', 'PUT', { ...pageSettings, timezone: 'America/Los_Angeles' });
     const start = '2020-07-14T23:17:00.000Z';
     const end = '2020-07-15T00:23:00.000Z';
     const investigatingImpact = 'Archived payment requests stalled during the original investigation.';
@@ -202,6 +203,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
       assert.equal(historicalReach.updates.find(row => row.updateId === update.id).channels.find(row => row.channel === 'email').committed, 0, 'historical incidents never commit subscriber notifications, including current-time follow-ups');
     }
     assert.ok(!j.messages.some(mail => mail.to.includes(subscriber) && mail.text.includes(historical.title)), 'the active subscriber receives no historical incident notification');
+    await j.json('/api/app/page-settings', 'PUT', pageSettings);
     const performance = await j.json(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}`);
     assert.ok(performance.incidents.some(row => row.incidentId === incident.id));
     assert.ok(performance.summary.commitments.evaluated > 0);

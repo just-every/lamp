@@ -3116,7 +3116,7 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). INCIDENT-009 proof updated against the code and tests at commit `16c16a1f277f6b1852f76d00cda2e7782d9073d5` (29 October 2026).
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). INCIDENT-009 proof updated against the code and tests at commit `9db581d74c5ae95aa1b1904cf20de72b59e6c437` (29 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
