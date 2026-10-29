@@ -32,7 +32,7 @@
 
 /* Code: inline in a quiet chip; blocks in the terminal card of the dark band, wrapped rather than scrolled. */
 .lamp-home .docs-prose code, .lamp-home .docs-source code { padding: .12em .38em; border: 1px solid var(--lamp-line); border-radius: 6px; background: var(--lamp-chip); color: var(--lamp-ink);
-  font-family: var(--lamp-mono); font-size: .86em; overflow-wrap: anywhere; }
+  font-family: var(--lamp-mono); font-size: max(13px, .86em); overflow-wrap: anywhere; }
 /* Inline code is cut into unbreakable words at build time (build/inline-code.ts); a long phrase wraps only at its spaces. */
 .lamp-home .docs-prose :is(.docs-code-line, .docs-code-words > span) { white-space: nowrap; }
 .lamp-home .docs-code { overflow: hidden; border-radius: 12px; background: var(--lamp-band); box-shadow: var(--lamp-shadow-card); }
