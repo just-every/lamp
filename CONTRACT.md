@@ -3116,15 +3116,17 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
+Judged from the code and tests at commit `dab4e855f7377365baf59b915d7f625525b13826` (29 October 2026); INTAKE-005 and INTAKE-004 are rechecked on the landing candidate, which retains those source and journey bytes. Earlier clause judgments remain inherited.
+
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 9 | 98 | 0 | 107 |
+| Published | 11 | 96 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 18 | 171 | 54 | 243 |
+| All | 20 | 169 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3281,8 +3283,8 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `INTAKE-001` | Authenticated requests | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The cited HMAC journey asserts signed admission and wrong-signature refusal. It does not assert the five-minute boundary, bearer admission, absent/stale credential cases or unchanged complete records after refusal; intake-byte and preset helpers carrying these assertions are outside this clause’s old Evidence set. |
 | `INTAKE-002` | Alerts never publish | published | partial | `tests/e2e/publishing-contract.test.mjs` | The cited journey asserts a private draft and page exclusion. It does not measure the 30-second create/update bound or compare all public surfaces. The class/policy wording carries no promotion. |
 | `INTAKE-003` | Deduplication | published | partial | `tests/e2e/publishing-contract.test.mjs` | Equal incident identifiers and accepted replay status are asserted. Complete incident, draft and alert-record inventories are not compared across replay, leaving the absence of all additional records unasserted. |
-| `INTAKE-004` | Recovery alerts | published | partial | `tests/e2e/publishing-contract.test.mjs` | Unchanged lifecycle and zero updates are asserted. Recovery timestamp readback and complete public-artifact equality are not asserted. |
-| `INTAKE-005` | Payload mapping | published | partial | `tests/e2e/public-contract.test.mjs`, `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts Configured key path controls acceptance; Configured generic firing state is read back; Missing key returns 400; Visible rejected mapping reason. Unasserted: Configured title read back; Configured generic recovered state is read back. |
+| `INTAKE-004` | Recovery alerts | published | done | `tests/e2e/incident-brief.test.mjs` — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails: acceptance 1 bounds the recorded recovery instant and reconciles matching source, key, incident and firing receipt; acceptance 2 compares unchanged lifecycle and complete published-update records plus every retained artifact, snapshot generation and served public response byte, including root, history, permanent timeline, feeds, widgets, badges and both native and Statuspage JSON. |  |
+| `INTAKE-005` | Payload mapping | published | done | `tests/e2e/incident-brief.test.mjs` — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails: acceptance 1 saves and independently reads source-specific key, title and state paths plus a nondefault recovered value, reads the exact mapped incident title and both literal receipt states with source, key and incident identities; acceptance 2 posts a missing configured key, retains HTTP 400 and reads its exact operator-visible source receipt reason. |  |
 | `INTAKE-006` | Monitor presets | published | partial | `tests/e2e/channels-and-presets.test.mjs` | All four mapped private drafts, token redaction, credential status refusals, invalid receipts and public-status exclusion are asserted. Complete record inventories after authentication refusal and every public representation after intake are not compared. |
 | `INTAKE-007` | Preset recovery | published | partial | `tests/e2e/channels-and-presets.test.mjs` | Private draft resolution, zero updates and published lifecycle are asserted. Public-artifact absence after recovery and the published recovery record are not read back. |
 | `INTAKE-008` | Uptime preset | target | partial | `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-form.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs`, `tests/e2e/helpers/uptime-pairing-flow.mjs`, `tests/e2e/helpers/intake-byte-flow.mjs` | Old cited evidence asserts Pairing asks for no secret; Signing-secret source retained; Wrong key refused; Missing timestamp refused. Unasserted: Authentication refusals create or change no draft record; Authentication refusals create no published update; Authentication refusals leave every other public artifact unchanged; Test and drill refusal plus visible receipt/no draft; Confirmed versus earlier unobserved time labeled. |
