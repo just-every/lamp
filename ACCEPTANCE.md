@@ -13,7 +13,7 @@ The primary journey: An operator sets up the page and components, accepts eviden
 | Later | 0 | 0 | 0 | 0 |
 | Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `61f689e416f46b388fa350ae9200e1d07fd638a1` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
