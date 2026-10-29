@@ -10,7 +10,7 @@ export async function acceptPagerDuty(input: { repository: IntakeRepository; sou
   const reading = readPagerDuty(parsed);
   const componentIds = "refused" in reading ? [] : pagerDutyComponents(reading.labels, source.labelMatchers ?? []);
   const reason = "refused" in reading ? reading.refused : !componentIds.length ? "Unmapped PagerDuty service. Add a service-to-component matcher." : null;
-  const base: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: reason ?? null, createdAt: timestamp, updatedAt: timestamp };
+  const base: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: reason ?? null, createdAt: timestamp, updatedAt: timestamp };
   if ("refused" in reading || reason) {
     await repository.recordInvalid(base);
     return { status: 400, receiptId: base.id, incidentId: null, replayed: false };

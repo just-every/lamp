@@ -36,9 +36,11 @@ export async function incidentFollowFlow() {
     assert.ok(publicHtml.includes(`name="incidentId" value="${incident.id}"`), "initial HTML binds the form to INC-7");
     assert.ok(!publicHtml.includes('name="channel" value="sms"'), "a deployment without SMS configuration offers no SMS form");
     const email = "synthetic-lamp-follow-inc7@example.test";
+    const confirmationStarted=Date.now();
     const accepted = await subscribe(incident.id, { email });
     assert.equal(accepted.status, 202, accepted.text);
     assert.equal(messagesFor(email).length, 1);
+    assert.ok(Date.now()-confirmationStarted<60_000,"the confirmed provider edge receives the confirmation within sixty seconds");
     const initialCapacity = (await api("/api/app/subscribers?limit=1")).body.capacity;
     assert.ok(initialCapacity.some(row => row.channel === "all" && row.count === 1), "a real pending incident opt-in consumes one all-channel slot");
     assert.ok(initialCapacity.some(row => row.channel === "email" && row.count === 1), "the pending incident opt-in also consumes one email slot");

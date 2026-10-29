@@ -159,7 +159,7 @@ async function auditPublicCharts(origin) {
   try {
     const context=await browser.newContext({javaScriptEnabled:false});const page=await context.newPage();
     if(process.env.LAMP_SCREENSHOTS)await mkdir(process.env.LAMP_SCREENSHOTS,{recursive:true});
-    for(const width of [1440]) {
+    for(const width of [1440,390]) {
       await page.setViewportSize({width,height:width===390?844:1000});await page.goto(origin);
       assert.equal(await page.locator("[data-metric-chart]").count(),7,"all populated charts are inline with script disabled");
       assert.ok(await page.getByText("No data for 20 minutes.",{exact:false}).count());
@@ -170,7 +170,7 @@ async function auditPublicCharts(origin) {
     const audited=await browser.newContext(),active=await audited.newPage(),errors=[];
     active.on("pageerror",error=>errors.push(error.message));
     active.on("console",message=>{if(message.type()==="error"&&/hydrat|did not match|server rendered/i.test(message.text()))errors.push(message.text());});
-    for(const width of [1440]) {
+    for(const width of [1440,390]) {
       await active.setViewportSize({width,height:width===390?844:1000});await active.goto(origin);
       assert.ok(await active.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width}: script-enabled charts do not overflow`);
       const axe=await new AxeBuilder({page:active}).withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa","wcag22aa"]).analyze();

@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 11 | 174 | 51 | 236 |
+| Core | 16 | 173 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 11 | 174 | 56 | 241 |
+| Full target | 16 | 173 | 54 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -73,7 +73,7 @@ Core · published · **done** · Cites BASE-PUBLIC-001
 1. At the declared component limit, the initial HTML is at most 50 KiB gzipped.
 2. Initial loading issues at most four further requests for its stylesheet, font, logo and script, all to its own origin.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): 200 visible components with populated descriptions and notes, ten 1,440-point charts, gzip budget in all four templates, at most four allowed own-origin initial assets and zero third-party requests.
 **Gap.** None.
 
 #### PAGE-004 — Overall status
@@ -335,7 +335,7 @@ Core · published · **done**
 1. Each visible component shows the percentage of the ninety-day window not in a downtime state, using one-minute resolution.
 2. The figure rounds down to two decimals so any downtime prevents a displayed 100.00%.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): public collection readback asserts the complete ninety-day partial boundary and 99.99 percent for a one-minute outage.
 **Gap.** None.
 
 #### UPTIME-002 — Downtime weights
@@ -595,7 +595,7 @@ Core · published · **done**
 2. Resolved publication records the incident end time.
 3. Resolved publication recomputes every attached component under COMP-006.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): published Resolved lifecycle, persisted resolution instant and recomputed Operational component state.
 **Gap.** None.
 
 #### UPDATE-004 — Preview
@@ -739,7 +739,7 @@ Core · published · **done**
 2. The indication remains until an operator completes it or extends the window.
 3. Extension preserves start, changes end and removes the overrun indication.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history): root and permalink have no overrun before fifteen minutes, retain the original end beside the later warning, clear it on extension and completion, and preserve the start while updating the end.
 **Gap.** None.
 
 #### MAINT-005 — Reminders
@@ -878,7 +878,7 @@ Core · published · **done**
 1. A deactivated subscription receives no later notification.
 2. A notification committed before deactivation but dispatched afterwards sends nothing and records suppression.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-add-flow.mjs` (subscriberAddFlow) and `tests/e2e/helpers/subscriber-queued-unsubscribe.mjs` (subscriberQueuedUnsubscribe): an active recipient is committed before public one-click unsubscribe; the same queued delivery becomes suppressed through Queue redelivery with zero later sends.
 **Gap.** None.
 
 #### SUB-009 — Webhook subscribers
@@ -1273,17 +1273,17 @@ Core · published · **partial** · Cites BASE-OPS-004
 
 #### TEAM-001 — Equal operators
 
-Core · published · **partial** · Cites BASE-ACCESS-004
+Core · published · **done** · Cites BASE-ACCESS-004
 
-**Requirement.** Operators share the owner role until TEAM-004 introduces its role matrix. Review under UPDATE-007 applies on top of those common product privileges.
+**Requirement.** Every operator has one role and server-enforced access under TEAM-004. Review under UPDATE-007 applies in addition to publish permissions.
 
 **Acceptance.**
-1. Every active operator can create, edit, publish and resolve incidents and maintenance.
-2. Every active operator can change components and manage subscribers.
-3. There are no differentiated product roles under this release’s operator model.
+1. Every active operator has the product privileges assigned to their TEAM-004 role.
+2. Incident, maintenance, component and subscriber operations enforce that role on the server.
+3. UPDATE-007 review remains additional to role-based publish permissions.
 
-**Evidence.** `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old Evidence asserts all migrated operators carry owner role, another operator creates a component and reaches subscriber management. It does not assert every incident/maintenance privilege or complete component/subscriber mutation parity.
+**Evidence.** `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials); `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves server-enforced access under TEAM-004.
+**Gap.** None.
 
 #### TEAM-002 — Management
 
@@ -1311,6 +1311,23 @@ Core · published · **partial** · Cites BASE-OPS-005, BASE-AUDIT-001
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
 **Gap.** The old Evidence asserts subscriber-deletion audit attribution. It does not assert the listed publication, component, maintenance and correction actors, private display names or their absence from public representations. Assertions in other files cannot be added to carried-done Evidence in this rewrite.
+
+#### TEAM-004 — Roles
+
+Core · published · **done** · Cites BASE-ROLE-001, BASE-AUDIT-001, BASE-OPS-005
+
+**Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role; review under UPDATE-007 remains additional.
+
+**Acceptance.**
+1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers.
+2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages.
+3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings.
+4. The setup operator is an Owner and the last Owner cannot be demoted or removed.
+5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time.
+6. Only Owners and Admins can read the audit log; a Communicator is refused.
+
+**Evidence.** `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves Responder publish and schedule refusal, Communicator publication of the same saved draft and maintenance scheduling, Viewer settings and draft refusal, denied-route actor and time, role-change actor and time in the Owner and Admin audit view, Communicator JSON and CSV audit refusal and native auth escalation refusal. The same registration loads `tests/e2e/helpers/operator-roles-browser-flow.mjs` (operatorRolesBrowserFlow), proving Settings role selection, autosave and reload at 1440 and 390. `tests/e2e/publishing-contract.test.mjs` (linked operators run a whole private incident draft, preview and explicit publication through signed Slack and Teams), loading `tests/chat-desk/roles.mjs` (chatRoleFlow), proves signed Slack and Teams deny Responder publication and Viewer creation, retire previews across demotion and regrant and allow fresh Communicator publication. Its reviewed incident journey preserves independent review through real invited author/reviewer identities. `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-csv-flow.mjs` (subscriberCsvFlow), proves Communicator subscriber management and reporting and native Member admission as a Viewer with owner-only batch-custody refusal and audit. `tests/e2e/helpers/subscriber-add-flow.mjs` proves attributed denial without changing business or prior audit rows. `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials) proves existing Owner identities, erased-session refusal and last-Owner removal/demotion refusal. `tests/auth-adoption/portability.test.mjs`, loading `tests/auth-adoption/role-portability.mjs` (restoredRole), preserves native role metadata without restored sessions or manager authority.
+**Gap.** None.
 
 ### History and reports
 
@@ -1741,6 +1758,38 @@ Core · target · **missing** · From THEME-001 · Cites BASE-INPUT-002, BASE-PU
 **Evidence.** `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs`
 **Gap.** Custom header/footer markup editing, sanitization removal reports and snapshot rendering are absent.
 
+#### THEME-004 — A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable
+
+Core · target · **missing**
+
+**Requirement.** A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable.
+
+**Acceptance.**
+1. The contrast check a palette passes uses the same contrast measure as the cards.
+2. No card keeps a fixed light background under a dark palette.
+3. The check covers every card type on the public status page and the dashboard.
+4. A palette that would leave any card below 4.5:1 is refused with that card named.
+5. One public-door journey proves a dark palette on both pages at 1440 and 390.
+
+**Evidence.** None.
+**Gap.** Shared card contrast validation, dark card backgrounds, named-card refusal and the two-page public-door journey at 1440/390 are unproven.
+
+#### THEME-005 — Turning the custom palette off never erases the owner's chosen colours
+
+Core · target · **missing**
+
+**Requirement.** Turning the custom palette off never erases the owner's chosen colours.
+
+**Acceptance.**
+1. Unticking the custom palette keeps all nine chosen colours stored.
+2. The public page shows the default look while the custom palette is off.
+3. Ticking the custom palette on again restores exactly the stored colours.
+4. Saving other theme settings while the custom palette is off never clears the colours.
+5. One public-door journey proves untick, save, reload and re-tick.
+
+**Evidence.** None.
+**Gap.** Preservation of all nine colours through untick, save, reload, other theme saves and re-tick, and the default public look while off, are unproven.
+
 #### I18N-001 — Pages in several languages
 
 Core · target · **missing**
@@ -1919,7 +1968,7 @@ Core · target · **done**
 5. A source gap is a disconnected, labeled gap with the last-report instant rather than an interpolated line.
 6. Ten charts retain PAGE-003’s transfer and request budget.
 
-**Evidence.** `src/core/features/metrics/`, migration `migrations/core/0062_public_metrics.sql` (inventoried in RELEASE.json 1.11.0). `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow, called by the existing INTAKE-014 INTAKE-011 INTAKE-009 case in `tests/e2e/channels-and-presets.test.mjs`, notifications shard) asserts a pushed 160 ms series in the next public snapshot; sealed read-only Datadog, New Relic, Pingdom and Prometheus query fixtures fill inline charts with 42, 87, 60 and 12.5 ms; authenticated paired Uptime timing fills 123 ms, while a wrong signature or absent timing adds no point. A 20-minute gap has two disconnected SVG paths and a stopped/resumed timestamp label; a source that stays silent has its last-report timestamp label. `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow) asserts weighted hourly and daily sums and sample counts, retention just inside and outside the 1-day minute, 30-day hourly and 90-day daily boundaries, and expiry beyond 90 days. Hourly and daily history is stored; the public inline chart displays only the last 24 hours. Seven populated charts render with script disabled at 1440/390; enabled-script axe, overflow and hydration checks pass. `tests/e2e/public-contract.test.mjs` (tenMetricWeightFixture, called by PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 in `tests/e2e/public-contract.test.mjs`, public shard) pushes ten 1,440-point series beside 200 populated components, refuses an eleventh without insertion, and retains PAGE-003's 50 KiB gzip bound across default, calm, uptime and regions templates. The original browser check retains the four-request initial asset bound. `tests/e2e/helpers/metrics-flow.mjs` (metricsBrowserFlow in the same notifications registration) proves all six feed setups and native versioned-push routing with an anonymous 401, ordinary-edit autosave, sealed-key redaction after reload including Prometheus and the Datadog application-key field, and no clipping, overflow, serious axe finding or hydration mismatch at 1440/390 in component settings. `tests/auth-adoption/portability.test.mjs` (native rer archive, ownership-authority shard) preserves minute, hourly and daily aggregate sums and sample counts and requires query-key reconnect after restore without carrying plaintext or ciphertext. `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow, same notifications case) issues a metrics:write management token and pushes the 160 ms series through the versioned metrics-points management endpoint without an operator cookie; it asserts the next public snapshot, token/issuer audit attribution, hash-only storage, last-used time, a no-scope 403 with no sample/audit/usage change, and immediate revoked-token 401 with no such changes. Additive migration `migrations/core/0063_management_metric_tokens.sql` is inventoried in RELEASE.json. The native archive journey preserves token metadata but excludes bearer/hash authority and refuses the restored old bearer. Both ct retention and token-push repairs are proposals pending judgment; API-001 remains partial. Proposal pending ct's judge.
+**Evidence.** `src/core/features/metrics/`, migration `migrations/core/0062_public_metrics.sql` (inventoried in RELEASE.json 1.11.0). `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow, called by the existing INTAKE-014 INTAKE-011 INTAKE-009 case in `tests/e2e/channels-and-presets.test.mjs`, notifications shard) asserts a pushed 160 ms series in the next public snapshot; sealed read-only Datadog, New Relic, Pingdom and Prometheus query fixtures fill inline charts with 42, 87, 60 and 12.5 ms; authenticated paired Uptime timing fills 123 ms, while a wrong signature or absent timing adds no point. A 20-minute gap has two disconnected SVG paths and a stopped/resumed timestamp label; a source that stays silent has its last-report timestamp label. `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow) asserts weighted hourly and daily sums and sample counts, retention just inside and outside the 1-day minute, 30-day hourly and 90-day daily boundaries, and expiry beyond 90 days. Hourly and daily history is stored; the public inline chart displays only the last 24 hours. Seven populated charts render with script disabled at 1440/390; enabled-script axe, overflow and hydration checks pass. `tests/e2e/public-contract.test.mjs` (publicCapacityJourney, called by PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 in `tests/e2e/public-contract.test.mjs`, public shard) pushes ten 1,440-point series beside 200 populated components, refuses an eleventh without insertion, and retains PAGE-003's 50 KiB gzip bound across default, calm, uptime and regions templates. The original browser check retains the four-request initial asset bound. `tests/e2e/helpers/metrics-flow.mjs` (metricSetupJourney in the same notifications registration) proves all six feed setups and native versioned-push routing with an anonymous 401, ordinary-edit autosave, sealed-key redaction after reload including Prometheus and the Datadog application-key field, and no clipping, overflow, serious axe finding or hydration mismatch at 1440/390 in component settings. `tests/auth-adoption/portability.test.mjs` (native rer archive, ownership-authority shard) preserves minute, hourly and daily aggregate sums and sample counts and requires query-key reconnect after restore without carrying plaintext or ciphertext. `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow, same notifications case) issues a metrics:write management token and pushes the 160 ms series through the versioned metrics-points management endpoint without an operator cookie; it asserts the next public snapshot, token/issuer audit attribution, hash-only storage, last-used time, a no-scope 403 with no sample/audit/usage change, and immediate revoked-token 401 with no such changes. Additive migration `migrations/core/0063_management_metric_tokens.sql` is inventoried in RELEASE.json. The native archive journey preserves token metadata but excludes bearer/hash authority and refuses the restored old bearer. Both ct retention and token-push repairs are proposals pending judgment; API-001 remains partial. Proposal pending ct's judge.  Preservation citations: `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney), loaded by the cited public catalogue journey; `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney), loaded by the cited monitor journey.
 **Gap.** None.
 
 #### UPTIME-009 — Availability reports
@@ -2181,7 +2230,7 @@ Core · target · **done**
 4. The empty calendar remains valid; events have identity and timestamp, and timezone definitions have required observance properties.
 5. The calendar excludes internal-only windows and internal component identities.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation), `tests/e2e/publishing-contract.test.mjs` (maintenanceCalendarFlow), `tests/e2e/helpers/accessibility-subscription-flow.mjs`. The public retained /maintenance.ics response parses with Mozilla ical.js 2.2.1 as RFC 5545, uses CRLF and UTF-8 folding, and excludes internal-only maintenance and internal component names. Rescheduling keeps UID, raises SEQUENCE and changes the event window; cancellation yields STATUS:CANCELLED. Scheduled and in-progress events remain available; completed windows leave the feed. The public footer's Maintenance calendar link is proven at 1440/390. Wording is carried by MAINT-009 and calendar-client/email attachments by MISSING MAINT-010.  Additional push-Verify evidence: `tests/e2e/publishing-contract.test.mjs` (emptyMaintenanceCalendarFlow, called by publishing-contract setup before any maintenance exists) strictly checks the empty public /maintenance.ics response for CRLF, VERSION, PRODID and a UTC VTIMEZONE component. The same strict validator requires UID and DTSTAMP on every VEVENT in maintenanceCalendarFlow. Repair proposal: `tests/e2e/publishing-contract.test.mjs` (emptyMaintenanceCalendarFlow, loaded by the existing MAINT-007 Per-window automation case in `tests/e2e/publishing-contract.test.mjs`, publishing shard) asserts the actual empty /maintenance.ics response has TZID Etc/UTC, STANDARD/DAYLIGHT observance, DTSTART, +0000 TZOFFSETFROM and TZOFFSETTO, with balanced BEGIN/END boundaries. Each VTIMEZONE in both empty and populated feeds must have those required properties. Negative assertions reject component-free calendars, missing TZID, missing observance, missing DTSTART, either missing offset and mismatched observance boundaries with the specific reason. maintenanceCalendarFlow retains the UID/SEQUENCE reschedule and STATUS:CANCELLED assertions.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history), `tests/e2e/helpers/calendar-assertions.mjs` (validateMaintenanceCalendar, loaded by that same maintenance journey), `tests/e2e/helpers/accessibility-subscription-flow.mjs`. The public retained /maintenance.ics response parses with Mozilla ical.js 2.2.1 as RFC 5545, uses CRLF and UTF-8 folding, and excludes internal-only maintenance and internal component names. Rescheduling keeps UID, raises SEQUENCE and changes the event window; cancellation yields STATUS:CANCELLED. Scheduled and in-progress events remain available; completed windows leave the feed. The public footer's Maintenance calendar link is proven at 1440/390. Wording is carried by MAINT-009 and calendar-client/email attachments by MISSING MAINT-010.  Additional push-Verify evidence: `tests/e2e/helpers/calendar-assertions.mjs` (assertEmptyCalendar, called by publishing-contract setup before any maintenance exists) strictly checks the empty public /maintenance.ics response for CRLF, VERSION, PRODID and a UTC VTIMEZONE component. The same strict validator requires UID and DTSTAMP on every VEVENT in maintenanceCalendarFlow. Repair proposal: `tests/e2e/helpers/calendar-assertions.mjs` (assertEmptyCalendar, loaded by the existing MAINT-007 Per-window automation case in `tests/e2e/publishing-contract.test.mjs`, publishing shard) asserts the actual empty /maintenance.ics response has TZID Etc/UTC, STANDARD/DAYLIGHT observance, DTSTART, +0000 TZOFFSETFROM and TZOFFSETTO, with balanced BEGIN/END boundaries. Each VTIMEZONE in both empty and populated feeds must have those required properties. Negative assertions reject component-free calendars, missing TZID, missing observance, missing DTSTART, either missing offset and mismatched observance boundaries with the specific reason. maintenanceCalendarFlow retains the UID/SEQUENCE reschedule and STATUS:CANCELLED assertions.  Current public lifecycle assertions are in the cited maintenance journey; `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney), loaded by `tests/e2e/public-contract.test.mjs`, asserts the footer calendar link at 1440 and 390.
 **Gap.** None.
 
 #### MAINT-008 — Maintenance from deploy pipelines
@@ -2213,8 +2262,8 @@ Core · target · **partial**
 6. Calendar event descriptions carry current maintenance wording.
 7. Statuspage-format maintenance webhooks retain lifecycle, scheduled start/end and all maintenance updates.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Required affected-audience and customer-impact statements reach scheduled, reminder and start email. Optional wording, verifying and other notice wording, calendar, non-email surfaces and Statuspage-format bodies remain unbuilt or unproven.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). The native schedule accepts affected-audience and customer-impact wording; the public permalink and Atom feed contain the customer impact. `tests/e2e/rer-mail.test.mjs` (Sign in, confirm a reader, publish, recover frozen mail, inspect receipts, notify maintenance and opt out). The delivery list contains one scheduled, reminder and started notice, and the two latest sent maintenance messages contain audience and impact in text and HTML.
+**Gap.** Required-wording refusal and length limits, optional wording, Verifying and other notice wording, calendar wording, remaining non-email surfaces and Statuspage-format bodies remain unbuilt or unproven. The deleted migration proof for legacy null wording and unchanged title-only notices has no equivalent assertion in the current tests; no-backfill preservation is unproven.
 
 #### MAINT-011 — Maintenance drafts and previews
 
@@ -2227,8 +2276,8 @@ Core · target · **missing** · From MAINT-009
 2. Before scheduling, each notice has UPDATE-004’s preview.
 3. Scheduled, twenty-four-hour reminder and start notices match the previewed statement beside the window.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Wording drafts and previews are unbuilt; notice-to-preview parity remains unproven.
+**Evidence.** None.
+**Gap.** Wording drafts and previews are unbuilt; notice-to-preview parity remains unproven. The surviving scheduling and mail journeys do not exercise a maintenance draft or preview.
 
 #### MAINT-012 — Maintenance updates during the window
 
@@ -2245,8 +2294,8 @@ Core · target · **missing** · From MAINT-009
 6. Before start, a wording change is a Scheduled update notifying only selected channels.
 7. An email-only In progress update reaches each eligible component email subscriber once and no webhook subscriber, with identical text on permalink, Atom and public maintenance API.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Maintenance updates, Verifying lifecycle, channel-specific notices and update timelines are unbuilt.
+**Evidence.** None.
+**Gap.** Maintenance updates, Verifying lifecycle, channel-specific notices and update timelines are unbuilt. The surviving start, completion and window-edit journeys do not prove immutable wording updates or selected-channel publication.
 
 #### MAINT-013 — Maintenance automation chosen per window
 
@@ -2261,8 +2310,8 @@ Core · target · **partial** · From MAINT-009
 4. Fifteen minutes after end it shows the overrun beside its original end, raises one operator alert and remains on AUTO-003’s list.
 5. At twenty minutes overdue no Completed notice exists; the operator’s Completed update then releases claims and sends exactly one.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Automation switches and existing start/completion, due/overrun guards and notices are proven. Push, Verifying and lifecycle through published maintenance updates remain unbuilt or unproven.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). An elapsed window starts automatically, auto-complete off retains In progress after end, overrun is reported, manual completion releases component claims with one completed notice, and a second window completes automatically. `tests/e2e/maintenance-timezone.test.mjs` (MAINT-009 PAGE-020 — operator schedules, reschedules and publishes maintenance in its configured zone, then a customer subscribes by keyboard). The native form changes auto-start to off, the API reads back false, and reload retains the scheduled window with its Start action.
+**Gap.** Page-default inheritance, auto-start-off at five minutes, exactly one start-due/overrun operator alert, NOTIFY-016 push, AUTO-003 listing, the precise fifteen/twenty-minute boundaries, Verifying and lifecycle through published maintenance updates remain unbuilt or unproven.
 
 #### MAINT-014 — Maintenance wording through every write door
 
@@ -2277,8 +2326,8 @@ Core · target · **missing** · From MAINT-009
 4. GitHub Action, Terraform and AGENT-009 drafts fill the same fields.
 5. A recorded Statuspage create with wording and auto-complete disabled produces identical wording and switch through API-002.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Management-token, Statuspage-compatible, GitHub Action, Terraform and agent wording/update doors are unbuilt.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). The authenticated native scheduling door accepts affected-audience, customer-impact, auto-start and auto-complete fields; its window and completion doors are exercised. `tests/e2e/maintenance-timezone.test.mjs` (MAINT-009 PAGE-020 — operator schedules, reschedules and publishes maintenance in its configured zone, then a customer subscribes by keyboard). The native scheduling/rescheduling form persists a changed auto-start choice. This is native-door evidence only.
+**Gap.** Native wording-update publication, management-token, Statuspage-compatible, GitHub Action, Terraform and agent wording/update doors and compatibility mappings are unbuilt or unproven.
 
 #### MAINT-015 — Imported maintenance automation and updates
 
@@ -2291,8 +2340,8 @@ Core · target · **missing** · From MAINT-009
 2. Each source message becomes a maintenance update with its original time and lifecycle.
 3. A two-message fixture imports both silently under MOVE-002.
 
-**Evidence.** `tests/e2e/rer-mail.test.mjs` (required maintenance wording reaches scheduled, reminder and start mail without duplicate dispatch), `tests/e2e/maintenance-timezone.test.mjs` (Native maintenance editing preserves zones and daylight saving and persists window automation choices), `tests/e2e/publishing-contract.test.mjs` (Per-window automation, scheduled transitions, notices, extension and cancellation) and `scripts/test-owner-migrations.mjs`. New native windows require affected-audience and customer-impact statements of at most 250 characters each; existing window-update doors edit the pair atomically and preserve omitted wording. Scheduled, 24-hour reminder and start emails carry both statements beside the window through shared UPDATE-002 wording and existing link rendering. Each notice freezes its wording; legacy windows remain title-only without backfill. Existing automation switches, Settings defaults, transition guards, start-due and overrun behavior remain proven. Create, scheduled-window and in-progress window editors pass axe, overflow and hydration checks at 1440/390. RELEASE.json records MAINT-001, MAINT-002, MAINT-004 and MAINT-005 as changed with the precise new-window wording scope; legacy timing and overrun semantics are unchanged.
-**Gap.** Imported Statuspage automation and maintenance-message mapping are unbuilt.
+**Evidence.** None.
+**Gap.** Imported Statuspage automation and maintenance-message mapping are unbuilt. Native scheduling and owner SQL rollback/restore do not prove source switch preservation or silent two-message maintenance-update import.
 
 #### MAINT-010 — Maintenance calendar clients and mail attachments
 
@@ -2430,7 +2479,7 @@ Core · target · **partial** · Rules D-2
 
 #### SUB-019 — Follow one incident
 
-Core · target · **missing** · From SUB-019
+Core · target · **done** · From SUB-019 · Cites BASE-ACCESS-003, BASE-PUBLIC-001, BASE-DATA-003, BASE-OPS-003
 
 **Requirement.** Every incident permalink provides a script-free single-incident subscription form; email, enabled SMS, and webhooks with a contact address are offered. SUB-022 governs its notification lifetime.
 
@@ -2442,12 +2491,12 @@ Core · target · **missing** · From SUB-019
 5. The management API lists, creates and deletes incident subscriptions, including the Statuspage-compatible incident-subscriber doors.
 6. Unresolved Statuspage incidents import subscribers as pending under MOVE-002; these consume SUB-020 capacity, and a full channel creates and sends nothing while showing its usual full-channel response.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** Points 1 and 3: `tests/e2e/delivery-contract.test.mjs` (Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts), loading `tests/e2e/helpers/incident-follow-browser-flow.mjs` (incidentFollowBrowserFlow): script-free public email, configured SMS and webhook forms, confirmation, per-recipient report choice and 1440 and 390 screens. Point 2: the same file (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow); the same registration file (Subscriber consent, selected publication, channel delivery, export and erasure) loads `tests/e2e/helpers/incident-follow-sms-flow.mjs`: daily address allowance, pending expiry, neutral replies, cross-site refusal and signed channel consent. Point 4: incidentFollowFlow and incidentFollowBrowserFlow prove scoped token management, immediate unsubscribe and both operator views. Point 5: `tests/e2e/helpers/incident-subscription-api-flow.mjs` (incidentSubscriptionApiFlow), loaded by the same file (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), proves native and Statuspage-compatible CRUD, explicit private read and write scopes, refusal of existing public-data readers, wrong-incident refusal and revoked-credential refusal without writes. Point 6: `tests/e2e/statuspage-import.test.mjs` (owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes), loading `tests/e2e/helpers/incident-subscriber-import-flow.mjs` (incidentSubscriberImportFlow) and `tests/e2e/helpers/imported-incident-live-flow.mjs`; incidentFollowFlow proves capacity refusal without subscriber writes or mail.
+**Gap.** None.
 
 #### SUB-022 — Single-incident subscription lifetime
 
-Core · target · **missing** · From SUB-019
+Core · target · **done** · From SUB-019 · Cites BASE-DATA-003, BASE-OPS-003
 
 **Requirement.** A single-incident subscriber hears only that incident's later communication, with an explicit option to include its post-incident report.
 
@@ -2458,8 +2507,8 @@ Core · target · **missing** · From SUB-019
 4. After ending, no more notification is sent and the address is deleted within 24 hours unless it has another subscription.
 5. The script-free journey follows one incident through its next update and resolution, receives nothing for a second incident or maintenance and nothing after resolution, and reads address deletion 24 hours later.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), `tests/e2e/helpers/incident-follow-lifecycle-flow.mjs` (incidentFollowLifecycleFlow), `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow); the same registration file (Subscriber consent, selected publication, channel delivery, export and erasure) loads `tests/e2e/helpers/incident-follow-sms-flow.mjs`. Point 1: only the followed incident delivers updates and resolution; other incidents, maintenance and component changes deliver nothing. Point 2: delivered resolution ends a follow without its report; report publication or the controlled 30-day deadline ends report following. Point 3: reopening before ending delivers; reopening afterwards does not. Point 4: scheduled erasure removes the ended scope within 24 hours, revokes old authority, preserves an independent subscription; `tests/e2e/helpers/incident-subscription-api-flow.mjs` (incidentSubscriptionApiFlow) proves captured confirmation and management links cannot resurrect or expose an erased follower. Point 5: `tests/e2e/helpers/incident-follow-browser-flow.mjs` (incidentFollowBrowserFlow), loaded by the same file (Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts), proves script-free INC-7 confirmation and management at 1440 and 390; `tests/e2e/helpers/incident-follow-browser-lifecycle.mjs` (incidentFollowBrowserLifecycle) keeps that same script-free recipient through its next update, exclusion cases, delivered resolution, later suppression and scheduled address deletion.
+**Gap.** None.
 
 #### SUB-020 — Subscriber limits are stated, enforced and reported
 
@@ -2751,7 +2800,7 @@ Core · target · **done** · Cites BASE-INPUT-001, BASE-OPS-003, BASE-ACCESSIBI
 6. At 1440 and 390 the saved mappings, receipt and linked private draft retain both matched components.
 7. The technical archive restores source configuration and grouped member evidence.
 
-**Evidence.** `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-form.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/auth-adoption/portability.test.mjs`
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/grouped-alerts-flow.mjs` (groupedAlertsFlow): both configured browser components and their exact mappings survive reload, receipts open the private draft, and no public story exists at 1440 and 390. The cited native archive retains the source configuration and grouped member evidence.  Kept archive citation: `tests/auth-adoption/portability.test.mjs` (native rer archive restores owner continuity and subscriber authority), loading `tests/helpers/archive-history.mjs` (populateArchiveHistory); its archive and restored re-export equality retains the Alertmanager source and grouped fingerprints and states.
 **Gap.** None.
 
 #### INTAKE-011 — New Relic, Datadog and Pingdom depth
@@ -2766,7 +2815,7 @@ Core · target · **done** · From INTAKE-011 · Cites BASE-INPUT-001, BASE-ACCE
 3. An activated workflow creates a private draft on its mapped component; its closed event resolves that same draft without public updates.
 4. The template and saved choices are usable at 1440 and 390.
 
-**Evidence.** `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/metrics-flow.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/metrics-flow.mjs`
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/monitor-setup-journey.mjs` (monitorSetupJourney) and `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney): complete New Relic workflow bindings and replacement template, saved exact entities, mapped private ACTIVATED and CLOSED on one incident, and accessible persisted provider forms at 1440 and 390.  Kept API and chart citations: `tests/e2e/helpers/operations-alerts-flow.mjs` (operationsAlertsFlow) and `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow), loaded by that same monitor registration, retain entity mapping, unmapped refusal and the Datadog, New Relic and Pingdom public chart observations.
 **Gap.** None.
 
 #### INTAKE-016 — Monitoring metric connectors
@@ -2780,7 +2829,7 @@ Core · target · **done** · From INTAKE-011 · Cites BASE-DATA-004, BASE-ACCES
 2. Query credentials are sealed and absent from operator and management metric listings.
 3. At 1440 and 390 an owner configures each provider’s metric in component settings and its connection survives reload.
 
-**Evidence.** `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/metrics-flow.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/metrics-flow.mjs`
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney): every provider connection and exact query survives reload, with sealed keys absent from the owner form at 1440 and 390.  Kept provider and secrecy citation: `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow), loaded by that same monitor registration, retains all three provider chart values, sealed credential storage and credential absence from operator and management listings.
 **Gap.** None.
 
 #### INTAKE-012 — Oncall
@@ -2896,12 +2945,12 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 4. Automatic publication names the rule and the owner who approved it, and the private timeline links the causing alert.
 5. Rule edits appear in the audit view with actor and time.
 
-**Evidence.** `src/core/features/intake/policies.ts`, `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs`
-**Gap.** The replaceable intake policy and preset-to-component mapping ship. Per-component rules, automatic claims and template publication remain absent; risk-policy decisions through these seed actions are not proved.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence; delivery shard), loading `tests/e2e/helpers/automation-rules-flow.mjs` (automationRulesFlow) and `tests/e2e/helpers/automation-rules-browser-flow.mjs` (automationRulesBrowserFlow). The native intake and operator journeys prove default and explicit draft silence; immediate configured claims and recovery without updates or subscriber deliveries; saved firing and Resolved template fields and selected channels exactly once through UPDATE-008 despite alert and Queue redelivery; private rule and approving-owner attribution; a working link from the incident timeline to the causing alert; and rule edits in the audit view with actor and time. Settings values survive reload, invalid approval and incomplete templates are refused, source erasure releases claims, and durable publication retries resume through Cron.
+**Gap.** Agent calls still need server-computed standard, live and external classes, company-policy decisions and agent-for-person attribution under BASE-AGENT-006, BASE-AGENT-007 and BASE-AGENT-008. The held Base pin has no company-policy decision API. Agent automation stays unavailable; owner and admin approval remains the conservative default. SURFACE-002 and SURFACE-003 retain these inherited duties.
 
 #### AUTO-002 — Flap guard and undo for automatic changes
 
-Core · target · **missing** · Cites BASE-OPS-005
+Core · target · **done** · Cites BASE-OPS-005
 
 **Requirement.** An automatic claim uses its rule’s firing delay and recovery hold to prevent flapping public changes. Operators can undo a claim or publication without erasing history.
 
@@ -2910,8 +2959,8 @@ Core · target · **missing** · Cites BASE-OPS-005
 2. A three-minute firing claims state; recovery followed by refiring two minutes later retains it under the default five-minute recovery hold.
 3. One Undo restores the previous state and appends the actor’s history and incident-timeline entry without deleting prior entries.
 
-**Evidence.** None.
-**Gap.** Automatic claim delays, recovery holds and undo are not built.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence; delivery shard), loading `tests/e2e/helpers/automation-flap-flow.mjs` (automationFlapFlow). The controlled-clock native HTTP and scheduled journey proves a 60-second firing never changes public state under the default two-minute delay; a three-minute firing claims state; refiring two minutes into the five-minute recovery hold keeps one claim and history; and a full recovery hold releases it without subscriber delivery. Owner Undo for both claim and publication restores the prior aggregate state and appends the actor to component history and the private incident timeline while retaining all previous history and immutable updates. Anonymous and Responder Undo and rule edits are refused without product changes; repeated Undo, captured firing, scheduled replay and pending-source erasure cannot reapply the change. Revocation of an approving owner holds delayed work; an erased approver and captured alert cannot restore authority. `tests/e2e/helpers/automation-rules-browser-flow.mjs` (automationRulesBrowserFlow) proves persisted timing controls, native Undo and retained internal history at 1440, with the same changed screens captured at 1440 and 390.
+**Gap.** None.
 
 #### AUTO-003 — Every follow-up obligation is visible
 
@@ -2946,23 +2995,6 @@ Core · target · **partial** · Cites BASE-OPS-003, BASE-OPS-005
 **Gap.** Old cited evidence asserts Owner email recipient; Operator channel count; Repeated day-seven tick has the expected exact email count; Repeated day-seven tick has the expected exact Slack/Teams counts. Unasserted: Waiver audit timestamp read back; Live publication starts reminders on previously historical import.
 
 ### Operators — target
-
-#### TEAM-004 — Roles
-
-Core · target · **missing** · Cites BASE-ROLE-001, BASE-AUDIT-001, BASE-OPS-005
-
-**Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role when delivered; review under UPDATE-007 remains additional.
-
-**Acceptance.**
-1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers.
-2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages.
-3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings.
-4. The setup operator is an Owner and the last Owner cannot be demoted or removed.
-5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time.
-6. Only Owners and Admins can read the audit log; a Communicator is refused.
-
-**Evidence.** None.
-**Gap.** The product role matrix, restricted audit view and role-change/refusal journeys are not built. This replaces TEAM-001 and the roles non-goal when shipped.
 
 #### TEAM-005 — Access scoped to pages and audiences
 
@@ -3312,7 +3344,7 @@ Core · target · **partial** · Cites BASE-ACCESS-002, BASE-ACCESS-004, BASE-SE
 5. Posts follow NOTIFY-005 duplicate protection, NOTIFY-003 retry, NOTIFY-004 outcome logging and NOTIFY-006 operator failure alerts; the log retains the network post identity.
 6. A failing X fixture retries and records failure without delaying the page or email, and retroactive updates and imports post nothing.
 
-**Evidence.** Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. Inherited authority and secrecy: the same socialPostsFlow asserts anonymous and revoked-session refusal, fresh-member refusal for connect, default and removal, encrypted storage, hidden credentials, and queued retry and replay refusal after disconnection. Only recorded provider edges are claimed.
+**Evidence.** Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. Inherited authority and secrecy: the same socialPostsFlow asserts anonymous and revoked-session refusal, fresh-member refusal for connect, default and removal, encrypted storage, hidden credentials, and queued retry and replay refusal after disconnection. Only recorded provider edges are claimed.  The same socialBrowserFlow retains the Settings, new-incident selector, existing composer and maintenance choice observations at 1440 and 390.
 **Gap.** Cited evidence asserts persisted token connections, Bluesky app-password exchange, Mastodon bearer posting, owner defaults/deselection, bounded prefixed content, threading, selected maintenance, duplicate suppression, five retries, terminal outcomes/operator alert, failure isolation and import/retroactive silence. Unasserted: X ownership of developer application and API tier; owner network API charges; exponential retry intervals across the exact promised hour; precise recipient account identity and queue time in social log; channel, outcome and update filters; complete filtered CSV; absence of tracking pixels and tracked links; exact equality between logged post identity and provider-returned identifier.
 
 ### Mobile — target

@@ -1,3 +1,4 @@
+import type { SubscriberWriteAuthority } from "./incident-authority";
 import { createIncidentSubscriptionLifecycleRepository } from "./incident-lifecycle.repository";
 import { createIncidentSubscriptionRepository } from "./incident.repository";
 import { createSubscriberPreferencesRepository } from "./preferences.repository";
@@ -41,7 +42,7 @@ export interface SubscriberRepository extends SubscriberTransitions {
   ensureManagedUnsubscribeToken(subscriberId: string, manageTokenHash: string, candidate: { id: string; tokenHash: string }, now: string): Promise<string | null>;
   revokeTokens(subscriberId: string, now: string, scope?: "confirm" | "manage" | "unsubscribe"): Promise<void>;
   deactivateSubscriber(subscriberId: string, reason: string, now: string): Promise<void>;
-  anonymizeAndDeactivate(subscriberId: string, operatorId: string | null, now: string): Promise<void>;
+  anonymizeAndDeactivate(subscriberId: string, operatorId: string | null, now: string, authority?:SubscriberWriteAuthority): Promise<void>;
   /** Deletes expired unconfirmed subscribers, erasing at most `custodyErasures` of
    * those an import holds from its custody (each is its own D1 batch); the
    * rest wait for a later run. */
@@ -173,7 +174,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL").bind(now, now, subscriberId),
       ]);
     },
-    async anonymizeAndDeactivate(subscriberId, operatorId, now) {
+    async anonymizeAndDeactivate(subscriberId, operatorId, now, authority) {
       // Keep the opaque core identifier and the responsible operator, but no
       // personally identifying destination or contact address in the audit.
       const subscriber = await database.select({ destination: subscriberDirectory.destination, contactEmail: subscriberDirectory.contactEmail }).from(subscriberDirectory).where(eq(subscriberDirectory.id, subscriberId)).get();
@@ -201,6 +202,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         params: [value, replacement, subscriberId],
       })));
       const native: D1Sql[] = [
+        ...(authority?[{sql:`SELECT CASE WHEN (${authority.sql}) THEN 1 ELSE json('Incident subscription authority changed.') END`,params:authority.params}]:[]),
         ...removeRecipients,
         ...redactions,
         { sql: "DELETE FROM subscriber_chat_destinations WHERE subscriber_id = ?", params: [subscriberId] },
@@ -217,9 +219,9 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // An import's retained copies of this subscriber go in the same batch.
       const subject = { id: subscriberId, values: personalValues };
       if ((await subjectsInCustody(binding, [subject])).length) {
-        await retireSubscriberCustody(binding, subject, [...native, ...imported], [audit], { principalId: operatorId ?? "lamp:incident-follow-expiry", authority: operatorId
+        await retireSubscriberCustody(binding, subject, [...native, ...imported], [audit], { principalId: operatorId ?? "lamp:incident-follow-expiry", authority: authority ?? (operatorId
           ? { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [operatorId] }
-          : { sql: "EXISTS(SELECT 1 FROM incident_subscriptions WHERE subscriber_id=? AND ended_at<=?) OR EXISTS(SELECT 1 FROM subscribers WHERE id=? AND destination='deleted:'||id)", params: [subscriberId,now,subscriberId] } });
+          : { sql: "EXISTS(SELECT 1 FROM incident_subscriptions WHERE subscriber_id=? AND ended_at<=?) OR EXISTS(SELECT 1 FROM subscribers WHERE id=? AND destination='deleted:'||id)", params: [subscriberId,now,subscriberId] }) });
         return;
       }
       await binding.batch([...native, audit].map((statement) => binding.prepare(statement.sql).bind(...statement.params ?? [])));

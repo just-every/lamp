@@ -918,6 +918,14 @@
       "migrationIds": [
         "0003_public_contract.sql"
       ]
+    },
+    "TEAM-004": {
+      "change": "added",
+      "summary": "Roles: Lamp defines Owner/Admin, Communicator, Responder and Viewer privileges and protects its last Owner.",
+      "now": "Roles: **Requirement.** Lamp defines Owner/Admin, Communicator, Responder and Viewer product privileges and keeps its last Owner recoverable. This replaces TEAM-001’s common owner role; review under UPDATE-007 remains additional. **Acceptance.** 1. Owners and Admins manage settings, team, integrations, pages and billing-relevant providers; Communicators publish, resolve, schedule maintenance and manage subscribers. 2. Responders draft, write internal notes and attach components without publish rights; Viewers only read, including private pages. 3. A Responder’s publish is refused while a Communicator publishes that same draft, and a Viewer cannot change Settings. 4. The setup operator is an Owner and the last Owner cannot be demoted or removed. 5. Every role refusal has an audit record naming operator, requested action and time; role changes appear in the audit view with actor and time. 6. Only Owners and Admins can read the audit log; a Communicator is refused.",
+      "migrationIds": [
+        "0073_operator_roles.sql"
+      ]
     }
   },
   "extensionPointChanges": [],
@@ -943,8 +951,32 @@
     {
       "id": "0068_incident_report_deliveries.sql",
       "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
+    },
+    {
+      "id": "0069_incident_management_consent.sql",
+      "buyerSteps": "Apply after 0068. Adds a default-off incident subscriber write scope to management tokens and the shared confirmation address key for imported invitations. Existing tokens gain no write authority. Imported incident and page followers share the existing daily confirmation allowance."
+    },
+    {
+      "id": "0070_incident_subscriber_read_scope.sql",
+      "buyerSteps": "Apply after 0069. Adds a default-off private subscriber read scope. Existing public-data read tokens retain their current access and gain no access to subscriber addresses. An active owner or admin explicitly issues the new scope when an integration needs incident subscriber lists."
+    },
+    {
+      "id": "0071_page_theme.sql",
+      "buyerSteps": "Apply after 0070. Adds empty theme and theme-asset settings while preserving the existing page appearance and stored records. Configure palette, typography, uploaded WOFF2 fonts, header artwork, links and layout in Settings. Publication carries the selected assets in the retained snapshot; no provider account or key is needed."
+    },
+    {
+      "id": "0072_alert_rules.sql",
+      "buyerSteps": "Apply after 0071. Adds owner-approved per-component/source alert rules, durable rule execution, receipt retry work and fingerprint evidence, saved template notification channels and Resolved wording, and automatic publication provenance. Existing sources remain draft-only with byte-identical default intake. Native archives include these durable settings and execution receipts; erasure releases claims and retains anonymized audit provenance. No provider account or key is needed. Neutral automation defaults preserve sealed native import and undo journals; non-default saved automation values still count as owner edits."
+    },
+    {
+      "id": "0073_operator_roles.sql",
+      "buyerSteps": "Apply after 0072. Adds role metadata for Communicators, Responders and Viewers while preserving existing native Owner and Admin authority. Setup remains Owner; Settings lets Owners and Admins invite operators with a role and change roles. The last active Owner cannot be demoted or removed. No provider credentials or other owner action are required."
+    },
+    {
+      "id": "0074_alert_rule_guards.sql",
+      "buyerSteps": "Apply after 0073. Adds per-rule firing delay and recovery hold, durable scheduled windows and attributed Undo receipts. Rules default to a two-minute firing delay and five-minute recovery hold; existing active claims are retained. Review these values in Settings before relying on immediate automation. Undo releases only its automatic claim and retains earlier public updates, component history and internal attribution. No account or credential is required."
     }
   ],
   "breaking": false,
-  "agentUpdateInstructions": "This contract documentation edition reorganizes the existing obligations, records conservative evidence statuses and adds the planned Agent surface. It makes no product acceptance or proof promotion. Preserve every published release record and immutable contract snapshot, the final contract ID and coverage maps, owner requirements, existing migrations, source customizations and data. This cleanup authors no database migration or setup gate. Apply the incoming-main migrations newly introduced since the immutable retained predecessor using their unchanged buyer steps in this release. Regenerate contract documents, check the generated files, record the source lock last, then run the existing verifier and release validator before adopting."
+  "agentUpdateInstructions": "This contract documentation edition reorganizes the existing obligations, records conservative evidence statuses and adds the planned Agent surface. It makes no product acceptance or proof promotion. Preserve every published release record and immutable contract snapshot, the final contract ID and coverage maps, owner requirements, existing migrations, source customizations and data. This cleanup authors no database migration or setup gate. Apply the incoming-main migrations newly introduced since the immutable retained predecessor using their unchanged buyer steps in this release. Regenerate contract documents, check the generated files, record the source lock last, then run the existing verifier and release validator before adopting. Apply 0072_alert_rules.sql after 0071 before starting the updated Worker. Existing sources stay draft-only. Under Settings > Alert rules, approve each component/source rule explicitly; claim and publish requires a saved template with complete firing and Resolved wording and its chosen channels. Native archives retain rules, approval, evidence and pending receipt work; review a degraded rule before saving it again to resume automation."
 }

@@ -1,4 +1,6 @@
+import { preparePortableAlertRules, assertPortableAlertRules } from '../e2e/helpers/automation-portability-flow.mjs';
 import { preparePortableIncidentSubscribers, assertPortableIncidentSubscribers } from "../e2e/helpers/incident-subscriber-portability-flow.mjs";
+import { portableRole, restoredRole } from './role-portability.mjs';
 import { preparePortableMetrics, assertPortableMetrics } from "../e2e/helpers/metrics-portability-flow.mjs";
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
@@ -15,7 +17,7 @@ import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
 import { populateArchiveHistory } from '../helpers/archive-history.mjs';
 import { fixtureProcessEnv } from '../helpers/worker-environment.mjs';
 
-test('SUB-019 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 native rer backup restores the whole product without reviving temporary authority', async t => {
+test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 native rer backup restores the whole product without reviving temporary authority', async t => {
   const root = process.cwd(), directory = await mkdtemp(join(tmpdir(), 'lamp-auth-portability-'));
   const source = join(directory, 'source'), target = join(directory, 'target');
   let current;
@@ -32,6 +34,7 @@ test('SUB-019 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 nati
     assert.equal(bootstrap.status, 303);
     const oldCookie = await native.signIn();
     await populateArchiveHistory(current.env);
+    const roleRecord=await portableRole(db);
     const actor = await native.auth.getSession(native.request('/auth/session', { cookie: oldCookie }));
     await db.prepare('UPDATE oc_owner_claims SET operator_id=?,session_id=?').bind(actor.operator.id, actor.id).run();
     await db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES('portable-audit','operator',?,'portable history',?,'{}','2026-10-01','2026-10-01')").bind(actor.operator.id, actor.operator.id).run();
@@ -65,6 +68,7 @@ test('SUB-019 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 nati
     for (const preset of ['jsm','opsgenie']) await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve,created_at,updated_at) VALUES(?,?,'bearer-token','synthetic-lamp-token-hash','preset:operations','preset:operations','preset:operations',?,?,?,1,1,?,?)").bind(`synthetic-lamp-${preset}`,`synthetic-lamp-${preset}`,actor.operator.id,preset,`synthetic-lamp-${preset}-sealed-key`,now,now).run();
     const portableIncidentSubscribers=await preparePortableIncidentSubscribers({db,codec,now});
     const portableMetrics=await preparePortableMetrics({env:current.env,native,cookie:oldCookie});
+    const portableRules = await preparePortableAlertRules({ env: current.env, native, cookie: oldCookie });
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
     for await (const record of fileRecords(join(directory, 'installation.rer'))) {
@@ -77,6 +81,11 @@ test('SUB-019 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 nati
     for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100',portableMetrics.management.token,portableMetrics.hash]) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
     assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes('portable-sealed-rest-key'), 'the archive carries no sealed PagerDuty key');
     for (const preset of ['jsm','opsgenie']) assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes(`synthetic-lamp-${preset}-sealed-key`), `${preset} ciphertext never travels`);
+    for await (const record of fileRecords(join(directory, 'installation.rer'))) {
+      if (record.kind !== 'manifest') continue;
+      assert.equal(record.tables.find(table => table.name === 'alert_rules')?.count, portableRules.rows.length, 'native archives include every owner rule');
+      assert.equal(record.tables.find(table => table.name === 'incident_templates')?.count, 1, 'native archives include saved firing and Resolved text with channels');
+    }
 
     const damaged = Buffer.from(await readFile(join(directory, 'installation.rer')));
     damaged[damaged.length - 3] ^= 1;
@@ -135,6 +144,7 @@ test('SUB-019 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 nati
       assert.ok(!JSON.stringify(source).includes('sealed-key'));
     }
     await assertPortableMetrics({expected:portableMetrics,app:transferredApp.app,bindings:transferredBindings,origin:fresh.origin,cookie,db:restored});
+    await assertPortableAlertRules({ expected: portableRules, app: transferredApp.app, bindings: transferredBindings, origin: fresh.origin, cookie, oldCookie, db: restored });
     const restoredApp = new Hono();
     registerSubscriberRoutes(restoredApp, createSubscribersService(createSubscriberRepository(restored), { tokenSecret: 'portable-subscriber-secret' }));
     assert.equal((await restoredApp.fetch(new Request(fresh.origin + '/manage/' + manage))).status, 200);
@@ -143,6 +153,7 @@ test('SUB-019 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE-014 nati
     const original = await current.env.SNAPSHOTS.get('branding/original.png');
     assert.ok(original);
     assert.equal(original.httpMetadata.contentType,'image/png');
+    await restoredRole(restored,roleRecord);
   } finally { await current?.dispose(); await rm(directory, { recursive: true, force: true }); }
 });
 

@@ -1,3 +1,4 @@
+import { themeAssetArtifacts } from "./theme-rendering";
 import type { RetainedSnapshotCache } from "../../platform/blobs/retained";
 import { encodeRetainedBundle, readRetainedArtifact } from "../../platform/blobs/retained-bundle";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -15,7 +16,7 @@ const STALE_MARKER_KEY = "snapshots/stale.json";
 const STALE_BUILD_MS = 5 * 60_000;
 const RETRY_LEASE_MS = 2 * 60_000;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v20";
+export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v21";
 
 interface SnapshotPointer {
   version: string;
@@ -159,6 +160,11 @@ export function createPublicSnapshotService(
         if (logo && !logoContentType) throw new Error("Configured logo content type is missing.");
         const version = createUlid();
         const rendered = renderPublicSnapshot(source, new Date().toISOString(), policies, { logoDataUrl: logo && logoContentType ? logoDataUrl({ ...logo, contentType: logoContentType }) : null }, slots);
+        rendered.artifacts.push(...await themeAssetArtifacts(source.settings.themeAssets, blobs));
+        const uploadedFont = rendered.artifacts.find(artifact => artifact.key === "assets/theme-font");
+        if (uploadedFont) for (const artifact of rendered.artifacts.filter(artifact => artifact.contentType.startsWith("text/css"))) {
+          artifact.body = artifact.body.replaceAll('url("/assets/theme-font")', `url("data:font/woff2;base64,${uploadedFont.body}")`);
+        }
         const bundle = encodeRetainedBundle({ version, generatedAt: rendered.generatedAt, generation, artifacts: rendered.artifacts });
         return { version, rendered, bundle, logo, logoContentType };
       }
@@ -169,7 +175,9 @@ export function createPublicSnapshotService(
         // Retry storage/replica/pointer delivery with identical generation bytes.
         prepared ??= await prepare();
         const { version, rendered, bundle, logo, logoContentType } = prepared;
-        await Promise.all(rendered.artifacts.map((artifact) => blobs.putText(`snapshots/${version}/${artifact.key}`, artifact.body, artifact.contentType)));
+        await Promise.all(rendered.artifacts.map(artifact => artifact.encoding === "base64"
+          ? blobs.putBytes(`snapshots/${version}/${artifact.key}`, Uint8Array.from(atob(artifact.body), character => character.charCodeAt(0)).buffer, artifact.contentType)
+          : blobs.putText(`snapshots/${version}/${artifact.key}`, artifact.body, artifact.contentType)));
         if (logo) {
           await blobs.putBytes(`snapshots/${version}/assets/logo`, logo.bytes, logoContentType ?? "application/octet-stream");
         }

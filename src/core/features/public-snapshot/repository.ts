@@ -1,3 +1,4 @@
+import { createIncidentFollowSettingsRepository } from "../subscribers/incident-follow-settings.repository";
 import { createMetricsRepository } from "../metrics/repository";
 import type { PublicMetric } from "../metrics/types";
 import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
@@ -38,6 +39,7 @@ export interface SnapshotRepository {
 
 export interface PublicSnapshotSource {
   smsEnabled?: boolean;
+  incidentIncludeReport?:boolean;
   metrics?: PublicMetric[];
   websiteUrl?: string | null;
   publicOrigin?: string;
@@ -153,6 +155,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
       return {
         websiteUrl: website?.url ?? null,
         smsEnabled,
+        incidentIncludeReport:(await createIncidentFollowSettingsRepository(binding).get()).includeReport,
         publicOrigin,
         publicApiIds, incidentImpacts: Object.fromEntries(incidentImpactRows.filter(row => row.impact !== null).map(row => [row.id, row.impact!])),
         importedPublicRecords, importedNamespaces,

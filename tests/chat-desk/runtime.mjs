@@ -57,10 +57,10 @@ export async function runtime(t, keys, { configured = true } = {}) {
     await apply(names.find(name => name.endsWith('_chat_desk_links.sql')));
     assert.deepEqual((await db.prepare('SELECT * FROM operators').all()).results, before.results, 'populated prior-schema upgrade preserves operator attribution');
     const cookie = await authFixture(db, { origin, owner: 'operator@example.test' }).signIn();
-    const call = async (path, body, method = body === undefined ? 'GET' : 'POST') => {
-      const response = await worker.dispatchFetch(origin + path, { method, headers: { Host: 'app.example.test', Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    const call = async (path, body, method = body === undefined ? 'GET' : 'POST', credential = cookie) => {
+      const response = await worker.dispatchFetch(origin + path, { method, headers: { Host: 'app.example.test', Origin: origin, Cookie: credential, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
       const text = await response.text(); return { status: response.status, body: text ? JSON.parse(text) : null };
     };
-    return { worker, db, call, close, signingSecret, appId, operator, requests, replies };
+    return { worker, db, call, close, signingSecret, appId, operator, requests, replies, signIn: email => authFixture(db,{origin,owner:email}).signIn(email) };
   } catch (error) { await close(); throw error; }
 }
