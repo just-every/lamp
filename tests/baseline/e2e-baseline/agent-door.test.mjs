@@ -7,6 +7,8 @@ import { baseline } from './case.mjs';
 
 // Use the installed CLI's production installation journey, as rer verify does.
 const { checkAgentDoor } = await import(new URL('agent-door.mjs', import.meta.resolve('@runeditrun/rer/adapter')));
+const { resolveProject } = await import(new URL('project.mjs', import.meta.resolve('@runeditrun/rer/adapter')));
+const { loadInstallerSeed } = await import('@runeditrun/rer/internal/onboarding/setup-manifest.mjs');
 const clauses = [
   'BASE-AGENT-001', 'BASE-AGENT-002', 'BASE-AGENT-003', 'BASE-AGENT-004',
   'BASE-AGENT-005', 'BASE-AGENT-006', 'BASE-AGENT-007', 'BASE-AGENT-008',
@@ -14,7 +16,10 @@ const clauses = [
 ];
 let result;
 before(async () => {
-  try { result = await checkAgentDoor(process.cwd()); }
+  const project = await resolveProject(process.cwd());
+  const { manifest } = await loadInstallerSeed(project.root, project.adapter);
+  try { result = await checkAgentDoor(project.root, { declaration: project.adapter.deployDeclaration ?? project.adapter.deploy?.declaration,
+    setupManifest: manifest, owner: project.adapter.hooks?.owner }); }
   catch (error) {
     if (error.code !== 'agent_door_failed' || !error.agentDoor) throw error;
     result = error.agentDoor;

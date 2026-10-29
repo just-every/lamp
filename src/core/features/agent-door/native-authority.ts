@@ -64,7 +64,7 @@ export function nativeAuthority(db: D1Database) {
         if (!await allowed(person, method, path)) throw new ToolRefusal('native_forbidden');
       };
       return { ...tool, clauses: [...new Set([...tool.clauses, 'TEAM-004'])],
-        async classify(args, ctx) { await admit(ctx.person.id); return tool.classify(args, ctx); },
+        async classify(args, ctx, completed) { await admit(ctx.person.id); return tool.classify(args, ctx, completed); },
         async run(args, ctx) { await admit(ctx.person.id); return tool.run(args, ctx); },
         ...(tool.target ? { target: async (args, ctx) => { await admit(ctx.person.id); return tool.target!(args, ctx); } } : {}),
         ...(tool.revision ? { revision: async (args, ctx) => { await admit(ctx.person.id); return tool.revision!(args, ctx); } } : {}),

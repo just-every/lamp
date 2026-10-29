@@ -5452,7 +5452,7 @@
       "executable": false
     },
     "src/core/features/agent-door/incidents.ts": {
-      "sha256": "eb16457f1639c5799efd2185aea2cff5fbf8b21f1cc3276eff9e35e9814e2a2e",
+      "sha256": "579f405357489314edb7d244df93fea9bc971648d5017145075f9aef929c8f22",
       "executable": false
     },
     "src/core/features/agent-door/index.server.ts": {
@@ -5476,7 +5476,7 @@
       "executable": false
     },
     "src/core/features/agent-door/native-authority.ts": {
-      "sha256": "1168b6336e22531ea89de73e529bbf985453733bc25ee47bb3e971b892f68a53",
+      "sha256": "d6f8dac256dd944c2ce7d305c236df7970fc681c4df05a2f6265240406153943",
       "executable": false
     },
     "src/core/features/agent-door/native-proof.repository.ts": {
@@ -8792,7 +8792,7 @@
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
-      "sha256": "8b4778a2f50d5f46d26b41906645deef5420e82328c91e159b43e7a5c37de106",
+      "sha256": "33700d64526c8eff2e97800eaf5d9d4050bd555104b92e480351e0cbd45ef6c8",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {
@@ -8824,7 +8824,7 @@
       "executable": false
     },
     "tests/baseline/e2e-baseline/agent-door.test.mjs": {
-      "sha256": "da8afb4effb522c93764a38315470c66b0632e8f0adaf2569af16b5a835187ec",
+      "sha256": "041042b0c91126a293937891422efeb0b32596db92b4f9ee07c80878c587280c",
       "executable": false
     },
     "tests/baseline/e2e-baseline/case.mjs": {

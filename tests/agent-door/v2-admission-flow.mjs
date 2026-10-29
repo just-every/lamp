@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { load } from '../operator-readiness/runtime.mjs';
-import { lampRuntime } from './runtime.mjs';
+import { lampRuntime, linkToken } from './runtime.mjs';
 import { openSnapshotCacheRuntime } from '../e2e/snapshot-cache-runtime.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -114,7 +114,11 @@ export async function runV2AdmissionFlow(t) {
   const approvedPublication = { ...publication, idempotency_key: crypto.randomUUID() };
   const pendingPublication = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
   assert.equal(pendingPublication.outcome, 'pending');
-  await approve(pendingPublication, teammate.cookie);
+  // Role changes revoke earlier sessions. The current sponsor signs in again.
+  await r.auth.requestMagicLink(r.request('/auth/magic-link', { method: 'POST' }), { email: 'role-limited@example.test' });
+  const confirmedSponsor = await r.authHandle(r.request('/auth/confirm', { method: 'POST', body: { token: linkToken(r.messages.at(-1)) } }));
+  assert.equal(confirmedSponsor.status, 303);
+  await approve(pendingPublication, confirmedSponsor.headers.get('set-cookie').split(';', 1)[0]);
   const communicated = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
   assert.equal(communicated.outcome, 'done', `A current Communicator can publish the same native draft: ${communicated.code}`);
   const repeatedPublication = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
