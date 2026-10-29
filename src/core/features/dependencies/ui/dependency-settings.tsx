@@ -8,7 +8,7 @@ type Mode = "show" | "draft" | "rollup";
 type Mapping = Record<string, ComponentState>;
 type CatalogEntry = { id: string; name: string; origin: string; statusPageUrl: string; path: string; format: string; mapping: Mapping };
 type Dependency = {
-  id: string; componentId: string; name: string; sourceUrl: string; statusPageUrl: string; format: string;
+  id: string; componentId: string; name: string; vendorName: string; sourceUrl: string; statusPageUrl: string; format: string;
   mode: Mode; dependentComponentIds: string[]; templateId: string | null; state: ComponentState | null;
   unavailableAt: string | null; lastReadAt: number | null; failures: number; incidentId: string | null;
   mapping?: Mapping; options?: { json?: { mapping: Mapping } };
@@ -49,14 +49,14 @@ function DependencyRow({ dependency, components, templates, mapping, refresh }: 
   }
   return <article className="data-card" aria-label={dependency.name}>
     <h3>{dependency.name}</h3>
-    <p>Reported by <a href={dependency.statusPageUrl} target="_blank" rel="noreferrer" style={{ overflowWrap: "anywhere" }}>{dependency.name}</a> · {dependency.unavailableAt ? "Vendor status unavailable" : dependency.state ?? "Waiting for first read"}</p>
+    <p>Reported by <a href={dependency.statusPageUrl} target="_blank" rel="noreferrer" style={{ overflowWrap: "anywhere" }}>{dependency.vendorName}</a> · {dependency.unavailableAt ? "Vendor status unavailable" : dependency.state ?? "Waiting for first read"}</p>
     {dependency.unavailableAt && <p role="status">Vendor status became unavailable at {formatTime(dependency.unavailableAt)}. The last reported state is {dependency.state ?? "not yet known"}.</p>}
     <p>{dependency.lastReadAt === null ? "This source has not been read yet." : `Last read ${formatTime(new Date(dependency.lastReadAt).toISOString())}.`} Reads are at least two minutes apart.</p>
     {mapping && <StateMapping mapping={mapping} />}
     <form className="channel-form" onSubmit={save}>
-      <label className="form-label full-width">Dependency behavior<select value={mode} disabled={saving} onChange={event => setMode(event.target.value as Mode)}><option value="show">Show only</option><option value="draft">Draft an incident</option><option value="rollup">Include in overall status</option></select></label>
+      <label className="form-label full-width">Dependency behavior<select aria-label="Dependency behavior" value={mode} disabled={saving} onChange={event => setMode(event.target.value as Mode)}><option value="show">Show only</option><option value="draft">Draft an incident</option><option value="rollup">Include in overall status</option></select></label>
       {mode === "draft" && <>
-        <label className="form-label full-width">Upstream-provider template<select required value={templateId} disabled={saving} onChange={event => setTemplateId(event.target.value)}><option value="">Choose a saved template</option>{templates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
+        <label className="form-label full-width">Upstream-provider template<select aria-label="Upstream-provider template" required value={templateId} disabled={saving} onChange={event => setTemplateId(event.target.value)}><option value="">Choose a saved template</option>{templates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
         <fieldset className="full-width"><legend>Dependent components</legend>{components.length ? components.map(component => <label className="checkbox-label" key={component.id}><input type="checkbox" disabled={saving} checked={selected.includes(component.id)} onChange={event => setSelected(event.target.checked ? [...selected, component.id] : selected.filter(id => id !== component.id))} />{component.name}</label>) : <p>Add a buyer component before choosing draft mode.</p>}</fieldset>
         <p className="full-width">An upstream outage prepares one private draft. An operator must review and publish it. Vendor recovery adds brief evidence and never resolves the buyer incident.</p>
       </>}
@@ -111,12 +111,12 @@ export function DependencySettings() {
       <p className="card-kicker">Dependencies</p><h2 id="dependency-settings-title">Follow vendor status</h2>
       <p>Follow public vendor reports without turning an upstream problem into your own outage. New dependencies show vendor status only.</p>
       <form className="channel-form" onSubmit={follow}>
-        <label className="form-label">Vendor<select value={catalogId} disabled={saving} onChange={event => { setCatalogId(event.target.value); setName(catalog.find(entry => entry.id === event.target.value)?.name ?? ""); }}><option value="">Custom public source</option>{catalog.map(entry => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
+        <label className="form-label">Vendor<select aria-label="Vendor" value={catalogId} disabled={saving} onChange={event => { setCatalogId(event.target.value); setName(catalog.find(entry => entry.id === event.target.value)?.name ?? ""); }}><option value="">Custom public source</option>{catalog.map(entry => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
         <label className="form-label">Vendor component name<input required maxLength={120} value={name} disabled={saving} onChange={event => setName(event.target.value)} /></label>
         {!catalogId && <>
           <label className="form-label full-width">Public status source<input required type="url" value={sourceUrl} disabled={saving} onChange={event => setSourceUrl(event.target.value)} /></label>
           <label className="form-label full-width">Vendor status page<input required type="url" value={statusPageUrl} disabled={saving} onChange={event => setStatusPageUrl(event.target.value)} /></label>
-          <label className="form-label">Source format<select value={format} disabled={saving} onChange={event => setFormat(event.target.value)}><option value="statuspage">Statuspage v2</option><option value="rss">RSS</option><option value="atom">Atom</option><option value="json">Configured JSON</option></select></label>
+          <label className="form-label">Source format<select aria-label="Source format" value={format} disabled={saving} onChange={event => setFormat(event.target.value)}><option value="statuspage">Statuspage v2</option><option value="rss">RSS</option><option value="atom">Atom</option><option value="json">Configured JSON</option></select></label>
         </>}
         {(selectedVendor?.format === "statuspage" || !catalogId && format === "statuspage") && <label className="form-label">Vendor component ID (optional)<input value={componentId} disabled={saving} onChange={event => setComponentId(event.target.value)} /></label>}
         {!catalogId && format === "json" && <>

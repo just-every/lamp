@@ -35,7 +35,9 @@ const result = (sourceState: string, mapping: Record<string, ComponentState>, in
 const atPath = (input: unknown, path: string): unknown => {
   if (!path) return input;
   let value = input;
-  for (const part of path.replace(/^\$\.?/, "").split(".")) {
+  const relative = path.replace(/^\$\.?/, "");
+  if (!relative) return input;
+  for (const part of relative.split(".")) {
     if (["__proto__", "constructor", "prototype"].includes(part) || !value || typeof value !== "object" || !Object.hasOwn(value, part)) return undefined;
     value = (value as Record<string, unknown>)[part];
   }
@@ -132,15 +134,19 @@ export function parseVendorStatus(format: VendorFormat, body: string, options: P
   if (format === "google-cloud") return parseGoogle(body);
   if (format === "okta") return parseOkta(body);
   if (format === "pagerduty") return parsePagerDuty(body, options);
-  const data = record(JSON.parse(body));
+  const parsed: unknown = JSON.parse(body);
+  if (format === "json") {
+    if (!options.json) throw new Error("A JSON status source needs explicit state paths and mapping.");
+    const config = options.json;
+    const state = atPath(parsed, config.statePath);
+    if (typeof state !== "string" && typeof state !== "number" && typeof state !== "boolean") throw new Error("The configured JSON state path is absent or not scalar.");
+    return result(String(state), config.mapping, config.incidentPath ? atPath(parsed, config.incidentPath) : null, config.summaryPath ? atPath(parsed, config.summaryPath) : String(state));
+  }
+  const data = record(parsed);
   if (format === "slack") {
     const incident = Array.isArray(data.active_incidents) && data.active_incidents.length ? record(data.active_incidents[0]) : null;
     return result(String(data.status), vendorCatalog.find(row => row.id === "slack")!.mapping, incident?.id, incident?.title || data.status);
   }
   if (format === "stripe") return result(String(data.UptimeStatus), vendorCatalog.find(row => row.id === "stripe")!.mapping, null, data.message);
-  if (format !== "json" || !options.json) throw new Error("A JSON status source needs explicit state paths and mapping.");
-  const config = options.json;
-  const state = atPath(data, config.statePath);
-  if (typeof state !== "string" && typeof state !== "number" && typeof state !== "boolean") throw new Error("The configured JSON state path is absent or not scalar.");
-  return result(String(state), config.mapping, config.incidentPath ? atPath(data, config.incidentPath) : null, config.summaryPath ? atPath(data, config.summaryPath) : String(state));
+  throw new Error("Unsupported public status format.");
 }

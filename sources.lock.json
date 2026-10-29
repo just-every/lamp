@@ -584,7 +584,7 @@
       "executable": false
     },
     "docs/contract/public-details.md": {
-      "sha256": "1543f5f231c9c7d88851804899b2854da57580b1ce1e48c1a7ccc19960237c0f",
+      "sha256": "e800c82157555da1e2b6bd9e2c8e5509b50cc63ec637dde517aabdcbdb1d485f",
       "executable": false
     },
     "docs/contract/publishing-details.md": {
@@ -1012,7 +1012,7 @@
       "executable": false
     },
     "migrations/core/0074_vendor_dependencies.sql": {
-      "sha256": "66b0ad1db6f298d57f199036eea106a400a4d5bffb99f3a10d88f23075bd6eb6",
+      "sha256": "904ed2911e133c1f9fb05fb8dfbac8e50c36ca44c64214d6f885b81f987c7ab4",
       "executable": false
     },
     "migrations/README.md": {
@@ -2472,7 +2472,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "9961b27a0bbffe0867ffd8992170e4eb9a2b973b30282dbcfab29ba999f6b958",
+      "sha256": "30b57819490a45c5d1ed697ea1137535e526e4fea762cdcaf69b55a36b9c2ffa",
       "executable": false
     },
     "rer-packaging.json": {
@@ -3008,7 +3008,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "a06252698df20091c9df28959bdb28982f4cd37fe5ef4dd7c6ce09bf7eaacf62",
+      "sha256": "c83649ad85d8cbac1add6df22cf5401a1e40c3ece7e365bd9de9803ebf1e1404",
       "executable": false
     },
     "src/base/actor.ts": {
@@ -3648,7 +3648,7 @@
       "executable": false
     },
     "src/core/features/components/state-history-repository.ts": {
-      "sha256": "51b9b705622ab29c78f6da6e7c1d8e4341a55915384994c958810b41a1d0b6b4",
+      "sha256": "f7dee8ef5fd65a2988d34ff7486232c9edb819b3e0ad6f2de035a620f69a71f8",
       "executable": false
     },
     "src/core/features/components/ui/catalogue-drawer.tsx": {
@@ -3760,11 +3760,11 @@
       "executable": false
     },
     "src/core/features/dependencies/formats/index.ts": {
-      "sha256": "1f4a3482bcfd47f33de32a04224164c7252345fd94eaecd7e5bdbd670d9680c8",
+      "sha256": "2cb6ee1e7d40751f923681867efb1c0c839e0adac0df28c74abe3fe2603a2c84",
       "executable": false
     },
     "src/core/features/dependencies/repository.ts": {
-      "sha256": "7b92dc3379c66ebba1fb55f4760115f2a5ebc8c8aa9c85cbd43b2a97b06d6c41",
+      "sha256": "165213f5abff45292ffeab78eac1c95a649776d160c9a6492b746678e09cf436",
       "executable": false
     },
     "src/core/features/dependencies/routes.ts": {
@@ -3772,11 +3772,11 @@
       "executable": false
     },
     "src/core/features/dependencies/service.ts": {
-      "sha256": "6a21f1c11679cf06606b68b56864c8c58a585dc5908ed1baeb225ffffb1f8c93",
+      "sha256": "191a447e517af7bcf781f21f4a0053500405f90d770504d534321f98179b3360",
       "executable": false
     },
     "src/core/features/dependencies/ui/dependency-settings.tsx": {
-      "sha256": "c59488acc7e1494ef4d592878e4848c9271ecb108fb3d7256d2991e5c5c9ecd3",
+      "sha256": "a0d92db90ff71ad622412645b3227f010accde8ec7c08f71dea4948329446436",
       "executable": false
     },
     "src/core/features/health/repository.ts": {
@@ -4680,7 +4680,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/renderer.ts": {
-      "sha256": "106030b802a17fb08c1b72e0124dcde5e74ce2842721056e7ab1df1d5a5a5d14",
+      "sha256": "9a1832039fe94e11355bd7812369990d096e681c2a658943c140bd74c3527bd2",
       "executable": false
     },
     "src/core/features/public-snapshot/report-markup.ts": {
@@ -6956,7 +6956,7 @@
       "executable": false
     },
     "tests/e2e/helpers/vendor-dependencies-flow.mjs": {
-      "sha256": "bc05d1a95451b0ba45c57adc26b06b9aee9e97af6afd5013d5db9830d4922b21",
+      "sha256": "fb857af6c80ee7e10635710c230b0a9670db85c21612405b4d5c8cbbdeaf7cca",
       "executable": false
     },
     "tests/e2e/helpers/webhook-format-browser-flow.mjs": {
@@ -6996,7 +6996,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "7101b20d1024a23add46b3e172cbe894362ab7bf5e980b9f422178651782b543",
+      "sha256": "ef3485081b25a3f4fe69796c602c53537aadf44e574bd002c02a4c6065490edd",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

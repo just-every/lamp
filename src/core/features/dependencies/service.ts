@@ -20,7 +20,7 @@ export const followSchema = z.object({
 export const behaviorSchema=z.object({mode:z.enum(["show","draft","rollup"]),dependentComponentIds:z.array(z.string().length(26)).max(100).default([]),templateId:z.string().length(26).nullable().default(null)}).strict();
 function publicUrl(input: string) {
   const url=checkedUrl(input),host=url.hostname.replace(/^\[|\]$/g,"");
-  if(url.protocol!=="https:" || url.search || url.hash || (isIpLiteral(host)&&!isPublicAddress(host)))throw new Error("Use a public HTTPS status address without credentials, parameters or a fragment.");
+  if(url.protocol!=="https:" || url.hash || (isIpLiteral(host)&&!isPublicAddress(host)))throw new Error("Use a public HTTPS status address without credentials or a fragment.");
   return url.href;
 }
 export function createDependenciesService(db:D1Database, components:ComponentsService, incidents:IncidentsService, rebuild:()=>Promise<void>, paused=false) {
@@ -35,7 +35,7 @@ export function createDependenciesService(db:D1Database, components:ComponentsSe
     if(!template || template.lifecycle==="Resolved")return;
     const selected=await Promise.all(row.dependentComponentIds.map(id=>components.get(id)));
     if(!selected.length || selected.some(component=>!component))return;
-    const incident=await incidents.create({title:template.title || `${row.name}: upstream provider issue`,components:selected.map(component=>({componentId:component!.id,state:value.state,relationship:"Dependent"})),update:{lifecycle:template.lifecycle,affectedAudience:template.affectedAudience,customerImpact:template.customerImpact,whatStillWorks:template.whatStillWorks,details:template.details,nextUpdateAt:template.nextUpdateOffsetMinutes===null?null:new Date(Date.now()+template.nextUpdateOffsetMinutes*60_000).toISOString()}},row.createdByOperatorId);
+    const incident=await incidents.create({title:template.title || `${row.name}: upstream provider issue`,components:selected.map(component=>({componentId:component!.id,state:template.components.find(saved=>saved.componentId===component!.id)?.state??value.state,relationship:"Dependent"})),update:{lifecycle:template.lifecycle,affectedAudience:template.affectedAudience,customerImpact:template.customerImpact,whatStillWorks:template.whatStillWorks,details:template.details,nextUpdateAt:template.nextUpdateOffsetMinutes===null?null:new Date(Date.now()+template.nextUpdateOffsetMinutes*60_000).toISOString()}},row.createdByOperatorId);
     await repository.attachIncident(row,incident.id);
   }
   return {
@@ -50,7 +50,7 @@ export function createDependenciesService(db:D1Database, components:ComponentsSe
       if(format==="json"&&!input.options.json)throw new Error("Configure the JSON state path and mapping.");
       const statusPageUrl=publicUrl(catalog?.statusPageUrl??input.statusPageUrl??new URL(sourceUrl).origin);
       const component=await components.create({name:input.name,description:"Followed upstream status",groupId:null,internal:input.internal,displayOrder:0,note:"",onlyShowIfDegraded:false,uptimeStartDate:null,region:null},actor);
-      const row:Dependency={id:createUlid(),componentId:component.id,catalogId:catalog?.id??null,name:input.name,sourceUrl,statusPageUrl,format,options:input.options,mode:"show",dependentComponentIds:[],templateId:null,createdByOperatorId:actor,state:null,sourceState:null,incidentKey:null,incidentId:null,failures:0,unavailableAt:null,lastReadAt:null,version:1};
+      const row:Dependency={id:createUlid(),componentId:component.id,catalogId:catalog?.id??null,name:input.name,vendorName:catalog?.name??new URL(sourceUrl).hostname,sourceUrl,statusPageUrl,format,options:input.options,mode:"show",dependentComponentIds:[],templateId:null,createdByOperatorId:actor,state:null,sourceState:null,summary:null,incidentKey:null,incidentId:null,failures:0,unavailableAt:null,lastReadAt:null,version:1};
       await repository.create(row,actor);
       await rebuild();return (await repository.get(row.id))!;
     },

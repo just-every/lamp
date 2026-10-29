@@ -50,7 +50,7 @@ export async function vendorDependenciesFlow() {
     for(const row of [cloudflare,aws,same]) {
       const current=(await list()).find(value=>value.id===row.id);assert.equal(current.state,'Major outage');
       const history=(await j.json(`/api/app/components/${row.componentId}/history`)).history;
-      assert.ok(history.some(item=>item.sourceName===row.name && item.sourceUrl===row.statusPageUrl && item.newState==='Major outage' && Date.parse(item.changedAt)===outageAt),'changed fixture is source-attributed within the next two-minute trigger');
+      assert.ok(history.some(item=>item.sourceName===row.vendorName && item.sourceUrl===row.statusPageUrl && item.newState==='Major outage' && Date.parse(item.changedAt)===outageAt),'changed fixture is source-attributed within the next two-minute trigger');
     }
     const status=async()=>(await (await j.publicResponse('/api/public/status')).json());
     assert.equal((await status()).overall,'Operational');
@@ -74,8 +74,11 @@ export async function vendorDependenciesFlow() {
     assert.equal((await j.json("/api/app/components")).components.find(row=>row.id===buyer.id).publicState,'Operational');
     assert.equal((await status()).overall,'Operational');
     assert.ok(!(await j.publicText('/')).includes('synthetic-lamp-provider-impact'));
+    await j.save(incident.id,{lifecycle:'Identified',affectedAudience:'synthetic-lamp-customers',customerImpact:'synthetic-lamp-provider-impact',whatStillWorks:'synthetic-lamp-alternative',details:'synthetic-lamp-review-first'});await j.publish(incident.id);
+    assert.equal((await j.json('/api/app/components')).components.find(row=>row.id===buyer.id).publicState,'Major outage');
     upstream.body=upstream.fixture.cases.find(row=>row.expected==='Operational').body;await tick();
-    const recovered=await j.read(incident.id);assert.notEqual(recovered.lifecycle,'Resolved');assert.equal(recovered.updates.length,0);
+    const recovered=await j.read(incident.id);assert.equal(recovered.lifecycle,'Identified');assert.equal(recovered.updates.length,1);
+    assert.equal((await j.json('/api/app/components')).components.find(row=>row.id===buyer.id).publicState,'Major outage','vendor recovery preserves the buyer incident claim');
     const brief=(await j.json(`/api/app/incidents/${incident.id}/brief`)).brief;
     assert.ok(brief.whatWeKnow.alerts.some(row=>row.source==='Cloudflare' && row.state==='recovered' && row.payload.sourceUrl===cloudflare.statusPageUrl));
     awsSource.status=503;await tick();await tick();const failedAt=await tick();
@@ -86,19 +89,52 @@ export async function vendorDependenciesFlow() {
     const firstUnavailable=failed.unavailableAt;await tick();assert.equal((await list()).find(row=>row.id===aws.id).unavailableAt,firstUnavailable);
     awsSource.status=200;awsSource.body=awsSource.fixture.cases.find(row=>row.expected==='Operational').body;await tick();
     assert.equal((await list()).find(row=>row.id===aws.id).unavailableAt,null);
-    for(const [format,body,options] of [
+    for(const [index,[format,body,options]] of [
       ['rss','<rss><channel><item><guid>synthetic-lamp-1</guid><title>[SERVICE DISRUPTION] synthetic-lamp-1</title></item></channel></rss>',{}],
       ['atom','<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>synthetic-lamp-1</id><title>[SERVICE DISRUPTION] synthetic-lamp-1</title></entry></feed>',{}],
       ['json',JSON.stringify({status:'bad',incident:'synthetic-lamp-1',summary:'synthetic-lamp-generic'}),{json:{statePath:'status',incidentPath:'incident',summaryPath:'summary',mapping:{good:'Operational',bad:'Major outage'}}}],
-    ]) {
-      const sourceUrl=`https://status.synthetic-lamp.test/${format}`;sources.set(sourceUrl,{body,status:200});
+      ['json',JSON.stringify([{state:'bad'}]),{json:{statePath:'0.state',mapping:{bad:'Major outage'}}}],
+      ['json',JSON.stringify('bad'),{json:{statePath:'$',mapping:{bad:'Major outage'}}}],
+    ].entries()) {
+      const sourceUrl=`https://status.synthetic-lamp.test/${format}-${index}`;sources.set(sourceUrl,{body,status:200});
       const row=(await j.json('/api/app/dependencies','POST',{name:`synthetic-lamp-${format}`,sourceUrl,statusPageUrl:'https://status.synthetic-lamp.test/',format,options},201)).dependency;
       await tick();assert.equal((await list()).find(value=>value.id===row.id).state,'Major outage');
     }
     const count=(await list()).length;
+    const sourceBefore=(await list()).find(row=>row.id===aws.id);
+    const historyBefore=(await j.json(`/api/app/components/${aws.componentId}/history`)).history.length;
+    awsSource.body='<html>synthetic-lamp-provider-unavailable</html>';await tick();
+    assert.equal((await list()).find(row=>row.id===aws.id).state,sourceBefore.state,'malformed status never fabricates a healthy observation');
+    assert.equal((await j.json(`/api/app/components/${aws.componentId}/history`)).history.length,historyBefore);
+    awsSource.body=awsSource.fixture.cases.find(row=>row.expected==='Operational').body;
+
     for(const sourceUrl of ['https://127.0.0.1/status','https://localhost/status',(() => { const url=new URL('https://status.synthetic-lamp.test/status');url.username='synthetic-lamp-1';url.password='synthetic-lamp-2';return url.href; })()])await j.json('/api/app/dependencies','POST',{name:'synthetic-lamp-refused',sourceUrl,format:'rss'},400);
     assert.equal((await list()).length,count);
     const forbidden=await j.raw('/api/app/dependencies',{method:'POST',headers:{Origin:j.appOrigin,'Content-Type':'application/json'},body:JSON.stringify({catalogId:'aws',name:'synthetic-lamp-denied'})});assert.equal(forbidden.status,401);
+    const viewerAddress=['synthetic-lamp-viewer','example.test'].join('@');
+    await j.json('/api/app/operators/invite','POST',{email:viewerAddress,displayName:'synthetic-lamp-viewer'},202);
+    await j.signIn(viewerAddress);
+    await j.signIn();
+    const viewer=(await j.json('/api/app/operators')).operators.find(row=>row.email===viewerAddress);
+    await j.json(`/api/app/operators/${viewer.id}/role`,'POST',{role:'viewer'});
+    await j.signIn(viewerAddress,{fresh:true});
+    await j.json(`/api/app/dependencies/${aws.id}`,'PUT',{mode:'rollup',dependentComponentIds:[],templateId:null},403);
+    await j.json('/api/app/dependencies','POST',{catalogId:'aws',name:'synthetic-lamp-denied'},403);
+    await j.signIn();
+    assert.equal((await list()).length,count);
+    assert.equal((await list()).find(row=>row.id===aws.id).mode,'show','a denied role cannot change vendor authority');
+    await j.json(`/api/app/operators/${viewer.id}/role`,'POST',{role:'owner'});
+    await j.signIn(viewerAddress,{fresh:true});
+    await j.json(`/api/app/dependencies/${aws.id}`,'PUT',{mode:'draft',dependentComponentIds:[buyer.id],templateId:template.id});
+    await j.signIn();
+    await j.json(`/api/app/operators/${viewer.id}`,'DELETE',undefined,204);
+    upstream.body=upstream.fixture.cases.find(row=>row.expected==='Operational').body;
+    awsSource.body=awsSource.fixture.cases.find(row=>row.sourceState==='major_outage').body;
+    await tick();
+    assert.equal((await j.json('/api/app/incidents')).incidents.length,1,'an erased approver cannot create a new vendor incident');
+    await j.signIn(viewerAddress);
+    await j.json('/api/app/dependencies','POST',{catalogId:'aws',name:'synthetic-lamp-replay'},401);
+    await j.signIn();
     await j.json(`/api/app/dependencies/${cloudflare.id}`,'DELETE',undefined,204);
     assert.ok(!(await publicRows()).some(row=>row.componentId===cloudflare.componentId));
     const history=(await j.json(`/api/app/components/${cloudflare.componentId}/history`)).history;
