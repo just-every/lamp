@@ -1,0 +1,31 @@
+{
+  "source": "https://status.aws.amazon.com/rss/ec2-us-east-1.rss",
+  "recording": "Public response structure with synthetic records and state variations; not a live delivery or availability receipt.",
+  "cases": [
+    {
+      "sourceState": "operational",
+      "expected": "Operational",
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title>AWS</title><link>https://status.aws.amazon.com</link><item><title>[RESOLVED] synthetic-lamp-1</title><description>synthetic-lamp-1</description><guid>synthetic-lamp-1</guid><pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>"
+    },
+    {
+      "sourceState": "degraded",
+      "expected": "Degraded performance",
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title>AWS</title><link>https://status.aws.amazon.com</link><item><title>[PERFORMANCE ISSUES] synthetic-lamp-1</title><description>synthetic-lamp-1</description><guid>synthetic-lamp-1</guid><pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>"
+    },
+    {
+      "sourceState": "partial_outage",
+      "expected": "Partially unavailable",
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title>AWS</title><link>https://status.aws.amazon.com</link><item><title>[PARTIAL OUTAGE] synthetic-lamp-1</title><description>synthetic-lamp-1</description><guid>synthetic-lamp-1</guid><pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>"
+    },
+    {
+      "sourceState": "major_outage",
+      "expected": "Major outage",
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title>AWS</title><link>https://status.aws.amazon.com</link><item><title>[SERVICE DISRUPTION] synthetic-lamp-1</title><description>synthetic-lamp-1</description><guid>synthetic-lamp-1</guid><pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>"
+    },
+    {
+      "sourceState": "maintenance",
+      "expected": "Under maintenance",
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title>AWS</title><link>https://status.aws.amazon.com</link><item><title>[MAINTENANCE] synthetic-lamp-1</title><description>synthetic-lamp-1</description><guid>synthetic-lamp-1</guid><pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>"
+    }
+  ]
+}

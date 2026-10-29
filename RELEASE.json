@@ -971,6 +971,10 @@
     {
       "id": "0073_operator_roles.sql",
       "buyerSteps": "Apply after 0072. Adds role metadata for Communicators, Responders and Viewers while preserving existing native Owner and Admin authority. Setup remains Owner; Settings lets Owners and Admins invite operators with a role and change roles. The last active Owner cannot be demoted or removed. No provider credentials or other owner action are required."
+    },
+    {
+      "id": "0074_vendor_dependencies.sql",
+      "buyerSteps": "Apply after 0073. Adds keyless vendor followers, shared two-minute read windows and attributed evidence. Existing buyer states remain independent. Configure public sources and optional private drafting or rollup in Settings. No provider key is required."
     }
   ],
   "breaking": false,
