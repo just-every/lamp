@@ -13,6 +13,13 @@ const jsonBody = async request => {
 export default {
   async fetch(request, fixture = {}) {
     const url = new URL(request.url);
+    if (url.origin === 'https://api.datadoghq.com' && url.pathname === '/api/v1/query') {
+      requireShape(request.method === 'GET' && request.headers.has('DD-API-KEY') && request.headers.has('DD-APPLICATION-KEY'), 'Metric query requires native read-only provider credentials');
+      requireShape(url.searchParams.get('query') === 'avg:synthetic.lamp.latency{*}.fill(null)', 'Metric query must preserve native no-fill aggregation');
+      const from = Number(url.searchParams.get('from')), to = Number(url.searchParams.get('to'));
+      requireShape(Number.isSafeInteger(from) && Number.isSafeInteger(to) && to - from === 3600, 'Metric query requires its native one-hour window');
+      return Response.json({status: 'ok', series: [{interval: 60, pointlist: [[(to - 60) * 1000, 321]]}]});
+    }
     if (url.origin === 'https://lamp-agent-provider.invalid' && url.pathname === '/v1/chat/completions') {
       const body = await jsonBody(request);
       requireShape(request.headers.get('authorization')?.startsWith('Bearer '), 'Configured AI provider credential is required');

@@ -139,7 +139,11 @@ export default async function nativeJourney(args) {
 }
 
 /** Keep the protected-read witness at two real notes in rounds without injection. */
-export async function afterStep({phase, step, args, request, origin, cookie}) {
+export async function afterStep({phase, step, args, result: output, request, origin, cookie}) {
+  if (step.id === 'pending-base-2026-10-28-pull-provider') {
+    assert.equal(output?.providerOutcome, 'updated', 'The native pull retains the provider outcome');
+    assert.equal(output?.pointCount, 1, 'The native pull persists one real minute aggregate from the declared network edge');
+  }
   if (step.id !== 'incident-note' || phase === 'autonomous') return;
   const response = await request(new URL(`/api/app/incidents/${args.id}/internal-notes`, origin).href, {
     method: 'POST', headers: {Origin: origin, Cookie: cookie, 'Content-Type': 'application/json'},

@@ -4082,8 +4082,8 @@
         },
         "componentIds": [
           {
-            "$from": "public-component",
-            "pointer": "/component/id"
+            "$fixture": "component",
+            "pointer": "/id"
           }
         ],
         "autoStart": false,
@@ -4206,8 +4206,8 @@
       "tool": "lamp.metrics.pull",
       "args": {
         "id": {
-          "$from": "metrics",
-          "pointer": "/metrics/0/id"
+          "$fixture": "providerMetric",
+          "pointer": "/id"
         }
       },
       "expect": [
@@ -5083,7 +5083,8 @@
         "https://lamp-agent-conformance.logic.azure.com",
         "https://api.x.com",
         "https://bsky.social",
-        "https://mastodon.social"
+        "https://mastodon.social",
+        "https://api.datadoghq.com"
       ]
     },
     "journey": "tests/agent-door/specialist.mjs",

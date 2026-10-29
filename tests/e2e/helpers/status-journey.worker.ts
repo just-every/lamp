@@ -5,6 +5,9 @@ let paused = false;
 const executionBindings = (env: Parameters<typeof worker.fetch>[1]) => paused ? { ...env, EFFECTS_PAUSED: '1' } : env;
 export default {
   ...worker,
+  queue(batch: Parameters<typeof worker.queue>[0], env: Parameters<typeof worker.queue>[1]) {
+    return worker.queue(batch, executionBindings(env));
+  },
   scheduled(controller: ScheduledController, env: Parameters<typeof worker.fetch>[1], context: ExecutionContext) {
     return worker.scheduled(controller, executionBindings(env), context);
   },
