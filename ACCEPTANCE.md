@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 17 | 172 | 49 | 238 |
+| Core | 18 | 171 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 17 | 172 | 54 | 243 |
+| Full target | 18 | 171 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -2917,7 +2917,7 @@ Core · target · **partial** · From INTAKE-014 · Cites BASE-INPUT-001, BASE-O
 
 #### INTAKE-019 — Responder publication feedback
 
-Core · target · **partial** · From INTAKE-014 · Cites BASE-DATA-004, BASE-OPS-003 · Register R-64
+Core · target · **done** · From INTAKE-014 · Cites BASE-DATA-004, BASE-OPS-003 · Register R-64
 
 **Requirement.** Optional JSM Operations or Opsgenie credentials send each Lamp publication to its linked alert and close that alert on a Resolved publication when enabled by the owner.
 
@@ -2927,8 +2927,8 @@ Core · target · **partial** · From INTAKE-014 · Cites BASE-DATA-004, BASE-OP
 3. Provider credentials are sealed, never displayed and absent from native archives; the restored authenticated source asks to reconnect.
 4. Atlassian sites use the documented HTTPS Atlassian domain and credentials reach only the intended fixed provider destination.
 
-**Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/auth-adoption/portability.test.mjs`, `migrations/core/0061_vendor_alert_presets.sql`
-**Gap.** Old cited evidence asserts One note; No non-Resolved close; Linked alert; Identified provider note retains incident title. Unasserted: Each provider key sealed at rest.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` — Connect monitors, review private alert drafts, publish and recover with durable integration evidence, via `tests/e2e/helpers/operations-alerts-flow.mjs` — operationsAlertsFlow: acceptance 1 linked publication note and public fields; 2 separately counted note and close with scheduled replay suppressed; 3 each provider key sealed in its persisted source row and listing redacted; 4 invalid Atlassian sites refused and original credentials reach only fixed provider destinations. `tests/auth-adoption/portability.test.mjs` — native rer backup restores the whole product without reviving temporary authority: acceptance 3 archive strips provider credentials and authenticated restored sources require reconnect.
+**Gap.** None.
 
 ### Automation — target
 
