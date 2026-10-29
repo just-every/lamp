@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 15 | 173 | 50 | 238 |
+| Core | 15 | 175 | 48 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 15 | 173 | 55 | 243 |
+| Full target | 15 | 175 | 53 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -1890,7 +1890,7 @@ Core · target · **partial**
 
 #### DEP-001 — Vendor components that follow vendor status
 
-Core · target · **missing** · Cites BASE-DATA-004
+Core · target · **partial** · Cites BASE-DATA-004
 
 **Requirement.** Operators follow third-party status through a complete catalog and documented generic formats. The formats and configuration details are in [Public status mechanisms](docs/contract/public-details.md).
 
@@ -1903,12 +1903,12 @@ Core · target · **missing** · Cites BASE-DATA-004
 6. Every catalog entry ships recorded format fixtures and a mapping table; release validation rejects a missing fixture or table.
 7. For every state each of the twenty vendor formats offers, a generated catalog check asserts the expected mapped component state.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow). Catalog and all native mappings additionally run through `scripts/validate-vendor-catalog.mjs` in release validation.
+**Gap.** Native scheduled reads, attributed history and failure handling pass locally. Final native Settings journey and exact-candidate checks are pending.
 
 #### DEP-002 — Vendor state never silently becomes the buyer's outage
 
-Core · target · **missing**
+Core · target · **partial**
 
 **Requirement.** A followed vendor component informs the buyer’s response without resolving incidents on its behalf.
 
@@ -1919,8 +1919,8 @@ Core · target · **missing**
 4. An outage under show only leaves buyer states unchanged; draft mode creates one private incident draft on the dependent components without changing public content.
 5. Recovery adds evidence to the incident brief and leaves the buyer incident unresolved.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow).
+**Gap.** Native show-only, explicit rollup, private template draft and recovery evidence pass locally. Final native Settings journey and exact-candidate checks are pending.
 
 #### DEP-003 — Vendor watch for the team
 

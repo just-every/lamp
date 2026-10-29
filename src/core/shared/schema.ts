@@ -89,6 +89,8 @@ export const componentClaimEvents = sqliteTable("component_claim_events", {
 }, (table) => [index("component_claim_events_component_changed_idx").on(table.componentId, table.changedAt)]);
 
 export const componentStateHistory = sqliteTable("component_state_history", {
+  sourceName: text("source_name"),
+  sourceUrl: text("source_url"),
   id: text().primaryKey(),
   componentId: text("component_id").notNull().references(() => components.id),
   previousState: text("previous_state", { enum: ["Operational", "Degraded performance", "Partially unavailable", "Major outage", "Under maintenance"] }).$type<ComponentState>().notNull(),

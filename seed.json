@@ -365,7 +365,7 @@
     {
       "id": "sorry-api",
       "required": false,
-      "why": "MOVE-001 only, at the owner’s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
+      "why": "MOVE-001 only, at the owner\u2019s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
       "data": [
         "API key in authenticated Authorization header only",
         "Page ID or public status-page hostname and notice IDs"
@@ -443,6 +443,16 @@
         "Owner's posting credential sent only to its chosen network authentication endpoint or in Authorization",
         "Owner prefix, published lifecycle and customer-impact statement",
         "Incident or maintenance permalink and prior network post identifiers"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "public-vendor-status",
+      "required": false,
+      "why": "DEP-001. Keyless GET reads from declared public vendor status origins and explicit owner-configured public Statuspage, RSS, Atom or JSON endpoints. Public DNS checks use cloudflare-dns.com. Redirects and private addresses are refused. No subscriber or operator data leaves. Catalog origins: https://auth0.statuspage.io, https://azure.status.microsoft, https://status.anthropic.com, https://status.atlassian.com, https://status.aws.amazon.com, https://status.cloud.google.com, https://status.datadoghq.com, https://status.fastly.com, https://status.okta.com, https://status.openai.com, https://status.pagerduty.com, https://status.sendgrid.com, https://status.slack.com, https://status.stripe.com, https://status.twilio.com, https://status.zoom.us, https://www.cloudflarestatus.com, https://www.githubstatus.com, https://www.shopifystatus.com, https://www.vercel-status.com.",
+      "data": [
+        "Configured public status endpoint and chosen vendor component",
+        "Destination hostname for public DNS validation"
       ],
       "adapters": []
     }
@@ -787,7 +797,8 @@
       "/subscribe/",
       "/subscribe/sms",
       "/api/public/sms/inbound",
-      "/api/public/sms/status"
+      "/api/public/sms/status",
+      "/api/public/dependencies"
     ],
     "notes": "Two distinct hostnames share this one deployment, and each has its own home page at /; equal hostnames fail at startup. LAMP_PAGE_HOST serves the public-page paths: /, /history, /incidents/, /maintenance/, /history.atom and imported source shortlink paths, /feed.atom, /widget.js, /api/public/status, and /assets/ are read-only and served from the PAGE-005 snapshot, exempt from BASE-ACCESS-003 rate limiting per PAGE-008; /subscribe, /confirm-subscription/, /unsubscribe/, /manage/, and /api/intake/ are subscription or intake paths rate limited under BASE-ACCESS-003. LAMP_APP_HOST serves the operator app, mounted at /app behind a session, plus its public paths: / (the Lamp landing page, a static document that needs no session), /docs and /docs/ (the product's own docs, drawn from the repository's Markdown at build time and public like the landing page; the page host has none), /health, /signin, /auth/, /.well-known/rer-*, /app-assets/, and /_serverFn/. With Run Edit Run's owner-claim trust configured it also serves Business's signed routes, POST only and 404 without that trust: /api/rer/import/ (the Business import door, off until the owner allows it) and /api/rer/cutover-status, a read-only RER grant of action cutover-status under the owner-claim key ring that answers a move's old-address, count, subscriber, created-since and intake-receipt figures (counts and ids only). /lamp, the landing page's former address, answers 301 to / on the app host for one release and is then removed. /_serverFn/ is TanStack Start's opaque generated transport, restricted to the app host and protected by Start's same-origin checks; every private handler independently validates the native operator session before returning data. The one exception is the docs page-body handler, which returns the same public text as /docs. It is not a PAGE-008 public read or rate-limit exemption. Two of the page host's write paths key their rate limit on the subscriber token rather than the caller's address: /unsubscribe, because one-click unsubscribe arrives from a mailbox provider's shared egress and a per-address limit would break it for every subscriber behind that address (SUB-006), and /manage/ for the same reason, since it is reached from the same emailed link. The public page host also accepts SMS subscription POST /subscribe/sms and the exact Twilio callback POST paths /api/public/sms/inbound and /api/public/sms/status. Each callback requires a valid X-Twilio-Signature over its complete public URL and body fields; SMS Settings and delivery records remain on authenticated /api/app/sms/ paths on the operator host."
   },

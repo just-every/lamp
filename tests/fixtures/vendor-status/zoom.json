@@ -1,0 +1,56 @@
+{
+  "source": "https://status.zoom.us/api/v2/summary.json",
+  "recording": "Public response structure with synthetic records and state variations; not a live delivery or availability receipt.",
+  "cases": [
+    {
+      "sourceState": "operational",
+      "expected": "Operational",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [{\"id\": \"synthetic-lamp-1\", \"name\": \"synthetic-lamp-1\", \"status\": \"operational\"}], \"incidents\": [], \"status\": {\"indicator\": \"none\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "degraded_performance",
+      "expected": "Degraded performance",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [{\"id\": \"synthetic-lamp-1\", \"name\": \"synthetic-lamp-1\", \"status\": \"degraded_performance\"}], \"incidents\": [], \"status\": {\"indicator\": \"none\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "partial_outage",
+      "expected": "Partially unavailable",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [{\"id\": \"synthetic-lamp-1\", \"name\": \"synthetic-lamp-1\", \"status\": \"partial_outage\"}], \"incidents\": [], \"status\": {\"indicator\": \"none\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "major_outage",
+      "expected": "Major outage",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [{\"id\": \"synthetic-lamp-1\", \"name\": \"synthetic-lamp-1\", \"status\": \"major_outage\"}], \"incidents\": [], \"status\": {\"indicator\": \"none\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "under_maintenance",
+      "expected": "Under maintenance",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [{\"id\": \"synthetic-lamp-1\", \"name\": \"synthetic-lamp-1\", \"status\": \"under_maintenance\"}], \"incidents\": [], \"status\": {\"indicator\": \"none\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "none",
+      "expected": "Operational",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [], \"incidents\": [], \"status\": {\"indicator\": \"none\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "minor",
+      "expected": "Degraded performance",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [], \"incidents\": [], \"status\": {\"indicator\": \"minor\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "major",
+      "expected": "Partially unavailable",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [], \"incidents\": [], \"status\": {\"indicator\": \"major\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "critical",
+      "expected": "Major outage",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [], \"incidents\": [], \"status\": {\"indicator\": \"critical\", \"description\": \"synthetic-lamp-1\"}}"
+    },
+    {
+      "sourceState": "maintenance",
+      "expected": "Under maintenance",
+      "body": "{\"page\": {\"id\": \"syntheticlamp\", \"name\": \"Zoom\", \"url\": \"https://status.zoom.us\"}, \"components\": [], \"incidents\": [], \"status\": {\"indicator\": \"maintenance\", \"description\": \"synthetic-lamp-1\"}}"
+    }
+  ]
+}

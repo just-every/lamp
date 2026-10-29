@@ -3121,8 +3121,8 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 8 | 99 | 0 | 107 |
-| Target and push further | 7 | 74 | 55 | 136 |
-| All | 15 | 173 | 55 | 243 |
+| Target and push further | 7 | 76 | 53 | 136 |
+| All | 15 | 175 | 53 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3169,8 +3169,8 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | `COMP-008` | Monitor claims from measured evidence | target | missing |  | Linked-monitor claims are absent. COMP-006 remains the three-claimant published requirement until the release that adds this fourth claimant records the change. |
 | `COMP-009` | Component bulk editing and descriptions | target | partial | `src/core/features/components/catalogue-routes.ts`, `src/core/features/components/ui/catalogue-drawer.tsx`, `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts Preview reports fifty created components; Preview reports zero changed components; Preview reports zero deleted components; Preview reports two created groups. Unasserted: Table creation is asserted for components; Table creation is asserted for groups; Table editing is asserted for components; Table editing is asserted for groups; Table reordering is asserted for components; Table reordering is asserted for groups; Table deletion is asserted for components; Table deletion is asserted for groups; CSV creation is asserted for components; CSV creation is asserted for groups; CSV editing is asserted for components; CSV editing is asserted for groups; CSV reordering is asserted for components; CSV reordering is asserted for groups; CSV deletion is asserted for components; CSV deletion is asserted for groups. |
 | `COMP-010` | Shown only while affected | target | partial | `src/core/features/public-snapshot/component-visibility.ts`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/statuspage-import.test.mjs` | Old cited evidence asserts After recovery the conditional component is absent from the populated page; After recovery the conditional component is absent from the populated incident Atom feed; After recovery the conditional component is absent from the populated v2 component list; The affected component appears publicly. Unasserted: The widget omits an Operational conditional component; The uptime figure and daily record are hidden; Uptime is retained throughout; The conditional component always contributes to overall status. |
-| `DEP-001` | Vendor components that follow vendor status | target | missing |  | Not built. |
-| `DEP-002` | Vendor state never silently becomes the buyer's outage | target | missing |  | Not built. |
+| `DEP-001` | Vendor components that follow vendor status | target | partial | `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow). Catalog and all native mappings additionally run through `scripts/validate-vendor-catalog.mjs` in release validation. | Native scheduled reads, attributed history and failure handling pass locally. Final native Settings journey and exact-candidate checks are pending. |
+| `DEP-002` | Vendor state never silently becomes the buyer's outage | target | partial | `tests/e2e/public-contract.test.mjs` (DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control), loading `tests/e2e/helpers/vendor-dependencies-flow.mjs` (vendorDependenciesFlow). | Native show-only, explicit rollup, private template draft and recovery evidence pass locally. Final native Settings journey and exact-candidate checks are pending. |
 | `DEP-003` | Vendor watch for the team | target | missing |  | Not built. |
 | `UPTIME-001` | Definition | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `UPTIME-002` | Downtime weights | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: The supplied policy’s Major outage weight is asserted; The supplied policy’s Partially unavailable weight is asserted. |
