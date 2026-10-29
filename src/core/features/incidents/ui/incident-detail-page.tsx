@@ -339,7 +339,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         {publishMessage ? <p role="status" className={`publication-message is-${publishState}`}>{publishMessage}</p> : null}
         {saveError && <FormError>{saveError}</FormError>}
         {visibleSaveState === "error" && <Button type="button" variant="secondary" onClick={() => { failedKey.current = null; setSaveError(null); setSaveState("saving"); setDraftRevision((current) => current + 1); }}>Retry save</Button>}
-        <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
+        <AiSuggestionButton key={`suggest-${updateGeneration.current}`} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
         <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
           <StatusChoice value={draft.lifecycle} onChange={changeLifecycle} />
           {/* A separate label keeps the field's name to its question; a wrapping label would also read the text. */}
@@ -354,7 +354,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
           {draft.lifecycle === "Resolved" ? <p className="resolution-note" role="status">Resolving closes the incident. No next update.</p> : <NextUpdateField value={draft.nextUpdateAt} timezone={timezone} onChange={(value) => updateField("nextUpdateAt", value)} onError={(message) => setTimeErrors(current => ({ ...current, nextUpdate: message }))} />}
           <ClientExtensionSlot id="incident.composer.fields.after.v1" context={slotContext} />
         </form>
-        {draft.lifecycle === "Resolved" && <RecoveryCheckPanel key={recoveryRevision} incidentId={incident.id} overrideReason={overrideReason} onOverrideReason={setOverrideReason} />}
+        {draft.lifecycle === "Resolved" && <RecoveryCheckPanel key={`recovery-${recoveryRevision}`} incidentId={incident.id} overrideReason={overrideReason} onOverrideReason={setOverrideReason} />}
       </section>
       <div className="incident-side">
         <IncidentPreview preview={preview} error={previewError} />

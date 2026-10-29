@@ -96,11 +96,11 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
 .preview-switch button { min-height: 30px; border: 0; border-radius: 999px; background: none; color: var(--ink-2); padding: 4px 14px; font-size: 13px; font-weight: 500; }
 .preview-switch button[aria-pressed="true"] { background: var(--card); box-shadow: 0 1px 2px rgb(24 45 36 / .12); color: var(--ink); }
 .preview-card { box-sizing: border-box; display: block; width: 100%; min-width: 0; margin-top: 16px; overflow: hidden; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 0 20px 20px; }
-.preview-card .preview-type { margin: 0 -20px 16px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 11px 20px; font-size: 11px; }
+.preview-card .preview-type { margin: 0 -20px 16px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 11px 20px; font-size: 13px; }
 .preview-card h3 { margin-top: 14px; font-size: 18px; letter-spacing: -.012em; overflow-wrap: anywhere; }
 .preview-card dl { display: grid; gap: 14px; margin: 16px 0 0; }
 .preview-card dl div { display: grid; gap: 4px; }
-.preview-card dt { color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.preview-card dt { color: var(--ink-3); font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .preview-card dd { margin: 0; color: var(--ink); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .email-preview-logo { display: block; width: 160px; max-width: 100%; height: auto; margin-top: 16px; }
 
@@ -117,7 +117,7 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
 .timeline li { position: relative; color: var(--ink); }
 .timeline li::before { content: ''; position: absolute; top: 5px; left: -22px; width: 7px; height: 7px; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--card); }
 .timeline li strong { font-weight: 600; }
-.timeline li span { display: block; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.timeline li span { display: block; color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
 .timeline li p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
 .reach-line { margin: 12px 0 0; color: var(--ink-3); font-size: 13px; }
 
@@ -133,9 +133,9 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
 .brief-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--ink); font-size: 13px; }
 .brief-list b { margin-right: 4px; color: var(--ink-3); font-weight: 600; }
 .brief-list summary { cursor: pointer; }
-.brief-list pre, .brief-disclosure pre { overflow-x: auto; max-height: 260px; margin: 6px 0 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 8px; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.brief-list pre, .brief-disclosure pre { overflow-x: auto; max-height: 260px; margin: 6px 0 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 8px; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .brief-list dl { display: grid; gap: 2px; margin: 6px 0 0; }
-.brief-list dt { color: var(--ink-3); font-size: 11px; }
+.brief-list dt { color: var(--ink-3); font-size: 13px; }
 .brief-list dd { margin: 0 0 4px; }
 .brief-questions li { border-left: 2px solid var(--line-strong); padding-left: 8px; }
 .brief-disclosure { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
@@ -181,3 +181,7 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
   .template-form { flex-direction: column; align-items: stretch; }
   .template-form .form-label { flex-basis: auto; }
 }
+
+/* Incident page type floor: every label, time and state reads at 13px or more. */
+.incident-page .eyebrow, .preview-card .state-pill { font-size: 13px; }
+body:has(.incident-page) .operator-identity small { font-size: 13px; }
