@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 15 | 173 | 50 | 238 |
+| Core | 17 | 173 | 48 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 15 | 173 | 55 | 243 |
+| Full target | 17 | 173 | 53 | 243 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `0977f8247e6bf8af51eb7efa08c5f187cdf77692` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1760,7 +1760,7 @@ Core · target · **missing** · From THEME-001 · Cites BASE-INPUT-002, BASE-PU
 
 #### THEME-004 — A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable
 
-Core · target · **missing**
+Core · target · **done**
 
 **Requirement.** A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable.
 
@@ -1773,12 +1773,12 @@ Core · target · **missing**
 4. A palette that would leave any card below 4.5:1 is refused with that card named.
 5. One public-door journey proves a dark palette on both pages at 1440 and 390.
 
-**Evidence.** None.
-**Gap.** Shared card contrast validation, dark card backgrounds, named-card refusal and the two-page public-door journey at 1440/390 are unproven.
+**Evidence.** `tests/e2e/helpers/palette-owner-journey.mjs` paletteOwnerJourney, invoked by `tests/e2e/publishing-browser.test.mjs` THEME-001 THEME-004 THEME-005 — owner publishes branded themes and layouts within the page budget; Verify job shards (composer), pnpm test:composer. Point 1: accepted DARK colours are painted from the shared named card pairs and measured by `tests/e2e/helpers/card-readability.mjs` cardReadability. Point 2: cardReadability requires every visible public card background to be dark. Point 3: every public layout and the populated operator overview are expanded and measured with Axe, including all five states, an open incident, resolved history and maintenance. Point 4: a Settings PUT refuses a low-contrast major colour by card name, shows the error beside the retained edit, and leaves stored settings, snapshot ETag, HTML and CSS unchanged. Point 5: the same browser journey saves the DARK palette in Settings and retains all four layouts and overview screens at 1440 and 390 with zero Axe contrast violations.
+**Gap.** None.
 
 #### THEME-005 — Turning the custom palette off never erases the owner's chosen colours
 
-Core · target · **missing**
+Core · target · **done**
 
 **Requirement.** Turning the custom palette off never erases the owner's chosen colours.
 
@@ -1791,8 +1791,8 @@ Core · target · **missing**
 4. Saving other theme settings while the custom palette is off never clears the colours.
 5. One public-door journey proves untick, save, reload and re-tick.
 
-**Evidence.** None.
-**Gap.** Preservation of all nine colours through untick, save, reload, other theme saves and re-tick, and the default public look while off, are unproven.
+**Evidence.** `tests/e2e/helpers/palette-owner-journey.mjs` paletteOwnerJourney, invoked by `tests/e2e/publishing-browser.test.mjs` THEME-001 THEME-004 THEME-005 — owner publishes branded themes and layouts within the page budget; Verify job shards (composer), pnpm test:composer. Point 1: after browser untick and acknowledged save, operator GET still returns all nine distinct DARK colours. Point 2: the disabled public stylesheet equals the default stylesheet byte for byte. Point 3: browser re-tick restores every field, operator GET value and published colour token exactly. Point 4: other Settings edits, partial operator updates, legacy null updates and stale disabled palette updates retain all nine colours. Point 5: one journey drives untick, save, reload, other-setting save and re-tick, retaining Theme card screens in both states at 1440 and 390. Legacy null and set palette payloads remain supported.
+**Gap.** None.
 
 #### I18N-001 — Pages in several languages
 
