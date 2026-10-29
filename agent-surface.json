@@ -14,7 +14,8 @@
         "TEAM-001",
         "TEAM-003",
         "API-001",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ]
     },
     {
@@ -28,7 +29,8 @@
       "clauses": [
         "AGENT-008",
         "TEAM-003",
-        "API-001"
+        "API-001",
+        "TEAM-004"
       ],
       "widens": false,
       "narrowing": {
@@ -58,7 +60,8 @@
         "external"
       ],
       "clauses": [
-        "DRAFT-003"
+        "DRAFT-003",
+        "TEAM-004"
       ]
     },
     {
@@ -70,7 +73,8 @@
       ],
       "clauses": [
         "DRAFT-001",
-        "DRAFT-003"
+        "DRAFT-003",
+        "TEAM-004"
       ]
     },
     {
@@ -83,7 +87,8 @@
       "clauses": [
         "DRAFT-001",
         "DRAFT-003",
-        "DRAFT-004"
+        "DRAFT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -96,7 +101,8 @@
       "clauses": [
         "NOTIFY-011",
         "NOTIFY-012",
-        "NOTIFY-016"
+        "NOTIFY-016",
+        "TEAM-004"
       ]
     },
     {
@@ -108,7 +114,8 @@
       ],
       "clauses": [
         "NOTIFY-011",
-        "NOTIFY-012"
+        "NOTIFY-012",
+        "TEAM-004"
       ]
     },
     {
@@ -120,7 +127,8 @@
         "access"
       ],
       "clauses": [
-        "NOTIFY-016"
+        "NOTIFY-016",
+        "TEAM-004"
       ],
       "sponsorEscalation": false
     },
@@ -136,7 +144,8 @@
       "clauses": [
         "COMP-001",
         "COMP-003",
-        "COMP-006"
+        "COMP-006",
+        "TEAM-004"
       ]
     },
     {
@@ -150,7 +159,8 @@
       ],
       "clauses": [
         "COMP-003",
-        "UPTIME-004"
+        "UPTIME-004",
+        "TEAM-004"
       ]
     },
     {
@@ -166,7 +176,8 @@
         "COMP-001",
         "COMP-002",
         "COMP-004",
-        "COMP-005"
+        "COMP-005",
+        "TEAM-004"
       ]
     },
     {
@@ -177,7 +188,8 @@
         "standard"
       ],
       "clauses": [
-        "COMP-001"
+        "COMP-001",
+        "TEAM-004"
       ]
     },
     {
@@ -190,7 +202,8 @@
         "live"
       ],
       "clauses": [
-        "COMP-002"
+        "COMP-002",
+        "TEAM-004"
       ]
     },
     {
@@ -202,7 +215,8 @@
         "sensitive"
       ],
       "clauses": [
-        "COMP-001"
+        "COMP-001",
+        "TEAM-004"
       ]
     },
     {
@@ -215,7 +229,8 @@
         "live"
       ],
       "clauses": [
-        "COMP-007"
+        "COMP-007",
+        "TEAM-004"
       ]
     },
     {
@@ -230,7 +245,8 @@
       "clauses": [
         "COMP-002",
         "COMP-004",
-        "COMP-005"
+        "COMP-005",
+        "TEAM-004"
       ]
     },
     {
@@ -244,7 +260,8 @@
       "clauses": [
         "API-001",
         "TEAM-007",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ],
       "proof": "native",
       "proofKind": "step_up"
@@ -260,7 +277,8 @@
       "clauses": [
         "API-001",
         "AGENT-008",
-        "TEAM-007"
+        "TEAM-007",
+        "TEAM-004"
       ],
       "widens": false,
       "narrowing": {
@@ -293,7 +311,8 @@
       "clauses": [
         "NOTIFY-001",
         "NOTIFY-003",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ]
     },
     {
@@ -307,7 +326,8 @@
         "NOTIFY-003",
         "NOTIFY-004",
         "NOTIFY-015",
-        "NOTIFY-018"
+        "NOTIFY-018",
+        "TEAM-004"
       ]
     },
     {
@@ -318,7 +338,8 @@
         "standard"
       ],
       "clauses": [
-        "UPDATE-005"
+        "UPDATE-005",
+        "TEAM-004"
       ]
     },
     {
@@ -340,7 +361,8 @@
         "standard"
       ],
       "clauses": [
-        "AUTO-003"
+        "AUTO-003",
+        "TEAM-004"
       ]
     },
     {
@@ -351,7 +373,8 @@
         "standard"
       ],
       "clauses": [
-        "AUTO-003"
+        "AUTO-003",
+        "TEAM-004"
       ]
     },
     {
@@ -363,7 +386,8 @@
       ],
       "clauses": [
         "AUTO-003",
-        "NOTIFY-003"
+        "NOTIFY-003",
+        "TEAM-004"
       ]
     },
     {
@@ -374,7 +398,8 @@
         "standard"
       ],
       "clauses": [
-        "COMP-002"
+        "COMP-002",
+        "TEAM-004"
       ]
     },
     {
@@ -387,7 +412,8 @@
         "live"
       ],
       "clauses": [
-        "COMP-002"
+        "COMP-002",
+        "TEAM-004"
       ]
     },
     {
@@ -398,7 +424,8 @@
         "standard"
       ],
       "clauses": [
-        "COMP-002"
+        "COMP-002",
+        "TEAM-004"
       ]
     },
     {
@@ -412,7 +439,8 @@
       ],
       "clauses": [
         "COMP-002",
-        "COMP-007"
+        "COMP-007",
+        "TEAM-004"
       ]
     },
     {
@@ -426,7 +454,8 @@
       ],
       "clauses": [
         "COMP-002",
-        "COMP-007"
+        "COMP-007",
+        "TEAM-004"
       ]
     },
     {
@@ -439,7 +468,8 @@
         "live"
       ],
       "clauses": [
-        "INCIDENT-013"
+        "INCIDENT-013",
+        "TEAM-004"
       ]
     },
     {
@@ -451,7 +481,8 @@
       ],
       "clauses": [
         "MOVE-002",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ]
     },
     {
@@ -465,7 +496,8 @@
       "clauses": [
         "MOVE-002",
         "AGENT-008",
-        "TEAM-003"
+        "TEAM-003",
+        "TEAM-004"
       ],
       "proof": "native",
       "proofKind": "step_up",
@@ -479,7 +511,8 @@
         "standard"
       ],
       "clauses": [
-        "INCIDENT-011"
+        "INCIDENT-011",
+        "TEAM-004"
       ]
     },
     {
@@ -490,7 +523,8 @@
         "standard"
       ],
       "clauses": [
-        "AGENT-001"
+        "AGENT-001",
+        "TEAM-004"
       ]
     },
     {
@@ -502,7 +536,8 @@
       ],
       "clauses": [
         "INCIDENT-001",
-        "UPDATE-005"
+        "UPDATE-005",
+        "TEAM-004"
       ]
     },
     {
@@ -515,7 +550,8 @@
         "live"
       ],
       "clauses": [
-        "INCIDENT-007"
+        "INCIDENT-007",
+        "TEAM-004"
       ]
     },
     {
@@ -526,7 +562,8 @@
         "standard"
       ],
       "clauses": [
-        "INCIDENT-008"
+        "INCIDENT-008",
+        "TEAM-004"
       ]
     },
     {
@@ -538,7 +575,8 @@
       ],
       "clauses": [
         "UPDATE-001",
-        "UPDATE-004"
+        "UPDATE-004",
+        "TEAM-004"
       ]
     },
     {
@@ -553,7 +591,8 @@
       "clauses": [
         "UPDATE-001",
         "UPDATE-007",
-        "AGENT-004"
+        "AGENT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -566,7 +605,8 @@
       ],
       "clauses": [
         "INCIDENT-001",
-        "INCIDENT-008"
+        "INCIDENT-008",
+        "TEAM-004"
       ]
     },
     {
@@ -580,7 +620,8 @@
       "clauses": [
         "UPDATE-001",
         "UPDATE-007",
-        "AGENT-004"
+        "AGENT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -591,7 +632,8 @@
         "standard"
       ],
       "clauses": [
-        "UPDATE-005"
+        "UPDATE-005",
+        "TEAM-004"
       ]
     },
     {
@@ -603,7 +645,8 @@
       ],
       "clauses": [
         "INTAKE-001",
-        "INTAKE-002"
+        "INTAKE-002",
+        "TEAM-004"
       ]
     },
     {
@@ -618,7 +661,8 @@
       "clauses": [
         "INTAKE-001",
         "INTAKE-002",
-        "AUTO-001"
+        "AUTO-001",
+        "TEAM-004"
       ],
       "sponsorEscalation": false
     },
@@ -636,7 +680,8 @@
         "MAINT-003",
         "MAINT-005",
         "MAINT-006",
-        "MAINT-009"
+        "MAINT-009",
+        "TEAM-004"
       ]
     },
     {
@@ -653,7 +698,8 @@
         "MAINT-003",
         "MAINT-005",
         "MAINT-006",
-        "MAINT-009"
+        "MAINT-009",
+        "TEAM-004"
       ]
     },
     {
@@ -671,7 +717,8 @@
         "MAINT-002",
         "MAINT-003",
         "MAINT-005",
-        "MAINT-009"
+        "MAINT-009",
+        "TEAM-004"
       ]
     },
     {
@@ -684,7 +731,8 @@
       "clauses": [
         "MAINT-001",
         "MAINT-003",
-        "MAINT-004"
+        "MAINT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -696,7 +744,8 @@
         "external"
       ],
       "clauses": [
-        "MAINT-005"
+        "MAINT-005",
+        "TEAM-004"
       ]
     },
     {
@@ -714,7 +763,8 @@
         "MAINT-003",
         "MAINT-005",
         "MAINT-006",
-        "MAINT-009"
+        "MAINT-009",
+        "TEAM-004"
       ]
     },
     {
@@ -732,7 +782,8 @@
         "MAINT-003",
         "MAINT-005",
         "MAINT-006",
-        "MAINT-009"
+        "MAINT-009",
+        "TEAM-004"
       ]
     },
     {
@@ -745,7 +796,8 @@
       ],
       "clauses": [
         "UPTIME-008",
-        "API-001"
+        "API-001",
+        "TEAM-004"
       ]
     },
     {
@@ -758,7 +810,8 @@
       ],
       "clauses": [
         "UPTIME-008",
-        "API-001"
+        "API-001",
+        "TEAM-004"
       ]
     },
     {
@@ -770,7 +823,8 @@
         "live"
       ],
       "clauses": [
-        "UPTIME-008"
+        "UPTIME-008",
+        "TEAM-004"
       ]
     },
     {
@@ -782,7 +836,8 @@
       ],
       "clauses": [
         "UPTIME-008",
-        "API-001"
+        "API-001",
+        "TEAM-004"
       ]
     },
     {
@@ -796,7 +851,8 @@
       ],
       "clauses": [
         "UPTIME-008",
-        "API-001"
+        "API-001",
+        "TEAM-004"
       ]
     },
     {
@@ -809,7 +865,8 @@
       ],
       "clauses": [
         "UPTIME-008",
-        "API-001"
+        "API-001",
+        "TEAM-004"
       ]
     },
     {
@@ -824,7 +881,8 @@
         "TEAM-001",
         "TEAM-003",
         "TEAM-007",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ],
       "widens": false,
       "narrowing": {
@@ -860,7 +918,8 @@
         "TEAM-001",
         "TEAM-002",
         "TEAM-003",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ],
       "proof": "native",
       "proofKind": "step_up"
@@ -876,7 +935,8 @@
         "TEAM-001",
         "TEAM-003",
         "TEAM-007",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ],
       "proof": "native",
       "proofKind": "step_up",
@@ -893,7 +953,8 @@
         "TEAM-001",
         "TEAM-003",
         "TEAM-007",
-        "AGENT-008"
+        "AGENT-008",
+        "TEAM-004"
       ],
       "widens": false,
       "narrowing": {
@@ -926,7 +987,8 @@
       ],
       "clauses": [
         "PAGE-011",
-        "PAGE-012"
+        "PAGE-012",
+        "TEAM-004"
       ]
     },
     {
@@ -941,7 +1003,8 @@
       "clauses": [
         "PAGE-011",
         "PAGE-012",
-        "PAGE-013"
+        "PAGE-013",
+        "TEAM-004"
       ],
       "sponsorEscalation": false
     },
@@ -955,7 +1018,8 @@
       "clauses": [
         "SUB-011",
         "AGENT-008",
-        "TEAM-007"
+        "TEAM-007",
+        "TEAM-004"
       ]
     },
     {
@@ -966,7 +1030,8 @@
         "standard"
       ],
       "clauses": [
-        "AGENT-004"
+        "AGENT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -977,7 +1042,8 @@
         "standard"
       ],
       "clauses": [
-        "AGENT-005"
+        "AGENT-005",
+        "TEAM-004"
       ]
     },
     {
@@ -989,7 +1055,8 @@
       ],
       "clauses": [
         "HIST-002",
-        "AGENT-005"
+        "AGENT-005",
+        "TEAM-004"
       ]
     },
     {
@@ -1001,7 +1068,8 @@
       ],
       "clauses": [
         "HIST-002",
-        "AGENT-005"
+        "AGENT-005",
+        "TEAM-004"
       ]
     },
     {
@@ -1013,7 +1081,8 @@
       ],
       "clauses": [
         "HIST-002",
-        "AGENT-005"
+        "AGENT-005",
+        "TEAM-004"
       ]
     },
     {
@@ -1024,7 +1093,8 @@
         "standard"
       ],
       "clauses": [
-        "AUTO-004"
+        "AUTO-004",
+        "TEAM-004"
       ]
     },
     {
@@ -1035,7 +1105,8 @@
         "standard"
       ],
       "clauses": [
-        "INTEG-002"
+        "INTEG-002",
+        "TEAM-004"
       ]
     },
     {
@@ -1047,7 +1118,8 @@
       ],
       "clauses": [
         "PAGE-004",
-        "INCIDENT-001"
+        "INCIDENT-001",
+        "TEAM-004"
       ]
     },
     {
@@ -1062,7 +1134,8 @@
         "SUB-001",
         "SUB-013",
         "SUB-017",
-        "SUB-020"
+        "SUB-020",
+        "TEAM-004"
       ]
     },
     {
@@ -1075,7 +1148,8 @@
       ],
       "clauses": [
         "SUB-017",
-        "MOVE-002"
+        "MOVE-002",
+        "TEAM-004"
       ]
     },
     {
@@ -1088,7 +1162,8 @@
       "clauses": [
         "SUB-001",
         "SUB-017",
-        "SUB-020"
+        "SUB-020",
+        "TEAM-004"
       ]
     },
     {
@@ -1100,7 +1175,8 @@
       ],
       "clauses": [
         "SUB-011",
-        "BASE-DATA-003"
+        "BASE-DATA-003",
+        "TEAM-004"
       ]
     },
     {
@@ -1111,7 +1187,8 @@
         "standard"
       ],
       "clauses": [
-        "UPDATE-009"
+        "UPDATE-009",
+        "TEAM-004"
       ]
     },
     {
@@ -1122,7 +1199,8 @@
         "standard"
       ],
       "clauses": [
-        "UPDATE-009"
+        "UPDATE-009",
+        "TEAM-004"
       ]
     },
     {
@@ -1133,7 +1211,8 @@
         "standard"
       ],
       "clauses": [
-        "UPDATE-009"
+        "UPDATE-009",
+        "TEAM-004"
       ]
     },
     {
@@ -1144,7 +1223,8 @@
         "standard"
       ],
       "clauses": [
-        "UPDATE-009"
+        "UPDATE-009",
+        "TEAM-004"
       ]
     },
     {
@@ -1155,7 +1235,8 @@
         "standard"
       ],
       "clauses": [
-        "INCIDENT-004"
+        "INCIDENT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -1170,7 +1251,8 @@
       "clauses": [
         "UPDATE-006",
         "UPDATE-007",
-        "AGENT-004"
+        "AGENT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -1185,7 +1267,8 @@
       "clauses": [
         "UPDATE-006",
         "UPDATE-007",
-        "AGENT-004"
+        "AGENT-004",
+        "TEAM-004"
       ]
     },
     {
@@ -1197,7 +1280,8 @@
       ],
       "clauses": [
         "AGENT-008",
-        "TEAM-007"
+        "TEAM-007",
+        "TEAM-004"
       ]
     }
   ],
@@ -1211,7 +1295,8 @@
     {
       "clauses": [
         "ACCESS-001",
-        "TEAM-001"
+        "TEAM-001",
+        "TEAM-004"
       ],
       "reason": "screen"
     },

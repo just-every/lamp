@@ -56,7 +56,7 @@ export function createLampAgentDoor(services: AppServices, bindings: AppBindings
     tools, nativeProof: proof.hooks, resources: registry.resources, ...createLocalCredentials(services, bindings),
     notTools: [
       {clauses: ['MOVE-002'], reason: 'import-door'},
-      {clauses: ['ACCESS-001', 'TEAM-001'], reason: 'screen'},
+      {clauses: ['ACCESS-001', 'TEAM-001', 'TEAM-004'], reason: 'screen'},
       {clauses: ['SUB-003', 'SUB-005'], reason: 'screen'},
     ],
     prompts: [{name: 'incident-communication', title: 'Incident communicator',

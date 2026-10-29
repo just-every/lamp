@@ -63,7 +63,7 @@ export function nativeAuthority(db: D1Database) {
       const admit = async (person: string) => {
         if (!await allowed(person, method, path)) throw new ToolRefusal('native_forbidden');
       };
-      return { ...tool,
+      return { ...tool, clauses: [...new Set([...tool.clauses, 'TEAM-004'])],
         async classify(args, ctx) { await admit(ctx.person.id); return tool.classify(args, ctx); },
         async run(args, ctx) { await admit(ctx.person.id); return tool.run(args, ctx); },
         ...(tool.target ? { target: async (args, ctx) => { await admit(ctx.person.id); return tool.target!(args, ctx); } } : {}),

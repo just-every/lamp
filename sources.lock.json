@@ -452,7 +452,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "99b0fb89d00de75db53aff245a5302fe912bf54cddb3914b614b4e3c1feba65b",
+      "sha256": "6f5178f167bd047748d552f73100a553213dd34b71d7790c55074a774bf6be96",
       "executable": false
     },
     "AGENTS.md": {
@@ -4760,7 +4760,7 @@
       "executable": false
     },
     "src/core/features/agent-door/index.server.ts": {
-      "sha256": "42b6433d951cfaf4a45f271f85a31508f532173c7cbf33c6b2683894594ebcaa",
+      "sha256": "f14fc01ea61a301155a3a58efb1560dcd207a6f827cc831162e5941b913827e5",
       "executable": false
     },
     "src/core/features/agent-door/jobs.repository.ts": {
@@ -4780,7 +4780,7 @@
       "executable": false
     },
     "src/core/features/agent-door/native-authority.ts": {
-      "sha256": "523f473c12bf95e249a113151a18bef7bbd607bd5123e577f136f2d7c8efd691",
+      "sha256": "1168b6336e22531ea89de73e529bbf985453733bc25ee47bb3e971b892f68a53",
       "executable": false
     },
     "src/core/features/agent-door/native-proof.repository.ts": {
