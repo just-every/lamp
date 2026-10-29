@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `271cd58ddeee1978e0e2787c0d5954ab87e934f2` (29 October 2026); INTAKE-004 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1153,7 +1153,7 @@ Core · published · **partial** · Cites BASE-OPS-003
 
 #### INTAKE-004 — Recovery alerts
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A recovery alert adds evidence against its matching alert without publishing a resolution.
 
@@ -1161,8 +1161,8 @@ Core · published · **partial**
 1. A recovered event records its recovery time against the matching alert key.
 2. Recovery changes no public surface and no incident lifecycle state.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Unchanged lifecycle and zero updates are asserted. Recovery timestamp readback and complete public-artifact equality are not asserted.
+**Evidence.** `tests/e2e/incident-brief.test.mjs` (INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002 DRAFT-003 DRAFT-004 AGENT-002 AGENT-004 — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails). Point 1: the returned firing and recovery receipt identities are read independently through the native receipt API; source, key and incident match, the recovery instant is bounded by its request and is recorded on the latest matching firing alert. Point 2: the published lifecycle, complete native update views and complete stored update rows remain unchanged; `tests/e2e/helpers/intake-recovery-surfaces.mjs` (recoveryPublicSurfaces) discovers every retained artifact and reads its public URL, reconciling identical response bytes, metadata and generation across recovery, including root, history, permalink, feeds, widgets, badges and both public JSON APIs.
+**Gap.** None.
 
 #### INTAKE-005 — Payload mapping
 
