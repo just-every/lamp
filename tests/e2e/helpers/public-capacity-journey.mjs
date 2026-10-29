@@ -78,7 +78,12 @@ export async function publicCapacityJourney(j, limits) {
       });
       await page.goto(j.publicOrigin, { waitUntil: 'networkidle' });
       assert.ok(resources.size <= 4, `${template}: at most four initial asset requests: ${[...resources.keys()]}`);
-      for (const [path, type] of resources) assert.ok(['stylesheet', 'font', 'image', 'script'].includes(type) && path.startsWith('/assets/'), `unexpected initial dependency ${path} (${type})`);
+      for (const path of resources.keys()) {
+        const asset = await j.publicResponse(path);
+        assert.equal(asset.status, 200, path);
+        assert.match(asset.headers.get('content-type'), /^(?:text\/(?:css|javascript)|application\/(?:javascript|font-woff)|font\/|image\/)/, `initial dependency ${path} is a stylesheet, font, logo or script`);
+        await asset.arrayBuffer();
+      }
       assert.deepEqual([...foreign], [], `${template}: every initial request stays on the status origin`);
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
