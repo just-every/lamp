@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `96c737ccd6b88fc65b572f917be0e357ca261377` (29 October 2026); SUB-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -916,7 +916,7 @@ Core · published · **partial**
 
 #### SUB-011 — Operator view
 
-Core · published · **partial** · Cites BASE-DATA-003
+Core · published · **done** · Cites BASE-DATA-003
 
 **Requirement.** Operators inspect all subscribers, their consent state and selected components, including deactivation facts.
 
@@ -925,8 +925,8 @@ Core · published · **partial** · Cites BASE-DATA-003
 2. The view shows channel, pending/active/deactivated state, component selection, and deactivation reason and time.
 3. Deleting a subscriber erases its email address or endpoint.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts the expected 101st fixture subscriber appears on the second page; channel; deactivated state; the operator list preserves the exact selected component identifiers. Unasserted: the complete subscriber identity set reconciles across all pages; pending and active states visible in operator view.
+**Evidence.** Points 1 and 2: `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-directory-flow.mjs` (subscriberDirectoryFlow): 106 native Add identities, mixed email and webhook channels, pending and confirmed and unsubscribed records, exact selections, full paginated identity reconciliation without duplicates, exact deactivation reasons and independently bounded instants. Point 3 and BASE-DATA-003: the same registration loads `tests/e2e/helpers/subscriber-add-flow.mjs` (subscriberAddFlow), preserving complete destination and contact erasure across every retained table and subscriber export. subscriberDirectoryFlow also proves anonymous deletion refusal, native owner deletion for both channels, complete retained-table erasure, and captured confirmation and management and unsubscribe authority refusal after deletion.
+**Gap.** None.
 
 #### SUB-012 — No enumeration
 
