@@ -96,6 +96,8 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     assert.equal(dialogs, 0, 'non-destructive toggles ask no confirmation');
     await publicPage.goto(pageUrl, { waitUntil: 'networkidle' });
     assert.equal(await publicPage.locator('body').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(16, 20, 24)', 're-ticking publishes the owner background');
+    const tokens = { background: '--paper', surface: '--card', text: '--ink', link: '--theme-link', operational: '--ok', degraded: '--degraded', partial: '--cell-partial', major: '--down', maintenance: '--maint' };
+    for (const [key, token] of Object.entries(tokens)) assert.equal(await publicPage.locator('body').evaluate((element, token) => getComputedStyle(element).getPropertyValue(token).trim(), token), DARK[key], `re-ticking publishes the exact ${key} colour`);
     const stored = await currentSettings();
     const before = await fetch(pageUrl);
     const beforeHtml = await before.text();

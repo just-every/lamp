@@ -1,4 +1,5 @@
 import type { PageTheme } from "../../shared/page-theme";
+import { cardColour, THEME_CARDS, type ThemePalette } from "../../shared/theme-card-contrast";
 import type { BlobStore } from "../../platform/blobs/store";
 import type { ThemeAssets } from "../page-settings/theme-assets";
 import { scopedThemeCss } from "../page-settings/theme-safety";
@@ -14,12 +15,34 @@ export function themeChrome(theme: PageTheme, position: "header" | "footer") {
 }
 
 export function themeStyles(theme: PageTheme, origin: string) {
-  const palette = theme.palette;
-  const colors = palette ? `body.lamp-public,body.lamp-public .tpl{--paper:${palette.background};--card:${palette.surface};--card-tint:${palette.surface};--stage:${palette.surface};--frame:${palette.surface};--chip:${palette.surface};--ink:${palette.text};--ink-2:${palette.text};--ink-3:${palette.text};--on-ink:${palette.surface};--theme-link:${palette.link};--ok:${palette.operational};--ok-mark:${palette.operational};--ok-ink:${palette.operational};--cell-ok:${palette.operational};--degraded:${palette.degraded};--amber:${palette.degraded};--amber-ink:${palette.degraded};--cell-partial:${palette.partial};--down:${palette.major};--maint:${palette.maintenance}}body.lamp-public{background:${palette.background}}body.lamp-public a{color:var(--theme-link)}body.lamp-public .status-banner #status-live{background:var(--card)}body.lamp-public .up-band{background:var(--card);color:var(--ink)}body.lamp-public .up-band a{color:var(--theme-link)}body.lamp-public .up-band .tpl-tagline{color:var(--ink-2)}body.lamp-public .up-band .up-band-subscribe{background:var(--ink);color:var(--on-ink)}body.lamp-public .state-partially-unavailable::before{background:${palette.partial}}body.lamp-public .tone-partial{color:${palette.partial}}body.lamp-public .tone-degraded{color:${palette.degraded}}` : "";
+  const colors = theme.paletteEnabled && theme.palette ? paletteStyles(theme.palette) : "";
   const families = { default: "", system: "system-ui,sans-serif", serif: "Georgia,serif", mono: 'ui-monospace,"Courier New",monospace', uploaded: '"Owner Font",sans-serif' };
   const font = theme.font === "uploaded" ? '@font-face{font-family:"Owner Font";src:url("/assets/theme-font") format("woff2");font-display:swap}' : "";
   const face = families[theme.font] ? `body.lamp-public{--public-font:${families[theme.font]}}` : "";
   return `${colors}${font}${face}body.lamp-public .theme-header-image{display:block;max-width:100%;max-height:320px;object-fit:contain;margin:16px auto}body.lamp-public .theme-header,body.lamp-public .theme-footer{overflow-wrap:anywhere;font-size:15px}body.lamp-public .theme-header nav,body.lamp-public .theme-footer nav{display:flex;flex-wrap:wrap;gap:16px;padding-block:12px}body.lamp-public .theme-header img,body.lamp-public .theme-footer img{max-width:100%}body.lamp-public .component-group>summary,body.lamp-public .theme-component-group>summary{padding:12px 0;color:var(--ink-2);font-size:14px;font-weight:600;cursor:pointer}${scopedThemeCss(theme.customCss, origin)}`;
+}
+
+function paletteStyles(palette: ThemePalette) {
+  const tokens: Record<keyof ThemePalette, readonly string[]> = {
+    background: ["paper"],
+    surface: ["card", "card-tint", "stage", "frame", "chip", "on-ink", "amber-wash", "accent-ink"],
+    text: ["ink", "ink-2", "ink-3", "quiet"],
+    link: ["theme-link", "accent"],
+    operational: ["ok", "ok-mark", "ok-ink", "cell-ok"],
+    degraded: ["degraded", "amber", "amber-ink"],
+    partial: ["cell-partial"],
+    major: ["down"],
+    maintenance: ["maint"],
+  };
+  const variables = Object.entries(tokens).flatMap(([colour, names]) => names.map(name => `--${name}:${palette[colour as keyof ThemePalette]};`)).join("");
+  const cards = THEME_CARDS.filter(card => card.audience === "public").flatMap(card => card.pairs.map(pair => {
+    const selectors = pair.selectors.map(selector => selector === "&" ? "body.lamp-public" : `body.lamp-public ${selector}`).join(",");
+    return `${selectors}{color:${cardColour(pair.foreground, palette)};${pair.fill ? `background:${cardColour(pair.background, palette)};` : ""}}`;
+  })).join("");
+  // Keep the existing sheets byte-for-byte when the palette is disabled. The
+  // enabled palette also raises their small captions to the product's type floor.
+  const smallText = [".eyebrow", ".timeline-group > h3", ".subscriber-kicker", ".tpl-kicker", ".tpl-credit", ".tpl-foot-meta", ".tpl-foot .footer-resources", ".calm-group", ".calm-caption", ".hm-legend", ".hm-name", ".hm-state", ".hm-pct", ".hm-axis", ".hm-method", ".hm-callout a", ".up-group-title", ".up-components h2", ".tl-kicker", ".rg-card-state", ".rg-elsewhere", ".rg-key-item b", ".rg-pin b", ".rg-thead", ".rg-everywhere", ".tpl-regions .tpl-meta", ".tpl-regions .maintenance-window", ".tpl-regions .tpl-detail", ".tpl-regions .tl-next", ".tpl-regions .tl-earlier .tpl-said", ".tpl-regions .tl-more", ".rg-past .tpl-quiet", ".rg-uptime-caption"];
+  return `body.lamp-public,body.lamp-public .tpl{${variables}--line:color-mix(in srgb,var(--ink) 18%,transparent);--line-strong:color-mix(in srgb,var(--ink) 30%,transparent);--no-data:color-mix(in srgb,var(--ink) 18%,var(--card));}${cards}body.lamp-public .state-partially-unavailable::before{background:${palette.partial}}body.lamp-public .rg-pin b{color:${palette.surface}}body.lamp-public .pin-icon circle{fill:${palette.surface}}body.lamp-public .rg-map .pin-icon path{stroke:${palette.surface}}body.lamp-public :is(${smallText.join(",")}){font-size:13px}body.lamp-public .rg-card{min-height:50px;height:auto;padding-block:6px}body.lamp-public .rg-card strong{font-size:14px;line-height:18px}body.lamp-public .rg-card .rg-card-state{font-size:13px;line-height:18px}body.lamp-public .rg-key-item b{width:26px;height:26px}body.lamp-public .rg-pin b{line-height:14px}body.lamp-public input::placeholder{opacity:1}`;
 }
 
 export async function themeAssetArtifacts(stored: string | undefined, blobs: BlobStore): Promise<SnapshotArtifact[]> {
