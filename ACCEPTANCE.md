@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -217,7 +217,7 @@ Core · published · **partial** · Cites BASE-PUBLIC-001
 
 #### PAGE-014 — Live refresh
 
-Core · published · **partial** · Cites BASE-ACCESSIBILITY-001
+Core · published · **done** · Cites BASE-ACCESSIBILITY-001
 
 **Requirement.** When scripting is available, public status refreshes in place without disturbing assistive announcements or the configured time zone.
 
@@ -226,8 +226,8 @@ Core · published · **partial** · Cites BASE-ACCESSIBILITY-001
 2. The response has a fixed field set and its size does not grow with component count.
 3. With scripting disabled, no automatic refresh occurs and the generation instant is shown.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The refresh response has exactly the fixed field set; The refresh response size does not grow with component count; Scripting-disabled content never refreshes itself.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): the browser sees no poll before thirty seconds, then reads the changed overall state and newest update in place with the same polite atomic live region and configured time zone; the populated refresh response has exactly the root, incident and maintenance fields. `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney, loaded by that journey) compares actual response byte lengths for one and 200 components while independently retaining the same public story. The script-disabled browser reconciles the initial generation datetime with the response header and its absolute configured-zone text, publishes a different native incident, then observes more than two refresh intervals with zero polls, no navigation and the identical complete document and generation instant. The same journey retains the public axe and script-free subscription controls; browser proof records the clause screens at 1440 and 390.
+**Gap.** None.
 
 ### Components
 
