@@ -6,13 +6,14 @@ const loaded = Promise.all([
   load('src/core/features/agent-door/people.ts'),
   load('src/core/features/agent-door/settings.ts'),
   load('src/core/features/agent-door/native-proof.ts'),
+  load('src/core/features/agent-door/index.server.ts'),
 ]);
 
 /** Additional assertions within the single shared-door registration. Native
  * accounts, sessions, signed settings and persistence are real; only mail is
  * captured at the transport edge. No fixture SQL creates authority. */
 export async function runNativeIdentityProofFlow({services, bindings, cookie, messages, request, call}) {
-  const [peopleModule, settingsModule, proofModule] = await loaded;
+  const [peopleModule, settingsModule, proofModule, doorModule] = await loaded;
   const session = await call('/api/app/session', {cookie});
   assert.equal(session.status, 200);
   const {operator: owner} = await session.json();
@@ -90,6 +91,24 @@ export async function runNativeIdentityProofFlow({services, bindings, cookie, me
     body: {agent_id: 'identity-proof-agent', tool: 'lamp.importgrants.update', arguments: args}});
   crossSite.headers.set('Origin', 'https://outside.example.test');
   assert.equal((await proofs.handle(crossSite)).status, 403);
+  // TEAM-004 remains authoritative even when Business still calls this person
+  // an editor and company policy is fully autonomous.
+  const door = doorModule.createLampAgentDoor(services, r.bindings);
+  const policy = await door.handle(r.request('/agents/api/policy', {method: 'PUT', cookie: r.cookie,
+    body: {document: {schema: 'rer-agent-policy/1', catalogue: 'rer-agent-classes/1', rules: [{id: 'all', class: '*', do: 'autonomous'}], spend: {none: true}}}}));
+  assert.equal(policy.status, 200);
+  await r.auth.setProductRole(r.request('/api/app/operators/role', {method: 'POST', cookie: r.cookie}), mapped.id, 'viewer');
+  const narrowed = await people.sponsor({sub: 'business-teammate'});
+  assert.equal(narrowed.role, 'viewer');
+  assert.equal((await people.businessMember(narrowed)).role, 'editor');
+  assert.equal(people.businessRole(narrowed), null);
+  const beforeComponents = await services.components.list();
+  const refused = await door.invoke('lamp.components.create', {name: 'Forbidden viewer component', groupId: null,
+    description: '', displayOrder: 0, note: '', internal: true, idempotency_key: crypto.randomUUID()},
+    {person: {id: mapped.id}, agent: {id: 'native-role-proof-agent', name: 'Native role proof agent', specialist: 'incident-communicator'}, scopes: ['lamp.components.create']});
+  assert.equal(refused.code, 'native_permission_denied', 'Autonomous company policy cannot widen a Viewer');
+  assert.deepEqual(await services.components.list(), beforeComponents, 'The refused agent created no native component');
+  await r.auth.setProductRole(r.request('/api/app/operators/role', {method: 'POST', cookie: r.cookie}), mapped.id, 'admin');
   await r.auth.setOperatorStatus(r.request('/auth/operator/status', {method: 'POST', cookie: r.cookie}), mapped.id, 'inactive');
   assert.equal(await people.sponsor({sub: 'business-teammate'}), null, 'Revoked native admission immediately stops sponsorship');
   assert.equal((await call(`/api/app/operators/${replacement.id}`, {method: 'DELETE', cookie: r.cookie})).status, 204,

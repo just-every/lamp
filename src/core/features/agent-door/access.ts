@@ -56,7 +56,7 @@ export function createAccessTools(services: AppServices, bindings: AppBindings):
         const activeTokens = (await Promise.all(tokens.map(async token => await identities.credential(token.id, token.issuerId) ? token : null)))
           .filter((token): token is (typeof tokens)[number] => token !== null);
         return {result: {operators, tokens, activeTokens, chatLinks: links.map(({id, transport, createdAt}) => ({id, transport, createdAt})),
-          nativePermissions: 'Every admitted Lamp operator has the same native authority; signed Business policy roles are separate.'}};
+          nativePermissions: 'Current native product roles govern tools and resources; signed Business policy roles are separate.'}};
       },
     },
     {

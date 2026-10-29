@@ -65,7 +65,7 @@ keys remain revoked.
 
 ## Owner administration API dependency
 
-As of 28 October 2026, the Base source shipped with rer 0.2.86
+As of 29 October 2026, the Base source shipped with rer 0.2.88
 still has the same native limitation. `base-copies.json` records the source revision. Its
 `modules/operator-auth/accounts/delegated.mjs` exposes invitation, role change
 and operator listing. Its invitation method explicitly rejects the `owner`
@@ -75,9 +75,10 @@ no native-proof reference. Lamp's installed operator-auth API likewise offers
 these mutations through real person sessions, without a corresponding native
 agent admission API.
 
-Lamp's native operators all have equal owner authority under `TEAM-001`.
-Creating a lesser role or converting an agent into a person's session would
-change that native contract. The registry therefore retains these named
+Lamp now preserves the current `TEAM-004` Owner/Admin, Communicator, Responder
+and Viewer roles. Native owner invitations still grant Owner authority; the
+delegated API only accepts Admin/member invitations. Converting an agent into a
+person's session would bypass the real proof boundary. The registry therefore retains these named
 operations and their proof requirements while reporting the explicit
 `native_owner_agent_api_unavailable` dependency for owner invitation,
 deactivation, reactivation and erasure. A valid native proof does not conceal

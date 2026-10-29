@@ -127,5 +127,6 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
     try { return await app.fetch(request, bindings); }
     finally { authorizedReads.delete(request); }
   }
-  return { app, services, readOperator, health: healthService, agentDoor: createLampAgentDoor(services, bindings) };
+  let agentDoor: ReturnType<typeof createLampAgentDoor> | undefined;
+  return { app, services, readOperator, health: healthService, get agentDoor() { return agentDoor ??= createLampAgentDoor(services, bindings); } };
 }

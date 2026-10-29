@@ -212,7 +212,8 @@ export function createIncidentsService(
     const channels = isRetroactive || hasRetroactiveUpdate ? [] : input.channels;
     const recipientStatements = await publicationStatements.forIncidentUpdate({ updateId: record.id, incidentId, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), channels, queuedAt: publishedAt });
     await repository.publishDraft(record, recipientStatements);
-    const update = (await repository.listUpdates(incidentId)).find((candidate) => candidate.id === record.id) ?? null;
+    const published = (await repository.listUpdates(incidentId)).find((candidate) => candidate.id === record.id) ?? null;
+    const update = published ? {...published, agentAttribution: (await repository.agentAttributions([record.id])).get(`incident-update:${record.id}`) ?? null} : null;
     if (!update) return null;
     await runtime.events?.incidentUpdatePublished({ incidentId, updateId: update.id, lifecycle: update.lifecycle, publishedAt: update.publishedAt });
     if (update.lifecycle === "Resolved") await runtime.events?.incidentResolved({ incidentId, updateId: update.id, resolvedAt: update.publishedAt });

@@ -13,7 +13,7 @@ async function inviteToken(secret: string) {
   return {id: crypto.randomUUID(), token, hash, expiresAt: Date.now() + 7 * 86_400_000};
 }
 
-/** Signed roster provisioning retains Lamp's native equal-owner model. */
+/** Signed roster provisioning respects Lamp's native Admin/member role boundary. */
 export function createLampBusinessTeam(services: AppServices, bindings: AppBindings): TeamAdapter {
   const repository = createAgentIdentityRepository(bindings.DB), config = authConfig(bindings);
   return {
@@ -22,7 +22,7 @@ export function createLampBusinessTeam(services: AppServices, bindings: AppBindi
       const owner = await repository.owner();
       if (!owner || owner.status !== 'active' || owner.role !== 'owner' || owner.email !== ownerEmail.trim().toLowerCase()
         || config.allowList && !config.allowList.includes(owner.email)) throw new SettingsError('owner_required');
-      if (roles.admin !== 'operator' || roles.member !== 'operator') throw new SettingsError('native_roles_invalid', 503);
+      if (roles.admin !== 'admin' || roles.member !== 'member') throw new SettingsError('native_roles_invalid', 503);
       const nativeGuard: Guard = {sql: `(${guard.sql}) AND EXISTS(SELECT 1 FROM oa_operators o JOIN oa_bootstrap b ON b.claim_id=o.id
         WHERE o.id=? AND o.email=? AND o.version=? AND o.status='active' AND o.role='owner')`, args: [...guard.args, owner.id, owner.email, owner.version]};
       const statements: Statement[] = [], rows: ManagedMember[] = [], pending: Array<{email: string; id: string; token: string; expiresAt: number}> = [];
@@ -36,18 +36,19 @@ export function createLampBusinessTeam(services: AppServices, bindings: AppBindi
       const previous = new Map(managed.map(member => [member.email, member]));
       for (const email of new Set([...desired.keys(), ...previous.keys()])) {
         const member = desired.get(email), prior = previous.get(email);
+        const nativeRole = member?.role === 'admin' ? 'admin' : 'member';
         let target = prior?.operatorId ? await repository.person(prior.operatorId) : await repository.byEmail(email);
-        const conflict = !prior && target || prior?.operatorId && !target || target?.id === owner.id || target && target.role !== 'owner'
+        const conflict = !prior && target || prior?.operatorId && !target || target?.id === owner.id || target && !['admin', 'member'].includes(target.role)
           || config.allowList && !config.allowList.includes(target?.email ?? email) || email.endsWith('@operator.invalid');
         if (conflict || prior?.state === 'conflict') {
           rows.push({email, operatorId: prior?.operatorId ?? null, invite: member?.invite ?? prior?.invite ?? 0, state: 'conflict'});
           continue;
         }
         const change = (person: NativePerson, status: NativePerson['status'], name = person.displayName) => {
-          add(`UPDATE oa_operators SET status=?,display_name=? WHERE id=? AND version=? AND status=? AND role='owner' AND ${nativeGuard.sql}`,
-            status, name, person.id, person.version, person.status, ...nativeGuard.args);
+          add(`UPDATE oa_operators SET status=?,display_name=? WHERE id=? AND version=? AND status=? AND role=? AND ${nativeGuard.sql}`,
+            status, name, person.id, person.version, person.status, person.role, ...nativeGuard.args);
           const nextVersion = person.version + (status === person.status ? 0 : 1);
-          assert("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status=? AND role='owner')", [person.id, nextVersion, status]);
+          assert("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status=? AND role=?)", [person.id, nextVersion, status, person.role]);
           audit(person.id, status === person.status ? 'business-profile-updated' : `business-${status}`);
           return {...person, status, displayName: name, version: nextVersion};
         };
@@ -59,17 +60,17 @@ export function createLampBusinessTeam(services: AppServices, bindings: AppBindi
         const cancelled = target?.status === 'inactive' && await repository.cancellation(target.id);
         if (target?.status === 'inactive' && !cancelled) target = change(target, 'active', member.name);
         if (!target) {
-          target = {id: crypto.randomUUID(), email, displayName: member.name, role: 'owner', status: 'invited', version: 1};
-          add(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) SELECT ?,?,?,'owner','invited',? WHERE ${nativeGuard.sql}`,
-            target.id, email, member.name, Date.now(), ...nativeGuard.args);
-          assert("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND email=? AND role='owner' AND status='invited' AND version=1)", [target.id, email]);
+          target = {id: crypto.randomUUID(), email, displayName: member.name, role: nativeRole, status: 'invited', version: 1};
+          add(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) SELECT ?,?,?,?,'invited',? WHERE ${nativeGuard.sql}`,
+            target.id, email, member.name, nativeRole, Date.now(), ...nativeGuard.args);
+          assert("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND email=? AND role=? AND status='invited' AND version=1)", [target.id, email, nativeRole]);
         } else if (cancelled) target = change(target, 'invited', member.name);
         else if (target.displayName !== member.name) target = change(target, target.status, member.name);
         if (target.status === 'invited' && (!prior || cancelled || member.invite > prior.invite)) {
           const token = await inviteToken(config.SESSION_SECRET);
           add(`INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at)
-            SELECT ?,?,'invite',id,version,?,?, '/app',?,? FROM oa_operators WHERE id=? AND version=? AND status='invited' AND role='owner' AND ${nativeGuard.sql}`,
-            token.id, token.hash, owner.id, owner.version, Date.now(), token.expiresAt, target.id, target.version, ...nativeGuard.args);
+            SELECT ?,?,'invite',id,version,?,?, '/app',?,? FROM oa_operators WHERE id=? AND version=? AND status='invited' AND role=? AND ${nativeGuard.sql}`,
+            token.id, token.hash, owner.id, owner.version, Date.now(), token.expiresAt, target.id, target.version, target.role, ...nativeGuard.args);
           assert('EXISTS(SELECT 1 FROM oa_tokens WHERE id=?)', [token.id]);
           add(`UPDATE oa_tokens SET revoked_at=COALESCE(revoked_at,?) WHERE operator_id=? AND id<>? AND consumed_at IS NULL AND EXISTS(SELECT 1 FROM oa_tokens WHERE id=?)`, Date.now(), target.id, token.id, token.id);
           audit(target.id, 'invited');

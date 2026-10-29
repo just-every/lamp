@@ -118,8 +118,10 @@ export default withDemo({
     await ensureDevelopmentSnapshot(runtime);
 
     if (isHonoRequest(surface, request, url.pathname)) {
-      const response = await withNativePersonEvents(request, bindings.DB, runtime.agentDoor.people, runtime.agentDoor,
-        async () => runtime.app.fetch(request, bindings, executionContext));
+      const response = surface === 'app'
+        ? await withNativePersonEvents(request, bindings.DB, runtime.agentDoor.people, runtime.agentDoor,
+            async () => runtime.app.fetch(request, bindings, executionContext))
+        : await runtime.app.fetch(request, bindings, executionContext);
       queueDueWork(runtime, bindings, executionContext, request, response);
       return response;
     }

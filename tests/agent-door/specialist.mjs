@@ -137,3 +137,14 @@ export default async function nativeJourney(args) {
     throw error;
   }
 }
+
+/** Keep the protected-read witness at two real notes in rounds without injection. */
+export async function afterStep({phase, step, args, request, origin, cookie}) {
+  if (step.id !== 'incident-note' || phase === 'autonomous') return;
+  const response = await request(new URL(`/api/app/incidents/${args.id}/internal-notes`, origin).href, {
+    method: 'POST', headers: {Origin: origin, Cookie: cookie, 'Content-Type': 'application/json'},
+    body: JSON.stringify({body: 'Independent native phase evidence; never publication approval.'}),
+  });
+  assert.equal(response.status, 201, 'The native phase hook creates the second protected note');
+  await response.body?.cancel();
+}

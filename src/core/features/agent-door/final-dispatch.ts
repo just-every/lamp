@@ -21,7 +21,10 @@ export class AgentDeliveryHeld extends Error {
   constructor(readonly code: string) { super(`Agent delivery held: ${code}.`); }
 }
 
-export function registerAgentEffectHandler(db: D1Database, kind: string, driver: NativeEffectHandler) {
+export function registerAgentEffectHandler(db: D1Database | undefined, kind: string, driver: NativeEffectHandler) {
+  // Retained public snapshots also run without D1. They register no effect
+  // drivers; application mutations still require their real database.
+  if (db === undefined) return;
   let current = drivers.get(db);
   if (!current) drivers.set(db, current = new Map());
   current.set(kind, driver);

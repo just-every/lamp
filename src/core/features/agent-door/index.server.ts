@@ -1,3 +1,4 @@
+import { nativeDoorPermissions } from './native-permissions';
 import { createAgentDoor } from '../../../../modules/agent-door/index.ts';
 import type { ToolDefinition, Trust } from '../../../../modules/agent-door/types.ts';
 import type { AppServices } from '../../app/services';
@@ -34,7 +35,8 @@ export function createLampAgentRegistry(services: AppServices, bindings: AppBind
     ...createAccessTools(services, bindings), createQueuedDispatchTool(bindings.DB), createWitnessTool(bindings.DB)];
   const resources = [...createIncidentResources(services, bindings), ...createMaintenanceResources(services, bindings),
     ...createCatalogueResources(services, bindings), ...createCommunicationResources(services, bindings), ...createAccessResources(services, bindings)];
-  return {tools, resources};
+  const permissions = nativeDoorPermissions(bindings.DB);
+  return {tools: tools.map(tool => permissions.tool(tool)), resources: resources.map(resource => permissions.resource(resource))};
 }
 
 export function createLampAgentDoor(services: AppServices, bindings: AppBindings) {
@@ -46,6 +48,7 @@ export function createLampAgentDoor(services: AppServices, bindings: AppBindings
     run: (args, ctx) => withAgentActor(ctx, () => tool.run(args, ctx)),
   }));
   const door = createAgentDoor({seed: 'lamp', name: 'Lamp', specialist: 'incident-communicator',
+    capabilities: ['tools', 'policy', 'pause', 'audit', 'idempotency', 'events', 'resources', 'prompts', 'subscriptions'],
     db: bindings.DB, origin: authOrigin(bindings), trust: installationTrust(bindings), people,
     tools, nativeProof: proof.hooks, resources: registry.resources, ...createLocalCredentials(services, bindings),
     notTools: [

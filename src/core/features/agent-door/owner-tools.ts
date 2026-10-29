@@ -17,13 +17,11 @@ const credentialInput = z.object({name: z.string().trim().min(1).max(80), scopes
 const grantInput = z.object({enabled: z.boolean(), revokedKids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)).max(100).optional()}).strict();
 const output = {type: 'object', additionalProperties: true};
 
-/** 2026-10-28: retained assertions for missing Base owner-proof native commands.
- * Base e1b4265... delegated.mjs refuses every native owner invitation/target,
- * exports no status/erase/credential command, and accepts no native proof.
- * These named operations remain in the registry and journey until that API
- * supports Lamp's genuine equal-owner model. No fabricated session fills it. */
+/** 2026-10-29: rer 0.2.88 still has no delegated owner status, erasure or
+ * credential command with native proof. Preserve these failing assertions and
+ * Lamp's current native roles; no invented person session fills the API gap. */
 export const pendingOwnerNativeApi = {
-  date: '2026-10-28', base: 'e1b4265eb0d839a67dae3c36a04f83fa48c9d480',
+  date: '2026-10-29', rer: '0.2.88',
   code: 'native_owner_agent_api_unavailable',
   source: 'modules/operator-auth/accounts/delegated.mjs',
   required: 'Owner invitation/status/erasure and credential commands accepting current native email proof without minting a session',
@@ -75,12 +73,12 @@ export function createOwnerTools(_services: AppServices, bindings: AppBindings):
   return [
     {
       name: 'lamp.operators.invite', scope: 'lamp.operators.invite', title: 'Invite a native Lamp operator',
-      description: 'Invite a teammate through Lamp’s equal-authority native owner lifecycle, with an exact email summary and recent real person email proof. Pending Base native owner-agent API.',
+      description: 'Invite a teammate through Lamp’s native owner invitation lifecycle, with an exact email summary and recent real person email proof. Pending Base native owner-agent API.',
       readOnly: false, inputSchema: nativeSchema(inviteInput), outputSchema: output, classes: ['access', 'external'], clauses: ['TEAM-001', 'TEAM-002', 'TEAM-003', 'AGENT-008'],
       proof: 'native', proofKind: 'step_up',
       async authority(args, ctx) { await requireOwner(ctx); const person = await identities.byEmail(String(args.email).trim().toLowerCase()); return {subject: person?.id ?? String(args.email).trim().toLowerCase(), widens: true}; },
       async classify(args, ctx) { await requireOwner(ctx); parseNative(inviteInput, args); return [{class: 'access', facts: {measure: 1, direction: 'widens'}}, {class: 'external', facts: {measure: 1, counterparty: 'new'}}]; },
-      async summary(args, ctx) { await requireOwner(ctx); const input = parseNative(inviteInput, args); return {target: {name: input.displayName, email: input.email.trim().toLowerCase()}, recipients: [input.email.trim().toLowerCase()], role: 'Lamp operator (equal native owner authority)'}; },
+      async summary(args, ctx) { await requireOwner(ctx); const input = parseNative(inviteInput, args); return {target: {name: input.displayName, email: input.email.trim().toLowerCase()}, recipients: [input.email.trim().toLowerCase()], role: 'Lamp Owner (native owner-granted invitation)'}; },
       async run(args, ctx) { await proofAuthority('lamp.operators.invite', args, ctx); return pending(); },
     },
     statusTool('lamp.operators.revoke'), statusTool('lamp.operators.restore'), statusTool('lamp.operators.erase'),

@@ -26,6 +26,7 @@ export async function ensureDevelopmentSnapshot(runtime: ReturnType<typeof creat
 
 export async function runScheduled(bindings: AppBindings, executionContext: ExecutionContext, scheduledAt = Date.now()) {
   const runtime = createApp(await prepareAppMailBindings(bindings, "background"), "background");
+  void runtime.agentDoor; // Initialize final agent admission before native background effects.
   executionContext.waitUntil((async () => {
     // Requests leave due work to Cron once it has recorded a recent run.
     // A failed marker only lets requests keep helping; it must not stop this run.
@@ -64,6 +65,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
 
 export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindings) {
   const runtime = createApp(await prepareAppMailBindings(bindings, "background"), "background");
+  void runtime.agentDoor; // Initialize final agent admission before native background effects.
   for (const message of batch.messages) {
     if (!isLampJob(message.body)) {
       message.retry();

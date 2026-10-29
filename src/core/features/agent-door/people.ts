@@ -1,3 +1,4 @@
+import { createOperatorRolesRepository } from '../operators/roles.repository';
 import { managementClientId } from './client';
 import { isActiveOperator, type Operator } from '@runeditrun/rer/modules/operator-auth';
 import type { PeopleAdapter, Person, Principal } from '../../../../modules/agent-door/types.ts';
@@ -13,7 +14,9 @@ export function createPeopleAdapter(services: AppServices, bindings: AppBindings
     role: native.role, active: isActiveOperator(native as Operator, config.allowList) && !native.email.endsWith('@operator.invalid')});
   const person = async (id: string): Promise<Person | null> => {
     const native = await repository.person(id);
-    return native ? convert(native) : null;
+    if (!native) return null;
+    const current = convert(native);
+    return {...current, role: await createOperatorRolesRepository(bindings.DB).role(id) ?? 'viewer'};
   };
   return {
     person,
@@ -29,9 +32,8 @@ export function createPeopleAdapter(services: AppServices, bindings: AppBindings
       const current = await person(session.operator.id);
       return current?.active ? current : null;
     },
-    // Every admitted Lamp operator has the same native product authority.
-    // Paired policy editors are resolved separately from signed Business IDs.
-    businessRole: current => current.active ? 'owner' : null,
+    // Paired policy roles remain separate from current native product roles.
+    businessRole: current => !current.active ? null : current.role === 'owner' ? 'owner' : current.role === 'admin' ? 'editor' : null,
     async businessMember(current) {
       if (!(await person(current.id))?.active) return null;
       return repository.businessMember(current.id);
@@ -51,7 +53,7 @@ export function createLocalCredentials(services: AppServices, bindings: AppBindi
     async localCredentials(request: Request) {
       const current = await management.authenticate(request);
       if (!current) return null;
-      return {sponsor: {id: current.authority.personId}, agent: {id: `management:${current.token.id}`, name: current.token.name},
+      return {sponsor: {id: current.authority.personId}, agent: {id: `management:${current.token.id}`, name: current.token.name, specialist: 'incident-communicator'},
         clientId: current.token.id, scopes: scopes(current.token.scopes)};
     },
     async currentScopes(principal: Principal) {

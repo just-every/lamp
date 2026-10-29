@@ -1334,6 +1334,20 @@
   ],
   "journey": [
     {
+      "id": "native-client-components",
+      "tool": "lamp.components.list",
+      "client": "local-read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
       "id": "witness",
       "tool": "lamp.workspace.snapshot",
       "args": {},
@@ -1861,7 +1875,7 @@
         {
           "class": "sensitive",
           "facts": {
-            "measure": 1,
+            "measure": 2,
             "kind": "internal_incident_notes"
           }
         }
@@ -2604,8 +2618,14 @@
         "title": "Native conformance maintenance",
         "affectedAudience": "API customers",
         "customerImpact": "A planned API interruption",
-        "startsAt": "2030-01-01T01:00:00.000Z",
-        "endsAt": "2030-01-01T02:00:00.000Z",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/startsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/endsAt"
+        },
         "componentIds": [
           {
             "$from": "public-component",
@@ -2648,8 +2668,14 @@
           "$from": "maintenance",
           "pointer": "/maintenance/id"
         },
-        "startsAt": "2030-01-01T01:30:00.000Z",
-        "endsAt": "2030-01-01T02:30:00.000Z",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/updatedStartsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/updatedEndsAt"
+        },
         "autoStart": false,
         "autoComplete": false
       },
@@ -2742,8 +2768,14 @@
         "title": "Cancelled conformance maintenance",
         "affectedAudience": "API customers",
         "customerImpact": "A planned API interruption",
-        "startsAt": "2030-01-01T01:00:00.000Z",
-        "endsAt": "2030-01-01T02:00:00.000Z",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/startsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/endsAt"
+        },
         "componentIds": [
           {
             "$from": "public-component",
@@ -3085,8 +3117,14 @@
         "title": "Private conformance maintenance",
         "affectedAudience": "Internal responders",
         "customerImpact": "Private component work",
-        "startsAt": "2030-01-01T01:00:00.000Z",
-        "endsAt": "2030-01-01T02:00:00.000Z",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/startsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/endsAt"
+        },
         "componentIds": [
           {
             "$from": "private-component",
@@ -3132,8 +3170,14 @@
           "$from": "private-maintenance",
           "pointer": "/maintenance/id"
         },
-        "startsAt": "2030-01-01T01:30:00.000Z",
-        "endsAt": "2030-01-01T02:30:00.000Z",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/updatedStartsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/updatedEndsAt"
+        },
         "autoStart": false,
         "autoComplete": false
       },
@@ -3189,8 +3233,14 @@
         "title": "Cancelled private maintenance",
         "affectedAudience": "Internal responders",
         "customerImpact": "Private component work",
-        "startsAt": "2030-01-01T01:00:00.000Z",
-        "endsAt": "2030-01-01T02:00:00.000Z",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/startsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/endsAt"
+        },
         "componentIds": [
           {
             "$from": "private-component",
@@ -3296,8 +3346,8 @@
       "tool": "lamp.subscribers.invite",
       "args": {
         "batchId": {
-          "$from": "subscribers",
-          "pointer": "/pendingBatches/0/batchId"
+          "$fixture": "batch",
+          "pointer": "/batchId"
         }
       },
       "expect": [
@@ -3315,8 +3365,8 @@
       "tool": "lamp.subscribers.invite",
       "args": {
         "batchId": {
-          "$from": "subscribers",
-          "pointer": "/pendingBatches/0/batchId"
+          "$fixture": "batch",
+          "pointer": "/batchId"
         }
       },
       "expect": [
@@ -4016,11 +4066,60 @@
       ]
     },
     {
+      "id": "reminder-maintenance",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Fresh native reminder window",
+        "affectedAudience": "API customers",
+        "customerImpact": "A planned API interruption",
+        "startsAt": {
+          "$fixture": "clock",
+          "pointer": "/startsAt"
+        },
+        "endsAt": {
+          "$fixture": "clock",
+          "pointer": "/endsAt"
+        },
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false,
+        "social": false
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
       "id": "pending-base-2026-10-28-reminder-window",
       "tool": "lamp.maintenance.remind",
       "args": {
         "id": {
-          "$from": "maintenance",
+          "$from": "reminder-maintenance",
           "pointer": "/maintenance/id"
         }
       },
@@ -4077,7 +4176,10 @@
         },
         "points": [
           {
-            "at": 0,
+            "at": {
+              "$fixture": "clock",
+              "pointer": "/minute"
+            },
             "value": 123
           }
         ]
@@ -4997,6 +5099,20 @@
         "private-component",
         "private-component-update"
       ]
+    },
+    "fixtures": {
+      "module": "tests/agent-door/phase-fixtures.mjs"
     }
-  }
+  },
+  "capabilities": [
+    "tools",
+    "policy",
+    "pause",
+    "audit",
+    "idempotency",
+    "events",
+    "resources",
+    "prompts",
+    "subscriptions"
+  ]
 }

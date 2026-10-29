@@ -6,9 +6,9 @@ import { createLampBusinessTeam } from './identity-team';
 /** The shared module owns signed settings and their durable Business IDs. */
 export function createBusinessSettings(services: AppServices, bindings: AppBindings) {
   const settings = sharedBusinessSettings({db: bindings.DB, trust: bindings.RER_BUSINESS_TRUST,
-    // `operator` names Lamp's existing equal-authority product role; it does
-    // not grant the Business owner policy role to a signed team member.
-    business: {settings: 1, values: ['display_name', 'owner_name', 'brand_color', 'logo', 'timezone'], team: {roles: {admin: 'operator', member: 'operator'}}},
+    // Signed team admins receive native Admin, members the native member floor
+    // (Viewer until a person explicitly assigns a stronger product role).
+    business: {settings: 1, values: ['display_name', 'owner_name', 'brand_color', 'logo', 'timezone'], team: {roles: {admin: 'admin', member: 'member'}}},
     team: createLampBusinessTeam(services, bindings)});
   return {...settings, async handle(request: Request) {
     const response = await settings.handle(request);

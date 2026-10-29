@@ -8,8 +8,8 @@ The door supports the 2026-07-28 and 2025-11-25 protocol versions.
 
 Business supplies signed installation settings with durable owner and teammate
 IDs. An agent token carries the sponsoring person, consent and scopes. Token email
-never selects an operator. Every admitted Lamp operator currently has equal native
-product authority; signed Business owner/editor policy roles are separate.
+never selects an operator. Current native Owner/Admin, Communicator, Responder and Viewer permissions apply
+to every tool and resource. Signed Business owner/editor policy roles are separate.
 
 The company adopts signed policy at `/api/rer/agent-policy`. It chooses autonomous,
 review, approval or blocked dispositions for each class. Unset, unanswered or
@@ -22,7 +22,7 @@ Native management credentials retain their original read or metric-point scopes
 and sponsoring operator. Credential issuance, recent email proof, chat identity
 linking, connection secrets and import apply retain their native person doors.
 Some delegated native owner operations remain unavailable until the shared native
-owner API supports Lamp's equal-owner model; the door returns an explicit refusal.
+owner API supports Lamp's native owner invitation and proof boundary; the door returns an explicit refusal.
 See [Native proof for protected changes](agent-native-proof.md) for the person proof workflow and current limits.
 
 ## Communicate an incident
@@ -189,4 +189,4 @@ limits remain authoritative.
 
 ## Verification
 
-This edition pins the published rer 0.2.86 CLI. Normal `rer verify` exercises its installed conformance runner against a disposable production installation; the Verify build job uses the same entry point before the browser shards. Dated Base dependencies remain failing assertions, rather than skipped capabilities. Native delegated owner administration, current-time declarative fixtures, hosted public-origin access and queue-consumer proof still have explicit upstream dependencies. The native person screens remain authoritative for unsupported owner commands.
+This edition pins the published rer 0.2.88 CLI. Normal `rer verify` exercises its installed conformance runner against a disposable production installation; the Verify build job uses the same entry point before the browser shards. Dated Base dependencies remain failing assertions, rather than skipped capabilities. Fresh native phase fixtures supply current maintenance windows, minute aggregates, silent import batches and scoped native read clients. Approved replay, state-changing injection probes, delegated owner administration, due-dispatch fixtures, hosted public-origin access and trusted per-step queue proof retain dated dependencies. The native person screens remain authoritative for unsupported owner commands.
