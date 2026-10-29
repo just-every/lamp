@@ -18,6 +18,14 @@ export async function runV2AdmissionFlow(t) {
     body: { pageName: 'Native admission status', tagline: 'Incident communication', accentColor: '#163c60', timezone: 'UTC', hostname: 'page.example.test', footerCreditEnabled: true } }), r.bindings);
   assert.equal(configured.status, 201);
   const person = (path, method = 'GET', body) => agentDoor.handle(r.request(path, { method, body, cookie: r.cookie }));
+  const approve = async held => {
+    const path = `/agents/api/approvals/${held.approval.id}`;
+    const { approval } = await (await person(path)).json();
+    const response = await person(`${path}/approve`, 'POST', { revision: approval.revision, summary_sha256: approval.summary_sha256 });
+    assert.equal(response.status, 200);
+    const decided = await response.json();
+    assert.equal(decided.approval.state, 'executed', JSON.stringify(decided));
+  };
   const policy = async disposition => {
     const rules = [{ id: 'v2', class: '*', do: disposition, ...(disposition === 'approval' ? { approver: ['sponsor'], wait: 'PT1H' } : {}) }];
     assert.equal((await person('/agents/api/policy', 'PUT', { document: { schema: 'rer-agent-policy/1', catalogue: 'rer-agent-classes/1', rules, spend: { none: true } } })).status, 200);
@@ -99,8 +107,18 @@ export async function runV2AdmissionFlow(t) {
   const publication = { id: incident.result.incident.id, version: incident.result.version, channels: [], idempotency_key: crypto.randomUUID() };
   assert.equal((await agentDoor.invoke('lamp.incidents.publish', publication, limited)).code, 'native_forbidden');
   await setRole('communicator');
-  const communicated = await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited);
+  await policy('approval');
+  const approvedPublication = { ...publication, idempotency_key: crypto.randomUUID() };
+  const pendingPublication = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
+  assert.equal(pendingPublication.outcome, 'pending');
+  await approve(pendingPublication);
+  const communicated = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
   assert.equal(communicated.outcome, 'done', `A current Communicator can publish the same native draft: ${communicated.code}`);
+  const repeatedPublication = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
+  assert.deepEqual(repeatedPublication.result, communicated.result, 'An approved retry returns the original native publication');
+  assert.deepEqual(repeatedPublication.receipt, communicated.receipt, 'An approved retry retains the original receipt');
+  assert.deepEqual(repeatedPublication.decision.classes, pendingPublication.decision.classes, 'An approved retry keeps the original classes');
+  await policy('autonomous');
   await setRole('viewer');
   assert.equal((await agentDoor.invoke('lamp.incidents.read', { id: publication.id }, limited)).outcome, 'done');
   assert.equal((await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited)).code, 'native_forbidden', 'A demotion stops the next agent mutation');

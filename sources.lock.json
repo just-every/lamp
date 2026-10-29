@@ -432,7 +432,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "1e10d80ef94d2bd86fccb6ba028a318a42c80acb6ccdff2abbde4a4f82ef1f28",
+      "sha256": "4e04314a65cfc996d43bf48ef557905bc72c34fa623f746854a3caa7f2409ddf",
       "executable": false
     },
     ".gitignore": {
@@ -8792,7 +8792,7 @@
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
-      "sha256": "35082a979c1d6d10627deff8f7b737ff0c31197def0515941f95478ed494ca8b",
+      "sha256": "4d1237f5b0567bdd9e35abf6e462dc600df4da71679c9da5449aaa247cc2a59c",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {
