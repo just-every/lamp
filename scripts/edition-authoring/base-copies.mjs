@@ -534,7 +534,7 @@ export function refreshCopies(root, {positional: [revision], record: recordPath,
     notices = templates.notices;
     completeWorkflowHelpers(root, plans, {tree: next, read, revision});
     const relocations = new Map();
-    const withheld = completeModuleCopies(root, plans, {tree: next, read, revision, base: origin.repository, baseArchive, recordPath, ownerSources, relocations,
+    const {withheld, packageDependencies} = completeModuleCopies(root, plans, {tree: next, read, revision, base: origin.repository, baseArchive, recordPath, ownerSources, relocations,
       deliveries: migrations.flatMap(step => step.deliver.map(source => ({source, origin: step.origin, importers: step.copies})))});
     // Closure may add individually recorded siblings when the seed originally
     // selected runtime files one at a time instead of copying the directory.
@@ -602,7 +602,7 @@ export function refreshCopies(root, {positional: [revision], record: recordPath,
       }
     }
     fs.writeFileSync(filename, json(record));
-    return {refreshed: revision, record: recordPath, copies: changes, retired: plans.filter(plan => plan.retired).map(plan => plan.copy.path), adapted, relocated: [...relocations.keys()], withheld, editionMigrations: migrations.map(({id, guide, edit, copies}) => ({id, guide, edit, copies})), ...templates, next: 'Run verify-base, then the edition tests, and commit the copied files with the record.'};
+    return {refreshed: revision, record: recordPath, copies: changes, retired: plans.filter(plan => plan.retired).map(plan => plan.copy.path), adapted, relocated: [...relocations.keys()], withheld, packageDependencies, editionMigrations: migrations.map(({id, guide, edit, copies}) => ({id, guide, edit, copies})), ...templates, next: 'Run verify-base, then the edition tests, and commit the copied files with the record.'};
   } catch (error) {
     if (!writing && !/no files were refreshed/i.test(error.message)) error.message += ' No files were refreshed.';
     if (!writing && notices.length) error.message += '\n' + notices.join('\n');

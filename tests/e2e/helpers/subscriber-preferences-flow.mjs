@@ -1,16 +1,21 @@
 import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { chromium } from "playwright";
 import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
 
 /** SUB-016: preferences are chosen and changed through public doors; actual
  * publication and maintenance notices cross only the recorded provider edge. */
 export async function subscriberPreferencesFlow() {
   const fixture = await openSubscriberManagementFixture();
+  let browser;
   fixture.recoverWebhook();
   const thresholdEmail = "synthetic-lamp-threshold@example.test";
   const maintenanceEmail = "synthetic-lamp-maintenance@example.test";
   try {
     const { api, post, raw } = fixture;
     const component = await fixture.createComponent("Synthetic Lamp preference API");
+    const other = await fixture.createComponent("Synthetic Lamp other preference API");
     const subscribe = async (email, eventKinds, minimumImpact) => {
       const form = new URLSearchParams({ email, componentId: component.id, preferencesPresent: "1" });
       for (const eventKind of eventKinds) form.append("eventKind", eventKind);
@@ -31,6 +36,39 @@ export async function subscriberPreferencesFlow() {
     const managed = await raw(manageUrl);
     assert.equal(managed.status, 200);
     assert.match(await managed.text(), /name="eventKind"/);
+    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH, headless: true, args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, javaScriptEnabled: false });
+    // Forward only the public host to the real Worker, with no operator cookie.
+    await context.route(`${pageOrigin}/**`, async route => {
+      const request = route.request();
+      const response = await raw(request.url(), { method: request.method(), headers: request.headers(), body: request.postDataBuffer() ?? undefined });
+      await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
+    });
+    const page = await context.newPage();
+    assert.equal((await page.goto(manageUrl)).status(), 200);
+    await page.getByRole("heading", { name: "Manage subscription", exact: true }).waitFor();
+    assert.deepEqual(await context.cookies(), [], "management opens without an operator session");
+    assert.equal(await page.getByText("Channel: email", { exact: true }).isVisible(), true, "the emailed link visibly identifies the actual subscription channel");
+    assert.equal(await page.getByRole("checkbox", { name: component.name, exact: true }).isChecked(), true, "the saved component is selected");
+    assert.equal(await page.getByRole("checkbox", { name: other.name, exact: true }).isChecked(), false, "another visible component is not selected");
+    if (process.env.LAMP_BROWSER_EVIDENCE) {
+      await mkdir(process.env.LAMP_BROWSER_EVIDENCE, { recursive: true });
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: join(process.env.LAMP_BROWSER_EVIDENCE, `email-management-${width}.png`), fullPage: true });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
+    // Use the script-free form itself, then independently reload its saved result.
+    await page.getByRole("checkbox", { name: other.name, exact: true }).check();
+    await page.getByRole("checkbox", { name: "Incidents", exact: true }).uncheck();
+    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Save selection", exact: true }).click()]);
+    await page.getByRole("heading", { name: "Subscription updated", exact: true }).waitFor();
+    assert.equal((await page.goto(manageUrl)).status(), 200);
+    assert.equal(await page.getByRole("checkbox", { name: component.name, exact: true }).isChecked(), true);
+    assert.equal(await page.getByRole("checkbox", { name: other.name, exact: true }).isChecked(), true, "changed component selection survives a fresh management read");
+    assert.equal(await page.getByRole("checkbox", { name: "Incidents", exact: true }).isChecked(), false);
+    assert.equal(await page.getByRole("checkbox", { name: "Maintenance", exact: true }).isChecked(), true);
     const changed = await raw(manageUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: pageOrigin }, body: new URLSearchParams({ componentId: component.id, preferencesPresent: "1", eventKind: "maintenance" }).toString() });
     assert.equal(changed.status, 200, await changed.text());
     const webhook = await post("/api/app/subscribers/webhook", { destination: "https://receiver.example.test/synthetic-lamp-1", contactEmail: "synthetic-lamp-preferences-contact@example.test", componentIds: [component.id], eventKinds: ["maintenance"] });
@@ -101,5 +139,14 @@ export async function subscriberPreferencesFlow() {
     assert.equal(fixture.webhookRequests.length, hooksBeforeStart + 1, "maintenance-only webhook receives the start notice once");
     assert.equal(fixture.webhookRequests.at(-1).body.event, "maintenance.notice.published");
     assert.equal(fixture.webhookRequests.at(-1).body.maintenance.notice, "started");
-  } finally { await fixture.close(); }
+
+    await page.goto(manageUrl);
+    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Unsubscribe", exact: true }).click()]);
+    await page.getByRole("heading", { name: "Unsubscribed", exact: true }).waitFor();
+    const stoppedSubscription = (await fixture.list()).find(row => row.id === maintenance.id);
+    assert.equal(stoppedSubscription.state, "deactivated");
+    assert.equal((await raw(manageUrl)).status, 404, "unsubscribe revokes the emailed management link");
+    assert.equal((await raw(manageUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: pageOrigin }, body: new URLSearchParams({ componentId: other.id }).toString() })).status, 404, "replaying the old management link cannot reactivate or edit the subscription");
+    assert.deepEqual((await fixture.list()).find(row => row.id === maintenance.id), stoppedSubscription, "refused replay leaves the entire subscription unchanged");
+  } finally { try { await browser?.close(); } finally { await fixture.close(); } }
 }

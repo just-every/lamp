@@ -301,7 +301,14 @@ runtime imports require an explicit filename, as in Node. Relative `require` dir
 lookups use `package.json`'s runtime `main`, never its type metadata. Local package
 self-references and `imports` maps use Node's actual resolver and active runtime
 conditions; `types` is enabled only for erased edges. Export targets are exact
-files for both loaders. Unknown external packages remain package-manager inputs.
+files for both loaders. External package imports, including subpaths and erased
+type imports, must be declared in the seed's package manifest. Refresh reports
+the seed and Base versions in `packageDependencies`, preserving existing version
+conflicts without editing manifests or lockfiles. Optional new source graphs
+with undeclared packages are withheld together; required missing packages refuse
+before writes. Adopt a selected dependency with the seed's package manager and
+repeat refresh. The maintained Drizzle reference is optional, not a requirement
+for native D1 editions.
 Imports already unresolved in that same file before refresh remain untouched,
 except for missing authoring-toolkit bootstrap siblings and recorded removals.
 Files required elsewhere in the refresh plan may also satisfy these imports,

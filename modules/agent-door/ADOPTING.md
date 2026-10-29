@@ -687,14 +687,35 @@ TypeScript without excluding any copied files.
 ## Current admission on replay
 
 Idempotency keys retain outcomes, not authority. Every retry rechecks the current
-credential, sponsor, agent and consent revocation, scope, pause, native
-classification and policy before returning saved content. A refusal has its own
+credential, sponsor, agent and consent revocation, scope, pause and policy before
+returning saved content. Read-only retries re-run native target, classification
+and visibility checks. A completed mutation instead uses its retained native
+target and effect facts: deletion, a consumed schedule/draft, changed risk or a
+restore/grant/role that is now a no-op must not rerun preparation callbacks. A refusal has its own
 audit row and never includes the saved result. A new approval or review
 requirement returns `approval_required` or `review_required`; an old approval
 cannot authorize a newer policy revision. Accepted mutation replay does not
 execute or count the native effect again. Record revision preconditions guard first
 execution; they do not reject a successful replay merely because that execution
-advanced the record revision.
+advanced the record revision. Changing `expected_revision` changes the request
+and still returns `idempotency_conflict`. Pending, rejected and refused outcomes
+never become completed receipts, and approval execution still rechecks the native
+revision, exact summary and classification before making its one effect.
+
+Known limitation (A1, deferred): an approved native DELETE retried with its
+original key can return `not_found` when its classifier reads the deleted target.
+The classifier must still enforce current native authority; authority-preserving
+replay for deleted targets follows.
+
+The response decision and replay audit describe current policy admission against
+the recorded effect facts. For approved calls, `_meta["com.runeditrun/receipt"].decision` retains the original
+decision, including classes/facts, revision and approval/review disposition;
+the existing review metadata retains the original review when present. The native output
+retains its consumed version. Conformance checks original class evidence against
+that receipt separately from current admission; refresh runtime and conformance
+together. Receipt access still requires current scopes (including `currentScopes`
+for native grants) and any required native proof. Do not put mutations into a
+scope or proof resolver.
 
 Completed read-only approval replays, including aggregate tools, execute the
 native read again with the caller's current identity and grants. Target and
@@ -1033,13 +1054,13 @@ journey hook runs after the standard phases; it cannot prepare a mandatory step
 that has already run. Keep native receipt ownership and service-grant checks.
 
 An idempotent native creation can consume its own preparation precondition
-(for example, an unused schedule identity or revision zero). Native target and
-classification callbacks currently run again before returning a saved outcome.
-If those callbacks reject already-completed work, the adapter must distinguish
-current replay authorization from fresh-effect preparation. Returning a cached
-result before native authorization or current policy would remove required
-admission checks. This needs a native replay-admission contract; the shared
-runtime does not infer one from a revision refusal.
+(for example, an unused schedule identity or revision zero). Completed mutation
+retries use the retained effect facts for current policy and the original native
+target for audit. Fresh and pending calls still execute target, classification,
+authority and revision checks. Use `currentScopes` for current native grants and
+native proof for a required recent human authentication: these admission checks
+run on completed retries as well. A retained receipt never executes the mutation
+again. See [current admission on replay](#current-admission-on-replay).
 
 ## Declare a door subset
 

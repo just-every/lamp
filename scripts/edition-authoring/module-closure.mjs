@@ -6,6 +6,7 @@ import {dependencies, resolve, external, bindings, lexicalExports} from './runti
 import {relocateDependencies} from './module-edges.mjs';
 import {sharedNamespaces} from './copy-namespaces.mjs';
 import {acknowledgementCommand} from './base-acknowledgements.mjs';
+import {checkModulePackages} from './module-packages.mjs';
 const code = name => /\.(?:[cm]?[jt]s|[jt]sx)$/.test(name) && !testSource(name);
 const inside = (name, prefix) => prefix === '.' ? !name.startsWith('../') && !path.posix.isAbsolute(name) : name === prefix || name.startsWith(prefix + '/');
 const mapped = (source, copy) => copy.path + source.slice(copy.originPath.length);
@@ -42,6 +43,8 @@ export function completeModuleCopies(root, plans, {tree, read, revision, base, b
     for (const target of Object.keys(plan.copy.adapted ?? {})) enqueue(plan, plan.copy.originPath + target.slice(plan.copy.path.length), null, true);
   }
   const directoryAdditions = new Set([...planned].filter(([target, {plan}]) => !Object.hasOwn(plan.copy.files, target) && !tree.has(plan.copy.originPath)).map(([target]) => target));
+  const packageRoots = new Set([...planned.keys()].filter(target => !directoryAdditions.has(target)));
+  for (const {target, adapted} of queue) if (adapted) packageRoots.add(target);
   function namespace(copy) {
     const file = Object.hasOwn(copy.files, copy.path) || tree.has(copy.originPath);
     if (file && path.posix.basename(copy.path) !== path.posix.basename(copy.originPath)) return {};
@@ -99,6 +102,7 @@ export function completeModuleCopies(root, plans, {tree, read, revision, base, b
     for (const target of new Set(targets)) {
       if (!witness(target, source)) refuse(target, 'migration delivery has no witnessed destination', '${EDITOR:-vi} base-copies.json');
       include(source, target);
+      packageRoots.add(target); // Explicitly consented migration delivery.
     }
   }
   // Template files can refer to another recorded copy whose Base origin is
@@ -269,5 +273,24 @@ export function completeModuleCopies(root, plans, {tree, read, revision, base, b
     }
     if (!adapted && edges.some(edge => edge.relocation)) relocations.set(target, Buffer.from(relocateDependencies(bytes, edges)));
   }
-  return withheld;
+  const modules = new Map();
+  for (const [target, {source, entry}] of planned) if (/\.(?:[cm]?[jt]s|[jt]sx)$/.test(source)) {
+    const bytes = blob(entry);
+    modules.set(target, {source, bytes, dependencies: requests(bytes, source, target).map(request => edge(source, target, request).destination).filter(Boolean)});
+  }
+  for (const {source, target, adapted} of queue) if (adapted) {
+    const bytes = local(target);
+    // Adaptations are roots of the retained graph; their own package choices
+    // stay seed-owned, while new delivered dependencies must be declared.
+    modules.set(target, {source, bytes: '', dependencies: requests(bytes, source, target).map(request => edge(source, target, request).destination).filter(Boolean)});
+  }
+  const packages = checkModulePackages(root, modules, packageRoots, tree);
+  for (const [target, item] of packages.withheld) {
+    const {plan, source} = planned.get(target);
+    plan.sources = plan.sources.filter(([name]) => name !== source);
+    planned.delete(target); relocations.delete(target); withheld.push(item);
+  }
+  // Closure-created singletons with no retained files need no empty record.
+  for (let i = plans.length - 1; i >= 0; i--) if (!plans[i].sources.length && !Object.keys(plans[i].copy.files).length) plans.splice(i, 1);
+  return {withheld, packageDependencies: packages.packageDependencies};
 }

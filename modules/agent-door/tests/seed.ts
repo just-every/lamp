@@ -1,6 +1,8 @@
 import { createAgentDoor, defineTool, operatorAuthPeople, ToolRefusal } from '../index.ts'
 import type { ToolDefinition, ToolContext } from '../index.ts'
 import { sponsorTools } from './sponsor-tools.ts'
+import { mutationTools } from './mutation-tools.ts'
+import { peopleTools } from '../../../default-seed/src/agent-door/people-tools.ts'
 import { createBusinessSettings } from '../../business-settings/index.ts'
 import { createOperatorAuth, createAuthHandler } from '../../operator-auth/index.mjs'
 
@@ -80,6 +82,8 @@ export default {
         async run(args, ctx) { await env.DB.prepare('INSERT INTO test_sent(id) VALUES(?)').bind(args.id).run(); ctx.emit('record.sent', `synthetic://record/${args.id}`); return { result: { id: args.id } } } }),
       defineTool({ name: 'synthetic.access.change', title: 'Change authority', description: 'Change authority of a named person.', scope: 'records:write', readOnly: false, summary: args => ({ target: { id: String(args.id) }, role: String(args.role ?? 'admin') }), inputSchema: object({ id: text, role: {type:'string',enum:['admin','member']} }, ['id']), outputSchema: idInput, classes: ['access'], clauses: ['BASE-AGENT-006'], authority: async args => ({ subject: args.id as string, widens: args.role !== 'member' }), classify: (args,ctx) => { if (args.role !== 'member' && String(args.id).toLowerCase() === ctx.person.email.toLowerCase()) throw new ToolRefusal('classifier_refused'); return [{ class: 'access', facts: { measure: 1, direction: args.role === 'member' ? 'narrows' : 'widens' } }] }, async run(args, ctx) { await env.DB.prepare("UPDATE oa_operators SET role=? WHERE id=? AND role<>'owner'").bind(args.role ?? 'admin',args.id).run(); ctx.emit('operator.role.changed', `synthetic://operator/${args.id}`); return { result: { id: args.id } } } }),
     ]
+    if (config.mutationReplay) tools.push(...mutationTools(env.DB))
+    if (config.nativePeople) tools.push(...peopleTools({ ...config, DB: env.DB }).filter(tool => tool.name === 'base.people.create'))
     if (config.nativeTargets) for (const tool of tools.filter(tool => tool.name.startsWith('synthetic.records.') && tool.name !== 'synthetic.records.list')) {
       tool.target = async args => ({ kind: 'record', id: config.nativeTargets === 'invalid' ? '' : config.nativeTargets === 'mutable' ? (await read(String(args.id)))?.value ?? String(args.id) : `redacted:${String(args.id)}` })
     }
@@ -103,7 +107,7 @@ export default {
     if (config.sponsorSurface) tools.push(...sponsorTools(env.DB, auth))
     const door = createAgentDoor({ seed: config.seed, name: 'Synthetic Base', specialist: 'operations', origin: config.origin, db: env.DB, trust: JSON.parse(env.TRUST), now,
       currentScopes: async principal => { const grant = await env.DB.prepare('SELECT scopes FROM test_grants WHERE agent=?').bind(principal.agent.id).first<{ scopes: string }>(); return grant ? JSON.parse(grant.scopes) : principal.scopes },
-      tools: config.toolNames ? config.toolNames.map((name: string) => ({ ...tools[0], name })) : tools, limits: config.limits, people: operatorAuthPeople({ db: env.DB, allowList, session: request => auth.getSession(request) }),
+      tools: config.nativePeople ? tools.filter(tool => tool.name === 'base.people.create') : config.toolNames ? config.toolNames.map((name: string) => ({ ...tools[0], name })) : tools, limits: config.limits, people: operatorAuthPeople({ db: env.DB, allowList, session: request => auth.getSession(request) }),
       localCredentials: async request => request.headers.get('authorization') === `Bearer ${env.LOCAL_TOKEN}` ? { sponsor: { id: (await env.DB.prepare('SELECT claim_id FROM oa_bootstrap WHERE singleton=1').first<{claim_id:string}>())!.claim_id }, agent: { id: 'synthetic-base-local', name: 'Synthetic Local' }, scopes: ['records:read','records:write','events:read'] } : null,
       resources: [{ uriTemplate: 'synthetic://record/{id}', name: 'Record', scope: config.resourceScope, classes: ['sensitive'], classify: () => [{ class: 'sensitive', facts: { measure: 1, kind: 'tax' } }], read: async (uri, ctx) => { await env.DB.prepare("INSERT INTO test_contexts(kind) VALUES('read')").run(); const row = await read(uri.split('/').pop()!); return row && row.exposure !== 'hidden' && (!row.exposure.startsWith('service:') || ctx.scopes.includes(row.exposure) && ctx.clientId === row.exposure) ? { json: row, untrusted: true } : null } }],
       onEvent: async event => { await env.DB.prepare('INSERT INTO test_callbacks(id,event) VALUES(?,?)').bind(event.id, JSON.stringify(event)).run() },
