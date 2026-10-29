@@ -8,7 +8,7 @@ const DARK = { background: '#101418', surface: '#1b2128', text: '#eef2f5', link:
 const LABELS = { background: 'Background', surface: 'Surface', text: 'Text', link: 'Links', operational: 'Operational', degraded: 'Degraded performance', partial: 'Partially unavailable', major: 'Major outage', maintenance: 'Maintenance' };
 
 export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSettings, updateSettings, sessionId, cookieName, diagnostic }) {
-  const directory = 'test-results/theme-004-005';
+  const directory = './test-results/theme-004-005';
   await mkdir(directory, { recursive: true });
   const api = async (path, method, value) => {
     const response = await appFetch(path, { method, body: JSON.stringify(value) });
