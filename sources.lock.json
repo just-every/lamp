@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "4fd2270c52f25749caa6ef1a2a1a0ab90203cb3ea7d1e18f2ef85c8dccb273e5",
+      "sha256": "9060871770309add9a69164317a4d444a6e5e618dbcb35dd04c2fa3f48baa532",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "bdaae580562b960fa48a18dd65fcc5038474f4d4cc01dc50dd3e001f9ccf0104",
+      "sha256": "1813dbfaa19e5276eac9b423c0398b1df372bc68c88f4b578a0e7281e709e3c0",
       "executable": false
     },
     "DEMO.md": {
@@ -4036,7 +4036,7 @@
       "executable": false
     },
     "src/core/features/intake/rule-repository.ts": {
-      "sha256": "818920b69bc7d3e74aaac4c67aeecf7db2cfc172b07ef017c5087c8fe5994578",
+      "sha256": "3db6dad974701dff994a1e6f898b082212db78d85e640c6657221271f1a9465d",
       "executable": false
     },
     "src/core/features/intake/rule-routes.ts": {
