@@ -5,7 +5,10 @@ export default async function invoke({ name, args, who, worker }) {
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
     const result = await jobs.result(id);
-    if (result) return result;
+    if (result) {
+      console.log(`Native queued invocation: ${JSON.stringify({ outcome: result.outcome, code: result.code ?? null })}`);
+      return result;
+    }
     await new Promise(resolve => setTimeout(resolve, 20));
   }
   throw new Error('Native queued invocation did not complete');

@@ -8036,11 +8036,11 @@
       "executable": false
     },
     "tests/agent-door/invoke.mjs": {
-      "sha256": "dca0e8bac1e787e5114b7f652335a0ba74b8d891437e01b2dd8083f34486bd8c",
+      "sha256": "39d3bcb53448afad3199d5a4e23bded8f9ff5582a53d42fc3eb362cb50767181",
       "executable": false
     },
     "tests/agent-door/native-pages.mjs": {
-      "sha256": "8d4bd85901764cc5d764f40fe224a7addd9a1071f5e00f82fed63e65c15d8aa6",
+      "sha256": "47b48216ae83c8f37914f6bc349964e9eb5934bdd17eaaabe22c25babfbf84bc",
       "executable": false
     },
     "tests/agent-door/owner-fixtures.mjs": {

@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 /** Inspect the same fresh production Worker already owned by rer verify. */
 export async function inspectNativePages({ request, origin, cookie }) {
+  console.log('Native pages: reading current approvals');
   const person = async (path, method = 'GET', body) => {
     const response = await request(new URL(path, origin).href, { method,
       headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' },
@@ -15,10 +16,14 @@ export async function inspectNativePages({ request, origin, cookie }) {
   const { approvals } = await person('/agents/api/approvals');
   const pending = approvals.find(item => item.state === 'pending');
   const executed = approvals.find(item => item.state === 'executed');
+  console.log(`Native pages: approvals ${JSON.stringify({ pending: Boolean(pending), executed: Boolean(executed) })}`);
   assert.ok(pending && executed, 'The real held-policy journey supplies pending and executed approvals');
   const { incidents } = await person('/api/app/incidents');
   const incident = incidents.find(item => item.updates?.length || item.updateCount > 0);
+  const resolved = incidents.find(item => item.lifecycle === 'Resolved');
   assert.ok(incident, 'The real autonomous journey supplies a published incident');
+  assert.ok(resolved, 'The real autonomous journey supplies a resolved incident and report');
+  console.log('Native pages: launching Chromium');
   const browser = await chromium.launch({ headless: true });
   let paused = false;
   try {
@@ -42,7 +47,7 @@ export async function inspectNativePages({ request, origin, cookie }) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       const serious = (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze())
         .violations.filter(item => ['serious', 'critical'].includes(item.impact));
-      const smallControls = await page.locator('form[data-approval-action] button, form[data-agents-pause] button').evaluateAll(buttons =>
+      const smallControls = await page.locator('form[data-approval-action] button, form[data-agents-pause] button, :is(.incident-page, .maintenance-workspace, .agent-deliveries-page, #audit-log) :is(button, select, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), summary)').evaluateAll(buttons =>
         buttons.filter(button => { const box = button.getBoundingClientRect(); return box.width > 0 && box.height > 0 && (box.width < 44 || box.height < 44); }).map(button => button.textContent));
       console.log(`PAGE_CHECK ${JSON.stringify({ label, width, overflow, serious: serious.map(item => item.id), smallControls })}`);
       if (!process.env.GITHUB_ACTIONS) console.log(`PAGE_IMAGE ${label}-${width} ${(await page.screenshot({ fullPage: !label.startsWith('agents-') })).toString('base64')}`);
@@ -51,6 +56,7 @@ export async function inspectNativePages({ request, origin, cookie }) {
       assert.deepEqual(smallControls, [], `${label}: controls need a 44px target`);
     };
     const view = async (label, path, width) => {
+      console.log(`Native pages: opening ${label} at ${width}`);
       await page.setViewportSize({ width, height: 1000 });
       await page.goto(new URL(path, origin).href, { waitUntil: 'networkidle' });
       await capture(label, width);
@@ -66,6 +72,13 @@ export async function inspectNativePages({ request, origin, cookie }) {
       await capture('approval-error', width);
       await view('approval-executed', `/agents/approvals/${executed.id}`, width);
       await view('incident-published', `/app/incidents/${incident.id}`, width);
+      await view('incident-report', `/app/incidents/${resolved.id}`, width);
+      await view('maintenance-attribution', '/app/maintenance', width);
+      await view('delivery-attribution', '/app/deliveries', width);
+      await view('audit-attribution', '/app/settings?tab=data', width);
+      await page.getByRole('button', { name: 'Open audit log', exact: true }).click();
+      await page.locator('#audit-log table').waitFor();
+      await capture('audit-records', width);
       await view('agent-guide', '/docs/agents', width);
       await view('native-proof-guide', '/docs/agent-native-proof', width);
     }
