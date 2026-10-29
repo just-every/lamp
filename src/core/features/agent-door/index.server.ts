@@ -21,6 +21,8 @@ import { withNativeTarget } from './targets';
 import { invokeQueuedAgentOperation } from './provenance.repository';
 import { nativeAuthority } from './native-authority';
 
+export const lampDoorCapabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency', 'prompts'] as const;
+
 function installationTrust(bindings: AppBindings): Trust | null {
   const configured = [bindings.RER_OWNER_CLAIM_PUBLIC_KEYS, bindings.RER_OWNER_CLAIM_ISSUER,
     bindings.RER_OWNER_CLAIM_INSTALLATION_ID, bindings.RER_OWNER_CLAIM_APP_ORIGIN].some(value => value !== undefined && value !== '');
@@ -49,7 +51,7 @@ export function createLampAgentDoor(services: AppServices, bindings: AppBindings
   const tools: ToolDefinition[] = registry.tools.map(tool => ({...tool,
     run: (args, ctx) => withAgentActor(ctx, () => tool.run(args, ctx)),
   }));
-  const door = createAgentDoor({seed: 'lamp', name: 'Lamp', specialist: 'incident-communicator',
+  const door = createAgentDoor({seed: 'lamp', name: 'Lamp', specialist: 'incident-communicator', capabilities: lampDoorCapabilities,
     db: bindings.DB, origin: authOrigin(bindings), trust: installationTrust(bindings), people,
     tools, nativeProof: proof.hooks, resources: registry.resources, ...createLocalCredentials(services, bindings),
     notTools: [

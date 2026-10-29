@@ -1,4 +1,12 @@
 {
+  "capabilities": [
+    "tools",
+    "policy",
+    "pause",
+    "audit",
+    "idempotency",
+    "prompts"
+  ],
   "schema": "rer-agent-surface/1",
   "seed": "lamp",
   "specialist": "incident-communicator",

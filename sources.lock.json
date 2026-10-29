@@ -452,7 +452,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "906204f9c0b5f65ef117d952b4256520d44412b0c8a2915e2419f535c8a4b90c",
+      "sha256": "ed6bda0dc05078d5280a4383ad9d15b816555df70b6dbca5d0d66d0915173838",
       "executable": false
     },
     "AGENTS.md": {
@@ -5440,7 +5440,7 @@
       "executable": false
     },
     "src/core/features/agent-door/index.server.ts": {
-      "sha256": "e918fa097bf698245407f8fc80f231295235b6e1d5e99ceb184e3f438edb0861",
+      "sha256": "26a1d07fcae3e1c9d797e92e936be59a9f632b312a1db10b0000d8a70979ab79",
       "executable": false
     },
     "src/core/features/agent-door/jobs.repository.ts": {
@@ -8748,7 +8748,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "bd3fce25122cd2b517c578b6992206ff2535b0c52d828a0bbeca1846b5f4616c",
+      "sha256": "93b317161d778200cb29e62404cc38c49601c67088a34af27594e701ffe278f7",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
