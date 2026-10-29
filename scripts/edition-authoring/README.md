@@ -236,8 +236,10 @@ distinguish omitted older files from new upstream additions without inventing a
 historical tree. Older records remain readable; to move one to a different pin
 from an archive, first refresh using `--base <checkout>` containing the recorded
 and target commits. A same-pin archive refresh can retain membership directly.
-Operations needing Git history, including migration ancestry and historical
-workflow adoption, refuse before writing and require a checkout. Use
+Archive workflow matching uses only the supplied revision: exact current
+template bytes can be recorded; unmatched workflow bytes remain seed-owned.
+Migration ancestry and historical source reads still refuse before writing and
+require a checkout. Use
 `verify-base --offline` to check local recorded bytes after an archive refresh,
 or `verify-base --base <checkout>` to also check Git provenance.
 
@@ -442,13 +444,18 @@ and `VERIFY-WORKFLOW.md` can be adopted when their exact bytes match a template
 in the requested Base commit's history (there are no seed substitutions).
 Acknowledged adaptations and divergent workflows stay untouched and receive a
 notice with the template changes and explicit merge/record instructions.
-An absent workflow is not automatically installed by this adoption step.
+An absent workflow is not automatically installed by this adoption step. With
+`--base-archive`, unrecorded workflows are preserved without requesting Git
+history; explicitly recorded workflows still update. See [adoption and historical
+0.2.82 recovery](../ADOPTING.md).
 
 Authoring refresh closes relative imports from every recorded authoring module,
 including singleton copies and modules whose Base origin is another maintained
 authoring mirror. It follows the bytes that will remain in the seed, including
 acknowledged local adaptations, and gives newly delivered siblings source records
-and digests. Tracked unrecorded siblings remain seed-owned: refresh preserves
+and digests. The lock identity also delivers the complete authoring tool file
+set, including vendored parser LICENSE and README files, so package and
+unadapted delivered tools accept the same source lock. Tracked unrecorded siblings remain seed-owned: refresh preserves
 them without traversing their imports. Untracked helper collisions, including
 ignored files and files matching Base bytes, refuse before writes, as do removed
 recorded dependencies still imported, conflicting mappings and symlinks. This

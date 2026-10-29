@@ -389,6 +389,11 @@ function validateClaimSource(text, rows = claimRows(text), old) {
 }
 function validateOriginalClaims(old, rows = claimRows(read('CONTRACT.md'))) {
   const selected = originalClaims(old), remaining = [...rows], problems = []
+  // An empty history imposes no retention constraint; current claims stay unique.
+  if (!selected.rows.length) {
+    const claims = rows.map(row => claimValue(row, 'Claim'))
+    if (new Set(claims).size === claims.length) return
+  }
   for (const [index, row] of selected.rows.entries()) {
     const source = sourceClaim(selected.file, row, index)
     const found = remaining.findIndex(current => claimValue(current, '#') === source.number && claimValue(current, 'Claim') === source.claim)
