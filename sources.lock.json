@@ -452,7 +452,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "90f5cb77c0f2f49bb5e8d077a0b9ae9f7b189816b47b737dc0eb20e2afac302e",
+      "sha256": "c0535000c58434b2b9f305f9a791a1c7ab70646c2644afd013518d1e0ed78f6f",
       "executable": false
     },
     "AGENTS.md": {
@@ -8768,7 +8768,7 @@
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
-      "sha256": "98776b7bfbc84b957c7600405e51b22ffb992584ba81c50a1f50432ac3d48b85",
+      "sha256": "5d9a35f2a7210f985580955e6183c0c87d812f1f285f731157ff810d6d9d5b73",
       "executable": false
     },
     "tests/agent-door/proof.mjs": {

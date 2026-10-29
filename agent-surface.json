@@ -3335,7 +3335,7 @@
       "tool": "lamp.subscribers.add",
       "args": {
         "channel": "email",
-        "email": "lamp-conformance-erase@example.com",
+        "email": { "$fixture": "privacySubscriber", "pointer": "/email" },
         "componentIds": []
       },
       "expect": [

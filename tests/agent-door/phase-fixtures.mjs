@@ -8,6 +8,7 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
   const { token } = nativeFixture();
   const values = {};
   values.directSubscriber = { email: `lamp-conformance-direct-${crypto.randomUUID()}@example.com` };
+  values.privacySubscriber = { email: `lamp-conformance-erase-${crypto.randomUUID()}@example.com` };
   const call = async (path, method = 'GET', body) => {
     const response = await request(new URL(path, origin).href, {
       method, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' },
