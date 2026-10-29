@@ -30,7 +30,7 @@ export async function publicCapacityJourney(j, limits) {
   const metrics = [];
   let browser;
   try {
-    const now = Date.now(), minute = Math.floor(now / 60_000) * 60_000;
+    const now = Date.now();
     const firstHour = components.at(-1), oneMinute = components.at(-2);
     const correction = async (component, startsAt, duration) => j.json(`/api/app/components/${component.id}/history-corrections`, 'POST', {
       state: 'Major outage', startsAt: new Date(startsAt).toISOString(), endsAt: new Date(startsAt + duration).toISOString(), reason: 'Verified historical customer request logs',
@@ -40,6 +40,7 @@ export async function publicCapacityJourney(j, limits) {
     for (let index = 0; index < 10; index++) {
       const metric = (await j.json('/api/app/metrics', 'POST', { componentId: components[0].id, provider: 'push', name: `Customer API latency ${index + 1}`, unit: 'ms' }, 201)).metric;
       metrics.push(metric);
+      const minute = Math.floor(Date.now() / 60_000) * 60_000;
       const points = Array.from({ length: 1440 }, (_, sample) => ({ at: minute - (1439 - sample) * 60_000, value: Math.round((100 + index + 25 * Math.sin(sample / 17)) * 100) / 100 }));
       await j.json(`/api/app/metrics/${metric.id}/points`, 'POST', { points });
     }
