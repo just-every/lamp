@@ -6843,6 +6843,10 @@
       "sha256": "4aaab9ae33babf6b3380df38c7de255b825b53661d153499e35ff614d8baa6b3",
       "executable": false
     },
+    "tests/e2e/helpers/public-component-deletion.mjs": {
+      "sha256": "b819e0100c4589284f08d9f90cba82b42b6e8bf44977b33b62a9f642fdb16c11",
+      "executable": false
+    },
     "tests/e2e/helpers/report-reminders-flow.mjs": {
       "sha256": "01ff8deb6d4186bb8973a5f8806bba7c3399907498dfdead787ff48f12488e78",
       "executable": false
@@ -6992,7 +6996,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "f9199615742a6e5746b42cd4a52989432831113a2fb88c302c3e1e0e8da61bb8",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
