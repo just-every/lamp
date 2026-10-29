@@ -460,7 +460,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "dc1982b23a08c72e2a40c12c997752e52e0218309051c9f3c0b37ae7796ce956",
+      "sha256": "616bd83728799136c6605abb57b5fef1d6038e4fa591e9adbfca54b776b1a43f",
       "executable": false
     },
     "BASELINE.md": {
@@ -2492,11 +2492,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "a95526af2cde19ae86575455116b5d144774e236cf8e4bd0b4b2e835aa3aebea",
+      "sha256": "6a56f2504e37a8c489e6ce9d0812974a399162844d857110e4e19b82bf5f049b",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "d3d070f3af4870a63f51dd441f7875235764a3002387546c6caf268b79136f1b",
+      "sha256": "9d0b2719a330c615bf6595a4cdf3b18639c4ce0d57965ba828265026b1cd8c61",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
