@@ -61,7 +61,7 @@ export function SettingsPage() {
   if (!settings || !saved) return null;
 
   const live = overview.data?.overview.live ?? null;
-  const components = (overview.data?.overview.components ?? []).filter(component => !component.internal).map(component => ({ name: component.name, state: component.publicState }));
+  const components = (overview.data?.overview.components ?? []).filter(component => !component.internal).map(component => ({ id: component.id, name: component.name, state: component.publicState }));
   const markSrc = saved.logoKey ? `/api/app/page-settings/brand/logo?v=${encodeURIComponent(saved.updatedAt)}` : `/api/app/page-settings/brand/mark?v=${encodeURIComponent(saved.updatedAt)}`;
   const configuration = ["page", "notifications", "writing", "embeds"].includes(tab);
 

@@ -1,3 +1,4 @@
+import { themeHeaderImage } from "./helpers/theme-fixture.mjs";
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -11,7 +12,7 @@ const wranglerRequire = createRequire(require.resolve('wrangler'));
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare');
 const { build } = wranglerRequire('esbuild');
 
-test('PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storage, database and queue failures, cold restart and an independent heartbeat silence alarm', async () => {
+test('THEME-001 PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storage, database and queue failures, cold restart and an independent heartbeat silence alarm', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'lamp-resilience-'));
   let runtime, j, monitor, alarmTimer;
   let receipt = null, alarm = false, pings = 0;
@@ -72,6 +73,14 @@ test('PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storag
       updates: [{ id: 'outage-update', incidentId: 'incident', lifecycle: 'Identified', affectedAudience: 'API customers', customerImpact: 'Major outage affects customer requests.', whatStillWorks: 'Status information remains available.', details: 'The operator is restoring service.', nextUpdateAt: new Date(Date.parse(publishedAt) + 3600000).toISOString(), publishedAt }],
       maintenance: [], maintenanceComponents: [], reports: [], maintenanceNotices: [],
     };
+    const image = themeHeaderImage();
+    const font = await readFile('src/core/features/public-snapshot/fonts/inter-latin.woff2');
+    const themeAssets = { header: { key: 'branding/theme-image', contentType: 'image/png' }, font: { key: 'branding/theme-font', contentType: 'font/woff2' } };
+    const bucket = await runtime.getR2Bucket('SNAPSHOTS');
+    await bucket.put(themeAssets.header.key, image);
+    await bucket.put(themeAssets.font.key, font);
+    source.settings.themeAssets = JSON.stringify(themeAssets);
+    source.settings.theme = JSON.stringify({ headerImage: true, font: 'uploaded' });
     const rebuild = async input => (await read('/test/rebuild', { method: 'POST', body: JSON.stringify({ source, ...input }) })).json();
     assert.equal((await read('/?storage=down')).status, 503, 'a fresh installation never invents an all-clear');
     const generation = await rebuild({ generation: 1 }); assert.equal(generation.failure, null);
@@ -92,6 +101,13 @@ test('PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storag
     }
     await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
     for (const path of paths) assert.equal((await read(path + '?storage=down&cold=1')).status, 200, `cold retained read ${path}`);
+    for (const [kind, bytes, type] of [['header', image, 'image/png'], ['font', font, 'font/woff2']]) {
+      const response = await read(`/assets/theme-${kind}?storage=down&cold=1`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), type);
+      assert.equal(response.headers.get('set-cookie'), null);
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes, 'the cold retained snapshot preserves uploaded theme bytes');
+    }
     assert.equal((await read('/health?storage=down')).status, 503);
     const restored = await rebuild({ generation: 3 }); assert.equal(restored.failure, null); assert.equal(restored.completed, true);
     for (const path of paths) { const response = await read(path); assert.equal(response.status, 200); assert.equal(response.headers.get('x-lamp-snapshot-state'), null); }

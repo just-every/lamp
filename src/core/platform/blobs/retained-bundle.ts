@@ -1,4 +1,4 @@
-export interface RetainedArtifact { key: string; body: string; contentType: string }
+export interface RetainedArtifact { key: string; body: string; contentType: string; encoding?: "base64" }
 export interface RetainedBundle {
   version: string;
   generatedAt: string;
@@ -22,5 +22,6 @@ export function readRetainedArtifact(encoded: string, key: string) {
   for (const required of ["page.html", "feed.atom", "widget.js", "status.json"]) if (!keys.has(required)) throw new Error("Retained snapshot is incomplete.");
   const artifact = bundle.artifacts.find((item) => item.key === key);
   if (!artifact) return null;
-  return { bytes: new TextEncoder().encode(artifact.body).buffer, contentType: artifact.contentType, version: bundle.version, generatedAt: new Date(bundle.generatedAt).toISOString(), stale: true };
+  const bytes = artifact.encoding === "base64" ? Uint8Array.from(atob(artifact.body), character => character.charCodeAt(0)).buffer : new TextEncoder().encode(artifact.body).buffer;
+  return { bytes, contentType: artifact.contentType, version: bundle.version, generatedAt: new Date(bundle.generatedAt).toISOString(), stale: true };
 }

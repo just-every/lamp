@@ -18,6 +18,7 @@ import { registerSetupRoutes } from "../features/setup/routes";
 import { createSetupRepository } from "../features/setup/repository";
 import { authResponse } from "../platform/auth/http";
 import { Hono } from "hono";
+import { publicPageOrigin } from "./public-origin";
 
 import type { AppBindings, AppEnv } from "./types";
 import { isLocalMailExecution, type MailExecution } from "./mail";
@@ -76,14 +77,19 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   for (const path of ["/auth/*", "/signin", "/.well-known/rer-*"]) app.all(path, context => authResponse(context.req.raw, bindings, services));
   registerHealthRoutes(app, healthService, bindings);
   registerSetupRoutes(app, services);
-  registerPublicSnapshotRoutes(app, services.publicSnapshots);
   app.use("/api/app/*", requireOperator(services.auth, request => authorizedReads.get(request)));
+  registerManagementApiRoutes(app, createManagementApiService(bindings.DB, services.auth), services.metrics, publicWriteLimiter, services.components, {incidents:{
+    request:async(input,origin,operatorId,authority)=>{const result=await services.subscribers.requestIncidentSubscription(input,publicPageOrigin(origin,bindings.LAMP_PAGE_HOST),authority,operatorId);return {subscriberId:result.subscriberId,created:result.created};},
+    list:(id,limit=100,offset=0)=>services.subscribers.listIncident(id,limit,offset),
+    remove:(incidentId,subscriberId,operatorId,authority)=>{if(!authority)throw new Error("Management authority is required.");return services.subscribers.removeIncidentSubscription(incidentId,subscriberId,operatorId,authority);},
+  }});
+  registerPublicSnapshotRoutes(app, services.publicSnapshots);
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
   registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailgunSigningKey: bindings.MAILGUN_WEBHOOK_SIGNING_KEY, sesEventTopicArn: bindings.SES_EVENT_TOPIC_ARN, postmarkWebhookSecret: bindings.POSTMARK_WEBHOOK_SECRET, secondaryMailProvider: bindings.MAIL_SECONDARY_PROVIDER, mailProvider: bindings.MAIL_PROVIDER, localMail, smsConfigured: services.sms.configured });
   registerMailSettings(app,bindings);
   registerTrafficAlertRoutes(app, services.trafficStorage);
   registerMetricsRoutes(app, services.metrics);
-  registerManagementApiRoutes(app, createManagementApiService(bindings.DB, services.auth), services.metrics, publicWriteLimiter, services.components);
+
   registerAlertRuleRoutes(app, services.alertRules);
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, onUptimeTiming: services.metrics.acceptUptime, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail, onErased: services.publicSnapshots.rebuild });
@@ -101,7 +107,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
-  registerIncidentFollowSettingsRoutes(app,bindings.DB);
+  registerIncidentFollowSettingsRoutes(app,bindings.DB,services.publicSnapshots.rebuild);
   registerSmsRoutes(app,services.sms,()=>services.subscribers.getPageName(),bindings.TWILIO_AUTH_TOKEN,publicWriteLimiter);
   registerTeamsSubscriptionRoutes(app, services.teamsSubscriptions, services.subscribers, publicWriteLimiter);
   registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));

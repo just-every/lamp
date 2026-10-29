@@ -1,3 +1,4 @@
+import { themeStyles } from "../theme-rendering";
 import type { PublicSnapshotModel } from "../renderer";
 import foundationSource from "../styles/foundation.css?raw";
 import sharedSource from "./styles/shared.css?raw";
@@ -20,7 +21,7 @@ export function templateStyles(template: TemplateName, model: PublicSnapshotMode
   const { accentColor } = model.settings;
   const foundation = foundationSource.replace("__LAMP_ACCENT_COLOR__", accentColor).replace("__LAMP_ACCENT_INK__", accentInk(accentColor));
   const generated = template === "regions" ? regionsMapStyles(model) : template === "uptime" ? historyLedStyles(model) : "";
-  return `${localPublicPageFonts}${foundation}${sharedSource}${sources[template]}${generated}`;
+  return `${localPublicPageFonts}${foundation}${sharedSource}${sources[template]}${generated}${themeStyles(model.theme, model.origin)}`;
 }
 
 export const templateScript = script;

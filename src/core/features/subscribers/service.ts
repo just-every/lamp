@@ -1,3 +1,4 @@
+import type { SubscriberWriteAuthority } from "./incident-authority";
 import { createIncidentSubscriptionService, type IncidentFollowInput } from "./incident.service";
 import type { IncidentSubscription } from "./incident.repository";
 import { renderEmailDocument } from "../../shared/email-branding";
@@ -43,7 +44,8 @@ export interface SubscribersService {
   createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[];webhookFormat?:WebhookFormat; preferences?: SubscriberPreferences }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(scheduledAt?: number): Promise<void>;
-  requestIncidentSubscription(input: IncidentFollowInput, origin: string): Promise<{id:string;reference:string;title:string}>;
+  requestIncidentSubscription(input: IncidentFollowInput, origin: string,authority?:SubscriberWriteAuthority,operatorId?:string): Promise<{id:string;reference:string;title:string;subscriberId:string;created:boolean}>;
+  removeIncidentSubscription(incidentId:string,subscriberId:string,operatorId:string,authority:SubscriberWriteAuthority):Promise<boolean>;
   getConfirmationIncident(token:string): Promise<IncidentSubscription|null>;
   listIncident(incidentId:string,limit:number,offset:number):Promise<SubscriberView[]>;
   inviteImported(subscriberId: string, origin: string, pageName: string, claimSend: () => Promise<boolean>): Promise<boolean>;
@@ -74,7 +76,7 @@ function escapeHtml(value: string) {
 
 export function createSubscribersService(
   repository: SubscriberRepository,
-  options: { sms?: SmsIntake & {subscribeIncident:(input:{incidentId:string;phone:string},origin:string)=>Promise<unknown>}; onLimitAlert?: (alert:{eventId:string;title:string;text:string})=>Promise<void>; pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
+  options: { sms?: SmsIntake & {subscribeIncident:(input:{incidentId:string;phone:string;includeReport?:boolean},origin:string,authority?:SubscriberWriteAuthority,operatorId?:string)=>Promise<{subscriberId:string;created:boolean}>}; onLimitAlert?: (alert:{eventId:string;title:string;text:string})=>Promise<void>; pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
 ): SubscribersService {
   const policy = options.confirmationPolicy ?? defaultSubscriberConfirmationPolicy;
   const tokens = options.tokenSecret ? new SubscriberTokenCodec(options.tokenSecret) : null;
@@ -155,6 +157,12 @@ export function createSubscribersService(
   });
   return {
     requestIncidentSubscription:incidentSubscriptions.request,
+    async removeIncidentSubscription(incidentId,subscriberId,operatorId,authority) {
+      const scope=await repository.incidents.get(subscriberId);
+      if(scope?.id!==incidentId)return false;
+      await repository.anonymizeAndDeactivate(subscriberId,operatorId,nowIso(),authority);
+      return true;
+    },
     async getConfirmationIncident(token) {
       const matched=await fromToken(token,"confirm");
       return matched?repository.incidents.get(matched.subscriber.id):null;
