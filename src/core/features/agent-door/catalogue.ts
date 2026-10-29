@@ -105,7 +105,7 @@ export function createCatalogueTools(services: AppServices, bindings: AppBinding
     scope: '', readOnly: false, inputSchema: nativeSchema(target), outputSchema: objectResult,
     classes: ['destructive', 'external', 'live'], clauses: ['COMP-007'], revisionType: 'string',
     revision: args => repository.componentRevision(parseNative(target, args).id),
-    async classify(args) { const current = await component(parseNative(target, args).id); return [{ class: 'destructive', facts: { measure: 1 } }, ...(!current.internal ? publicChange(true) : [])]; },
+    async classify(args, _ctx, completed) { if (completed) return [...completed]; const current = await component(parseNative(target, args).id); return [{ class: 'destructive', facts: { measure: 1 } }, ...(!current.internal ? publicChange(true) : [])]; },
     async summary(args) { const current = await component(parseNative(target, args).id); return { target: { id: current.id, name: current.name }, items: ['Remove this component and its public state/uptime projection; published references retain the name.'] }; },
     async run(args, ctx) { const { id } = parseNative(target, args); if (!await nativeEffect(() => services.components.remove(id, ctx.person.id))) throw new ToolRefusal('not_found'); emitNative(ctx, 'component.removed', componentUri(id)); return { result: { removed: true, id } }; },
   }));

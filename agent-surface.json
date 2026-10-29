@@ -3282,7 +3282,7 @@
       "tool": "lamp.subscribers.add",
       "args": {
         "channel": "email",
-        "email": "lamp-conformance-direct@example.com",
+        "email": { "$fixture": "directSubscriber", "pointer": "/email" },
         "componentIds": []
       },
       "expect": [
@@ -3300,7 +3300,7 @@
       "tool": "lamp.subscribers.add",
       "args": {
         "channel": "email",
-        "email": "lamp-conformance-direct@example.com",
+        "email": { "$fixture": "directSubscriber", "pointer": "/email" },
         "componentIds": []
       },
       "expect": [
