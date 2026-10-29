@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 17 | 172 | 49 | 238 |
+| Core | 18 | 171 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 17 | 172 | 54 | 243 |
+| Full target | 18 | 171 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. COMP-004 retains the candidate reassessment from `a98454ad2db1727433cfa2a2624c65ee575c8b82` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -272,7 +272,7 @@ Core · published · **partial**
 
 #### COMP-004 — State note
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A bounded plain-text note accompanies a component’s public state.
 
@@ -281,7 +281,7 @@ Core · published · **partial**
 2. A note of up to 250 characters appears beside that component’s state exactly as entered; a longer note is refused.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs` — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story: omitted-note creation returns HTTP 201 with an empty note, independently read back from the native catalogue; a populated note and the full 250-character plain-text note render beside the state; overlength creation and edit requests are refused without changing the catalogue; an omitted edit note is still refused.
-**Gap.** Exact-candidate native journey and Verify proof pending.
+**Gap.** None.
 
 #### COMP-005 — Internal components
 
