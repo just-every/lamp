@@ -83,6 +83,23 @@ export default {
     if (config.nativeTargets) for (const tool of tools.filter(tool => tool.name.startsWith('synthetic.records.') && tool.name !== 'synthetic.records.list')) {
       tool.target = async args => ({ kind: 'record', id: config.nativeTargets === 'invalid' ? '' : config.nativeTargets === 'mutable' ? (await read(String(args.id)))?.value ?? String(args.id) : `redacted:${String(args.id)}` })
     }
+    if (config.aggregateRead) tools.push(defineTool({
+      name: 'synthetic.context.read', title: 'Read client context', description: 'Read the aggregate visible through the native client grant.',
+      scope: 'records:read', readOnly: true, inputSchema: object({ required: { type: 'boolean' } }, []), outputSchema: object({ records: { type: 'array', items: { type: 'object' } } }),
+      classes: ['standard'], clauses: ['BASE-AGENT-012'], classify: () => [{ class: 'standard', facts: { measure: 1 } }],
+      async run(args, ctx) {
+        if (!ctx.approvers.length) throw new ToolRefusal('native_approval_required')
+        const grant = await env.DB.prepare('SELECT granted FROM test_client_grants WHERE client=?').bind(ctx.clientId ?? '').first<{ granted: number }>()
+        if (!grant?.granted && args.required) throw new ToolRefusal('native_client_revoked')
+        return { result: { records: grant?.granted ? (await env.DB.prepare('SELECT * FROM test_records WHERE exposure=? ORDER BY id').bind(ctx.clientId).all()).results : [] } }
+      },
+    }))
+    if (path === '/__client-grant') {
+      if (!await doorPerson(auth, request)) return new Response(null, { status: 401 })
+      const input = await request.json() as { clientId: string; granted: boolean }
+      await env.DB.prepare('INSERT INTO test_client_grants VALUES(?,?) ON CONFLICT(client) DO UPDATE SET granted=excluded.granted').bind(input.clientId, Number(input.granted)).run()
+      return Response.json({ ok: true })
+    }
     if (config.sponsorSurface) tools.push(...sponsorTools(env.DB, auth))
     const door = createAgentDoor({ seed: config.seed, name: 'Synthetic Base', specialist: 'operations', origin: config.origin, db: env.DB, trust: JSON.parse(env.TRUST), now,
       currentScopes: async principal => { const grant = await env.DB.prepare('SELECT scopes FROM test_grants WHERE agent=?').bind(principal.agent.id).first<{ scopes: string }>(); return grant ? JSON.parse(grant.scopes) : principal.scopes },

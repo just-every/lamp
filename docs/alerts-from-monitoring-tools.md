@@ -18,6 +18,28 @@ the public page. Review the draft and publish a customer update when you are
 ready. A recovery closes the matching draft only when the incident has never
 been published; a published incident keeps its lifecycle.
 
+## Owner-approved automatic changes
+
+Open **Settings → Alerts → Alert rules** to choose what one source may do to
+one component. **Draft** keeps alerts private. **Claim** changes only the
+component state and sends no subscriber update. **Claim and publish** uses a
+saved, operator-written incident template, its saved recovery wording and its
+selected notification channels. Alert payload text never becomes public wording.
+
+Each rule has a **Firing delay (seconds)** and a **Recovery hold (seconds)**.
+New rules wait two minutes before claiming and hold recovery for five minutes.
+A recovery during the firing delay cancels the change. Refiring during the
+recovery hold keeps the existing claim instead of briefly showing recovery.
+Set either value to zero for an immediate transition. The saved approval and
+later edits appear in the audit log.
+
+Under **Active automatic changes**, **Undo** releases that change's claim and
+restores the component state derived from the remaining claims. Earlier public
+updates, component history and the causing alert remain in the record. The
+incident's internal notes and audit log identify the operator who undid it.
+Repeated delivery of the same firing cannot reverse that Undo; a later recovered
+and newly firing alert can start a fresh episode.
+
 ## Datadog, UptimeRobot, Better Stack and Pingdom
 
 Choose the component the tool's alerts belong to and connect. Lamp shows the

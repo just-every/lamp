@@ -3,11 +3,12 @@ import { needsStreamOrigin } from './stream-origin.ts';
 import { nativeStagingScope } from './native-staging-context.ts';
 import { streamBoundary } from './stream-boundary.ts';
 import { requestContext } from './budget.ts';
-import { loadPlans, planBody, planGuards, planChunkReads } from './plans.ts';
+import { loadPlans, storedPlanSnapshot, planBody, planGuards, planChunkReads, retainPlan, creationCodec, LARGE_PLAN_BYTES } from './plans.ts';
 import { randomUUID } from 'node:crypto';
 import type { ImportJob, ImportPlan, ImportMapping, SourceBundle, ImportAction } from '../types.ts';
 import { buildImportPlan, planFingerprint } from '../plan/index.ts';
-import { creationStatements, validateCreation } from './creation.ts';
+import { creationStatements, preflightD1ImportJob, validateCreation } from './creation.ts';
+import { planStagedCreation, runStagedCreation, stagedSize } from './staged-creation.ts';
 import type { D1ImportContext, D1Sql } from './types.ts';
 import { atomic, readAtomic, authorize, guard, sql } from './database.ts';
 import { custodyGuards, inventoryGuards } from './integrity.ts';
@@ -15,6 +16,7 @@ import { guardErasedSources } from './erasure-claims.ts';
 import { readOriginals } from './originals.ts';
 import { retiredError } from './retirement.ts';
 import { attachReversal, loadReversalState, reversalGuards, reversalState } from './undo-state.ts';
+import { verifiedPlanFingerprint } from './verified-plan.ts';
 
 export function decode(row: any): ImportJob {
   return { id: row.id, fingerprint: row.fingerprint, destination: row.destination, namespace: row.namespace, mappingVersion: row.mapping_version, principalId: row.principal_id, state: row.state, checkpoint: row.checkpoint, total: row.total, fence: row.fence, error: row.error };
@@ -26,11 +28,13 @@ export async function stored(id: string, context: D1ImportContext, action: Impor
   const query = `SELECT j.*${bounded?',r.revision AS custody_revision':''},${needsStreamOrigin('j.id')} AS stream_origin_required,(SELECT stream_id FROM ik_d1_stream_origins WHERE job_id=j.id) AS origin_stream_id,(SELECT stream_id FROM ik_d1_stream_pages WHERE job_id=j.id) AS page_stream_id FROM ik_jobs j${bounded?' LEFT JOIN ik_d1_custody_revisions r ON r.job_id=j.id':''} WHERE j.id=?`;
   const row = await context.storage.database.prepare(query).bind(id).first();
   if (!row) throw await retiredError(context.storage.database, id, 'job') ?? new Error('IMPORT_JOB_NOT_FOUND');
-  const job = decode(row), plan = (await loadPlans([row], context.storage.database, context.storage.targets.planCodec)).get(id)!;
-  planReads.set(job, planChunkReads(row.plan_json));
+  // Unbounded guards run before their transaction's writes: a large plan is
+  // fenced by its custody revisions instead of resending it in every request.
+  const fenced = !bounded, job = decode(row), plan = (await loadPlans([row], context.storage.database, context.storage.targets.planCodec, undefined, fenced)).get(id)!;
+  planReads.set(job, planChunkReads(row.plan_json, fenced, storedPlanSnapshot(plan, id).chunks));
   if (job.destination !== context.destination || job.namespace !== context.namespace || job.mappingVersion !== context.mappingVersion || job.principalId !== context.authorization.principalId) throw new Error('JOB_BINDING_MISMATCH');
   if (context.reviewedFingerprint !== undefined && context.reviewedFingerprint !== job.fingerprint) throw new Error('REVIEW_FINGERPRINT_MISMATCH');
-  if (planFingerprint(plan) !== job.fingerprint || plan.fingerprint !== job.fingerprint || plan.destination !== job.destination || plan.namespace !== job.namespace || plan.mappingVersion !== job.mappingVersion || plan.principalId !== job.principalId || plan.entries.length !== job.total) throw new Error('STORED_PLAN_CHANGED');
+  if ((verifiedPlanFingerprint(plan) ?? planFingerprint(plan)) !== job.fingerprint || plan.fingerprint !== job.fingerprint || plan.destination !== job.destination || plan.namespace !== job.namespace || plan.mappingVersion !== job.mappingVersion || plan.principalId !== job.principalId || plan.entries.length !== job.total) throw new Error('STORED_PLAN_CHANGED');
   job.erasedRecords = plan.entries.filter(entry => entry.erased).length;
   attachReversal(job, await loadReversalState(row, plan, context));
   await captureJobLayout(job, row, context, action);
@@ -43,6 +47,10 @@ export async function planD1Import(source: SourceBundle, mapping: ImportMapping,
   context = requestContext(context);
   await authorize(context, 'plan');
   const plan = buildImportPlan(source, mapping, context);
+  // Admission measures calls, not current create authority. Planning still
+  // evaluates only the plan grant; creation checks its own live predicate.
+  const { storage, ...admission } = context;
+  preflightD1ImportJob(plan, { ...admission, planCodec: storage.targets.planCodec, reviewedFingerprint: plan.fingerprint, authorization: { principalId: context.authorization.principalId, predicate: () => sql('1') } });
   await authorize(context, 'plan');
   return plan;
 }
@@ -51,7 +59,8 @@ export async function createD1ImportJob(plan: ImportPlan, context: D1ImportConte
   await authorize(context, 'create');
   const operationKey = validateCreation(plan, context);
   const revalidate = () => {
-    if (validateCreation(plan, context) !== operationKey) throw new Error('OPERATION_KEY_CONFLICT');
+    // The fingerprint check inside re-proves the scanned content is unchanged.
+    if (validateCreation(plan, context, false) !== operationKey) throw new Error('OPERATION_KEY_CONFLICT');
   };
   const db = context.storage.database;
   const prior = await db.prepare('SELECT * FROM ik_jobs WHERE destination=? AND principal_id=? AND operation_key=?').bind(context.destination, context.authorization.principalId, operationKey).first();
@@ -70,10 +79,16 @@ export async function createD1ImportJob(plan: ImportPlan, context: D1ImportConte
   }
   await guardErasedSources(plan, db);
   revalidate();
-  const id = randomUUID();
-  const creation = creationStatements(plan, context, id, operationKey);
-  const body = creation.find(s => s.sql.startsWith('INSERT INTO ik_jobs('))!.params![7];
-  const returnReads = 1 + planChunkReads(body) + Number(context.reversalPolicy === 'preserve-conflicts');
+  const codec = creationCodec(plan, context.storage.targets.planCodec), unbounded = context.maxBatchBytes === undefined;
+  const id = randomUUID(), retained = retainPlan(plan, id, codec);
+  const returnReads = 1 + planChunkReads(retained.body, unbounded, retained.encoded.chunks) + Number(context.reversalPolicy === 'preserve-conflicts');
+  // A large plan is created in bounded steps; a retry resumes what was staged.
+  if (unbounded && stagedSize(retained.encoded) > LARGE_PLAN_BYTES) {
+    const creation = await planStagedCreation(plan, context, operationKey, retained.encoded, () => [randomUUID(), randomUUID(), id]);
+    revalidate();
+    return (await stored(await runStagedCreation(context, creation, returnReads), context, 'create')).job;
+  }
+  const creation = creationStatements(plan, { ...context, planCodec: codec }, id, operationKey, retained);
   await atomic(context, 'create', creation, returnReads);
   return (await stored(id, context, 'create')).job;
 }

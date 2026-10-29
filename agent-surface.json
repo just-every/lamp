@@ -4943,16 +4943,5 @@
       "module": "tests/agent-door/invoke.mjs",
       "entrypoint": "LampAgentJobs"
     }
-  },
-  "capabilities": [
-    "tools",
-    "policy",
-    "pause",
-    "audit",
-    "idempotency",
-    "events",
-    "resources",
-    "prompts",
-    "subscriptions"
-  ]
+  }
 }

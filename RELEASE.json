@@ -999,6 +999,10 @@
     {
       "id": "0080_agent_jobs.sql",
       "buyerSteps": "Apply after 0079. Retains private worker invocation input and outcomes for the existing native queue. Every execution re-enters the shared door with its original sponsor, scopes, client and consent; no HTTP invocation route is added."
+    },
+    {
+      "id": "0074_alert_rule_guards.sql",
+      "buyerSteps": "Apply after 0073. Adds per-rule firing delay and recovery hold, durable scheduled windows and attributed Undo receipts. Rules default to a two-minute firing delay and five-minute recovery hold; existing active claims are retained. Review these values in Settings before relying on immediate automation. Undo releases only its automatic claim and retains earlier public updates, component history and internal attribution. No account or credential is required."
     }
   ],
   "breaking": false,
