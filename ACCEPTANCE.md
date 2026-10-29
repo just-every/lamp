@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -481,7 +481,7 @@ Core · published · **partial**
 
 #### INCIDENT-006 — Overdue update
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Operators distinguish a missed commitment from public incident wording.
 
@@ -489,8 +489,8 @@ Core · published · **partial**
 1. When the latest published next-update time passes without newer publication, the operator app marks the incident overdue.
 2. The public page retains the committed time and contains no overdue label.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: operator overdue; no public overdue label. Unasserted in old cited evidence: public committed time.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): acceptance 1 reads the native operator overdue state after the published commitment passes; acceptance 2 associates the saved commitment with the Next update by field on the public root and incident permalink, checks its exact datetime and independently expected Brisbane text, and refuses a public overdue label.
+**Gap.** None.
 
 #### INCIDENT-007 — Deletion
 
@@ -521,7 +521,7 @@ Core · published · **partial** · Cites BASE-ACCESS-002, BASE-ROLE-001
 
 #### INCIDENT-009 — Retroactive incidents
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Operators record past incidents without replaying subscriber notifications.
 
@@ -531,8 +531,8 @@ Core · published · **partial**
 3. Component claims enter state history at those times and contribute to UPTIME-001.
 4. No update of the retroactive incident notifies subscribers, including later current-time updates.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Old cited evidence asserts first original time; resolution original time; history first time; history resolution time. Unasserted: public timeline original times.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): acceptance 1 creates and publishes historical Investigating and Resolved updates through native routes and reads back their original times; acceptance 2 associates each uniquely worded update with its original datetime and independently expected configured-zone text on the incident permalink and monthly history; acceptance 3 reconciles both original component-history transitions, preserved current claims and nonzero historical uptime downtime; acceptance 4 requests email for both historical publications and a later current-time correction, then checks all three native reach records have zero committed deliveries and no provider mail.
+**Gap.** None.
 
 #### INCIDENT-010 — Update due
 
