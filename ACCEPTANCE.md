@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 17 | 172 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 17 | 172 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. PAGE-004, COMP-002 and COMP-004 are rechecked at commit `2146ef3318d3753dd5820892527b5575d4b0c351` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -78,7 +78,7 @@ Core · published · **done** · Cites BASE-PUBLIC-001
 
 #### PAGE-004 — Overall status
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** The overall state is a single label at the top of the page, computed by the owner-replaceable rollup policy.
 
@@ -87,8 +87,8 @@ Core · published · **partial**
 2. The result appears as one labeled state at the top of the page.
 3. With all visible components Operational and no unresolved incident, the label is operational.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The supplied rollup selects the most severe visible component state.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): competing native standing claims and reversed component order produce the literal COMP-001 severity labels in the public status response and the single top-of-page label; an internal Major outage is excluded, and all visible Operational claims with no incident produce Operational.
+**Gap.** None.
 
 #### PAGE-005 — Snapshot read path
 
@@ -246,7 +246,7 @@ Core · published · **partial**
 
 #### COMP-002 — Grouping and order
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Operators organize public components into ordered groups.
 
@@ -254,8 +254,8 @@ Core · published · **partial**
 1. A component belongs to at most one group.
 2. Operators set group order and order within each group, and public rendering preserves both orders.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): native creation and editing refuse multiple groups; catalogue preview and apply refuse multiple groups and duplicate identities without changing saved records; native and reviewed reassignment retain one saved identity and one public placement; reordered groups and components render in their saved order.
+**Gap.** None.
 
 #### COMP-003 — Append-only state history
 
@@ -272,7 +272,7 @@ Core · published · **partial**
 
 #### COMP-004 — State note
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A bounded plain-text note accompanies a component’s public state.
 
@@ -280,8 +280,8 @@ Core · published · **partial**
 1. A new component note is empty by default.
 2. A note of up to 250 characters appears beside that component’s state exactly as entered; a longer note is refused.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): direct creation omits note and returns an empty note, independently read back through the native list; a 250-character note including boundary spaces is saved and rendered exactly beside its state; 251-character creation and editing are refused without changing the catalogue, and omitted edit or replacement notes remain refused.
+**Gap.** None.
 
 #### COMP-005 — Internal components
 
