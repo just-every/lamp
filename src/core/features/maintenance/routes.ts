@@ -5,9 +5,9 @@ import type { AppEnv } from "../../app/types";
 import type { MaintenanceService } from "./service";
 
 const wordingField = z.string().trim().min(1).max(250);
-const maintenanceSchema = z.object({ affectedAudience: wordingField, customerImpact: wordingField, title: z.string().trim().min(1).max(250), startsAt: z.iso.datetime(), endsAt: z.iso.datetime(), componentIds: z.array(z.string().min(1)).min(1).max(100), autoStart: z.boolean().optional(), autoComplete: z.boolean().optional() }).strict();
+const maintenanceSchema = z.object({ affectedAudience: wordingField, customerImpact: wordingField, title: z.string().trim().min(1).max(250), startsAt: z.iso.datetime(), endsAt: z.iso.datetime(), componentIds: z.array(z.string().min(1)).min(1).max(100), autoStart: z.boolean().optional(), autoComplete: z.boolean().optional(), social: z.boolean().optional() }).strict();
 const automationSchema = z.object({ autoStart: z.boolean(), autoComplete: z.boolean() }).strict();
-const windowSchema = maintenanceSchema.pick({ startsAt: true, endsAt: true, autoStart: true, autoComplete: true }).extend({ affectedAudience: wordingField.optional(), customerImpact: wordingField.optional() }).superRefine((input, context) => {
+const windowSchema = maintenanceSchema.pick({ startsAt: true, endsAt: true, autoStart: true, autoComplete: true, social: true }).extend({ affectedAudience: wordingField.optional(), customerImpact: wordingField.optional() }).superRefine((input, context) => {
   if ((input.affectedAudience === undefined) !== (input.customerImpact === undefined)) context.addIssue({ code: "custom", message: "Provide both maintenance wording statements together." });
 });
 

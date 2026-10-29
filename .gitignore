@@ -5,6 +5,7 @@ node_modules
 **/.wrangler/
 .dev.vars*
 dist/
+test-results/
 
 # Generated at deploy time; infrastructure is never source (AGENTS.md).
 wrangler.toml
@@ -27,3 +28,6 @@ delivery-artifact/
 
 # Private owner hosting settings.
 .env*
+
+# Disposable local Worker and browser fixtures.
+/.lamp-*/

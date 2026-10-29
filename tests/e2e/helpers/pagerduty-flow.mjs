@@ -31,7 +31,8 @@ function event(type, id, { incidentId = 'PDINC1', serviceId = 'PAPI123', at = '2
 }
 
 // Full application routes in workerd; only the fixed PagerDuty HTTP edge is fake.
-// Pause native Vite while this fixture owns a Worker, then resume it for teardown.
+// Native channel and monitor operations are complete; release Vite before this
+// Worker owns the transport, then leave it stopped for the remaining Worker flows.
 export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
   await nativeRuntime.stop();
   const directory = await mkdtemp(join(tmpdir(), 'lamp-pagerduty-'));
@@ -307,6 +308,5 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
   } finally {
     await worker?.dispose();
     await rm(directory, { recursive: true, force: true });
-    await nativeRuntime.start();
   }
 }

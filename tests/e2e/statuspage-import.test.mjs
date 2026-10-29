@@ -1,310 +1,179 @@
-import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
-import { createServer } from "node:http";
-import { join } from "node:path";
-import { after, before } from "node:test";
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { openStatusJourney } from './helpers/status-journey.mjs';
+import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
+import { importedIncidentLiveFlow } from './helpers/imported-incident-live-flow.mjs';
+import { incidentSubscriberFiles, incidentSubscriberImportFlow } from './helpers/incident-subscriber-import-flow.mjs';
+import { postmortemTemplateImportFlow } from './helpers/postmortem-template-import-flow.mjs';
 
-import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
-import { subscriberCsvFlow } from "./helpers/subscriber-csv-flow.mjs";
-import { subscriberLimitsBrowserFlow } from "./helpers/subscriber-limits-browser-flow.mjs";
-import { subscriberIntakeBrowserFlow } from "./helpers/subscriber-intake-browser-flow.mjs";
-
-import { contract } from "../contract.mjs";
-
-// Wrangler CLI work between requests can outlast an idle keep-alive socket; every request opens its own connection.
-const nativeFetch = globalThis.fetch;
-globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
-import { nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
-import { devKey } from '../helpers/dev-key.mjs';
-import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
-import { notificationActivity, assertNoNewNotifications, sendImportedInvitations, moveInDoor } from '../helpers/import-notifications.mjs';
-
-// Synthetic saved responses shaped like Statuspage's public API (no real account).
-const fixtures = (family) => readdirSync(join("tests/fixtures/statuspage", family)).map((name) => ({ name, text: readFileSync(join("tests/fixtures/statuspage", family, name), "utf8") }));
-let cookie;
-const API_KEY = "synthetic-statuspage-key-0001";
-let runtime;
-let statuspage;
-let statuspageRequests = [];
-let boundarySubscriberCount=0;
-let aliasBefore;
-let editedIncident;
-let editedMaintenance;
-const sourceRows = (family) => fixtures(family).filter((file) => file.name.startsWith("incidents")).flatMap((file) => JSON.parse(file.text));
-async function aliasesFor(records) {
-  const result = {};
-  for (const row of records) {
-    for (const path of [`/incidents/${row.id}`, new URL(row.shortlink).pathname]) {
-      const response = await fetch(`${publicOrigin}${path}`, { redirect: "manual" });
-      result[path] = { status: response.status, location: response.headers.get("Location") };
-    }
-  }
-  return result;
+const fixtures = source => readdirSync(`tests/fixtures/${source}/small`).map(name => ({ name, text: readFileSync(`tests/fixtures/${source}/small/${name}`, 'utf8') }));
+const parsed = (files, name) => JSON.parse(files.find(file => file.name === name).text);
+function sourceHistory(source, files) {
+  if (source === 'statuspage') return parsed(files, 'incidents.json').map(row => ({ title: row.name, times: row.incident_updates.map(update => update.display_at) }));
+  if (source === 'instatus') return parsed(files, 'instatus-incidents.json').map(row => ({ title: row.name, times: row.updates.map(update => update.started) }));
+  return parsed(files, 'status-reports.json').data.filter(row => row.attributes.report_type !== 'maintenance').map(row => ({
+    title: row.attributes.title,
+    times: files.filter(file => file.name.startsWith(`status-updates-${row.id}`)).flatMap(file => JSON.parse(file.text).data.map(update => update.attributes.published_at)),
+  }));
 }
 
-async function api(path, json, headers) {
-  const response = await nativeRequest(path, { cookie, ...(json ? { method: "POST", json } : {}), ...(headers ? { headers } : {}) });
-  return { status: response.status, body: await response.json() };
-}
-const moveIn = moveInDoor(api);
-async function counts() {
-  const [components, incidents, maintenance, subscribers] = await Promise.all(["/api/app/components", "/api/app/incidents", "/api/app/maintenance", "/api/app/subscribers?limit=100"].map((path) => api(path)));
-  return { components: components.body.components.length, groups: components.body.groups.length, incidents: incidents.body.incidents.length, maintenance: maintenance.body.maintenance.length, subscribers: subscribers.body.subscribers.length };
-}
-const deliveries = async () => (await api("/api/app/deliveries?limit=100")).body.deliveries.length;
-/** Apply, then continue until every import batch is done, as the wizard does. */
-async function importAll(files) {
-  const preview = await moveIn.preview({ files });
-  assert.equal(preview.status, 200, JSON.stringify(preview.body));
-  const result = await moveIn.apply(preview.body);
-  assert.equal(result.status, 200, JSON.stringify(result.body));
-  assert.equal(result.body.job.state, "completed");
-  return { preview: preview.body, result: result.body };
-}
-
-before(async () => {
-  statuspage = createServer((request, response) => {
-    statuspageRequests.push({ method: request.method, url: request.url, authorization: request.headers.authorization });
-    if (request.headers.authorization === `OAuth ${API_KEY}` && request.url === '/v1/pages/synthpage01') {
-      response.writeHead(200, { 'Content-Type': 'application/json' }).end(fixtures('small').find(file => file.name === 'page.json').text); return;
-    }
-    if (request.headers.authorization === `OAuth ${API_KEY}` && request.url === '/v1/pages/synthpage01/page_access_groups') {
-      response.writeHead(200, { 'Content-Type': 'application/json' }).end('[]'); return;
-    }
-    const match = /^\/v1\/pages\/synthpage01\/([a-z/_-]+)\?/u.exec(request.url ?? "");
-    if (request.headers.authorization !== `OAuth ${API_KEY}`) { response.writeHead(401).end("{}"); return; }
-    const resource = match?.[1].replace("/", "-").replaceAll("_", "-");
-    const page = Number(new URL(request.url, "http://x").searchParams.get("page"));
-    if(resource==='subscribers' && boundarySubscriberCount) {
-      const limit=Number(new URL(request.url,'http://x').searchParams.get('limit'));
-      const offset=(page-1)*limit;
-      const rows=Array.from({length:Math.max(0,Math.min(limit,boundarySubscriberCount-offset))},(_,index)=>({id:`synthetic-lamp-api-subscriber-${offset+index}`,mode:'email',email:`synthetic-lamp-api-subscriber-${offset+index}@example.test`,components:[],created_at:'2026-10-01T00:00:00.000Z'}));
-      response.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify(rows));return;
-    }
-    const name = page === 1 ? `${resource}.json` : `${resource}-${page}.json`;
-    const file = continuityFiles(fixtures("small")).find((candidate) => candidate.name === name);
-    response.writeHead(200, { "Content-Type": "application/json" }).end(file?.text ?? "[]");
-  });
-  await new Promise((resolve) => statuspage.listen(0, "127.0.0.1", resolve));
-  runtime = await openNativeRuntime();
-  runtime.env.LAMP_DEV_STATUSPAGE_ORIGIN = `http://127.0.0.1:${statuspage.address().port}`;
-  await runtime.start();
-  await runtime.seedOperator();
-  cookie = (await signInAs({ origin, key: devKey })).header;
-  await fetch(`${publicOrigin}/`);
-});
-
-after(async () => {
-  await runtime?.close();
-  await new Promise((resolve) => statuspage?.close(resolve));
-});
-
-contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only; postmortems and templates dry-run, apply silently, repeat and undo", async () => {
-  const before = await counts();
-  const unauthenticated = await nativeRequest("/api/operator/import/uploads", { method: "POST", json: {}, headers: { "X-Import-Source": "statuspage" } });
-  assert.equal(unauthenticated.status, 401);
-  const preview = await moveIn.preview({ pageId: "synthpage01", apiKey: API_KEY });
-  assert.equal(preview.status, 200, JSON.stringify(preview.body));
-  assert.deepEqual(Object.fromEntries(Object.entries(preview.body.report.counts).map(([kind, count]) => [kind, count.imported + count.changed])), { group: 0, component: 2, incident: 2, maintenance: 0, subscriber: 2, template: 3, postmortem: 1 });
-  assertContinuityCounts(preview.body.report);
-  assert.ok(statuspageRequests.length >= 6 && statuspageRequests.every((request) => request.method === "GET" && request.authorization === `OAuth ${API_KEY}`));
-  // The fetched responses come back to the owner as saved responses; the key does not.
-  assert.deepEqual(preview.body.files.map((file) => file.name).sort(), ["component-groups.json", "components.json", "incident-templates.json", "incidents-scheduled.json", "incidents.json", "page-access-groups.json", "page.json", "subscribers.json"]);
-  assert.doesNotMatch(JSON.stringify(preview.body), new RegExp(API_KEY));
-  const refusedKey = await moveIn.preview({ pageId: "synthpage01", apiKey: "wrong-key-wrong-key-0001" });
-  assert.equal(refusedKey.status, 400);
-  for (const address of ["https://stspg.io/app/settings", "//evil.example/x", "https://stspg.io/incidents/INC-1", "https://stspg.io/a%2fb", "https://stspg.io/feed.atom", "javascript:alert(1)"]) {
-    const files = fixtures("small");
-    const incidents = files.find((file) => file.name === "incidents.json");
-    const rows = JSON.parse(incidents.text); rows[0].shortlink = address; incidents.text = JSON.stringify(rows);
-    const refused = await moveIn.preview({ files });
-    assert.equal(refused.status, 400, JSON.stringify(refused.body));
-    assert.match(JSON.stringify(refused.body), /shortlink|public address/u);
-  }
-  const conflictFiles = fixtures("small");
-  const incidentFile = conflictFiles.find((file) => file.name === "incidents.json");
-  const conflictRows = JSON.parse(incidentFile.text); conflictRows[1].shortlink = conflictRows[0].shortlink; incidentFile.text = JSON.stringify(conflictRows);
-  const conflict = await moveIn.preview({ files: conflictFiles });
-  assert.equal(conflict.status, 400); assert.match(JSON.stringify(conflict.body), /conflicts/u);
-  assert.deepEqual(await counts(), before);
-  const stale = await moveIn.apply(preview.body, "0".repeat(64));
-  assert.equal(stale.status, 409); assert.equal(stale.body.error, "The source or this page changed since the dry run. Review a fresh dry run.");
-  assert.deepEqual(await counts(), before);
-  const mailBefore = await notificationActivity(runtime);
-  await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, moveIn, original: fixtures("small"), publicOrigin });
-  assert.deepEqual(await counts(), before, "complete undo removes both reports and all three templates");
-  await assertNoNewNotifications(runtime, mailBefore, "postmortem/template preview, apply, repeat and undo send nothing");
+test('SUB-019 MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 MOVE-013 MOVE-014 SUB-023 ACCESS-001 — owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes', { timeout: 600_000 }, async t => {
+  const sourceFiles = fixtures('statuspage'), apiKey = 'synthetic-owner-import-key';
+  const requests = [];
+  let incidentSubscriberProbe = false;
+  const runtime = await openStatusJourney({ providerEdge: async request => {
+    const url = new URL(request.url);
+    if (url.origin !== 'https://api.statuspage.io') return;
+    requests.push({ method: request.method, path: url.pathname, url: url.href, authorization: request.headers.get('authorization') });
+    if (request.headers.get('authorization') !== `OAuth ${apiKey}`) return Response.json({}, { status: 401 });
+    const incidentSubscribers = /^\/v1\/pages\/synthpage01\/incidents\/([^/]+)\/subscribers$/u.exec(url.pathname);
+    const selectedFiles = incidentSubscriberProbe ? incidentSubscriberFiles(sourceFiles) : sourceFiles;
+    if (incidentSubscribers) return new Response(selectedFiles.find(row => row.name === `incident-subscribers-${incidentSubscribers[1]}.json`)?.text ?? '[]', { headers: { 'Content-Type': 'application/json' } });
+    const resource = url.pathname.replace('/v1/pages/synthpage01', '').replace(/^\//, '').replaceAll('_', '-').replace('/', '-');
+    const page = Number(url.searchParams.get('page') ?? 1);
+    const name = resource ? `${resource}${page > 1 ? `-${page}` : ''}.json` : 'page.json';
+    return new Response(selectedFiles.find(file => file.name === name)?.text ?? '[]', { headers: { 'Content-Type': 'application/json' } });
+  } });
+  const origin = runtime.appOrigin, publicOrigin = runtime.publicOrigin;
+  const fetch = (input, init) => runtime.raw(input, init);
+  const nativeRequest = (path, { json, ...init } = {}) => runtime.request(path, { ...init, ...(json === undefined ? {} : { body: JSON.stringify(json) }) });
   try {
-    for(const size of [5_000,25_000]) {
-      boundarySubscriberCount=size;
-      const fetched=await api('/api/app/statuspage-import/fetch',{source:'statuspage',pageId:'synthpage01',apiKey:API_KEY});
-      assert.equal(fetched.status,200,JSON.stringify(fetched.body));
-      const subscribers=fetched.body.files.filter(file=>file.name.startsWith('subscribers')).flatMap(file=>JSON.parse(file.text));
-      assert.equal(subscribers.length,size,`the API-key door retains the entire ${size}-subscriber list`);
-      assert.equal(new Set(subscribers.map(row=>row.id)).size,size);
-      assert.ok(subscribers.every((row,index)=>row.email===`synthetic-lamp-api-subscriber-${index}@example.test`));
+    const api = async (path, json, headers, method = json === undefined ? 'GET' : 'POST') => {
+      const response = await nativeRequest(path, { method, ...(json === undefined ? {} : { json }), headers });
+      return { status: response.status, body: response.status === 204 ? null : await response.json() };
+    };
+    const moveIn = moveInDoor(api);
+    const counts = async () => {
+      const rows = await Promise.all(['/api/app/components', '/api/app/incidents', '/api/app/maintenance', '/api/app/subscribers?limit=100'].map(path => api(path)));
+      return { components: rows[0].body.components.length, groups: rows[0].body.groups.length, incidents: rows[1].body.incidents.length, maintenance: rows[2].body.maintenance.length, subscribers: rows[3].body.subscribers.length };
+    };
+    const apply = async input => {
+      const review = await moveIn.preview(input); assert.equal(review.status, 200, JSON.stringify(review.body));
+      const result = await moveIn.apply(review.body); assert.equal(result.status, 200, JSON.stringify(result.body));
+      assert.equal(result.body.job.state, 'completed');
+      return { review: review.body, result: result.body };
+    };
+    assert.equal((await runtime.raw('/api/operator/import/uploads', { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json', Origin: origin, 'X-Import-Source': 'statuspage' } })).status, 401);
+    const fetched = await moveIn.preview({ pageId: 'synthpage01', apiKey });
+    assert.equal(fetched.status, 200, JSON.stringify(fetched.body));
+    assert.ok(requests.length && requests.every(row => row.method === 'GET' && row.authorization === `OAuth ${apiKey}`));
+    assert.ok(!JSON.stringify(fetched.body).includes(apiKey), 'source authority is never returned in the saved plan');
+    assert.equal((await moveIn.preview({ pageId: 'synthpage01', apiKey: 'wrong-source-key' })).status, 400);
+    const privateFiles = fixtures('statuspage');
+    privateFiles.find(file => file.name === 'page.json').text = readFileSync('tests/fixtures/statuspage/private/page.json', 'utf8');
+    assert.equal((await moveIn.preview({ files: privateFiles })).status, 400, 'private source history cannot become public');
+    const beforeSignout = await counts();
+    assert.equal((await nativeRequest('/api/app/session/signout', { method: 'POST', json: {} })).status, 204);
+    assert.equal((await moveIn.apply(fetched.body)).status, 401, 'a retained review grants no authority to a revoked session');
+    await runtime.signIn(undefined, { fresh: true });
+    assert.deepEqual(await counts(), beforeSignout);
+    const native = await api('/api/app/components', { name: 'Owner-created service', description: '', groupId: null, internal: false, displayOrder: 0, note: '' });
+    assert.equal(native.status, 201, JSON.stringify(native.body));
+    assert.equal((await moveIn.apply(fetched.body)).status, 409, 'a page edited after review requires a fresh import review');
+    assert.deepEqual(await counts(), { ...beforeSignout, components: beforeSignout.components + 1 });
+
+    // Each row is the same owner migration, using one saved export per provider.
+    // Assertions compare source records with native documents, rather than pinning fixture sizes.
+    for (const source of ['statuspage', 'betterstack', 'instatus']) {
+      const files = fixtures(source), input = { source, files, pageId: 'synthpage01', publicAccessAcknowledged: true };
+      const before = await counts(), quiet = await notificationActivity(runtime);
+      const reviewed = await moveIn.preview(input); assert.equal(reviewed.status, 200, JSON.stringify(reviewed.body));
+      assert.deepEqual(await counts(), before, `${source} review writes nothing`);
+      const changed = reviewed.body.fingerprint[0] === '0' ? '1' : '0';
+      assert.equal((await moveIn.apply(reviewed.body, changed + reviewed.body.fingerprint.slice(1))).status, 409);
+      assert.deepEqual(await counts(), before, 'unreviewed source bytes cannot apply');
+      const { review, result } = await apply(input);
+      assert.deepEqual(result.report.counts, review.report.counts);
+      const after = await counts();
+      for (const [kind, plural] of [['component', 'components'], ['group', 'groups'], ['incident', 'incidents'], ['maintenance', 'maintenance'], ['subscriber', 'subscribers']]) {
+        assert.equal(after[plural] - before[plural], result.report.counts[kind].imported + result.report.counts[kind].changed, `${source} applies its complete reviewed ${kind} inventory`);
+      }
+      const incidents = (await api('/api/app/incidents')).body.incidents;
+      for (const row of sourceHistory(source, files)) {
+        const incident = incidents.find(candidate => candidate.title === row.title); assert.ok(incident, row.title);
+        assert.deepEqual(incident.updates.map(update => Date.parse(update.publishedAt)).sort(), row.times.map(Date.parse).sort());
+        assert.ok(incident.updates.every(update => update.isRetroactive));
+        const page = await fetch(`${publicOrigin}/incidents/${incident.reference}`); assert.equal(page.status, 200);
+        assert.ok((await page.text()).includes(incident.title), 'imported history is immediately readable without script');
+      }
+      const windows = (await api('/api/app/maintenance')).body.maintenance;
+      assert.ok(windows.every(window => window.notices.length === 0), 'imported windows do not replay lifecycle notices');
+      if (source === 'betterstack') {
+        const window = windows.find(row => row.title.includes('maintenance')); assert.ok(window);
+        const html = await (await fetch(`${publicOrigin}/maintenance/${window.reference}`)).text();
+        const sourceWindow = parsed(files, 'status-reports.json').data.find(row => row.attributes.report_type === 'maintenance');
+        const messages = files.filter(file => file.name.startsWith(`status-updates-${sourceWindow.id}`)).flatMap(file => JSON.parse(file.text).data);
+        for (const message of messages) assert.ok(html.includes(message.attributes.message), 'maintenance history keeps every source message');
+      }
+      for (const row of result.report.cutover.rows) {
+        const alias = await fetch(publicOrigin + row.path, { redirect: 'manual' }); assert.equal(alias.status, 301, row.path);
+        assert.equal(alias.headers.get('location'), row.target);
+        assert.equal((await fetch(publicOrigin + row.target)).status, 200);
+        assert.equal((await fetch(origin + row.path, { redirect: 'manual' })).status, 404);
+      }
+      for (const feed of result.report.cutover.feeds) assert.equal(await (await fetch(publicOrigin + feed)).text(), await (await fetch(publicOrigin + '/feed.atom')).text());
+      assert.equal((await fetch(publicOrigin + '/history.rss')).status, 200);
+      assert.equal((await fetch(publicOrigin + '/api/v2/summary.json')).status, 200);
+      await assertNoNewNotifications(runtime, quiet, 'review, apply and Cutover reads never mail historical incidents');
+      const again = await apply(input); assert.equal(again.result.job.id, result.job.id);
+      assert.deepEqual(await counts(), after, 'repeating the same source duplicates nothing');
+      const edited = incidents.find(row => row.title === sourceHistory(source, files)[0].title);
+      const draft = await api(`/api/app/incidents/${edited.id}/draft`, { lifecycle: 'Resolved', affectedAudience: 'API customers', customerImpact: 'Owner correction after import', whatStillWorks: 'All services', details: 'Owner-reviewed history', nextUpdateAt: null }, { 'If-Match': `-:${edited.updates.length}` }, 'PUT');
+      assert.equal(draft.status, 200, JSON.stringify(draft.body));
+      const published = await api(`/api/app/incidents/${edited.id}/publish`, { channels: [] }, { 'If-Match': `${draft.body.draft.id}:${edited.updates.length}` });
+      assert.equal(published.status, 200, JSON.stringify(published.body));
+      if (source === 'statuspage') {
+        const pending = (await api('/api/app/subscribers?limit=100')).body.subscribers;
+        assert.ok(pending.length && pending.every(row => row.state === 'pending'));
+        const expired = pending.at(-1), delayed = pending[0];
+        const originalReview = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const originalDeadline = new Date(Date.parse(originalReview) + 72 * 60 * 60 * 1000).toISOString();
+        await runtime.db.prepare('UPDATE subscribers SET created_at=? WHERE id=?').bind(originalReview, delayed.id).run();
+        await runtime.db.prepare('UPDATE subscribers SET created_at=? WHERE id=?').bind(new Date(Date.now() - 73 * 60 * 60 * 1000).toISOString(), expired.id).run();
+        const mailBefore = runtime.messages.length;
+        const invited = await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {});
+        assert.equal((await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {})).status, 200);
+        const messages = runtime.messages.slice(mailBefore).map(message => ({ message: { ...message, to: message.to[0] } }));
+        assert.equal(invited.status, 200, JSON.stringify(invited.body));
+        assert.equal(invited.body.report.cutover.invitations.expired, 1);
+        assert.equal(messages.length, pending.length - 1, 'expired pending subscribers receive no invitation');
+        assert.ok(messages.find(row => row.message.to === delayed.destination)?.message.text.includes(originalDeadline), 'delayed sending preserves the original confirmation deadline');
+        assert.equal(new Set(messages.map(row => row.message.to)).size, pending.length - 1, 'explicit repeats hand off each invitation once');
+        assert.ok(messages.every(row => !row.message.text.includes(edited.title)), 'confirmation invitations mention no past incident');
+        const link = messages[0].message.text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/u)[0];
+        assert.equal((await fetch(link)).status, 200);
+        assert.ok((await api('/api/app/subscribers?limit=100')).body.subscribers.some(row => row.destination === messages[0].message.to && row.state === 'active'));
+      }
+      const undone = await moveIn.undo(result.door); assert.equal(undone.status, 200, JSON.stringify(undone.body));
+      assert.equal(undone.body.job.state, 'undone');
+      assert.ok(undone.body.undo.dispositions.some(row => row.targetKind === 'incident' && row.disposition === 'retained' && row.reason));
+      const retained = (await api('/api/app/incidents')).body.incidents;
+      assert.ok(retained.some(row => row.id === edited.id && row.updates.some(update => update.customerImpact === 'Owner correction after import')));
+      assert.equal(retained.length, before.incidents + 1, 'untouched source history is removed while the owner correction survives');
     }
-    boundarySubscriberCount=25_100;
-    const refused=await api('/api/app/statuspage-import/fetch',{source:'statuspage',pageId:'synthpage01',apiKey:API_KEY});
-    assert.equal(refused.status,400,JSON.stringify(refused.body));
-    assert.match(refused.body.error,/exceeds the import limit/u);
-  } finally {boundarySubscriberCount=0;}
-});
+    // Published reports, private reports and reusable templates travel with a source,
+    // remain private until publication, and retain operator edits through undo.
+    const importAll = async files => { const { review, result } = await apply({ files }); return { preview: review, result }; };
+    await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, init), importAll, moveIn, original: sourceFiles, publicOrigin, preserveEdits: true, fetcher: fetch });
+    const beforeIncidentFollowers = await counts();
+    incidentSubscriberProbe = true;
+    const requestOffset = requests.length;
+    try {
+      const fetched = await api('/api/app/statuspage-import/fetch', { source: 'statuspage', pageId: 'synthpage01', apiKey });
+      assert.equal(fetched.status, 200, JSON.stringify(fetched.body));
+      const file = fetched.body.files.find(row => row.name === 'incident-subscribers-followinc001.json');
+      assert.equal(JSON.parse(file.text).length, 3, 'the fixed-origin reader retains every unresolved incident follower response');
+      const reads = requests.slice(requestOffset).filter(row => new URL(row.url).pathname.endsWith('/subscribers'));
+      const incidentReads = reads.filter(row => row.path.includes('/incidents/'));
+      assert.equal(incidentReads.length, 1, 'only the unresolved incident follower endpoint is read');
+      assert.ok(incidentReads.every(row => new URL(row.url).searchParams.get('per_page') === '100'), 'incident follower reads use documented pagination');
+      assert.ok(reads.every(row => row.method === 'GET' && row.authorization === `OAuth ${apiKey}`));
+    } finally { incidentSubscriberProbe = false; }
+    await incidentSubscriberImportFlow({ t, runtime, api, moveIn, importAll, original: sourceFiles, origin, publicOrigin });
+    assert.deepEqual(await counts(), beforeIncidentFollowers, 'incident follower undo leaves the prior installation intact');
+    await importedIncidentLiveFlow(sourceFiles);
+    assert.deepEqual(await counts(), beforeIncidentFollowers, 'the separate live import proof leaves the undo installation intact');
 
-contract("MOVE-002", "SUB-017 and SUB-020 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes", async t => {
-  // Public removal retains anonymised delivery history. Give the visual intake
-  // proof its own real installation so it cannot change the later undo fixture.
-  await runtime.stop();
-  let visualRuntime;
-  try {
-    visualRuntime = await openNativeRuntime(); await visualRuntime.start(); await visualRuntime.seedOperator();
-    const visualCookie = (await signInAs({ origin, key: devKey })).header;
-    const request = (path, init = {}) => nativeRequest(path, { cookie: visualCookie, ...init });
-    const visualApi = async (path, json) => { const response = await request(path, json ? { method: 'POST', json } : {}); return { status: response.status, body: await response.json() }; };
-    await subscriberIntakeBrowserFlow({ origin, cookie: visualCookie, api: visualApi, request });
-    await subscriberLimitsBrowserFlow({runtime:visualRuntime,origin,publicOrigin,cookie:visualCookie});
-  } finally { await visualRuntime?.close(); await runtime.start(); }
-  await subscriberCsvFlow();
-  const before = await counts();
-  const mailBefore = await notificationActivity(runtime);
-  const files = fixtures("large");
-  const componentFile = files.find(file => file.name === "components.json");
-  const sourceComponents = JSON.parse(componentFile.text);
-  const { preview, result } = await importAll(files);
-  const expected = { group: [3, 0, 0], component: [13, 0, 0], incident: [84, 6, 2], maintenance: [3, 1, 0], subscriber: [6, 0, 0] };
-  for (const [kind, [imported, changed, rejected]] of Object.entries(expected)) {
-    assert.deepEqual([preview.report.counts[kind].imported, preview.report.counts[kind].changed, preview.report.counts[kind].rejected], [imported, changed, rejected], kind);
-  }
-  assert.equal(preview.report.counts.subscriber.skipped, 5);
-  assert.deepEqual(result.report.counts, preview.report.counts);
-  assert.deepEqual(await counts(), { components: before.components + 13, groups: before.groups + 3, incidents: before.incidents + 90, maintenance: before.maintenance + 4, subscribers: before.subscribers + 6 });
-
-  const incidents = (await api("/api/app/incidents")).body.incidents;
-  const first = incidents.find((incident) => incident.title === "Incident 1 on Service 1.2");
-  assert.equal(first.updates.length, 4);
-  assert.equal(first.updates.at(-1).publishedAt, "2026-01-04T08:00:00.000Z");
-  assert.ok(first.updates.every((update) => update.isRetroactive));
-  const component = (await api("/api/app/components")).body.components.find((row) => row.name === "Service 1.2");
-  const importedConditional = (await api("/api/app/components")).body.components.find(row => row.name === sourceComponents.find(row => row.only_show_if_degraded).name);
-  assert.equal(importedConditional.onlyShowIfDegraded, true, "Statuspage conditional visibility survives the native import");
-  const history = (await api(`/api/app/components/${component.id}/history`)).body;
-  assert.ok(JSON.stringify(history).includes("2026-01-04T08:00:00.000Z"), "uptime history carries the source time");
-  const maintenance = (await api("/api/app/maintenance")).body.maintenance;
-  assert.deepEqual(maintenance.map((window) => window.state).sort(), ["Completed", "Completed", "In progress", "Scheduled"]);
-  assert.ok(maintenance.every((window) => window.notices.length === 0), "no maintenance notice is published for imported windows");
-
-  assert.equal(await deliveries(), 0, "no notification is queued for imported history");
-  await assertNoNewNotifications(runtime, mailBefore, "import and resume send no mail");
-  await api(`/api/app/statuspage-import/jobs/${result.job.id}`);
-  await api('/api/app/statuspage-import/jobs');
-  await assertNoNewNotifications(runtime, mailBefore, "preview reads send no mail");
-  const { invited, messages: mail } = await sendImportedInvitations(t, runtime, { origin, publicOrigin, operator, jobId: result.job.id });
-  assert.equal(invited.status, 200, JSON.stringify(invited.body));
-  assert.equal(invited.body.invites.remaining, 0);
-  assert.equal(mail.length, 6);
-  assert.deepEqual(new Set(mail.map((envelope) => envelope.message.to)).size, 6);
-  const pageName = (await api("/api/app/page-settings")).body.settings.pageName;
-  assert.ok(mail.every((envelope) => envelope.message.subject.includes(pageName)), "invitations identify the configured business");
-  assert.ok(mail.every((envelope) => /https?:\/\/\S+\/confirm-subscription\/\S+/u.test(envelope.message.text) && !/Incident \d/u.test(envelope.message.text)), "only confirmation invitations are sent, never imported history");
-  const subscribers = (await api("/api/app/subscribers?limit=100")).body.subscribers;
-  assert.ok(subscribers.every((subscriber) => subscriber.state === "pending"));
-  // The invitation is an ordinary confirmation: following it activates that subscriber.
-  const link = mail[0].message.text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/u)[0];
-  const page = await fetch(link);
-  assert.equal(page.status, 200);
-  assert.match(await page.text(), /Subscription confirmed/u);
-  const confirmed = (await api("/api/app/subscribers?limit=100")).body.subscribers.filter((subscriber) => subscriber.state === "active");
-  assert.deepEqual(confirmed.map((subscriber) => subscriber.destination), [mail[0].message.to]);
-});
-
-contract("MOVE-005", "MOVE-009 — imported incident and maintenance bookmarks reach permanent public records, old Atom serves the native feed, and Statuspage JSON, RSS and embed readers keep working", async () => {
-  const records = sourceRows("large");
-  const incidents = (await api("/api/app/incidents")).body.incidents;
-  const maintenance = (await api("/api/app/maintenance")).body.maintenance;
-  const targets = [...incidents.map((row) => ({ ...row, path: `/incidents/${row.reference}` })), ...maintenance.map((row) => ({ ...row, path: `/maintenance/${row.reference}` }))];
-  const imported = records.filter((row) => targets.some((target) => target.title === row.name));
-  aliasBefore = await aliasesFor(imported);
-  for (const row of imported) {
-    const target = targets.find((target) => target.title === row.name);
-    for (const path of [`/incidents/${row.id}`, new URL(row.shortlink).pathname]) {
-      assert.deepEqual(aliasBefore[path], { status: 301, location: target.path });
-      assert.equal((await fetch(`${origin}${path}`, { redirect: "manual" })).status, 404, "aliases never route on operator host");
-    }
-    const page = await fetch(`${publicOrigin}${target.path}`);
-    assert.equal(page.status, 200); assert.ok((await page.text()).includes(target.title));
-  }
-  const feed = await fetch(`${publicOrigin}/history.atom`);
-  assert.equal(feed.status, 200); assert.match(feed.headers.get("Content-Type"), /application\/atom\+xml/u);
-  assert.equal(await feed.text(), await (await fetch(`${publicOrigin}/feed.atom`)).text());
-  for (const path of ["/api/v2/summary.json", "/history.rss", "/embed/script.js"]) { const response = await fetch(`${publicOrigin}${path}`); assert.equal(response.status, 200); assert.ok((await response.text()).length > 0); }
-  for (const path of ["/auth/login", "/app/settings"]) assert.equal((await fetch(`${publicOrigin}${path}`)).status, 404);
-});
-
-contract("MOVE-003", "a second run of the same source changes nothing and sends nothing", async () => {
-  const before = await counts();
-  const mailBefore = await notificationActivity(runtime);
-  const files = fixtures("large");
-  const preview = await moveIn.preview({ files });
-  assert.equal(preview.body.report.state, "already imported");
-  const again = await moveIn.apply(preview.body);
-  assert.equal(again.status, 200);
-  assert.deepEqual(await counts(), before);
-  await assertNoNewNotifications(runtime, mailBefore);
-  assert.equal(await deliveries(), 0);
-  const reread = await aliasesFor(sourceRows("large").filter((row) => aliasBefore[`/incidents/${row.id}`]));
-  assert.deepEqual(reread, aliasBefore, "second apply leaves every alias unchanged");
-});
-
-contract("MOVE-004", "MOVE-011 — undo removes what the import created and keeps what an operator changed since, including edited reports and templates", async () => {
-  const jobs = (await api("/api/app/statuspage-import/jobs")).body.jobs;
-  const job = jobs.find((candidate) => candidate.state === "completed");
-  const components = (await api("/api/app/components")).body.components;
-  const edited = components.find((row) => row.name === "Service 2.1");
-  const patch = await nativeRequest(`/api/app/components/${edited.id}`, { cookie, method: "PUT", json: { groupId: edited.groupId, name: "Service 2.1 (renamed here)", description: edited.description, internal: false, note: edited.note } });
-  assert.equal(patch.status, 200, await patch.text());
-  editedIncident = (await api("/api/app/incidents")).body.incidents.find((row) => row.title === "Incident 1 on Service 1.2");
-  const draftResponse = await nativeRequest(`/api/app/incidents/${editedIncident.id}/draft`, { cookie, method: "PUT", headers: { "If-Match": `-:${editedIncident.updates.length}` }, json: { lifecycle: "Resolved", affectedAudience: "API customers", customerImpact: "Corrected after import", whatStillWorks: "All services are available", details: "Operator reviewed the imported record", nextUpdateAt: null } });
-  assert.equal(draftResponse.status, 200, await draftResponse.clone().text());
-  const draft = (await draftResponse.json()).draft;
-  const published = await nativeRequest(`/api/app/incidents/${editedIncident.id}/publish`, { cookie, method: "POST", headers: { "If-Match": `${draft.id}:${editedIncident.updates.length}` }, json: { channels: [] } });
-  assert.equal(published.status, 200, await published.text());
-  editedMaintenance = (await api("/api/app/maintenance")).body.maintenance.find((row) => row.state === "Scheduled");
-  const cancelled = await api(`/api/app/maintenance/${editedMaintenance.id}/cancel`, {});
-  assert.equal(cancelled.status, 200, JSON.stringify(cancelled.body));
-  const mailBefore = await notificationActivity(runtime);
-  const undone = await moveIn.undo(job);
-  assert.equal(undone.status, 200, JSON.stringify(undone.body));
-  assert.equal(undone.body.job.state, "undone");
-  const after = await counts();
-  assert.equal(after.incidents, 1);
-  assert.equal(after.maintenance, 1);
-  const preserved = sourceRows("large").filter((row) => [editedIncident.title, editedMaintenance.title].includes(row.name));
-  const preservedAliases = await aliasesFor(preserved);
-  for (const [path, result] of Object.entries(preservedAliases)) assert.deepEqual(result, aliasBefore[path], "edited record keeps its original alias");
-  const preservedIds = new Set(preserved.map((row) => row.id));
-  const removed = sourceRows("large").filter((row) => aliasBefore[`/incidents/${row.id}`] && !preservedIds.has(row.id));
-  for (const result of Object.values(await aliasesFor(removed))) assert.equal(result.status, 404, "untouched records lose their aliases");
-  assert.ok(undone.body.undo, "undo explains records that stayed");
-  assert.ok(undone.body.undo.dispositions.some((item) => item.targetKind === "incident" && item.disposition === "retained"));
-  assert.ok(undone.body.undo.dispositions.some((item) => item.targetKind === "maintenance" && item.disposition === "retained"));
-  // What an operator or a subscriber changed stays, with what it still needs: the
-  // confirmed subscriber, the renamed component, the components that subscriber
-  // selected, and their groups. Everything else the import made is gone.
-  const kept = (await api("/api/app/subscribers?limit=100")).body.subscribers;
-  assert.deepEqual(kept.map((subscriber) => subscriber.state), ["active"]);
-  const selected = new Set(kept[0].componentSelections.map((selection) => selection.componentId));
-  const remaining = (await api("/api/app/components")).body.components;
-  assert.ok(remaining.some((row) => row.name === "Service 2.1 (renamed here)"));
-  const keptComponentIds = new Set([...selected, ...editedIncident.components.map((row) => row.componentId), ...editedMaintenance.components.map((row) => row.componentId)]);
-  assert.ok(remaining.every((row) => row.name === "Service 2.1 (renamed here)" || keptComponentIds.has(row.id)));
-  assert.equal(after.groups, new Set(remaining.map((row) => row.groupId)).size);
-  await assertNoNewNotifications(runtime, mailBefore, "undo sends nothing");
-
-  // The small family then lands with its own counts beside what stayed.
-  const independentSmall = fixtures("small").map((file) => ({ ...file, text: file.text.replaceAll("i000000000", "small00000").replaceAll("c000000000", "smallcomp0").replaceAll("https://stspg.io/", "https://stspg.io/small-") }));
-  await importAll(independentSmall);
-  assert.deepEqual(await counts(), { ...after, components: after.components + 2, incidents: after.incidents + 2, subscribers: after.subscribers + 2 });
-  const continuityMailBefore = await notificationActivity(runtime);
-  await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, moveIn, original: fixtures("small"), publicOrigin, preserveEdits: true });
-  await assertNoNewNotifications(runtime, continuityMailBefore, "edited report/template undo sends nothing");
+  } finally { await runtime.close(); }
 });

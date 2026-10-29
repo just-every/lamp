@@ -1,4 +1,6 @@
 import type { MonitorMapping } from "./uptime";
+import { currentStateHistoryStatement } from "../components/state-history-repository";
+import { activeRuleRunsGuard } from "./rule-repository";
 import { createUlid } from "../../shared/ids";
 import { groupedReceiptStatements } from "./grouped-repository";
 import type { GroupedReading, LabelMatcher } from "./grouped-alerts";
@@ -31,8 +33,8 @@ export interface AlertSourceRow {
   updatedAt: string;
 }
 
-export interface AlertReceiptRow { id: string; sourceId: string; requestHash: string; deduplicationKey: string | null; incidentId: string | null; state: "firing" | "recovered" | "invalid"; receivedAt: string; recoveredAt: string | null; payloadJson: string; error: string | null; createdAt: string; updatedAt: string; }
-export interface AlertReceiptView extends Omit<AlertReceiptRow, "requestHash" | "payloadJson"> { sourceName: string; direction?: "inbound" | "note"; }
+export interface AlertReceiptRow { sourceVersion?: string; id: string; sourceId: string; requestHash: string; deduplicationKey: string | null; incidentId: string | null; state: "firing" | "recovered" | "invalid"; receivedAt: string; recoveredAt: string | null; payloadJson: string; error: string | null; createdAt: string; updatedAt: string; }
+export interface AlertReceiptView extends Omit<AlertReceiptRow, "requestHash" | "payloadJson" | "sourceVersion"> { sourceName: string; direction?: "inbound" | "note"; }
 export interface AlertReceiptWriteResult { receipt: AlertReceiptRow; incidentCreated: boolean; replayed: boolean; }
 /** What has arrived through each source: its last delivery, and each Uptime monitor its own events named. */
 export interface AlertSourceActivity { deliveries: Array<{ sourceId: string; lastReceivedAt: string }>; monitors: Array<{ sourceId: string; monitorId: string; monitorName: string; lastSeenAt: string }>; }
@@ -41,8 +43,8 @@ export interface IntakeRepository {
   allocateIncidentReference(): Promise<AllocatedReference>;
   listSources(): Promise<AlertSourceRow[]>;
   listActivity(): Promise<AlertSourceActivity>;
-  listReceipts(limit: number): Promise<AlertReceiptView[]>;
-  deleteSource(sourceId: string, operatorId: string, at: string): Promise<boolean>;
+  listReceipts(limit: number, receiptId?: string): Promise<AlertReceiptView[]>;
+  deleteSource(sourceId: string, operatorId: string, at: string): Promise<{deleted:boolean;publicChanged:boolean}>;
   operatorEmail(operatorId: string): Promise<string | null>;
   findSource(sourceId: string): Promise<AlertSourceRow | null>;
   upsertSource(source: AlertSourceRow): Promise<void>;
@@ -91,18 +93,22 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         monitors: monitors.results.map(row => ({ sourceId: String(row.sourceId), monitorId: String(row.monitorId), monitorName: String(row.monitorName).trim().slice(0, 200), lastSeenAt: String(row.lastSeenAt) })),
       };
     },
-    async listReceipts(limit) {
-      const values = await binding.prepare(`SELECT ${receiptFields}, alert_sources.name AS sourceName FROM alert_receipts INNER JOIN alert_sources ON alert_sources.id = alert_receipts.source_id ORDER BY alert_receipts.received_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
-      const outbound = await binding.prepare(`SELECT p.id, p.source_id AS sourceId, s.name AS sourceName, p.external_id AS deduplicationKey, u.incident_id AS incidentId, CASE WHEN p.state = 'sent' THEN 'firing' ELSE 'invalid' END AS state, p.created_at AS receivedAt, p.error FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id JOIN incident_updates u ON u.id = p.incident_update_id WHERE p.state IN ('sent','failed') ORDER BY p.created_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
+    async listReceipts(limit, receiptId) {
+      const values = await binding.prepare(`SELECT ${receiptFields}, alert_sources.name AS sourceName FROM alert_receipts INNER JOIN alert_sources ON alert_sources.id = alert_receipts.source_id WHERE (? IS NULL OR alert_receipts.id=?) ORDER BY alert_receipts.received_at DESC LIMIT ?`).bind(receiptId ?? null,receiptId ?? null,limit).all<Record<string, unknown>>();
+      const outbound = await binding.prepare(`SELECT p.id, p.source_id AS sourceId, s.name AS sourceName, p.external_id AS deduplicationKey, u.incident_id AS incidentId, CASE WHEN p.state = 'sent' THEN 'firing' ELSE 'invalid' END AS state, p.created_at AS receivedAt, p.error FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id JOIN incident_updates u ON u.id = p.incident_update_id WHERE p.state IN ('sent','failed') AND (? IS NULL OR p.id=?) ORDER BY p.created_at DESC LIMIT ?`).bind(receiptId ?? null,receiptId ?? null,limit).all<Record<string, unknown>>();
       return [...values.results.map(receiptViewRow), ...outbound.results.map(value => ({ ...receiptViewRow({ ...value, recoveredAt: null, createdAt: value.receivedAt, updatedAt: value.receivedAt }), direction: "note" as const }))].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)).slice(0, limit);
     },
     async deleteSource(sourceId, operatorId, at) {
       const auditId = createUlid();
+      const runs = (await binding.prepare("SELECT run.incident_id AS incidentId,rule.component_id AS componentId FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id WHERE rule.source_id=? AND run.released_at IS NULL").bind(sourceId).all<{incidentId:string;componentId:string}>()).results;
       const result = await binding.batch<{ id: string }>([
+        activeRuleRunsGuard(binding,'source',sourceId,runs.map(run=>run.incidentId)),
         binding.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?, 'alert-source', id, 'erased', ?, '{}', ?, ? FROM alert_sources WHERE id = ?").bind(auditId, operatorId, at, at, sourceId),
+        binding.prepare("UPDATE alert_rules SET approved_by_operator_id=? WHERE source_id=?").bind(operatorId,sourceId),
         binding.prepare("DELETE FROM alert_sources WHERE id = ? AND EXISTS (SELECT 1 FROM audit_entries WHERE id = ?) RETURNING id").bind(sourceId, auditId),
+        ...runs.map(run=>currentStateHistoryStatement(binding,{id:createUlid(),componentId:run.componentId,cause:{type:'incident',id:run.incidentId,operatorId},changedAt:at,createdAt:at,updatedAt:at})),
       ]);
-      return result[1].results.some(row => row.id === sourceId);
+      return { deleted:result[3].results.some(row => row.id === sourceId),publicChanged:runs.length>0 };
     },
     async operatorEmail(operatorId) { return (await binding.prepare("SELECT email FROM operators WHERE id = ?").bind(operatorId).first<{ email: string }>())?.email ?? null; },
     async findSource(sourceId) { const value = await binding.prepare(`SELECT ${sourceFields} FROM alert_sources WHERE id = ?`).bind(sourceId).first<Record<string, unknown>>(); return value ? sourceRow(value) : null; },
@@ -161,6 +167,14 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         ),?),?,?,?,?,?,?,?`)
         .bind(receipt.id, receipt.sourceId, receipt.requestHash, receipt.deduplicationKey, receipt.sourceId, receipt.deduplicationKey, incident?.id ?? receipt.incidentId, receipt.state, receipt.receivedAt, receipt.recoveredAt, receipt.payloadJson, receipt.error, receipt.createdAt, receipt.updatedAt));
 
+      // A published execution must still receive recovery work after its rule
+      // has been edited to draft. Retain that work with the accepted receipt.
+      statements.push(binding.prepare(`INSERT OR IGNORE INTO alert_rule_work(receipt_id,source_version)
+        SELECT ?,source.updated_at FROM alert_sources source WHERE source.id=? AND EXISTS(
+          SELECT 1 FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id
+          WHERE rule.source_id=source.id AND run.firing_update_id IS NOT NULL AND run.released_at IS NULL)`)
+        .bind(receipt.id,receipt.sourceId));
+
       for (const componentId of componentIds ?? []) statements.push(binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,created_at,updated_at,published_at)
         SELECT ?,r.incident_id,c.id,c.name,'Major outage','Primary',?,?,NULL FROM alert_receipts r JOIN components c ON c.id = ?
         WHERE r.id = ? AND r.incident_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM incident_components ic WHERE ic.incident_id = r.incident_id AND ic.component_id = c.id)`)
@@ -183,6 +197,10 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         SELECT ?,incident_id,?,?,?,? FROM alert_receipts WHERE id = ? AND incident_id IS NOT NULL`)
         .bind(createUlid(), note.body, note.operatorId, receipt.receivedAt, receipt.receivedAt, receipt.id));
       if (group) statements.push(...groupedReceiptStatements(binding, receipt, group));
+      if (receipt.sourceVersion) statements.push(binding.prepare(`SELECT CASE WHEN
+        NOT EXISTS(SELECT 1 FROM alert_rules WHERE source_id=? AND mode<>'draft')
+        OR EXISTS(SELECT 1 FROM alert_sources WHERE id=? AND updated_at=?)
+        THEN 1 ELSE json('Alert source changed') END`).bind(receipt.sourceId,receipt.sourceId,receipt.sourceVersion));
       let incidentCreated = false;
       try {
         const results = await binding.batch(statements);

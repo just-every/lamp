@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
-import { relativeTime } from "../../../app/client/ui/relative-time";
+import { useRelativeTime } from "../../../app/client/ui/relative-time";
 import { FormError } from "../../../app/client/ui/states";
 import { toolLabel, toolOf, type ComponentOption, type Source } from "./tools";
 
@@ -25,7 +25,7 @@ function state(source: Source): { label: string; tone: string } {
 }
 
 /** One quiet line: the tool when the name does not say it, the one component it feeds, and the last delivery once there is one. */
-function details(source: Source, components: ComponentOption[]) {
+function details(source: Source, components: ComponentOption[], relativeTime: (iso: string) => string) {
   const tool = toolOf(source);
   const parts: string[] = [];
   if (tool !== "webhook" && source.name !== toolLabel(tool)) parts.push(toolLabel(tool));
@@ -35,11 +35,12 @@ function details(source: Source, components: ComponentOption[]) {
 }
 
 function ConnectedTool({ source, components, editing, onEdit, onRemoved }: { source: Source; components: ComponentOption[]; editing: boolean; onEdit: () => void; onRemoved: () => void }) {
+  const relativeTime = useRelativeTime();
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { label, tone } = state(source);
-  const line = details(source, components);
+  const line = details(source, components, relativeTime);
   async function remove() {
     setRemoving(true); setError(null);
     try { await appApi(`/api/app/intake/sources/${source.id}`, { method: "DELETE" }); onRemoved(); }

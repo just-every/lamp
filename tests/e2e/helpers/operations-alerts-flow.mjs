@@ -36,6 +36,10 @@ export async function operationsAlertsFlow({ t }) {
       if (preset === "jsm") for (const site of ["https://evil.example.test", "https://a.atlassian.net.evil.example.test", "https://a.atlassian.net/path", "http://a.atlassian.net", "https://user@a.atlassian.net"]) assert.equal((await post("/api/app/intake/sources", { ...input, atlassianSite: site })).status, 400, "non-site destination is refused before connecting");
       const made = await post("/api/app/intake/sources", input); assert.equal(made.status, 201, made.text);
       const source = made.body.source;
+      const persisted = await fixture.db.prepare("SELECT * FROM alert_sources WHERE id = ?").bind(source.id).first();
+      assert.ok(persisted, `${preset}: the native source write persists its row`);
+      assert.ok(typeof persisted.responder_sealed_credentials === "string" && persisted.responder_sealed_credentials.length > 0, `${preset}: provider credentials are sealed at rest`);
+      assert.ok(!JSON.stringify(persisted).includes(input.operationsApiKey), `${preset}: the persisted source contains no plaintext provider key`);
       assert.equal(source.responderConnection, "connected"); assert.equal(source.closeAlertOnResolve, true);
       for (const secret of [input.operationsApiKey, input.atlassianEmail, source.token].filter(Boolean)) assert.ok(!(await api("/api/app/intake/sources")).text.includes(secret), "listing never returns credentials");
       const send = async (payload, token = source.token, path = source.endpointPath) => {

@@ -66,7 +66,7 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
       // Setup does not ask for the time zone: the page takes this browser's, and Settings → Page changes it.
       const timezone = acceptedZone(Intl.DateTimeFormat().resolvedOptions().timeZone, settings.timezone);
       const { hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength } = settings;
-      const next: Required<PageSettingsInput> = { template: settings.template, widgetAppearance: settings.widgetAppearance, pageName: pageName.trim(), tagline: tagline.trim(), accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength };
+      const next: Required<PageSettingsInput> = { theme: settings.theme, template: settings.template, widgetAppearance: settings.widgetAppearance, pageName: pageName.trim(), tagline: tagline.trim(), accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength };
       await appApi<SettingsResponse>("/api/app/page-settings", { method: "PUT", body: JSON.stringify(next) });
       if (found.mark) {
         // The page still opens with a letter mark if this browser cannot draw the file.

@@ -1,3 +1,5 @@
+import { ThemeValidationError } from "./theme-safety";
+import type { ThemeAssetKind } from "./theme-assets";
 import type { Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
@@ -16,7 +18,8 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   // The published mark, favicon and social image, served on the app host so Settings and Your page can
   // show them wherever the page host lives. Images only: nothing in them can run here.
   app.get("/api/app/page-settings/brand/:kind", async (context) => {
-    const key = BRAND_ARTIFACTS[context.req.param("kind") as keyof typeof BRAND_ARTIFACTS];
+    const kind = context.req.param("kind");
+    const key = Object.hasOwn(BRAND_ARTIFACTS, kind) ? BRAND_ARTIFACTS[kind as keyof typeof BRAND_ARTIFACTS] : undefined;
     const artifact = key ? await readArtifact(key) : null;
     if (!artifact || !/^image\//.test(artifact.contentType)) return context.json({ error: "Not published yet." }, 404);
     return new Response(artifact.bytes, { headers: { "Content-Type": artifact.contentType, "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=60" } });
@@ -31,13 +34,34 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     const parsed = pageSettingsSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid page settings.", issues: parsed.error.issues }, 400);
 
+    if (parsed.data.theme && !["owner", "admin"].includes(context.get("operatorSession").operator.role)) {
+      const current = await service.get();
+      if (JSON.stringify(parsed.data.theme) !== JSON.stringify(current?.theme)) return context.json({ error: "Only a page owner or admin can change its theme." }, 403);
+    }
     try {
       const settings = await service.update(parsed.data);
       return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
     } catch (cause) {
-      if (cause instanceof UnsupportedMailIdentityError || cause instanceof UnavailablePageTemplateError) return context.json({ error: cause.message }, 400);
+      if (cause instanceof ThemeValidationError || cause instanceof UnsupportedMailIdentityError || cause instanceof UnavailablePageTemplateError) return context.json({ error: cause.message }, 400);
       throw cause;
     }
+  });
+
+  app.post("/api/app/page-settings/theme-assets/:kind", async context => {
+    if (!["owner", "admin"].includes(context.get("operatorSession").operator.role)) return context.json({ error: "Only a page owner or admin can change theme assets." }, 403);
+    const kind = context.req.param("kind");
+    if (kind !== "font" && kind !== "header") return context.json({ error: "Unknown theme asset." }, 404);
+    const body = await context.req.parseBody().catch(() => null);
+    const file = body?.file;
+    if (!(file instanceof File)) return context.json({ error: "Choose a file to upload." }, 400);
+    try { return context.json({ settings: await service.uploadThemeAsset(kind as ThemeAssetKind, { bytes: await file.arrayBuffer(), contentType: file.type }) }); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Asset could not be saved." }, 400); }
+  });
+  app.delete("/api/app/page-settings/theme-assets/:kind", async context => {
+    if (!["owner", "admin"].includes(context.get("operatorSession").operator.role)) return context.json({ error: "Only a page owner or admin can remove theme assets." }, 403);
+    const kind = context.req.param("kind");
+    if (kind !== "font" && kind !== "header") return context.json({ error: "Unknown theme asset." }, 404);
+    return context.json({ settings: await service.removeThemeAsset(kind as ThemeAssetKind) });
   });
 
   app.post("/api/app/page-settings/logo", async (context) => {
@@ -45,7 +69,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     const logo = body?.logo;
     if (!(logo instanceof File)) return context.json({ error: "Upload a logo file in the logo field." }, 400);
     try {
-      const settings = await service.uploadLogo({ bytes: await logo.arrayBuffer(), contentType: logo.type });
+      const settings = await service.uploadLogo({ bytes: await logo.arrayBuffer(), contentType: logo.type }, context.get("operator").id);
       return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
     } catch (cause) {
       return context.json({ error: cause instanceof Error ? cause.message : "The logo could not be saved." }, 400);
@@ -53,7 +77,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   });
 
   app.delete("/api/app/page-settings/logo", async (context) => {
-    const settings = await service.removeLogo();
+    const settings = await service.removeLogo(context.get("operator").id);
     return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
   });
 }

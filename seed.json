@@ -1,7 +1,7 @@
 {
   "id": "lamp",
   "name": "Lamp",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "maturity": "ui-port-local-runtime",
   "category": "status",
   "spine": {
@@ -209,6 +209,7 @@
       "clauses": [
         "SETUP-001",
         "ACCESS-001",
+        "ACCESS-002",
         "SETUP-002"
       ]
     },
@@ -218,6 +219,7 @@
       "clauses": [
         "MOVE-001",
         "MOVE-002",
+        "MOVE-013",
         "MOVE-003",
         "MOVE-004",
         "MOVE-005",
@@ -234,7 +236,7 @@
     "SMS and voice notifications: per-message cost, carrier registration, and per-country consent rules that a self-hosted deployment cannot satisfy generically.",
     "Multi-language status pages: every incident update would need a translation before publish, which is the opposite of publishing in two minutes.",
     "A general-purpose operator API authenticated by API tokens: BASE-ACCESS-002 requires a session on every operator endpoint, and machine writes have one narrow door, INTAKE-001, with its own secret.",
-    "SCIM and role synchronization: optional OpenID Connect through Auth, Google, Microsoft or Okta replaces the former SSO exclusion under ACCESS-001; provider sign-in stays off until the owner links and enables it, and magic links remain available.",
+    "SCIM and role synchronization: optional OpenID Connect through Auth, Google, Microsoft or Okta replaces the former SSO exclusion under ACCESS-002; provider sign-in stays off until the owner links and enables it, and magic links remain available.",
     "Visitor analytics and email open tracking: BASE-PUBLIC-001 keeps the page free of cookies and visitor data, and NOTIFY-004 keeps tracking pixels out of notifications, because knowing who read an outage notice is worth less than being the one page a customer can open without being counted.",
     "Native mobile apps: the public page is the mobile experience, and it has to work with script disabled."
   ],
@@ -334,7 +336,7 @@
     {
       "id": "identity-provider",
       "required": false,
-      "why": "ACCESS-001. Optional owner-linked OpenID Connect through Auth, Google, Microsoft or Okta; disabled until explicitly enabled.",
+      "why": "ACCESS-002. Optional owner-linked OpenID Connect through Auth, Google, Microsoft or Okta; disabled until explicitly enabled.",
       "data": [
         "Operator identity claims",
         "OIDC authorization code and app client authentication"
@@ -363,7 +365,7 @@
     {
       "id": "sorry-api",
       "required": false,
-      "why": "MOVE-001 only, at the owner\u2019s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
+      "why": "MOVE-001 only, at the owner’s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
       "data": [
         "API key in authenticated Authorization header only",
         "Page ID or public status-page hostname and notice IDs"
@@ -430,6 +432,17 @@
         "Subscriber phone number",
         "Page name and consent wording",
         "Published update text and permanent link"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "social-accounts",
+      "required": false,
+      "why": "INTEG-002: owner-selected updates post to X at https://api.x.com, Bluesky at https://bsky.social and Mastodon at https://mastodon.social. Owner-chosen Bluesky service hosts and Mastodon instances are a destination class: public HTTPS origins only, private/internal addresses and redirects refused, with Worker global_fetch_strictly_public enforcing resolved-address safety. X uses an owner-supplied OAuth 2.0 user token with tweet.write; Bluesky uses an app password; Mastodon uses a token with write:statuses. Credentials are sealed and never returned or logged.",
+      "data": [
+        "Owner's posting credential sent only to its chosen network authentication endpoint or in Authorization",
+        "Owner prefix, published lifecycle and customer-impact statement",
+        "Incident or maintenance permalink and prior network post identifiers"
       ],
       "adapters": []
     }
@@ -872,13 +885,14 @@
     "uploadMaxBytes": {
       "value": 2097152,
       "estimate": false,
-      "why": "Page logo only (BASE-INPUT-003)."
+      "why": "Page logos and header images; WOFF2 theme fonts have a stricter 512KB limit (BASE-INPUT-003)."
     },
     "uploadTypes": {
       "value": [
         "image/png",
         "image/jpeg",
-        "image/webp"
+        "image/webp",
+        "font/woff2"
       ],
       "estimate": false,
       "why": "No SVG: BASE-INPUT-002 would have to sanitise a scripting format for one logo, on the one surface that must never run anything unexpected."

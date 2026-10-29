@@ -1,15 +1,16 @@
+import { automationFlapFlow } from "./helpers/automation-flap-flow.mjs";
+import { automationRulesBrowserFlow } from "./helpers/automation-rules-browser-flow.mjs";
+import { automationRulesFlow } from "./helpers/automation-rules-flow.mjs";
+import { socialBrowserFlow } from "./helpers/social-browser-flow.mjs";
+import { socialPostsFlow } from "./helpers/social-posts-flow.mjs";
 import { metricsFlow } from "./helpers/metrics-flow.mjs";
-import { metricsBrowserFlow } from "./helpers/metrics-browser-flow.mjs";
-import { operationsAlertsBrowserFlow } from "./helpers/operations-alerts-browser-flow.mjs";
+import { metricSetupJourney } from "./helpers/metric-setup-journey.mjs";
+import { monitorSetupJourney } from "./helpers/monitor-setup-journey.mjs";
 import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
 import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
-import { chatLinksBrowserFlow } from "./helpers/chat-links-browser-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
-import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
-import { availabilityReportBrowserFlow } from "./helpers/availability-report-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
-import { webhookSourceBrowserFlow } from "./helpers/webhook-source-browser-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { pagerDutyFlow } from "./helpers/pagerduty-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
@@ -17,11 +18,11 @@ import { LINKED_URL, assertLinkedSlackText } from "./helpers/update-link-evidenc
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { after, before } from "node:test";
 import { randomBytes } from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { readdir, writeFile } from "node:fs/promises";
+import { DatabaseSync } from "node:sqlite";
 import { join } from "node:path";
 
 import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
@@ -41,6 +42,7 @@ const TEAMS = "https://prod-00.westus.logic.azure.com:443/workflows/0lamptest/tr
 let cookie;
 let runtime;
 let receiver;
+let database;
 const received = [];
 const chatSigningSecret = randomBytes(32).toString('hex');
 let slackReply = { status: 200, body: "ok" };
@@ -52,7 +54,28 @@ async function api(path, init = {}) {
   return { status: response.status, body: text ? JSON.parse(text) : null, text };
 }
 const post = (path, json) => api(path, { method: "POST", body: JSON.stringify(json) });
-const sql = (command) => JSON.parse(execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--persist-to", runtime.state, "--config", "wrangler.jsonc", "--json", "--command", command], { env: runtime.env, encoding: "utf8" }))[0].results;
+// Read the exact persisted D1; all product mutations remain ordinary HTTP.
+const sql = command => database.prepare(command).all().map(row => ({ ...row }));
+async function openFixtureDatabase(directory) {
+  const candidates = [];
+  async function visit(path) {
+    for (const entry of await readdir(path, { withFileTypes: true })) {
+      const name = join(path, entry.name);
+      if (entry.isDirectory()) await visit(name);
+      else if (entry.name.endsWith('.sqlite') && entry.name !== 'metadata.sqlite') {
+        const db = new DatabaseSync(name, { readOnly: true });
+        if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='components'").get()) candidates.push(db);
+        else db.close();
+      }
+    }
+  }
+  await visit(directory);
+  if (candidates.length !== 1) {
+    for (const db of candidates) db.close();
+    throw new Error('Could not identify the migrated channel-journey D1 database.');
+  }
+  database = candidates[0]; database.exec('PRAGMA busy_timeout=5000;');
+}
 async function component(name) { return (await post("/api/app/components", { groupId: null, name, description: "", internal: false, displayOrder: 0, note: "" })).body.component; }
 async function settle() { for (let round = 0; round < 40; round += 1) { await new Promise((resolve) => setTimeout(resolve, 250)); if (sql("SELECT count(*) AS n FROM channel_posts p LEFT JOIN integration_deliveries x ON x.id = p.id WHERE x.state IS NULL OR x.state IN ('queued','sending')")[0].n === 0) return; } }
 
@@ -77,18 +100,18 @@ before(async () => {
   runtime.env.LAMP_WRANGLER_CONFIG = configPath;
   await runtime.start();
   await runtime.seedOperator();
+  await openFixtureDatabase(runtime.state);
   cookie = (await signInAs({ origin, key: devKey })).header;
   await fetch(`${publicOrigin}/`);
 });
 
 after(async () => {
+  database?.close();
   await runtime?.close();
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
-  t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
-  await (async () => {
+test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", { timeout: 600_000 }, async t => {
   const api_ = await component("Payments API");
 
   const created = await post("/api/app/channels", { kind: "slack", name: "#payments", url: SLACK_A, componentIds: [api_.id] });
@@ -103,9 +126,6 @@ test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the 
     assert.doesNotMatch(JSON.stringify(sql("SELECT * FROM channel_destinations")), new RegExp(secret), "only ciphertext is stored");
     assert.doesNotMatch(runtime.output, new RegExp(secret), "never logged");
   }
-})(t);
-  t.diagnostic("NOTIFY-012 — publishing an update posts once to each channel subscribed to an affected component");
-  await (async () => {
   const [payments] = (await api("/api/app/components")).body.components.filter((row) => row.name === "Payments API");
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(incident.status, 201, incident.text);
@@ -173,10 +193,10 @@ test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the 
   assert.equal(teamsTest.status, 200, teamsTest.text);
   assert.equal(teamsTest.body.sent, true, "Teams accepts an empty HTTP 202 response");
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
-})(t);
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
+  await socialBrowserFlow({ origin, devLink: async () => `${origin}/__dev/key#${new URLSearchParams({ 'rer-dev': devKey, as: 'owner' })}`, diagnostic: text => t.diagnostic(text) });
   await runtime.stop();
-  try { await selfServeChatFlow(t); } finally { await runtime.start(); }
+  try { await selfServeChatFlow(t); await socialPostsFlow(t); } finally { await runtime.start(); }
 });
 
 
@@ -189,13 +209,8 @@ const payloads = {
 };
 const sources = {};
 
-test("INTAKE-008 — the owner connects Uptime from the Alerts picker with nothing to type and pairs it by picking the monitors its events name", async () => {
+test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence", { timeout: 600_000 }, async t => {
   await uptimePairingFlow({ api, component, origin, cookie });
-});
-
-test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
-  t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
-  await (async () => {
   for (const preset of Object.keys(payloads)) {
     const target = await component(`Shop (${preset})`);
     const created = await post("/api/app/intake/sources", { name: `${preset} preset`, preset, componentId: target.id, credentialKind: "bearer-token" });
@@ -222,9 +237,6 @@ test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts,
   assert.equal(receipts.filter((receipt) => receipt.state === "invalid").length, 4, "refused payloads are recorded against their source");
   const page = await (await fetch(`${publicOrigin}/api/public/status`)).text();
   assert.doesNotMatch(page, /Checkout latency|Shop \(/, "no public surface changes");
-})(t);
-  t.diagnostic("INTAKE-007 — a preset's recovery resolves its unpublished draft and leaves a published incident to its operators");
-  await (async () => {
   for (const preset of Object.keys(payloads)) {
     const { token, endpointUrl } = sources[preset];
     const recovered = await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloads[preset].up) });
@@ -243,20 +255,14 @@ test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts,
   assert.equal(recovered.incidentId, fired.incidentId);
   assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
   assert.ok(shop.id);
-})(t);
-  t.diagnostic("INTAKE-008 — Uptime signed envelopes map monitors, retain evidence and close only private drafts");
   await uptimePresetFlow({ api, post, component, publicOrigin });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
-  t.diagnostic("UPTIME-009 — authenticated month/quarter downloads in the native operator browser at 1440 and 390");
-  await availabilityReportBrowserFlow({ api, post, component, origin, cookie });
-  t.diagnostic("INTAKE-005 — another tool connects with its own secret and JSON paths; its receipts are redacted");
-  await webhookSourceBrowserFlow({ origin, cookie, api, post });
-  t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
-  await operationsAlertsBrowserFlow({ api, component, origin, cookie });
-  await pagerDutyBrowserFlow({ api, component, origin, cookie });
+  await monitorSetupJourney({ api, component, origin, publicOrigin, cookie });
+  await metricSetupJourney({ api, post, component, origin, cookie });
+  await automationRulesBrowserFlow({ origin, publicOrigin, cookie, component, api, post });
   await pagerDutyFlow({ runtime, t });
   await operationsAlertsFlow({ t });
+  await automationRulesFlow({ t });
+  await automationFlapFlow({ t });
   await metricsFlow({ t });
-  await metricsBrowserFlow({ api, post, component, origin, cookie });
-  await chatLinksBrowserFlow({ origin, cookie, signingSecret: chatSigningSecret, diagnostic: text => t.diagnostic(text) });
 });

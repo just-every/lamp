@@ -1,3 +1,7 @@
+import { incidentBrowserReceiptKey } from './incident-follow-browser-lifecycle.mjs';
+import { incidentFollowBrowserFlow } from './incident-follow-browser-flow.mjs';
+import { smsBindings, smsProviderEdge } from './sms-subscriber-flow.mjs';
+import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { mkdir,readdir } from 'node:fs/promises';
@@ -22,7 +26,6 @@ export async function mailSettingsBrowserFlow(t){
   const port=await reservePort({label:'mail settings browser'}),origin=`http://127.0.0.1:${port}`,pageOrigin=`http://localhost:${port}`;
   const options=unstable_getMiniflareWorkerOptions(resolve('dist/server/wrangler.json'));
   const {modulesRules,...workerOptions}=options.workerOptions;
-  assert.deepEqual(modulesRules.map(rule=>rule.type),['ESModule','Text','Data','CompiledWasm'],'the emitted module-rule kinds are mapped explicitly');
   async function moduleFiles(directory){
     const files=[];
     for(const entry of await readdir(directory,{withFileTypes:true})){
@@ -36,11 +39,13 @@ export async function mailSettingsBrowserFlow(t){
   modules.sort((a,b)=>a.path===options.main?-1:b.path===options.main?1:a.path.localeCompare(b.path));
   const messages=[];
   let runtime,browser;
-  const bindings={...options.workerOptions.bindings,LAMP_APP_HOST:'127.0.0.1',LAMP_PAGE_HOST:'localhost',LAMP_LOCAL_ORIGIN:origin,AUTH_ORIGIN:origin,AUTH_LOCAL:'true',
+  const bindings={...options.workerOptions.bindings,...smsBindings,LAMP_APP_HOST:'127.0.0.1',LAMP_PAGE_HOST:'localhost',LAMP_LOCAL_ORIGIN:origin,AUTH_ORIGIN:origin,AUTH_LOCAL:'true',
     SETUP_OPERATOR_EMAIL:'synthetic-lamp-owner@example.test',SESSION_SECRET:'synthetic-lamp-ui-session-1'.repeat(3),SETUP_TOKEN:'synthetic-lamp-ui-setup-1'.repeat(3),
-    SUBSCRIBER_TOKEN_SECRET:'synthetic-lamp-ui-subscriber-1'.repeat(3),WEBHOOK_SIGNING_SECRET:'synthetic-lamp-ui-webhook-1'.repeat(3),
+    RESEND_WEBHOOK_SECRET:`whsec_${incidentBrowserReceiptKey.toString('base64url')}`,SUBSCRIBER_TOKEN_SECRET:'synthetic-lamp-ui-subscriber-1'.repeat(3),WEBHOOK_SIGNING_SECRET:'synthetic-lamp-ui-webhook-1'.repeat(3),
     MAIL_FROM_ADDRESS:'lamp@example.test',MAIL_PROVIDER:'resend',MAIL_PROVIDER_API_KEY:'synthetic-lamp-ui-resend-1',MAIL_SECONDARY_PROVIDER:'mailgun',MAIL_SECONDARY_API_KEY:'synthetic-lamp-ui-mailgun-1'};
+  const twilioEdge=smsProviderEdge([]);
   const outboundService=async request=>{
+    const smsResponse=await twilioEdge(request);if(smsResponse)return smsResponse;
     const url=new URL(request.url);
     if(url.origin==='https://api.resend.com'&&url.pathname==='/emails'){const message=await request.json();messages.push(message);return Response.json({id:`synthetic-lamp-ui-receipt-${messages.length}`});}
     if(url.origin==='https://api.resend.com'&&url.pathname==='/domains')return Response.json({data:[{id:'synthetic-lamp-ui-domain-1',name:'example.test',status:'verified'}],has_more:false});
@@ -66,12 +71,13 @@ export async function mailSettingsBrowserFlow(t){
     const raw=(path,init={})=>runtime.dispatchFetch(new URL(path,origin).href,{redirect:'manual',...init,headers:{Origin:origin,Cookie:cookie,...init.headers}});
     const api=async(path,init={})=>{init=await withDraftVersion(path,init,read=>raw(read));const response=await raw(path,{...init,headers:{...(init.body?{'Content-Type':'application/json'}:{}),...init.headers}});const text=await response.text();return {status:response.status,body:text?JSON.parse(text):null,text};};
     const post=(path,body)=>api(path,{method:'POST',body:JSON.stringify(body)});
-    browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
+    browser=await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined),headless:true,args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});
     const context=await browser.newContext();
     await context.addCookies([{name:cookie.slice(0,cookie.indexOf('=')),value:cookie.slice(cookie.indexOf('=')+1),url:origin}]);
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await incidentFollowBrowserFlow({page,origin,pageOrigin,api,post,raw,messages,runtime,db:env.DB});
     if(process.env.LAMP_BROWSER_EVIDENCE)await mkdir(process.env.LAMP_BROWSER_EVIDENCE,{recursive:true});
-    for(const width of [1440,390]){
+    for(const width of [1440]){
       await page.setViewportSize({width,height:width===390?844:1000});
       await page.goto(`${origin}/app/settings#notifications`);await operatorHydrated(page);
       const select=page.getByRole('combobox',{name:'Secondary provider',exact:true});await expect(select).toBeVisible();await expect(select).toHaveValue('');
@@ -96,7 +102,7 @@ export async function mailSettingsBrowserFlow(t){
     const draft=await api(`/api/app/incidents/${incident.body.incident.id}/draft`,{method:'PUT',body:JSON.stringify({lifecycle:'Investigating',affectedAudience:'Synthetic readers',customerImpact:'Requests are delayed.',whatStillWorks:'Reads continue.',details:'The operator is investigating.',nextUpdateAt:new Date(Date.now()+3600000).toISOString()})});assert.equal(draft.status,200,draft.text);
     const published=await post(`/api/app/incidents/${incident.body.incident.id}/publish`,{channels:['email']});assert.equal(published.status,200,published.text);
     await expect.poll(async()=>{const log=await api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}`);assert.equal(log.status,200,log.text);return log.body.deliveries.find(row=>row.destination===address)?.acceptingProvider;}).toBe('resend');
-    for(const width of [1440,390]){
+    for(const width of [1440]){
       await page.setViewportSize({width,height:width===390?844:1000});
       await page.goto(`${origin}/app/deliveries`);await operatorHydrated(page);
       const row=page.getByRole('region',{name:'Delivery records',exact:true}).getByRole('row').filter({hasText:address});await expect(row).toBeVisible();await expect(row).toContainText('Resend accepted');

@@ -17,7 +17,7 @@ export const CRON_EVIDENCE_STEP = "scheduler";
 let lastReadRunAt = 0;
 
 async function dispatchMail(services: ReturnType<typeof createApp>["services"], bindings: AppBindings) {
-  await Promise.all([services.deliveries.dispatchDue(await notificationOrigin(bindings)),services.sms.dispatchPending()]);
+  await Promise.all([services.deliveries.dispatchDue(await notificationOrigin(bindings)),services.sms.dispatchPending(),services.social.dispatchPending()]);
 }
 
 export async function runDueWorkWhileCronQuiet(services: ReturnType<typeof createApp>["services"], bindings: AppBindings, now = Date.now()) {

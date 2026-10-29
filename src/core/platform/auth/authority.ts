@@ -17,7 +17,7 @@ export function sessionAuthority(session: Session, deactivatedSelfVersion?: numb
     : { sql: "o.status='inactive' AND o.version=? AND EXISTS(SELECT 1 FROM oa_operators recovery WHERE recovery.id<>o.id AND recovery.role='owner' AND recovery.status='active')", params: [deactivatedSelfVersion] };
   return {
     sql: `EXISTS(SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id
-      WHERE s.id=? AND o.id=? AND s.kind=? AND s.operator_version=? AND o.role='owner'
+      WHERE s.id=? AND o.id=? AND s.kind=? AND s.operator_version=? AND o.role IN ('owner','admin')
       AND s.revoked_at IS NULL AND s.expires_at>unixepoch('subsec')*1000 AND ${person.sql}
       AND ${provider.sql}
       AND (s.kind<>'oidc' OR EXISTS(SELECT 1 FROM oa_provider_sessions p JOIN oa_auth_settings settings ON settings.singleton=1

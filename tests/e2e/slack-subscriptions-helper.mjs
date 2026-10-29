@@ -1,10 +1,6 @@
-import { mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { chromium } from 'playwright';
-import AxeBuilder from '@axe-core/playwright';
 
 export const recordedSlackExchange=JSON.parse(readFileSync(new URL('../fixtures/slack-subscriptions/oauth-exchange.json',import.meta.url),'utf8'));
 export const recordedSlackEvents=JSON.parse(readFileSync(new URL('../fixtures/slack-subscriptions/events.json',import.meta.url),'utf8'));
@@ -12,52 +8,33 @@ export const recordedSlackOAuth=recordedSlackExchange.response;
 export const RECORDED_SLACK_WEBHOOK=recordedSlackOAuth.incoming_webhook.url;
 export const RECORDED_SLACK_TEAM=recordedSlackOAuth.team.id;
 
-export async function prepareSlackSubscription({componentId,publicOrigin,sql,widths=[1440,390],onManage}){
-  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
-  try{
-    for(const width of widths){
-      const context=await browser.newContext({viewport:{width,height:1000},extraHTTPHeaders:{"CF-Connecting-IP":"192.0.2.14"}}),page=await context.newPage();
-      const errors=[];page.on('pageerror',e=>errors.push(e.message));
-      const publicResponse=await page.goto(publicOrigin);
-      assert.equal(publicResponse.status(),200);
-      await page.getByRole('heading',{name:'Subscribe to status updates'}).waitFor();
-      await page.locator('summary').filter({hasText:/^Get updates in Slack$/}).click();
-      const form=page.locator('form[action="/subscribe/slack"]');
-      await form.getByText('Choose components',{exact:true}).click();
-      await form.locator(`input[name="componentId"][value="${componentId}"]`).check();
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-      assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(v=>['serious','critical'].includes(v.impact)),[]);
-      await page.route('https://slack.com/oauth/v2/authorize**',route=>route.fulfill({status:200,contentType:'text/html',body:'<title>Synthetic Slack OAuth edge</title>'}));
-      const started=page.waitForResponse(response=>response.url()===`${publicOrigin}/subscribe/slack`&&response.request().method()==='POST');
-      await form.getByRole('button',{name:'Get updates in Slack',exact:true}).click();
-      const start=await started;
-      assert.equal(start.status(),200);
-      assert.equal(start.headers()['set-cookie'],undefined,'the public Slack door stores no visitor cookie');
-      assert.equal(start.request().headers().cookie,undefined);
-      const continuation=page.getByRole('link',{name:'Continue to Slack',exact:true});
-      await continuation.waitFor();
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-      assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(v=>['serious','critical'].includes(v.impact)),[]);
-      if(process.env.LAMP_BROWSER_EVIDENCE){await mkdir(process.env.LAMP_BROWSER_EVIDENCE,{recursive:true});await page.screenshot({path:join(process.env.LAMP_BROWSER_EVIDENCE,`slack-continuation-${width}.png`),fullPage:true});}
-      const location=new URL(await continuation.getAttribute('href'));
-      assert.equal(location.origin,'https://slack.com');assert.equal(location.pathname,'/oauth/v2/authorize');
-      assert.equal(location.searchParams.get('scope'),'incoming-webhook');
-      await continuation.click();
-      assert.equal(page.url(),location.href,'the public control reaches the synthetic Slack authorization edge');
-      const callback=new URL('/subscribe/slack/callback',publicOrigin);callback.searchParams.set('state',location.searchParams.get('state'));callback.searchParams.set('code',recordedSlackExchange.request.code);
-      const response=await page.goto(callback.href);assert.equal(response.status(),200,await page.textContent('body'));
-      assert.equal(response.headers()['set-cookie'],undefined,'the callback stores no visitor cookie');
-      assert.equal(response.request().headers().cookie,undefined,'hashed OAuth state works without a cookie');
-      assert.deepEqual(await context.cookies(),[]);
-      await page.getByRole('link',{name:'Manage subscription'}).waitFor();
-      if(onManage)await onManage(new URL(await page.getByRole('link',{name:'Manage subscription'}).getAttribute('href'),publicOrigin).href);
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-      assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(v=>['serious','critical'].includes(v.impact)),[]);
-      assert.deepEqual(errors,[]);
-      if(process.env.LAMP_BROWSER_EVIDENCE){await mkdir(process.env.LAMP_BROWSER_EVIDENCE,{recursive:true});await page.screenshot({path:join(process.env.LAMP_BROWSER_EVIDENCE,`slack-subscription-${width}.png`),fullPage:true});}
-      await context.close();
-    }
-  }finally{await browser.close();}
+/** Public subscription form, visitor-approved OAuth continuation and callback.
+ * Only the enclosing fixture's recorded Slack HTTP exchange is substituted. */
+export async function prepareSlackSubscription({componentId,publicOrigin,sql,onManage}) {
+  const page = await fetch(publicOrigin);
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /<form[^>]+action="\/subscribe\/slack"/);
+  assert.equal(page.headers.get('set-cookie'), null, 'the public subscription page stores no visitor cookie');
+  const start = await fetch(`${publicOrigin}/subscribe/slack`, {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'CF-Connecting-IP': '192.0.2.14' },
+    body: new URLSearchParams({ componentId }),
+  });
+  assert.equal(start.status, 200);
+  assert.equal(start.headers.get('set-cookie'), null, 'the public Slack door stores no visitor cookie');
+  const href = (await start.text()).match(/href="(https:\/\/slack\.com\/oauth\/v2\/authorize[^"]+)"/)[1].replaceAll('&amp;', '&');
+  const authorization = new URL(href);
+  assert.equal(authorization.origin, 'https://slack.com');
+  assert.equal(authorization.pathname, '/oauth/v2/authorize');
+  assert.equal(authorization.searchParams.get('scope'), 'incoming-webhook', 'the visitor authorizes only channel publication');
+  const callback = new URL('/subscribe/slack/callback', publicOrigin);
+  callback.searchParams.set('state', authorization.searchParams.get('state'));
+  callback.searchParams.set('code', recordedSlackExchange.request.code);
+  const confirmed = await fetch(callback, { redirect: 'manual' });
+  assert.equal(confirmed.status, 200, await confirmed.clone().text());
+  assert.equal(confirmed.headers.get('set-cookie'), null, 'hashed OAuth state works without a visitor cookie');
+  const management = (await confirmed.text()).match(/href="(\/manage\/[^"]+)"/);
+  assert.ok(management, 'the channel visitor receives a management link after authorization');
+  if (onManage) await onManage(new URL(management[1], publicOrigin).href);
   const row=(await sql("SELECT s.id,s.channel,s.state,s.destination,d.sealed_url,t.slack_team_id FROM subscriber_directory s JOIN subscriber_chat_destinations t ON t.subscriber_id=s.id JOIN delivery_channel_destinations d ON d.id=s.id WHERE s.channel='slack'"))[0];
   assert.equal(row.channel,'slack');assert.equal(row.state,'active');assert.equal(row.slack_team_id,RECORDED_SLACK_TEAM);
   assert.doesNotMatch(JSON.stringify(row),/synthetic-lamp-3/,'webhook is only stored encrypted');

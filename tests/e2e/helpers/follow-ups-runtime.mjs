@@ -25,13 +25,15 @@ export async function eventuallyFollowUp(read, predicate, description) {
 
 /** Disposable migrated Worker. Only the email/webhook network edges are fake;
  * Queue outage injection is the existing queue-outage.worker.ts boundary. */
-export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver, pageHost = "status.example.test", extraBindings = {}, providerEdge } = {}) {
+export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver, pageHost = "status.example.test", extraBindings = {}, providerEdge, workerEntry = "tests/e2e/helpers/follow-ups-worker.ts" } = {}) {
   const state = await mkdtemp(join(tmpdir(), "lamp-follow-ups-"));
   const messages = [], webhookRequests = [], channelRequests = [], mailReceipts = [];
   let runtime, webhookOutage = true, cookie;
+  const sessions = new Map();
+  const consumedSignInMessages = new Set();
   try {
     const built = await build({
-      entryPoints: ["tests/e2e/helpers/follow-ups-worker.ts"], bundle: true,
+      entryPoints: [workerEntry], bundle: true,
       format: "esm", platform: "browser", write: false,
       external: ["cloudflare:workers", "node:*"],
       define: { "import.meta.env.DEV": "false" },
@@ -110,7 +112,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
       const headers = new Headers(init.headers);
       headers.set("Origin", appOrigin);
       if (cookie) headers.set("Cookie", cookie);
-      if (init.body) headers.set("Content-Type", "application/json");
+      if (typeof init.body === "string" && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
       return raw(path, { ...init, headers });
     };
     const api = async (path, init = {}) => {
@@ -119,15 +121,27 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
       return { status: response.status, body: text ? JSON.parse(text) : null, text };
     };
     const post = (path, body = {}) => api(path, { method: "POST", body: JSON.stringify(body) });
-    const linkRequest = await post("/auth/magic-link", { email: "synthetic-lamp-owner@example.test" });
-    assert.ok(linkRequest.status >= 200 && linkRequest.status < 300, linkRequest.text);
-    const ownerMail = await eventuallyFollowUp(() => messages.find(message => message.to.includes("synthetic-lamp-owner@example.test")), Boolean, "owner sign-in mail crosses the real Resend serializer");
-    const token = new URL(ownerMail.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get("token");
-    const confirmed = await request("/auth/confirm", { method: "POST", body: JSON.stringify({ token }) });
-    assert.equal(confirmed.status, 303, await confirmed.clone().text());
-    cookie = confirmed.headers.get("set-cookie").split(";")[0];
+    async function signIn(email = "synthetic-lamp-owner@example.test", { fresh = false } = {}) {
+      if (fresh) sessions.delete(email);
+      if (sessions.has(email)) { cookie = sessions.get(email); return; }
+      const anonymous = async (path, value) => raw(path, { method: "POST", headers: { "Content-Type": "application/json", Origin: appOrigin }, body: JSON.stringify(value) });
+      let ownerMail = messages.find(message => message.to.includes(email) && /invited/i.test(message.subject) && !consumedSignInMessages.has(message));
+      if (!ownerMail) {
+        const before = messages.length;
+        const linkRequest = await anonymous("/auth/magic-link", { email });
+        assert.ok(linkRequest.status >= 200 && linkRequest.status < 300, await linkRequest.clone().text());
+        ownerMail = await eventuallyFollowUp(() => messages.slice(before).find(message => message.to.includes(email)), Boolean, "owner sign-in mail crosses the real Resend serializer");
+      }
+      const token = new URL(ownerMail.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get("token");
+      const confirmed = await anonymous("/auth/confirm", { token });
+      assert.equal(confirmed.status, 303, await confirmed.clone().text());
+      cookie = confirmed.headers.get("set-cookie").split(";")[0];
+      sessions.set(email, cookie);
+      consumedSignInMessages.add(ownerMail);
+    }
+    await signIn();
     return {
-      runtime, db, execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests,
+      runtime, db, execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests, signIn,
       recoverWebhook() { webhookOutage = false; },
       async close() { try { await runtime.dispose(); } finally { await rm(state, { recursive: true, force: true }); } },
     };

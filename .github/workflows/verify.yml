@@ -42,8 +42,48 @@ jobs:
         name: Read the shared local and CI verification plan
         run: node --input-type=module -e 'import { ciShardNames } from "./scripts/verification/plan.mjs"; console.log("shards=" + JSON.stringify(ciShardNames));' >> "$GITHUB_OUTPUT"
 
-  shards:
+  build:
     needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: package.json
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ~/.local/share/pnpm/store
+          key: lamp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install pinned tools and dependencies
+        run: bash scripts/ci/bootstrap.sh
+      - name: Build the production Worker once
+        env:
+          LAMP_VERIFY_SHARD: build
+          LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
+        run: |
+          pnpm run verify:app
+          tar -czf "$RUNNER_TEMP/lamp-built-worker.tar.gz" dist .wrangler/deploy/config.json
+      - name: Retain commit-bound build completion
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-shard-${{ github.run_id }}-${{ github.run_attempt }}-build
+          path: ${{ runner.temp }}/lamp-verification/ci-shards/build.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-build-${{ github.sha }}
+          path: ${{ runner.temp }}/lamp-built-worker.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  shards:
+    needs: [plan, build]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -63,17 +103,20 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: package.json
-      - name: Cache shared pnpm store and Chromium
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ~/.local/share/pnpm/store
+          key: lamp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Cache Chromium and its system packages
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: |
-            ~/.local/share/pnpm/store
             ~/.cache/ms-playwright
             ${{ runner.temp }}/rer-apt/archives
-          key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
+          key: lamp-chromium-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml') }}
       # Base requires 15 GiB free before starting native local servers.
       - name: Reserve disk for native runtime journeys
-        if: contains(fromJSON('["adoption", "demo", "imports-cutover-browser", "portability"]'), matrix.shard)
+        if: contains(fromJSON('["ownership", "demo", "imports", "portability"]'), matrix.shard)
         run: |
           # Leave room for bootstrap without deleting every toolchain on every
           # machine. The other shards do not start a Base-managed server.
@@ -86,12 +129,10 @@ jobs:
       - name: Prepare verification logs
         run: mkdir -p "$RUNNER_TEMP/lamp-verification"
       - name: Install pinned tools and dependencies
-        env:
-          LAMP_CI_XML: ${{ contains(fromJSON('["publishing", "public", "notifications"]'), matrix.shard) }}
         run: bash scripts/ci/bootstrap.sh 2>&1 | tee "$RUNNER_TEMP/lamp-verification/bootstrap.log"
       - name: Install Chromium only for browser shards
         # These shards exercise source, API and contract doors without a browser.
-        if: ${{ !contains(fromJSON('["source", "ownership-upgrade", "publishing", "api", "portability", "imports-cutover-contract", "imports-betterstack", "artifact"]'), matrix.shard) }}
+        if: matrix.shard != 'portability'
         run: |
           set -euo pipefail
           pnpm exec playwright install chromium
@@ -99,6 +140,12 @@ jobs:
             sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
             pnpm exec node scripts/chromium-probe.mjs
           }
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: lamp-build-${{ github.sha }}
+          path: ${{ runner.temp }}/lamp-build
+      - name: Restore the shared production Worker
+        run: tar -xzf "$RUNNER_TEMP/lamp-build/lamp-built-worker.tar.gz"
       - name: Verify this product shard
         env:
           LAMP_VERIFY_SHARD: ${{ matrix.shard }}
@@ -133,7 +180,7 @@ jobs:
 
   # Preserve the stable required-check name while requiring every planned shard.
   verify:
-    needs: [plan, shards]
+    needs: [plan, build, shards]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     steps:

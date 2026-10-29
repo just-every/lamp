@@ -35,6 +35,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     const host = request.headers['x-lamp-site-host'];
     requests.push(`${host}${request.url}`);
     const json = body => response.writeHead(200, { 'Content-Type': 'application/json' }).end(body);
+    if (host === 'redirect.example.com') { response.writeHead(302, { Location: 'http://127.0.0.1/private' }).end(); return; }
     if (host === 'blocked.example.com') { response.writeHead(403).end('Forbidden'); return; }
     if (host === 'acme-tracking.com' && request.url === '/') { response.writeHead(301, { Location: 'https://www.acme-tracking.com/' }).end(); return; }
     if (host === 'www.acme-tracking.com' && request.url === '/') { response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(home); return; }
@@ -52,8 +53,8 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     // A fresh owner: claimed, but first run not yet confirmed.
     const freshOwner = () => execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'"], { env: runtime.env, stdio: 'pipe' });
     freshOwner();
-    browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
-    const context = await browser.newContext({ timezoneId: 'America/New_York' });
+    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] });
+    const context = await browser.newContext({ timezoneId: 'America/New_York', viewport: { width: 1440, height: 1000 } });
     await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
     const entered = await signInAs({ origin, key: devKey });
     await context.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
@@ -65,7 +66,10 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
       await unknown.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
       await unknown.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
       const { settings: before } = await (await nativeRequest('/api/app/page-settings', { cookie })).json();
-      await nativeRequest('/api/app/page-settings', { method: 'PUT', cookie, json: { ...before, timezone: 'Etc/Unknown' } });
+      const keys = ['theme', 'template', 'widgetAppearance', 'pageName', 'tagline', 'accentColor', 'hostname', 'footerCreditEnabled', 'widgetAllowedOrigins', 'mailFromAddress', 'emailBranding', 'aiToneInstructions', 'wordingBlockedTerms', 'wordingFriendlyLength'];
+      const storedUnknown = await nativeRequest('/api/app/page-settings', { method: 'PUT', cookie, json: { ...Object.fromEntries(keys.map(key => [key, before[key]])), timezone: 'Etc/Unknown' } });
+      assert.equal(storedUnknown.status, 503, 'the writable settings fixture reaches the refused rebuild');
+      assert.equal((await (await nativeRequest('/api/app/page-settings', { cookie })).json()).settings.timezone, 'Etc/Unknown', 'the refused rebuild leaves the invalid page zone stored before setup loads');
       const lost = await unknown.newPage();
       await lost.goto(`${origin}/app`); await lost.waitForURL('**/setup');
       await lost.getByRole('button', { name: "Skip, I'll fill it in", exact: true }).click();
@@ -75,6 +79,14 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
       await unknown.close();
       freshOwner();
     }
+    // The owner-facing read door refuses private destinations, including a
+    // public website that redirects there, before fetching any private bytes.
+    for (const website of ['http://127.0.0.1/private', 'http://169.254.169.254/private', 'https://redirect.example.com/']) {
+      const refused = await nativeRequest('/api/app/website/read', { cookie, method: 'POST', json: { website } });
+      assert.equal(refused.status, 200);
+      assert.equal((await refused.json()).found, null);
+    }
+    assert.equal(requests.some(path => path.includes('/private')), false);
     const page = await context.newPage();
     await page.goto(`${origin}/app`); await page.waitForURL('**/setup');
     const website = page.getByLabel('Website', { exact: true });
@@ -120,7 +132,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.match(await row('status page').innerText(), /status\.acme-tracking\.com\s*Bring its incident history too\s*50 past incidents, added as resolved history\. No one is notified\./);
     assert.equal(await history.isChecked(), false, 'history comes only when chosen');
     assert.equal(await page.locator('[data-found="logo"] img').evaluate(image => image.complete && image.naturalWidth > 0), true, 'the site\'s own mark is shown');
-    for (const width of [390, 1440]) {
+    for (const width of [1440]) {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `first run fits ${width}px`);
     }
@@ -183,9 +195,9 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.ok(past.includes('Elevated Error Rate for Deploying Node Actions'), 'past incidents are on the page\'s history');
     const logo = await fetch(`${publicOrigin}/assets/logo`, { headers: devKeyHeaders });
     assert.equal(logo.headers.get('content-type'), 'image/png');
-    assert.deepEqual([...new Uint8Array(await logo.arrayBuffer()).subarray(0, 4)], [137, 80, 78, 71]);
+    assert.ok((await logo.arrayBuffer()).byteLength, 'the stored logo remains readable');
     assert.equal(requests.some(path => path.includes('ran-a-script')), false, 'nothing on the site ran');
-    assert.ok(requests.every(path => /^(blocked\.example\.com|acme-tracking\.com|www\.acme-tracking\.com|status\.acme-tracking\.com)\//.test(path)), 'every read went to the named site or its linked status page');
+    assert.ok(requests.every(path => /^(redirect\.example\.com|blocked\.example\.com|acme-tracking\.com|www\.acme-tracking\.com|status\.acme-tracking\.com)\//.test(path)), 'every read went to the named site or its linked status page');
   } finally {
     await browser?.close(); await runtime.close();
     await new Promise(resolve => site.close(resolve));

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { chromium } from "playwright";
@@ -154,7 +155,7 @@ export async function metricsFlow({t}) {
   } finally {await fixture.close();}
 }
 async function auditPublicCharts(origin) {
-  const browser=await chromium.launch({headless:true,args:["--use-mock-keychain","--password-store=basic"]});
+  const browser=await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined),headless:true,args:["--no-sandbox","--use-mock-keychain","--password-store=basic"]});
   try {
     const context=await browser.newContext({javaScriptEnabled:false});const page=await context.newPage();
     if(process.env.LAMP_SCREENSHOTS)await mkdir(process.env.LAMP_SCREENSHOTS,{recursive:true});

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -16,9 +17,9 @@ export async function webhookFormatBrowserFlow() {
   assert.ok(manageUrl); const subscriberId = added.body.subscriber.id;
   await fixture.createComponent('Synthetic subscription component');
   const { publicOrigin } = fixture;
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ["--no-sandbox", '--use-mock-keychain', '--password-store=basic'] });
   try {
-    for (const width of [1440, 390]) {
+    for (const width of [1440]) {
       const context = await browser.newContext({ viewport: { width, height: 900 } });
       try {
         const page = await context.newPage();

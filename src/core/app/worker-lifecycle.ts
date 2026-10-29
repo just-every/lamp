@@ -33,9 +33,10 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     // State changes and operator reminders first, at the trigger's own time,
     // so the mail they queue goes out in this same run.
     const changes = await Promise.allSettled([
+      runtime.services.alertRules.processPending(scheduledAt),
       runtime.services.metrics.runDue(scheduledAt),
       runtime.services.trafficAlerts.run(scheduledAt),
-      runtime.services.subscribers.expirePending(),
+      runtime.services.subscribers.expirePending(scheduledAt),
       expireHeldSorrySubscribers(bindings.DB, scheduledAt),
       runtime.services.pageExport.expireHeld(scheduledAt),
       runtime.services.incidents.publishDue(),
@@ -47,6 +48,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),
       runtime.services.publicSnapshots.retryPendingBuild(),
       runtime.services.channels.dispatchPending(),
+      runtime.services.social.dispatchPending(),
       runtime.services.sms.dispatchPending(),
       // Lamp checks its own public page, subscribe form and sender; Overview shows the result.
       runtime.services.overview.live.runChecks(),
@@ -77,6 +79,7 @@ export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindin
     }
     try {
       await runtime.services.deliveries.dispatchEvent(message.body.eventId, await notificationOrigin(bindings));
+      await runtime.services.social.dispatchPending();
       message.ack();
     } catch (cause) {
       message.retry();

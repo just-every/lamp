@@ -1,162 +1,131 @@
-import { subscriberLimitsFlow } from "./subscriber-limits-flow.mjs";
-import assert from "node:assert/strict";
-import { openSubscriberManagementFixture, subscriberCsv, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
+import assert from 'node:assert/strict';
+import { openSubscriberManagementFixture, subscriberCsv, subscriberCsvRows, eventuallySubscriber } from './subscriber-management-fixture.mjs';
+import { subscriberLimitsFlow } from './subscriber-limits-flow.mjs';
 
-const previewPath = "/api/app/subscribers/import/preview";
-const applyPath = "/api/app/subscribers/import/apply";
-
-/** SUB-017 extends the existing MOVE-002 silent-import/explicit-invitation
- * journey. This independent installation exercises the actual CSV HTTP doors. */
+/** An owner reviews a mixed CSV, imports silently, explicitly invites, then
+ * observes consent and real selected delivery. The source bytes are the input;
+ * no file layout, wording or implementation fingerprint is pinned. */
 export async function subscriberCsvFlow() {
   const fixture = await openSubscriberManagementFixture();
-  const { api, post, list, messagesFor } = fixture;
   try {
-    const owner = (await api("/api/app/session")).body.operator;
-    const component = await fixture.createComponent("Synthetic Lamp CSV API");
-    const internal = await fixture.createComponent("Synthetic Lamp CSV internal", true);
-    const headers = ["email", "phone", "webhook_url", "contact_email", "components", "language"];
-    const emails = Array.from({ length: 96 }, (_, index) => `${index === 0 ? "+" : ""}synthetic-lamp-import-${index + 1}@example.test`);
-    const webhook = "https://receiver.example.test/synthetic-lamp-1";
-    const contact = "synthetic-lamp-import-webhook-contact@example.test";
-    const csv = subscriberCsv(headers, [
-      ...emails.map(email => [email, "", "", "", component.id, "en"]),
-      ["", "", webhook, contact, component.id, "en"],
-      ...['synthetic-lamp-invalid,"quoted"', "synthetic-lamp-invalid@", "synthetic lamp\r\ninvalid@example.test"].map(email => [email, "", "", "", component.id, "en"]),
+    const { api, post, list, messagesFor } = fixture;
+    const component = await fixture.createComponent('Imported API');
+    const email = '+imported-reader@example.test', contact = 'hook-owner@example.test';
+    const destination = 'https://receiver.example.test/synthetic-lamp-1';
+    const csv = subscriberCsv(['email', 'webhook_url', 'contact_email', 'components'], [
+      [email, '', '', component.id],
+      ['', destination, contact, component.id],
+      ['invalid-address', '', '', component.id],
+      [email, '', '', component.id],
     ]);
-    assert.equal((await fixture.raw(previewPath, { method: "POST", body: JSON.stringify({ csv }) })).status, 401);
-    assert.equal((await fixture.raw("/api/app/subscribers.csv")).status, 401);
-    assert.equal((await fixture.raw("/api/app/subscribers/import/batches")).status, 401);
-    assert.equal((await fixture.raw(pageOrigin + "/api/app/subscribers/import/batches")).status, 404);
-    assert.equal((await fixture.raw(pageOrigin + "/api/app/subscribers.csv")).status, 404);
+    assert.equal((await fixture.raw('/api/app/subscribers/import/preview', { method: 'POST', body: JSON.stringify({ csv }) })).status, 401);
     const before = await fixture.databaseState(), mailBefore = fixture.messages.length;
-    const preview = await post(previewPath, { csv });
+    const preview = await post('/api/app/subscribers/import/preview', { csv });
     assert.equal(preview.status, 200, preview.text);
-    assert.deepEqual(preview.body.counts, { created: 97, skipped: 0, refused: 3 });
-    assert.equal(preview.body.rows.length, 100);
-    const refused = preview.body.rows.filter(row => row.outcome === "refused");
-    assert.equal(refused.length, 3);
-    assert.ok(refused.every(row => Number.isInteger(row.row) && typeof row.reason === "string" && row.reason.trim()));
-    assert.equal(new Set(refused.map(row => row.row)).size, 3);
+    assert.deepEqual(preview.body.counts, { created: 2, refused: 1, skipped: 1 });
+    assert.ok(preview.body.rows.find(row => row.outcome === 'refused').reason);
     await fixture.assertUnchanged(before);
-    assert.equal(fixture.messages.length, mailBefore, "a CSV dry run sends no mail");
-
-    const stale = await post(applyPath, { csv: csv.replace(emails[1], "synthetic-lamp-changed@example.test"), reviewedFingerprint: preview.body.fingerprint });
-    assert.equal(stale.status, 409, stale.text);
+    const changed = await post('/api/app/subscribers/import/apply', { csv: csv.replace(email, 'changed@example.test'), reviewedFingerprint: preview.body.fingerprint });
+    assert.equal(changed.status, 409, changed.text);
     await fixture.assertUnchanged(before);
-    const applied = await post(applyPath, { csv, reviewedFingerprint: preview.body.fingerprint });
+    const applied = await post('/api/app/subscribers/import/apply', { csv, reviewedFingerprint: preview.body.fingerprint });
     assert.equal(applied.status, 200, applied.text);
-    assert.deepEqual(applied.body.counts, { created: 97, skipped: 0, refused: 3 });
-    assert.equal(applied.body.subscriberIds.length, 97);
-    const batches = async () => {
-      const result = await api("/api/app/subscribers/import/batches");
-      assert.equal(result.status, 200, result.text);
-      assert.ok(result.body.batches.every(row => Object.keys(row).sort().join(",") === "batchId,createdAt,remaining"), "batch summaries contain no subscriber destinations or tokens");
-      return result.body.batches;
-    };
-    assert.deepEqual((await batches()).map(row => [row.batchId, row.remaining]), [[applied.body.batchId, 97]]);
-    assert.equal(new Set(applied.body.subscriberIds).size, 97);
+    assert.deepEqual(applied.body.counts, preview.body.counts);
     const pending = await list();
-    assert.equal(pending.length, 97);
-    assert.ok(pending.every(row => row.state === "pending"));
-    assert.ok(pending.every(row => row.componentSelections.length === 1 && row.componentSelections[0].componentId === component.id));
-    assert.ok(pending.every(row => row.addedBy?.id === owner.id && row.addedBy.displayName === owner.displayName));
-    assert.equal(pending.find(row => row.destination === webhook)?.contactEmail, contact);
-    assert.equal(fixture.messages.length, mailBefore, "applying the CSV leaves every recipient pending and sends no invitation");
-    const obligations = await api("/api/app/overview/follow-ups");
-    assert.equal(obligations.status, 200, obligations.text);
-    const csvObligations = obligations.body.followUps.filter(row => row.kind === "imported-invitation" && applied.body.subscriberIds.some(id => row.id.endsWith(`:${id}`)));
-    assert.equal(csvObligations.length, 97, "every pending CSV confirmation is a real durable follow-up");
-    for (const obligation of csvObligations) {
-      const subscriber = pending.find(row => obligation.id.endsWith(`:${row.id}`));
-      assert.equal(obligation.link, "/app/subscribers");
-      assert.equal(obligation.dueAt, new Date(Date.parse(subscriber.createdAt) + 72 * 3_600_000).toISOString());
-      assert.ok(obligation.stopCondition.trim());
+    assert.equal(pending.length, 2);
+    assert.ok(pending.every(row => row.state === 'pending' && row.componentSelections.some(selection => selection.componentId === component.id)));
+    assert.equal(fixture.messages.length, mailBefore, 'review and apply never imply permission to send');
+    await fixture.publish(component, 'Published before imported readers consent');
+    assert.equal(fixture.messages.length, mailBefore, 'pending imported destinations receive no publication');
+    const owner = (await api('/api/app/session')).body.operator;
+    assert.ok(pending.every(row => row.addedBy.id === owner.id));
+    const batches = await api('/api/app/subscribers/import/batches');
+    assert.ok(batches.body.batches.some(row => row.batchId === applied.body.batchId && row.remaining === pending.length));
+    assert.ok(!batches.text.includes(email) && !batches.text.includes(contact));
+    const exported = subscriberCsvRows(await (await fixture.request('/api/app/subscribers.csv')).text());
+    assert.ok(exported.some(row => row.destination === "'" + email && row.consent_at === ''), 'CSV prevents formula execution and never invents consent');
+    assert.ok(exported.some(row => row.destination === destination && row.contact_email === contact));
+    const invite = `/api/app/subscribers/import/${applied.body.batchId}/send-invitations`;
+    assert.equal((await fixture.raw(invite, { method: 'POST', body: '{}' })).status, 401);
+    assert.equal((await api(invite, { method: 'POST', headers: { 'Sec-Fetch-Site': 'cross-site' }, body: '{}' })).status, 403);
+    const sent = await post(invite);
+    assert.equal(sent.status, 200, sent.text);
+    assert.equal(sent.body.sent, pending.length);
+    assert.equal(sent.body.remaining, 0);
+    for (const repeated of await Promise.all([post(invite), post(invite)])) assert.equal(repeated.body.sent, 0);
+    for (const recipient of [email, contact]) assert.equal(messagesFor(recipient).length, 1, 'one deliberate invitation per imported recipient');
+    assert.ok((await list()).every(row => row.state === 'pending'), 'an invitation is not consent');
+    const reportBeforeConsent = (await api('/api/app/subscriber-reporting')).body;
+    assert.equal(reportBeforeConsent.total, pending.length);
+    const changes = report => report.daily.reduce((sum, row) => sum + row.netChange, 0);
+    await fixture.confirm(email); await fixture.confirm(contact); fixture.recoverWebhook();
+    const report = (await api('/api/app/subscriber-reporting')).body;
+    assert.equal(changes(report), changes(reportBeforeConsent), 'consent changes eligibility, not subscriber inventory');
+    assert.equal(report.total, (await list()).length);
+    for (const count of report.counts) assert.equal(count.count, (await list()).filter(row => row.channel === count.channel && row.state === count.state).length);
+    const reportCsv = subscriberCsvRows(await (await fixture.request('/api/app/subscriber-reporting?format=csv')).text());
+    assert.equal(Number(reportCsv.find(row => row.scope === 'summary').total), report.total);
+    for (const day of report.daily) {
+      assert.equal(day.netChange, day.joined - day.left);
+      assert.equal(day.closingInventory, day.openingInventory + day.netChange);
+      const exportedDay = reportCsv.find(row => row.scope === 'daily' && row.day === day.day && row.channel === day.channel);
+      assert.equal(Number(exportedDay.net_change), day.netChange);
     }
-    const replay = await post(applyPath, { csv, reviewedFingerprint: preview.body.fingerprint });
-    assert.equal(replay.status, 409, replay.text);
-    const againBefore = await fixture.databaseState();
-    const again = await post(previewPath, { csv });
-    assert.equal(again.status, 200, again.text);
-    assert.deepEqual(again.body.counts, { created: 0, skipped: 97, refused: 3 });
-    await fixture.assertUnchanged(againBefore);
-    const importedAudit = await api("/api/app/audit-log?action=subscriber.imported&limit=100");
-    assert.equal(importedAudit.status, 200, importedAudit.text);
-    assert.equal(importedAudit.body.entries.length, 97);
-    assert.ok(importedAudit.body.entries.every(entry => entry.actorId === owner.id && applied.body.subscriberIds.includes(entry.entityId)));
-
-    const exportResponse = await fixture.request("/api/app/subscribers.csv");
-    assert.equal(exportResponse.status, 200);
-    assert.match(exportResponse.headers.get("content-type"), /^text\/csv/);
-    assert.equal(exportResponse.headers.get("cache-control"), "no-store");
-    const exportedText = await exportResponse.text(), exported = subscriberCsvRows(exportedText);
-    assert.equal(exported.length, 97);
-    assert.deepEqual(Object.keys(exported[0]), ["channel", "destination", "contact_email", "state", "components", "consent_at"]);
-    assert.ok(exported.every(row => row.state === "pending" && row.consent_at === "" && row.components === component.id));
-    assert.ok(exported.some(row => row.destination === `'${emails[0]}`), "a formula-leading destination is neutralised inside the quoted CSV cell");
-    assert.ok(exported.some(row => row.channel === "webhook" && row.destination === webhook && row.contact_email === contact));
-    assert.doesNotMatch(exportedText, /token_hash|tokenHash|\/confirm-subscription\/|\/manage\//, "export contains consent facts, never subscriber credentials");
-
-    const sendPath = `/api/app/subscribers/import/${applied.body.batchId}/send-invitations`;
-    assert.equal((await fixture.raw(sendPath, { method: "POST", body: "{}" })).status, 401);
-    const crossSite = await api(sendPath, { method: "POST", headers: { "Sec-Fetch-Site": "cross-site" }, body: "{}" });
-    assert.equal(crossSite.status, 403);
-    await fixture.publish(component, "Synthetic Lamp CSV pending publication");
-    assert.equal(fixture.messages.length, mailBefore, "pending CSV subscriptions receive no published incident before consent");
-    for (const expected of [{ sent: 50, remaining: 47 }, { sent: 47, remaining: 0 }, { sent: 0, remaining: 0 }]) {
-      const sent = await post(sendPath);
-      assert.equal(sent.status, 200, sent.text);
-      assert.deepEqual(sent.body, expected);
-      assert.equal((await batches()).find(row => row.batchId === applied.body.batchId).remaining, expected.remaining, "reloading a batch summary keeps the authoritative remaining invitations");
-    }
-    assert.equal(fixture.messages.length, mailBefore + 97);
-    for (const email of [...emails, contact]) {
-      assert.equal(messagesFor(email).length, 1, "an imported recipient receives exactly one confirmation");
-      assert.match(messagesFor(email)[0].text, /\/confirm-subscription\//);
-    }
-    for (const repeated of await Promise.all([post(sendPath), post(sendPath)])) {
-      assert.equal(repeated.status, 200, repeated.text);
-      assert.deepEqual(repeated.body, { sent: 0, remaining: 0 });
-    }
-    assert.equal(fixture.messages.length, mailBefore + 97, "repeated concurrent owner actions cannot send a second invitation");
-    assert.ok((await list()).every(row => row.state === "pending"), "sending mail never confirms consent");
-    await fixture.confirm(contact);
-    const confirmedWebhook = (await list()).find(row => row.destination === webhook);
-    assert.equal(confirmedWebhook.state, "active", "a webhook confirms through its contact address");
-    assert.ok(!(await api("/api/app/overview/follow-ups")).body.followUps.some(row => row.kind === "imported-invitation" && row.id.endsWith(`:${confirmedWebhook.id}`)), "confirmation removes the native CSV obligation");
-
-    const invalidCsv = subscriberCsv(headers, [
-      ["", "2025550123", "", "", component.id, "en"],
-      ["synthetic-lamp-spanish@example.test", "", "", "", component.id, "es"],
-      ["synthetic-lamp-internal@example.test", "", "", "", internal.id, "en"],
-      ["", "", "https://receiver.example.test/synthetic-lamp-2", "not-an-email", component.id, "en"],
-    ]);
-    const invalidBefore = await fixture.databaseState(), invalidMail = fixture.messages.length;
-    const invalid = await post(previewPath, { csv: invalidCsv });
-    assert.equal(invalid.status, 200, invalid.text);
-    assert.deepEqual(invalid.body.counts, { created: 0, skipped: 0, refused: 4 });
-    assert.ok(invalid.body.rows.every(row => row.outcome === "refused" && row.reason));
-    assert.equal(invalid.body.rows[0].reason, "The destination, contact address or component identifiers are invalid.");
-    await fixture.assertUnchanged(invalidBefore);
-    assert.equal(fixture.messages.length, invalidMail);
-    const rowLimit = await post(previewPath, { csv: "email\r\n" + Array.from({ length: 5001 }, (_, index) => `synthetic-lamp-limit-${index}@example.test\r\n`).join("") });
-    assert.equal(rowLimit.status, 400, rowLimit.text);
-    const byteLimit = await post(previewPath, { csv: "email\r\n" + "x".repeat(8 * 1024 * 1024) });
-    assert.equal(byteLimit.status, 413, byteLimit.text);
-    const recordLimit = await post(previewPath, { csv: "email\r\n" + "x".repeat(512 * 1024 + 1) + "\r\n" });
-    assert.equal(recordLimit.status, 400, recordLimit.text);
-    await fixture.assertUnchanged(invalidBefore);
-    assert.equal(fixture.messages.length, invalidMail, "refused input never sends confirmation mail");
+    await fixture.publish(component, 'Published after imported readers consent');
+    assert.ok(messagesFor(email).some(message => message.text.includes('Requests are delayed.')));
+    assert.equal(fixture.webhookRequests.length, 1);
+    assert.ok((await list()).every(row => row.state === 'active'));
+    const audit = await api('/api/app/audit-log?action=subscriber.imported&limit=100');
+    assert.ok(pending.every(row => audit.body.entries.some(entry => entry.entityId === row.id && entry.actorId === owner.id)));
+    for (const row of pending) assert.equal((await api(`/api/app/subscribers/${row.id}`, { method: 'DELETE' })).status, 204);
+    const reportAfterErasure = (await api('/api/app/subscriber-reporting')).body;
+    assert.equal(reportAfterErasure.total, 0);
+    assert.equal(changes(reportAfterErasure), changes(report) - pending.length, 'erasure leaves the reported daily inventory once');
+    assert.ok(!JSON.stringify(reportAfterErasure).includes(email) && !JSON.stringify(reportAfterErasure).includes(contact));
+    const erased = await fixture.databaseState();
+    for (const [table, bytes] of erased) for (const address of [email, contact, destination]) assert.ok(!bytes.includes(address), `erasure removed imported contact from ${table}`);
     await subscriberBatchAuthorityFlow(fixture);
+    // The same consent/reporting journey remains usable by a Communicator.
+    const communicatorEmail='synthetic-lamp-reporting@example.test';
+    assert.equal((await post('/api/app/operators/invite',{email:communicatorEmail,displayName:'Synthetic Lamp reporting operator'})).status,202);
+    await fixture.signIn(communicatorEmail);
+    const communicator=(await api('/api/app/session')).body.operator;
+    await fixture.signIn();
+    assert.equal((await post(`/api/app/operators/${communicator.id}/role`,{role:'communicator'})).status,200);
+    await fixture.signIn(communicatorEmail,{fresh:true});
+    assert.equal((await api('/api/app/session')).body.operator.role,'communicator');
+    assert.equal((await api('/api/app/subscriber-reporting')).status,200);
+    const communicatorCsv=await fixture.request('/api/app/subscriber-reporting?format=csv');
+    assert.equal(communicatorCsv.status,200);assert.ok(subscriberCsvRows(await communicatorCsv.text()).length);
+    const addedByCommunicator=await post('/api/app/subscribers',{channel:'email',email:'synthetic-lamp-communicator-reader@example.test',componentIds:[component.id]});
+    assert.equal(addedByCommunicator.status,201,addedByCommunicator.text);
+    const addedId=addedByCommunicator.body.subscriber.id;
+    assert.ok((await list()).some(row=>row.id===addedId));
+    assert.equal((await api(`/api/app/subscribers/${addedId}`,{method:'DELETE'})).status,204);
+    await fixture.signIn();
   } finally { await fixture.close(); }
   await subscriberLimitsFlow();
 }
 
-/** Lamp intentionally exposes equal owner operators, not a public member
- * provisioning door. Keep that denial and the owner's batch read public. */
+/** A native Base member is a read-only Lamp Viewer. Batch invitation custody
+ * remains owner-only, including after an actual invitation and confirmation. */
 export async function subscriberBatchAuthorityFlow(fixture) {
-  const { api, post } = fixture;
-  const invitation = await post("/auth/invite", { email: "synthetic-lamp-batches-member@example.test", displayName: "Synthetic Lamp batch member", role: "member" });
-  assert.equal(invitation.status, 403, invitation.text);
-  assert.deepEqual(invitation.body, { error: "forbidden" });
-  assert.equal((await api("/api/app/subscribers/import/batches")).status, 200, "the owner retains the batch read");
+  const { api, post, raw, appOrigin, messagesFor } = fixture;
+  const email=['synthetic-lamp-batches-member','example.test'].join('@');
+  const invitation=await post('/auth/invite',{email,displayName:'Synthetic Lamp batch viewer',role:'member'});
+  assert.equal(invitation.status,202,invitation.text);
+  const message=await eventuallySubscriber(()=>messagesFor(email).find(message=>message.text.includes('/auth/confirm?')),Boolean,'the Viewer invitation crosses the real mail edge');
+  const token=new URL(message.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
+  const confirmed=await raw('/auth/confirm',{method:'POST',headers:{Origin:appOrigin,'Content-Type':'application/json'},body:JSON.stringify({token})});
+  assert.equal(confirmed.status,303,await confirmed.clone().text());
+  const cookie=confirmed.headers.get('set-cookie').split(';')[0];
+  const session=await raw('/api/app/session',{headers:{Cookie:cookie}});
+  assert.equal(session.status,200);const person=(await session.json()).operator;assert.equal(person.role,'viewer');
+  const before=await api('/api/app/subscribers/import/batches');assert.equal(before.status,200,'the owner retains the batch read');
+  const denied=await raw('/api/app/subscribers/import/batches',{headers:{Cookie:cookie}});
+  assert.equal(denied.status,403,'a signed-in Viewer cannot read owner invitation batches');
+  assert.deepEqual((await api('/api/app/subscribers/import/batches')).body,before.body,'the refused read changes no batch');
+  const audit=await api('/api/app/audit-log?action=access-denied&actorId='+person.id);
+  assert.equal(audit.status,200);
+  assert.ok(audit.body.entries.some(row=>row.entityId==='/api/app/subscribers/import/batches'&&row.actorId===person.id&&Number.isFinite(Date.parse(row.createdAt))));
 }

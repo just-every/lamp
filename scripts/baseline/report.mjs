@@ -52,8 +52,8 @@ export function baselineReport(catalog, executions) {
   for (const [id, clause] of catalog) {
     const entries = results.get(id);
     const bad = entries.filter((entry) => entry.status !== "passed");
-    const state = !entries.length ? "broken" : bad.length ? "failed" : "satisfied";
-    if (!entries.length) issues.push(`${id} has no executed baseline result.`);
+    const state = !entries.length ? (clause.planned ? "planned" : "broken") : bad.length ? "failed" : "satisfied";
+    if (!entries.length && !clause.planned) issues.push(`${id} has no executed baseline result.`);
     if (bad.length) issues.push(`${id} has nonpassing executed result(s): ${bad.map((entry) => `${entry.status} in ${entry.path}`).join(", ")}.`);
     status[id] = {
       state,

@@ -1,3 +1,4 @@
+import { registerIncidentSubscriberRoutes } from "./incident-routes";
 import { formPreferences, preferencesSchema } from "./preferences";
 import { SubscriberLimitError } from "./limits";
 import type { Hono } from "hono";
@@ -60,6 +61,7 @@ function parsedComponentIds(value: unknown) {
 export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
   registerSubscriberIntakeRoutes(app,service);
   const full = (request: Request, pageName: string) => tokenResponse(request, renderSubscriberTokenPage("Subscriptions full", `<p>This page cannot take new subscriptions on that channel right now.</p><p>Follow the feeds for updates.</p><nav class="status-utilities" aria-label="Feeds"><a href="/feed.atom">Atom feed</a><a href="/feed.rss">RSS feed</a></nav>`, pageName), 409);
+  registerIncidentSubscriberRoutes(app,service,{...options,response:tokenResponse,full});
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -87,8 +89,9 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const pageName = await service.getPageName();
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
+    const incident = await service.getConfirmationIncident(context.req.param("token") ?? "");
     const confirmed = await service.confirm(context.req.param("token") ?? "");
-    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates through this subscription.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
+    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `${incident?`<p>Following ${escapeHtml(incident.reference)}</p>`:""}<p>${incident?`You'll get updates about ${escapeHtml(incident.reference)} only.`:`You'll get ${escapeHtml(pageName)} updates through this subscription.`}</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
   });
   app.get("/manage/:token", async (context) => {
     const pageName = await service.getPageName();

@@ -21,7 +21,7 @@ export function ReceiptsCard({ receipts }: { receipts: Receipt[] }) {
     <div className="card-heading"><h2 id="receipts-title">Recent alerts</h2><span className="count-label">{receipts.length} shown</span></div>
     <div className="table-scroll" tabIndex={0} role="region" aria-label="Recent alerts"><table>
       <thead><tr><th scope="col">Received</th><th scope="col">From</th><th scope="col">Result</th><th scope="col">Incident</th><th scope="col">Reason</th></tr></thead>
-      <tbody>{receipts.map(receipt => <tr key={receipt.id}>
+      <tbody>{receipts.map(receipt => <tr id={`receipt-${receipt.id}`} key={receipt.id}>
         <td data-label="Received">{formatOperatorTime(receipt.receivedAt)}</td>
         <td data-label="From"><strong>{receipt.sourceName}</strong></td>
         <td data-label="Result"><span className={`state-pill ${receiptClass(receipt.state)}`}>{receiptLabel(receipt)}</span></td>

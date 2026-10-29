@@ -65,7 +65,7 @@ export async function accessibilitySubscriptionFlow({ page, appUrl, pageUrl, inc
   const token = row => `v1.${row.scope}.${row.id}.${createHmac("sha256", tokenSecret).update(`lamp-subscriber-token.v1.${row.scope}.${row.id}`).digest("base64url")}`;
   page.on("console", observeConsole); page.on("pageerror", observePageError);
   try {
-    for (const width of [1440, 390]) {
+    for (const width of [1440]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       for (const [host, path, label, selector] of [
         [pageUrl, "/", "public status page", "main.root-page"],

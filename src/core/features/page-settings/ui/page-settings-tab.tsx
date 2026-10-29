@@ -6,13 +6,14 @@ import { ClientExtensionSlot } from "../../../app/client/extensions";
 import { PageHero } from "./page-hero";
 import { TemplateChoice } from "./template-choice";
 import { BrandCard } from "./brand-card";
+import { ThemeSettings } from "./theme-settings";
 
 const zones = () => { try { return Intl.supportedValuesOf("timeZone"); } catch { return []; } };
 
 export function PageSettingsTab({ settings, saved, live, markSrc, components, update, adoptSaved, busy, setBusy, setStatus }: {
-  settings: SettingsForm; saved: PageSettingsView; live: LiveStatus | null; markSrc: string; components: PreviewComponent[];
+  settings: SettingsForm; saved: PageSettingsView; live: LiveStatus | null; markSrc: string; components: Array<PreviewComponent & { id?: string }>;
   update: <K extends keyof SettingsForm>(field: K, value: SettingsForm[K], immediate?: boolean) => void;
-  adoptSaved: (settings: PageSettingsView) => void; busy: boolean; setBusy: (busy: boolean) => void; setStatus: (status: string | null) => void;
+  adoptSaved: (settings: PageSettingsView, asset?: "font" | "header") => void; busy: boolean; setBusy: (busy: boolean) => void; setStatus: (status: string | null) => void;
 }) {
   const timezones = zones();
   return <>
@@ -27,6 +28,7 @@ export function PageSettingsTab({ settings, saved, live, markSrc, components, up
       </section>
       <BrandCard settings={saved} accentColor={settings.accentColor} footerCreditEnabled={settings.footerCreditEnabled} onAccentChange={(value, immediate) => update("accentColor", value, immediate)} onFooterCreditChange={value => update("footerCreditEnabled", value, true)} onSettings={adoptSaved} busy={busy} setBusy={setBusy} setStatus={setStatus} />
     </div>
+    <ThemeSettings value={settings.theme} saved={saved} components={components.filter((component): component is PreviewComponent & { id: string } => Boolean(component.id))} onChange={theme => update("theme", theme)} onSettings={adoptSaved} busy={busy} setBusy={setBusy} />
     <ClientExtensionSlot id="settings.sections.v1" context={{}} />
   </>;
 }

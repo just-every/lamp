@@ -155,6 +155,60 @@
           "title": "Accessibility (VPAT)",
           "source": "docs/accessibility/vpat.md",
           "summary": "Measured accessibility coverage and remaining evaluation limits for this release."
+        },
+        {
+          "slug": "contract-rulings",
+          "title": "Contract rulings",
+          "source": "RULINGS.md",
+          "summary": "Decisions that shape Lamp\u2019s contract and their rationale."
+        },
+        {
+          "slug": "contract-evidence",
+          "title": "Carried contract evidence",
+          "source": "docs/contract/DONE-AUDIT.md",
+          "summary": "Assertion-level evidence for the contract points carried through its rewrite."
+        },
+        {
+          "slug": "release-verification",
+          "title": "Release verification obligations",
+          "source": "docs/verify.md",
+          "summary": "Retained installation and release verification obligations."
+        },
+        {
+          "slug": "contract/publishing-details",
+          "title": "Publishing Details",
+          "source": "docs/contract/publishing-details.md",
+          "summary": "Contract capability details and retained proof boundaries."
+        },
+        {
+          "slug": "contract/intake-details",
+          "title": "Intake Details",
+          "source": "docs/contract/intake-details.md",
+          "summary": "Contract capability details and retained proof boundaries."
+        },
+        {
+          "slug": "contract/document-workflow",
+          "title": "Document Workflow",
+          "source": "docs/contract/document-workflow.md",
+          "summary": "Contract capability details and retained proof boundaries."
+        },
+        {
+          "slug": "contract/public-details",
+          "title": "Public Details",
+          "source": "docs/contract/public-details.md",
+          "summary": "Contract capability details and retained proof boundaries."
+        },
+        {
+          "slug": "contract/delivery-details",
+          "title": "Delivery Details",
+          "source": "docs/contract/delivery-details.md",
+          "summary": "Contract capability details and retained proof boundaries."
+        },
+        {
+          "slug": "contract/operations-details",
+          "title": "Operations Details",
+          "source": "docs/contract/operations-details.md",
+          "summary": "Contract capability details and retained proof boundaries."
         }
       ]
     }

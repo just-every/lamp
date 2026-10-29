@@ -1,3 +1,5 @@
+import { createOperatorRolesRepository } from '../operators/roles.repository';
+import { publishes } from '../operators/permissions';
 import { createCommunicationOwnerRepository } from "./communication-owner.repository";
 import { createUlid } from "../../shared/ids";
 import { createIncidentTemplateRepository } from "./template-repository";
@@ -39,6 +41,7 @@ export type PublishingDraft = StoredIncidentDraft & {
 };
 
 export interface IncidentPublishRecord {
+  automation?: import("../intake/rule-schema").RuleAutomationPublication;
   id: string;
   incidentId: string;
   lifecycle: string;
@@ -66,6 +69,7 @@ export interface IncidentPublishRecord {
 }
 
 export interface IncidentRepository {
+  canPublish(operator: string): Promise<boolean>;
   communicationOwners: ReturnType<typeof createCommunicationOwnerRepository>;
   previewComponentChange(incidentId: string, componentId: string): Promise<{ remainingStates: ComponentState[]; emailRecipients: number; webhookRecipients: number }>;
   attachComponent(claim: AttachedIncidentComponent, recipients: D1PreparedStatement[]): Promise<void>;
@@ -226,6 +230,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       const results = await binding.batch([mutation, audit, ...releases]);
       return results[1]?.meta.changes === 1;
     },
+    async canPublish(operator: string) { const role = await createOperatorRolesRepository(binding).role(operator); return role !== null && publishes(role); },
     ...createIncidentTemplateRepository(binding),
     async applyTemplate(incidentId, draft, expectedVersion) {
       if (draft.incidentId !== incidentId) throw new Error("Template draft does not belong to this incident.");

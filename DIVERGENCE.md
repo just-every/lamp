@@ -1643,3 +1643,7 @@ and provider callback mappings retain their original storage. Erasure scrubs
 both delivery partitions. The pinned restore bridge continues to enforce
 archive identity, migration history, schema compatibility and empty-target
 requirements; it needs no new capability for this schema.
+
+## Public footer operator entry — 28 October 2026
+
+The public page keeps its operator sign-in entry usable beside the customer resource links, including when the optional credit is hidden. The entry has a full touch target rather than relying on surrounding whitespace; the public customer journey retains its WCAG 2.2 accessibility check.

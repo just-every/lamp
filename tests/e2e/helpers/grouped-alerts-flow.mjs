@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
+import AxeBuilder from '@axe-core/playwright';
 import { chromium } from 'playwright';
-import { AxeBuilder } from '@axe-core/playwright';
 import { operatorHydrated } from './operator-hydrated.mjs';
 
 export const groupedPayload = (key, states = ['firing', 'firing']) => ({ version: '4', receiver: 'lamp', status: states.some(state => state === 'firing') ? 'firing' : 'resolved', groupKey: key, groupLabels: { alertname: 'ServiceUnavailable' }, commonLabels: { region: 'us-east' }, commonAnnotations: {}, externalURL: 'https://monitor.example.test', truncatedAlerts: 0,
@@ -92,58 +92,75 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
     assert.equal((await api('/api/app/intake/sources')).text.includes(source.token), false, 'token remains write-only');
   }
 
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
+  const browser = await chromium.launch({ headless: true,
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || process.env.LAMP_CHROMIUM_PATH || undefined,
+    args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] });
   try {
     const context = await browser.newContext();
     await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: origin })));
-    const page = await context.newPage();
+    const page = await context.newPage(), errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error' && /hydrat|did not match|server rendered/i.test(message.text())) errors.push(message.text()); });
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/alerts`);
-      await operatorHydrated(page);
+      await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
       await page.getByRole('button', { name: 'Grafana', exact: true }).click();
-      await page.getByLabel('Component 1').selectOption(targets[0].id);
-      await page.getByLabel('Labels 1', { exact: true }).fill('team="blue", zone="us-1"');
-      await page.getByRole('button', { name: 'Add a component', exact: true }).click();
-      await page.getByLabel('Component 2').selectOption(targets[1].id);
-      await page.getByLabel('Labels 2', { exact: true }).fill('team="blue", zone="eu-1"');
-      await inspect('grouped-mappings');
-      await page.getByRole('button', { name: 'Connect Grafana Alerting', exact: true }).click();
-      // The address carries Lamp's key, so the contact point needs no Authorization header.
-      const address = await page.getByLabel('Grafana Alerting address', { exact: true }).inputValue();
-      await inspect('grouped-configured');
+      const editor = page.locator('section.tool-form');
+      await editor.getByLabel('Component 1', { exact: true }).selectOption(targets[0].id);
+      await editor.getByLabel('Labels 1', { exact: true }).fill('team="blue", zone="us-1"');
+      await editor.getByRole('button', { name: 'Add a component', exact: true }).click();
+      await editor.getByLabel('Component 2', { exact: true }).selectOption(targets[1].id);
+      await editor.getByLabel('Labels 2', { exact: true }).fill('team="blue", zone="eu-1"');
+      await inspect('mappings', editor);
+      await editor.getByRole('button', { name: 'Connect Grafana Alerting', exact: true }).click();
+      // This keyed address is what the owner pastes into Grafana's contact point.
+      const address = await editor.getByLabel('Grafana Alerting address', { exact: true }).inputValue();
+      await inspect('configured', editor);
+      const source = (await api('/api/app/intake/sources')).body.sources.find(row => address.includes(`/api/intake/${row.id}/`));
+      assert.ok(source); assert.deepEqual(source.labelMatchers, grafanaMatchers);
+      await editor.getByRole('button', { name: 'Done', exact: true }).click();
+      await page.reload(); await operatorHydrated(page);
+      await page.getByRole('button', { name: `Edit ${source.name}`, exact: true }).click();
+      for (const [index, matcher] of grafanaMatchers.entries()) {
+        assert.equal(await editor.getByLabel(`Component ${index + 1}`, { exact: true }).inputValue(), matcher.componentId, 'both saved components survive reload');
+        assert.equal(await editor.getByLabel(`Labels ${index + 1}`, { exact: true }).inputValue(), `team="blue", zone="${index ? 'eu-1' : 'us-1'}"`, 'exact label mappings survive reload');
+      }
+      await inspect('saved-mappings', editor);
+      await editor.getByRole('button', { name: 'Close', exact: true }).click();
       const posted = await fetch(address, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(structuredClone(grafanaPayload)) });
-      const response = { status: posted.status, body: await posted.json() };
-      assert.equal(response.status, 202);
-      await page.reload();
-      await operatorHydrated(page);
-      const receipt = page.locator('tr').filter({ has: page.locator(`a[href="/app/incidents/${response.body.incidentId}"]`) }).first();
+      assert.equal(posted.status, 202, await posted.clone().text());
+      const response = await posted.json();
+      await page.reload(); await operatorHydrated(page);
+      const receipt = page.locator('tr').filter({ has: page.locator(`a[href="/app/incidents/${response.incidentId}"]`) }).first();
       await receipt.waitFor();
-      await inspect('grouped-receipt');
-      await receipt.getByRole('link', { name: 'Open draft' }).click();
-      await page.getByRole('heading', { name: 'First update' }).waitFor();
-      await operatorHydrated(page);
-      const result = (await api(`/api/app/incidents/${response.body.incidentId}`)).body.incident;
+      await inspect('receipt', receipt);
+      await receipt.getByRole('link', { name: 'Open draft', exact: true }).click();
+      await page.getByRole('heading', { name: 'First update', exact: true }).waitFor(); await operatorHydrated(page);
+      for (const target of targets) await page.getByRole('combobox', { name: `${target.name} state with this update`, exact: true }).waitFor();
+      const result = (await api(`/api/app/incidents/${response.incidentId}`)).body.incident;
       assert.deepEqual(result.components.map(row => row.componentId).sort(), targets.map(row => row.id).sort());
-      assert.equal(result.updates.length, 0);
-      assert.equal(result.title, grafanaPayload.title);
-      await inspect('grouped-private-draft');
+      assert.equal(result.title, grafanaPayload.title); assert.equal(result.updates.length, 0, 'a grouped alert has no public update');
+      assert.ok(result.components.every(row => row.publishedAt == null), 'matched components are attached privately');
+      await inspect('private-draft', page.locator('main'));
       const publicText = await (await fetch(`${publicOrigin}/`)).text();
-      assert.ok(!publicText.includes(result.reference), 'inbound group has no public story before operator publication');
-      async function inspect(name) {
-        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} ${name} overflow`);
-        assert.deepEqual(await page.locator('.tool-form button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], 'mapping controls keep their full labels');
-        const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-        assert.deepEqual(axe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => row.id), [], `${width} ${name} accessibility`);
-        if (process.env.LAMP_SCREENSHOTS) {
-          const path = `${process.env.LAMP_SCREENSHOTS}/${width}-${name}.png`;
-          if (name === 'grouped-mappings' || name === 'grouped-configured') await page.locator('.tool-form').screenshot({ path });
-          else if (name === 'grouped-receipt') { await receipt.scrollIntoViewIfNeeded(); await page.screenshot({ path }); }
-          else await page.screenshot({ path, fullPage: true });
-        }
+      assert.ok(!publicText.includes(result.reference), 'the grouped draft has no public story before publication');
+      const privateStory = await fetch(`${publicOrigin}/incidents/${result.reference}`);
+      assert.equal(privateStory.status, 404, 'the private grouped draft has no public incident page');
+      await privateStory.body?.cancel();
+      assert.equal((await api(`/api/app/intake/sources/${source.id}`, { method: 'DELETE' })).status, 200);
+    }
+    assert.deepEqual(errors, [], 'grouped source setup and drafts have no page or hydration errors');
+    await context.close();
+    async function inspect(name, scope) {
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no page overflow`);
+      assert.deepEqual(await page.locator('.tool-form button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], `${name}: mapping controls keep full labels`);
+      const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+      assert.deepEqual(axe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => ({ id: row.id, nodes: row.nodes.map(node => node.target) })), [], `${name}: accessibility`);
+      if (process.env.LAMP_SCREENSHOTS) {
+        await scope.scrollIntoViewIfNeeded();
+        await scope.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${page.viewportSize().width}-grouped-${name}.png` });
       }
     }
-    await context.close();
   } finally { await browser.close(); }
 }

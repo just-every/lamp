@@ -8,7 +8,7 @@ import { Button } from "../../../app/client/ui/button";
 import { Icon } from "../../../app/client/ui/icon";
 import { ErrorState } from "../../../app/client/ui/lit-states";
 import { LoadingState } from "../../../app/client/ui/states";
-import { relativeTime } from "../../../app/client/ui/relative-time";
+import { useRelativeTime } from "../../../app/client/ui/relative-time";
 
 type OverviewResponse = { overview: Awaited<ReturnType<OverviewService["get"]>> };
 type SettingsResponse = { settings: Awaited<ReturnType<PageSettingsService["get"]>> };
@@ -20,6 +20,7 @@ function Fact({ ok, label, detail }: { ok: boolean | null; label: string; detail
 /** Where the owner reviews the page customers see: Lamp's drawing of it, the real one a click away, and
  * what Lamp checked on its own. */
 export function YourPage() {
+  const relativeTime = useRelativeTime();
   const overview = useAppData<OverviewResponse>("/api/app/overview");
   const settings = useAppData<SettingsResponse>("/api/app/page-settings");
   if ((overview.loading && !overview.data) || (settings.loading && !settings.data)) return <LoadingState />;

@@ -1,7 +1,10 @@
 import type { PageSettingsInput } from "../../../shared/schemas";
 import type { PageSettingsView } from "../service";
 
-export type SettingsForm = Omit<Required<PageSettingsInput>, "emailBranding"> & { emailBranding: PageSettingsView["emailBranding"] };
+export type SettingsForm = Omit<Required<PageSettingsInput>, "emailBranding" | "theme"> & {
+  emailBranding: PageSettingsView["emailBranding"];
+  theme: PageSettingsView["theme"];
+};
 export type ConfirmedField = "mailFromAddress" | "widgetAllowedOrigins";
 
 export function toSettingsForm(settings: PageSettingsView): SettingsForm {
@@ -12,5 +15,6 @@ export function toSettingsForm(settings: PageSettingsView): SettingsForm {
     widgetAppearance: settings.widgetAppearance, mailFromAddress: settings.mailFromAddress, emailBranding: settings.emailBranding,
     aiToneInstructions: settings.aiToneInstructions, wordingBlockedTerms: settings.wordingBlockedTerms,
     wordingFriendlyLength: settings.wordingFriendlyLength,
+    theme: settings.theme,
   };
 }

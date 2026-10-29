@@ -1,12 +1,13 @@
 import type { LiveStatus } from "../../overview/live-status";
 import { Icon } from "../../../app/client/ui/icon";
-import { relativeTime } from "../../../app/client/ui/relative-time";
+import { useRelativeTime } from "../../../app/client/ui/relative-time";
 import { PagePreview, type PreviewComponent } from "./page-preview";
 
 const isLocal = (origin: string) => ["localhost", "127.0.0.1", "[::1]"].includes(new URL(origin).hostname);
 
 /** Settings opens on the page itself: its mark, where it lives, that it is live, and a small preview. */
 export function PageHero({ live, pageName, accentColor, markSrc, components }: { live: LiveStatus | null; pageName: string; accentColor: string; markSrc: string; components: PreviewComponent[] }) {
+  const relativeTime = useRelativeTime();
   const origin = live?.publicOrigin ?? null;
   const problem = live && [live.page, live.subscribe].find((check) => check && !check.ok)?.reason;
   return <section className="data-card page-hero" id="public-address" aria-labelledby="page-hero-address">

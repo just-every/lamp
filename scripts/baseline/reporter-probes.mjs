@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 
 import { readBaselineCatalog } from "./catalog.mjs";
 import { baselineReport } from "./report.mjs";
+import { parseContract, plainText } from "../../src/base/seed-contract.mjs";
 
 const catalog = await readBaselineCatalog();
 const contractLines = (await readFile("CONTRACT.md", "utf8")).split(/\r?\n/);
@@ -18,8 +19,10 @@ const valid = "tests/baseline/e2e-baseline/core-baseline.test.mjs";
   assert.equal(supersession.scope, "those paths only");
   assert.ok(Number.isInteger(supersession.line) && supersession.line > 0 && supersession.line <= contractLines.length);
   const referencedClause = contractLines[supersession.line - 1];
-  assert.match(referencedClause, /^- \*\*PAGE-008 — /);
-  assert.match(referencedClause, /\*\*Supersedes BASE-ACCESS-003\*\* for those paths only\./);
+  const pageReadRule = parseContract(contractLines.join("\n")).clauses.find(clause => clause.id === supersession.contractId);
+  assert.ok(pageReadRule);
+  assert.match(plainText(pageReadRule.text), /Supersedes BASE-ACCESS-003 for those paths only\./);
+  assert.match(plainText(referencedClause), /Supersedes BASE-ACCESS-003 for those paths only\./);
 }
 {
   const report = baselineReport(catalog, [{ path: "tests/e2e/public-contract.test.mjs", exitCode: 0, results: [{ id: "BASE-ACCESS-001", status: "passed" }] }]);

@@ -6,12 +6,8 @@ export { SnapshotCache } from "../../src/core/platform/blobs/snapshot-cache";
 let outage = false;
 let attempts = 0;
 
-export default {
-  async fetch(request: Request, env: AppBindings, context: ExecutionContext) {
-    const url = new URL(request.url);
-    // Only the Queue send boundary is replaced during the injected outage.
-    // Healthy sends and every storage operation use the real Worker bindings.
-    const bindings = outage ? { ...env, JOBS: new Proxy(env.JOBS, {
+export function queueBindings(env: AppBindings): AppBindings {
+  return outage ? { ...env, JOBS: new Proxy(env.JOBS, {
       get(target, key) {
         if (key === "send") return async () => {
           attempts++;
@@ -21,6 +17,14 @@ export default {
         return typeof value === "function" ? value.bind(target) : value;
       },
     }) } : env;
+}
+
+export default {
+  async fetch(request: Request, env: AppBindings, context: ExecutionContext) {
+    const url = new URL(request.url);
+    // Only the Queue send boundary is replaced during the injected outage.
+    // Healthy sends and every storage operation use the real Worker bindings.
+    const bindings = queueBindings(env);
     if (url.hostname === env.LAMP_APP_HOST && url.pathname === "/test/queue") {
       if (request.method === "GET") return Response.json({ attempts });
       if (request.method === "PUT") {
