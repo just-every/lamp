@@ -1,7 +1,8 @@
-/** 2026-10-29, published rer 0.2.88: assertions remain real checks, including failures below.
+/** 2026-10-29, published rer 0.2.89: assertions remain real checks, including failures below.
  * No pending marker skips a journey call or makes verification successful.
  */
 export const closedAssertions = Object.freeze({
+  legacyArchiveUpgrade: 'rer 0.2.89 legacy-1 modules/portability/bridge.mjs:77-90, import.mjs:39-49: unchanged tests/e2e/prior-backup.test.mjs HIST-004 passed through rer import with every historical value, current logical reads, consent defaults, auditing, foreign keys and image bytes retained',
   clauses: 'Fresh main ct alignment and synchronized canonical BASE-AGENT-001 through BASE-AGENT-013; judgments unchanged',
   nativeTarget: 'tests/agent-door/v2-admission-flow.mjs: native record audit and approval summary',
   resourceCode: 'tests/agent-door/v2-admission-flow.mjs: hidden/missing resources and unregistered URI',
@@ -27,5 +28,4 @@ export const pendingAssertions = Object.freeze({
   injectionAfterMutation: 'PENDING BASE 2026-10-29 rer 0.2.88 modules/agent-door/conformance/injection.mjs:22-24: read prerequisites refresh, but c.args creates another fresh write key instead of retaining the original call key, duplicating notes and reusing consumed publication versions; injection and sensitive-read measure assertions remain active',
   continuationPolicyOrder: 'PENDING BASE 2026-10-29 rer 0.2.88 modules/agent-door/pipeline.ts:56-68: the persisted continuation-item resolver requires trusted operation identity before policy-unset and Pause admission, so ordinary MCP continuation probes return operation_mismatch instead of the mandatory policy refusal; initial/removed/Pause assertions remain active',
   nativeContinuationAudit: 'PENDING BASE 2026-10-29 rer 0.2.88 modules/agent-door/conformance/audit.mjs:10-20 and audit-rows.mjs:3-15: real native publication dispatch adds embedded continuation audits under the original agent, but the harness expects only c.calls and consumes rows by position; two additional truthful rows cause the count and ordered-row cascade. Native audits and assertions are retained; differs_from_policy remains zero',
-  legacyArchiveUpgrade: 'PENDING BASE 2026-10-29 rer 0.2.88 modules/portability/bridge.mjs:87-89 and modules/portability/import.mjs:38-39: verified legacy v2 archives without schemaObjects require their old migration replay to equal the current schema, refusing additive seed upgrades; HIST-004 prior-backup assertion remains active',
 });

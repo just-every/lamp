@@ -8748,7 +8748,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "821dd41bf7b883ade51329c3d7d76d9eac5ff21d1cfb95370e76e33cfd565c7b",
+      "sha256": "bd3fce25122cd2b517c578b6992206ff2535b0c52d828a0bbeca1846b5f4616c",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
