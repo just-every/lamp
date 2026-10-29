@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
 import { assertVisibleTime } from '../helpers/public-meaning.mjs';
+import { publicCapacityJourney } from './helpers/public-capacity-journey.mjs';
 
 // One catalogue-to-customer journey: no renderer or uptime helper is imported.
 test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PAGE-011 PAGE-012 PAGE-013 PAGE-014 PAGE-016 PAGE-017 PAGE-018 PAGE-019 PAGE-020 COMP-001 COMP-002 COMP-003 COMP-004 COMP-005 COMP-007 COMP-009 COMP-010 UPTIME-001 UPTIME-002 UPTIME-003 UPTIME-004 UPTIME-005 UPTIME-006 MOVE-009 — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story', async () => {
@@ -59,6 +60,19 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
       assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
       await response.arrayBuffer();
     }
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAF/gL+3N9nPwAAAABJRU5ErkJggg==', 'base64');
+    const logo = new FormData(); logo.set('logo', new Blob([png], { type: 'image/png' }), 'company.png');
+    // Serialize multipart at the HTTP boundary: Node's FormData and workerd's
+    // FormData are different realms when dispatching directly into Miniflare.
+    const multipart = new Request(j.appOrigin + '/api/app/page-settings/logo', { method: 'POST', body: logo });
+    const upload = await j.request('/api/app/page-settings/logo', { method: 'POST', headers: { 'Content-Type': multipart.headers.get('Content-Type') }, body: await multipart.arrayBuffer() });
+    assert.equal(upload.status, 200, await upload.clone().text());
+    const originalLogo = await j.publicResponse('/assets/logo');
+    assert.equal(originalLogo.status, 200);
+    assert.deepEqual(Buffer.from(await originalLogo.arrayBuffer()), png);
+    for (const path of ['/assets/favicon.svg', '/assets/og.svg']) { const response = await j.publicResponse(path); assert.equal(response.status, 200); assert.ok((await response.text()).includes('data:image/png')); }
+
+    await publicCapacityJourney(j, limits);
     // The maximum catalogue was read and load-checked above. Keep the public
     // customer journey representative instead of rebuilding that capacity load
     // after every unrelated operator edit.
@@ -146,17 +160,6 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.ok(publishedMain.uptime.coverageMinutes < 86400, 'a new component does not invent a full historical reporting window');
     for (const path of ['/api/v2/summary.json', '/api/v2/components.json', '/api/v2/incidents.json', '/api/v2/scheduled-maintenances.json', '/api/public/v1/incidents', '/history.rss', '/history.atom', `/components/${publishedMain.slug}/feed.atom`, `/components/${publishedMain.slug}/feed.rss`]) assert.equal((await j.publicResponse(path)).status, 200, path);
 
-    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAF/gL+3N9nPwAAAABJRU5ErkJggg==', 'base64');
-    const logo = new FormData(); logo.set('logo', new Blob([png], { type: 'image/png' }), 'company.png');
-    // Serialize multipart at the HTTP boundary: Node's FormData and workerd's
-    // FormData are different realms when dispatching directly into Miniflare.
-    const multipart = new Request(j.appOrigin + '/api/app/page-settings/logo', { method: 'POST', body: logo });
-    const upload = await j.request('/api/app/page-settings/logo', { method: 'POST', headers: { 'Content-Type': multipart.headers.get('Content-Type') }, body: await multipart.arrayBuffer() });
-    assert.equal(upload.status, 200, await upload.clone().text());
-    const originalLogo = await j.publicResponse('/assets/logo');
-    assert.equal(originalLogo.status, 200);
-    assert.deepEqual(Buffer.from(await originalLogo.arrayBuffer()), png);
-    for (const path of ['/assets/favicon.svg', '/assets/og.svg']) { const response = await j.publicResponse(path); assert.equal(response.status, 200); assert.ok((await response.text()).includes('data:image/png')); }
     await page.reload();
     const loadWidget = async target => target.evaluate(url => new Promise((resolve, reject) => {
       const script = document.createElement('script'); script.src = url; script.onload = resolve; script.onerror = reject; document.body.append(script);
