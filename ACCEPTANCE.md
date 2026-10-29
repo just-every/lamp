@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -272,7 +272,7 @@ Core · published · **partial**
 
 #### COMP-004 — State note
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A bounded plain-text note accompanies a component’s public state.
 
@@ -280,8 +280,8 @@ Core · published · **partial**
 1. A new component note is empty by default.
 2. A note of up to 250 characters appears beside that component’s state exactly as entered; a longer note is refused.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): direct creation omits note and returns an empty note, independently read back through the native list; a 250-character note including boundary spaces is saved and rendered exactly beside its state; 251-character creation and editing are refused without changing the catalogue, and omitted edit or replacement notes remain refused.
+**Gap.** None.
 
 #### COMP-005 — Internal components
 

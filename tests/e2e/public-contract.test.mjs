@@ -90,6 +90,35 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     }
     // Restore the original group order for the existing capacity and public story proof.
     await j.json(`/api/app/component-groups/${firstGroup.id}`, 'PUT', { name: firstGroup.name, displayOrder: 0 }, 204);
+    // Native creation truly omits note; editing and catalogue replacement remain explicit.
+    const noteInput = { name: 'synthetic-lamp-note', groupId: firstGroup.id, description: '', internal: false, displayOrder: 4 };
+    const defaultNote = (await j.json('/api/app/components', 'POST', noteInput, 201)).component;
+    assert.equal(defaultNote.note, '');
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === defaultNote.id).note, '');
+    const exactNote = ` ${'n'.repeat(248)} `;
+    const noted = (await j.json(`/api/app/components/${defaultNote.id}`, 'PUT', { ...noteInput, note: exactNote })).component;
+    assert.equal(noted.note, exactNote);
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === defaultNote.id).note, exactNote);
+    await page.goto(j.publicOrigin);
+    const noteCard = page.locator('.component-health article.component').filter({ has: page.getByRole('heading', { name: noteInput.name, exact: true }) });
+    assert.equal(await noteCard.locator('.component-note').textContent(), exactNote);
+    assert.equal(await noteCard.locator('.component-state').innerText(), 'Operational');
+    const beforeLongNote = await j.json('/api/app/components/bulk');
+    await j.json('/api/app/components', 'POST', { ...noteInput, note: 'n'.repeat(251) }, 400);
+    await j.json(`/api/app/components/${defaultNote.id}`, 'PUT', { ...noteInput, note: 'n'.repeat(251) }, 400);
+    await j.json(`/api/app/components/${defaultNote.id}`, 'PUT', noteInput, 400);
+    const missingNoteCatalogue = {
+      ...beforeLongNote.catalogue,
+      components: beforeLongNote.catalogue.components.map(row => {
+        if (row.id !== defaultNote.id) return row;
+        const { note, ...withoutNote } = row;
+        return withoutNote;
+      }),
+    };
+    await j.json('/api/app/components/bulk/preview', 'POST', { catalogue: missingNoteCatalogue, revision: beforeLongNote.revision }, 400);
+    assert.deepEqual(await j.json('/api/app/components/bulk'), beforeLongNote, 'refused notes and omitted edit notes leave the saved note intact');
+    await j.json(`/api/app/components/${defaultNote.id}`, 'DELETE', undefined, 204);
+
     // Competing saved claims choose severity, independently of component order.
     await j.json(`/api/app/components/${hidden.id}/standing-claim`, 'PUT', { state: 'Major outage' });
     for (const [mainState, siblingState, expected] of [
