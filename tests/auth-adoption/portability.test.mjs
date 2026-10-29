@@ -65,7 +65,7 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
     await db.prepare("INSERT INTO chat_requests(hash,expires_at) VALUES('synthetic-lamp-request',?)").bind(Date.now()+600000).run();
     // Seed the connected source; the native backup command must strip both private values and ciphertext.
     const { sealUrl } = await load('src/core/features/channels/sealing.ts');
-    const pagerDutyFromEmail = ['synthetic-lamp-16', 'example.test'].join('@'), pagerDutyApiKey = 'synthetic-lamp-17';
+    const pagerDutyFromEmail = ['synthetic-lamp-150016', 'example.test'].join('@'), pagerDutyApiKey = 'synthetic-lamp-150017';
     const pagerDutySealed = await sealUrl(JSON.stringify({ apiKey: pagerDutyApiKey, fromEmail: pagerDutyFromEmail }), 'portable-pagerduty', ['synthetic-lamp-18']);
     await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,signing_secret,deduplication_path,title_path,state_path,created_by_operator_id,responder_preset,responder_sealed_credentials,responder_connected,created_at,updated_at) VALUES('portable-pagerduty','Portable PagerDuty','hmac-sha256','portable-signing-secret','event.data.id','event.data.title','event.event_type',?,'pagerduty',?,1,?,?)").bind(actor.operator.id, pagerDutySealed, now, now).run();
     for (const preset of ['jsm','opsgenie']) await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve,created_at,updated_at) VALUES(?,?,'bearer-token','synthetic-lamp-token-hash','preset:operations','preset:operations','preset:operations',?,?,?,1,1,?,?)").bind(`synthetic-lamp-${preset}`,`synthetic-lamp-${preset}`,actor.operator.id,preset,`synthetic-lamp-${preset}-sealed-key`,now,now).run();
@@ -83,7 +83,7 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
     }
     for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100',portableMetrics.management.token,portableMetrics.hash]) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
     const nativeArchive = await readFile(join(directory, 'installation.rer'));
-    for (const privateValue of [pagerDutyApiKey, pagerDutyFromEmail, pagerDutySealed]) assert.ok(!nativeArchive.includes(privateValue), 'native archives exclude the PagerDuty key, custom author and sealed credentials');
+    for (const [kind, privateValue] of Object.entries({ key: pagerDutyApiKey, author: pagerDutyFromEmail, ciphertext: pagerDutySealed })) assert.ok(!nativeArchive.includes(privateValue), `native archives exclude the PagerDuty ${kind}`);
     let archivedPagerDuty;
     for await (const record of fileRecords(join(directory, 'installation.rer'))) {
       if (record.kind !== 'part') continue;
