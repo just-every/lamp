@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. MAINT-002 is rechecked on this candidate's committed tree; earlier clause judgments remain inherited. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -703,7 +703,7 @@ Core · published · **partial**
 
 #### MAINT-002 — Automatic transitions
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Automatic maintenance follows its declared window.
 
@@ -711,8 +711,8 @@ Core · published · **partial**
 1. Scheduled moves to In progress within 240 seconds after start without an operator action.
 2. In progress moves to Completed within 240 seconds after end without an operator action.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: scheduled event starts; scheduled event completes. Unasserted in old cited evidence: 240-second start bound; 240-second completion bound.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history): a future native window remains Scheduled immediately before start, is In progress at start plus 240 seconds, remains In progress immediately before end and is Completed at end plus 240 seconds. The Worker Date clock and native Cron event advance together; native readback and the public permalink show the transitions, each has exactly one system-authored notice, and repeated ticks preserve the record and notices.
+**Gap.** None.
 
 #### MAINT-003 — Component states
 
