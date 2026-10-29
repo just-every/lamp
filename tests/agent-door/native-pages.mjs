@@ -39,12 +39,16 @@ export async function inspectNativePages({ request, origin, cookie }) {
     });
     const page = await context.newPage();
     const capture = async (label, width) => {
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${label}: horizontal overflow`);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       const serious = (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze())
         .violations.filter(item => ['serious', 'critical'].includes(item.impact));
+      const smallControls = await page.locator('form[data-approval-action] button, form[data-agents-pause] button').evaluateAll(buttons =>
+        buttons.filter(button => { const box = button.getBoundingClientRect(); return box.width > 0 && box.height > 0 && (box.width < 44 || box.height < 44); }).map(button => button.textContent));
+      console.log(`PAGE_CHECK ${JSON.stringify({ label, width, overflow, serious: serious.map(item => item.id), smallControls })}`);
+      if (!process.env.GITHUB_ACTIONS) console.log(`PAGE_IMAGE ${label}-${width} ${(await page.screenshot({ fullPage: !label.startsWith('agents-') })).toString('base64')}`);
+      assert.equal(overflow, false, `${label}: horizontal overflow`);
       assert.deepEqual(serious.map(item => item.id), [], `${label}: serious or critical accessibility findings`);
-      console.log(`PAGE_CHECK ${JSON.stringify({ label, width, overflow: false, serious: 0 })}`);
-      if (!process.env.GITHUB_ACTIONS) console.log(`PAGE_IMAGE ${label}-${width} ${(await page.screenshot({ fullPage: true })).toString('base64')}`);
+      assert.deepEqual(smallControls, [], `${label}: controls need a 44px target`);
     };
     const view = async (label, path, width) => {
       await page.setViewportSize({ width, height: 1000 });
