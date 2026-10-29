@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 16 | 173 | 49 | 238 |
+| Core | 17 | 172 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 16 | 173 | 54 | 243 |
+| Full target | 17 | 172 | 54 | 243 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `8a96d39fbefb57b01c3659cb10c4850a63994b23` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -2203,7 +2203,7 @@ Core · target · **partial** · From UPDATE-013
 
 #### UPDATE-017 — Safe link webhook formats
 
-Core · target · **partial** · From UPDATE-013
+Core · target · **done** · From UPDATE-013
 
 **Requirement.** Webhook deliveries preserve fields in the recipient’s selected message form. SUB-018 retains the future Statuspage-format direct-link obligation.
 
@@ -2212,8 +2212,8 @@ Core · target · **partial** · From UPDATE-013
 2. Slack incoming-webhook subscribers receive Slack message form: own-URL HTTPS links, punctuation outside, escaped literal markup and schemes, and rich text reassembling unchanged fields.
 3. Both formats’ signatures verify over the exact delivered body.
 
-**Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs`
-**Gap.** Old cited evidence asserts Slack fields reassemble; Slack link text equals URL; only HTTPS links; Slack-webhook text retains period punctuation outside its URL. Unasserted: Lamp fields byte-for-byte.
+**Evidence.** Acceptance 1: `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/component-notification-flow.mjs` (componentNotificationFlow), matches each signed delivery to its committed update and compares all four original wording fields, lifecycle and next-update commitment, including resolved null. Acceptance 2: the same journey checks the actual Slack incoming-webhook body with `tests/e2e/helpers/update-link-evidence.mjs` (assertLinkedSlackText), own-URL HTTPS rich-text links and exact reassembled submitted fields; `tests/e2e/channels-and-presets.test.mjs` (Private channels deliver the selected publication once with literal text and punctuated links) retains channel-rendering coverage. Acceptance 3: `tests/e2e/helpers/statuspage-webhook-flow.mjs` (statuspageWebhookFlow), loaded by the subscriber journey, independently verifies the HMAC of each actual Lamp and Slack wire body before accepting it. The same journey retains recipient format selection, component-only selection and revoked management-token refusal.
+**Gap.** None.
 
 ### Scheduled maintenance — target
 

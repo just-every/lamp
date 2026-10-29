@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "7c787aea159519e19a98336bb051da11984e1fe5f7cad4d680dbee3290d82d14",
+      "sha256": "58d2ba9db4fde273e466a427ab36f86cd74f1a0e044c81785366562921223909",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4f4939f7856fc2434e2afec4819375b831842174ce0d27e700e61f7d83690597",
+      "sha256": "147e462cc037f7e004817eea07c7112f13134d125b151717647ddbb94c007185",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "bc1bd66c06fd51bc00e6cce6b812d19d6019d7c0a153dc9fb572c04850ab10e4",
+      "sha256": "f57195be809d8a5011a349b1b88d18614cb26321f8b5365210ade90190abbbc2",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -6688,7 +6688,7 @@
       "executable": false
     },
     "tests/e2e/helpers/component-notification-flow.mjs": {
-      "sha256": "2ecc7c71c692e3653b7731656112a9d70657856d9a60d3dd0bf510fcfb091e63",
+      "sha256": "8edf31a7fd61f3e93f7dacb565a0234fd7681f785a88cf89676e00567cdb5335",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-flow.mjs": {
@@ -6876,7 +6876,7 @@
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-flow.mjs": {
-      "sha256": "e89767072801a16dbf657972c7b82b34c02e32819c8c609034af2efd58f40801",
+      "sha256": "d57a9d00437f6ab8a18f791ba06e9258c918138e0cfdef0eeffe30589925dc94",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-maintenance.mjs": {
