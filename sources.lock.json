@@ -8043,6 +8043,10 @@
       "sha256": "91185750c9d273c12cba25b0de5c4316d669e3373c851ab39f2b858ef2e52f46",
       "executable": false
     },
+    "tests/agent-door/owner-proof.mjs": {
+      "sha256": "405a29a3cc4de032563bd42bff2ada01b8e83c32e7d48f093a19c623e5ccb417",
+      "executable": false
+    },
     "tests/agent-door/owner.mjs": {
       "sha256": "97120c2540a168ef565a4d88508e283c98b1a46d5c989c755f3b0dc342a75b19",
       "executable": false
@@ -8064,7 +8068,7 @@
       "executable": false
     },
     "tests/agent-door/reviewer.mjs": {
-      "sha256": "cf30570ef30fcc8c5f884431a9ca6e95b538b1a42f576beb0dd72a6bb477bcda",
+      "sha256": "d3f87353b08e3f9498f203b80ae83c145dcc681c7702cd8c2c70333b25ac8bc4",
       "executable": false
     },
     "tests/agent-door/runtime.mjs": {
