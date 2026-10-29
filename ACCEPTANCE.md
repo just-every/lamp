@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `dab4e855f7377365baf59b915d7f625525b13826` (29 October 2026); INTAKE-005 and INTAKE-004 are rechecked on the landing candidate, which retains those source and journey bytes. Earlier clause judgments remain inherited. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1153,7 +1153,7 @@ Core · published · **partial** · Cites BASE-OPS-003
 
 #### INTAKE-004 — Recovery alerts
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A recovery alert adds evidence against its matching alert without publishing a resolution.
 
@@ -1161,12 +1161,12 @@ Core · published · **partial**
 1. A recovered event records its recovery time against the matching alert key.
 2. Recovery changes no public surface and no incident lifecycle state.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Unchanged lifecycle and zero updates are asserted. Recovery timestamp readback and complete public-artifact equality are not asserted.
+**Evidence.** `tests/e2e/incident-brief.test.mjs` — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails: acceptance 1 bounds the recorded recovery instant and reconciles matching source, key, incident and firing receipt; acceptance 2 compares unchanged lifecycle and complete published-update records plus every retained artifact, snapshot generation and served public response byte, including root, history, permanent timeline, feeds, widgets, badges and both native and Statuspage JSON.
+**Gap.** None.
 
 #### INTAKE-005 — Payload mapping
 
-Core · published · **partial** · Cites BASE-INPUT-001
+Core · published · **done** · Cites BASE-INPUT-001
 
 **Requirement.** A generic source maps its own payload fields to its alert key, title and firing/recovered state, with rejected mapping reasons visible against the source.
 
@@ -1174,8 +1174,8 @@ Core · published · **partial** · Cites BASE-INPUT-001
 1. Saving source-specific JSON paths makes key, title and state interpretation follow those fields.
 2. A payload missing its configured deduplication-key path returns 400 and is recorded against the source with an operator-visible reason.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`, `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Old cited evidence asserts Configured key path controls acceptance; Configured generic firing state is read back; Missing key returns 400; Visible rejected mapping reason. Unasserted: Configured title read back; Configured generic recovered state is read back.
+**Evidence.** `tests/e2e/incident-brief.test.mjs` — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails: acceptance 1 saves and independently reads source-specific key, title and state paths plus a nondefault recovered value, reads the exact mapped incident title and both literal receipt states with source, key and incident identities; acceptance 2 posts a missing configured key, retains HTTP 400 and reads its exact operator-visible source receipt reason.
+**Gap.** None.
 
 #### INTAKE-006 — Monitor presets
 
