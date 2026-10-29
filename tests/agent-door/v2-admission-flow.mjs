@@ -69,5 +69,31 @@ export async function runV2AdmissionFlow(t) {
   assert.equal(hidden.error?.data?.code, 'resource_unavailable', JSON.stringify(hidden));
   assert.deepEqual(hidden, absent, 'Hidden and missing native records have identical machine refusals');
   assert.equal((await resource('unregistered://record')).error.data.code, 'tool_not_found');
+  const teammate = await r.invite('role-limited@example.test', true);
+  const setRole = async role => {
+    const response = await app.fetch(r.request(`/api/app/operators/${teammate.id}/role`, {
+      method: 'POST', cookie: r.cookie, body: { role },
+    }), r.bindings);
+    assert.equal(response.status, 200, `Native role change: ${await response.clone().text()}`);
+  };
+  const limited = { person: { id: teammate.id }, agent: { id: 'role-limited-agent', name: 'Incident assistant' },
+    scopes: ['lamp.components.update', 'lamp.incidents.create', 'lamp.incidents.publish', 'lamp.incidents.read'] };
+  await setRole('responder');
+  const denied = await agentDoor.invoke('lamp.components.update', { ...args, idempotency_key: crypto.randomUUID() }, limited);
+  assert.equal(denied.code, 'native_forbidden', 'Direct service tools retain the current native configuration role');
+  const incident = await agentDoor.invoke('lamp.incidents.create', { title: 'Role-bound incident',
+    components: [{ componentId: id, state: 'Degraded performance', relationship: 'Primary' }],
+    update: { lifecycle: 'Investigating', affectedAudience: 'API customers', customerImpact: 'Some requests are delayed.',
+      whatStillWorks: 'The dashboard is available.', details: 'Current responder evidence.', nextUpdateAt: null },
+    idempotency_key: crypto.randomUUID(),
+  }, limited);
+  assert.equal(incident.outcome, 'done', `Responders retain native drafting: ${incident.code}`);
+  const publication = { id: incident.result.incident.id, version: incident.result.version, channels: [], idempotency_key: crypto.randomUUID() };
+  assert.equal((await agentDoor.invoke('lamp.incidents.publish', publication, limited)).code, 'native_forbidden');
+  await setRole('communicator');
+  assert.equal((await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited)).outcome, 'done', 'A current Communicator can publish the same native draft');
+  await setRole('viewer');
+  assert.equal((await agentDoor.invoke('lamp.incidents.read', { id: publication.id }, limited)).outcome, 'done');
+  assert.equal((await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited)).code, 'native_forbidden', 'A demotion stops the next agent mutation');
   t.diagnostic('v2 nativeTarget, replayAuthority and resourceCode assertions passed through Lamp native services and person/MCP doors.');
 }

@@ -1055,6 +1055,10 @@
       "sha256": "f60a312653f4b9e7fa7bc27cb2898ee59be06211ce9751355359d7ae08330afd",
       "executable": false
     },
+    "migrations/core/0080_agent_jobs.sql": {
+      "sha256": "1aa70fb8617fe1a8f82b868d12ae47dac45f21fa7d297c8e8ff7837475abc30a",
+      "executable": false
+    },
     "migrations/README.md": {
       "sha256": "8aa6d22bcfab1ec1d279f128961286b0654cbc3f7c327da1aeb535793dd874e9",
       "executable": false
@@ -4379,6 +4383,14 @@
       "sha256": "aee83fd5243c8ccf267048a31de0b5d04099de8ee9a912b1bfa03f314bda975b",
       "executable": false
     },
+    "src/base/contract-prose-patterns.mjs": {
+      "sha256": "5519a7439e28f7c2635a0170749c43ccdc96eaccc0c313f55a2294d0665c8ba4",
+      "executable": false
+    },
+    "src/base/contract-prose.mjs": {
+      "sha256": "7f606da0b4ac6f259fdaaa2a263250c1b6a20d5c906104c5a961271d23e818e0",
+      "executable": false
+    },
     "src/base/contract-style.ts": {
       "sha256": "979444af1f8dabb18ccfcc5d622359da18ef6815e094c11bea3d278f3fdb7b06",
       "executable": false
@@ -4751,12 +4763,24 @@
       "sha256": "42b6433d951cfaf4a45f271f85a31508f532173c7cbf33c6b2683894594ebcaa",
       "executable": false
     },
+    "src/core/features/agent-door/jobs.repository.ts": {
+      "sha256": "4d7b85543e656d04c05eb3f528ed132e388718a332f0571af350b1a05f3c7ba4",
+      "executable": false
+    },
+    "src/core/features/agent-door/jobs.server.ts": {
+      "sha256": "5acac2cbe94fe04f4d3608b24fc3a1e08270c12382a0d3014e07a6de1de516cb",
+      "executable": false
+    },
     "src/core/features/agent-door/maintenance-audience.repository.ts": {
       "sha256": "b9cd12663e3244540db130810a8dba54813b54fa9b0ef576e974ee481937d081",
       "executable": false
     },
     "src/core/features/agent-door/maintenance.ts": {
       "sha256": "f61aa99eee959cb98a67e2d92615116bcd7f13dcc2ed38ae2efec24a9a135349",
+      "executable": false
+    },
+    "src/core/features/agent-door/native-authority.ts": {
+      "sha256": "523f473c12bf95e249a113151a18bef7bbd607bd5123e577f136f2d7c8efd691",
       "executable": false
     },
     "src/core/features/agent-door/native-proof.repository.ts": {
@@ -8011,6 +8035,10 @@
       "sha256": "12c3263567e107afe41e911e7cbe7ca9eaaee929e9b8d9e328b617ecd0f31d73",
       "executable": false
     },
+    "tests/agent-door/invoke.mjs": {
+      "sha256": "dca0e8bac1e787e5114b7f652335a0ba74b8d891437e01b2dd8083f34486bd8c",
+      "executable": false
+    },
     "tests/agent-door/owner-fixtures.mjs": {
       "sha256": "d015668690ade70eb65b8d604729803143811770dfcc82675352c6bfd07d2ba1",
       "executable": false
@@ -8021,6 +8049,10 @@
     },
     "tests/agent-door/pending.mjs": {
       "sha256": "a2e67867f8164caa50a33857946c6f30501ee3cf8e09a7c264611493998b3bfe",
+      "executable": false
+    },
+    "tests/agent-door/phase-fixtures.mjs": {
+      "sha256": "9b44c0e0ea22c1cf0fa26644389195a81dc8816df600f6af6902e9f223f605b5",
       "executable": false
     },
     "tests/agent-door/proof.mjs": {
@@ -8044,7 +8076,7 @@
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
-      "sha256": "4121862b2679001ee14ac01d2af614fca75fb94f9e9a52bd178fcf2ba8f1c272",
+      "sha256": "8810889b1ee938f71470e43d08afcfb0e06ed45d6e1524c0958d67ebb6cc8801",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {
