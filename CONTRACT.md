@@ -3118,13 +3118,15 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained.
 
+UPTIME-004 is rechecked on the landing candidate from the unchanged code and journey at commit `cd90f7bf2b714fe0c3fbbade4832ab671e659437` (29 October 2026); earlier clause judgments remain inherited.
+
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 9 | 98 | 0 | 107 |
+| Published | 10 | 97 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 18 | 171 | 54 | 243 |
+| All | 19 | 170 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3177,7 +3179,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `UPTIME-001` | Definition | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): public collection readback asserts the complete ninety-day partial boundary and 99.99 percent for a one-minute outage. |  |
 | `UPTIME-002` | Downtime weights | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: The supplied policy’s Major outage weight is asserted; The supplied policy’s Partially unavailable weight is asserted. |
 | `UPTIME-003` | Short history | published | partial | `tests/e2e/public-contract.test.mjs`. First-day coverage reads in hours and minutes (`tests/e2e/public-contract.test.mjs`, line 405); whole-day labels apply from one day (`tests/e2e/public-contract.test.mjs`, line 452). Changed in 1.11.0 by the owner's S4 exception (DIVERGENCE.md "Public page clarity"): first-day coverage reads in hours and minutes, and a component with no data says No data; RELEASE.json records the change. | Old cited evidence asserts The public percentage denominator starts at the fixture’s first history record rather than inventing ninety days; Sub-day coverage is labeled in hours; Longer coverage is labeled in whole days; A zero-elapsed fixture displays No data. Unasserted: Minute-based short-coverage labels are asserted; Less-than-one-minute coverage labels are asserted. |
-| `UPTIME-004` | Corrections | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The corrected state is retained; The stored correction retains the exact interval start; The stored correction retains the exact interval end; The reason is retained. Unasserted: Every affected figure is observed within sixty seconds. |
+| `UPTIME-004` | Corrections | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/uptime-correction-journey.mjs` (uptimeCorrectionJourney): native corrected state, exact closed interval and reason; empty-reason and unauthenticated refusal without history changes; one superseding fact with all original values retained; one measured sixty-second deadline per correction for all four warmed public layouts, their daily minutes and the overall uptime figure, native component collection, component uptime badge and both affected monthly and quarterly JSON, CSV and PDF reports; searchable and exported operator audit plus persisted interval and reason. The controlled Worker clock isolates a two-hour outage across a month and quarter boundary. |  |
 | `UPTIME-005` | Stated method | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Every state’s selected weight is asserted; Every published incident’s component claim affects the displayed uptime. |
 | `UPTIME-006` | Daily record | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The aggregate mark count divided by two hundred lies between ninety and ninety-one; A day’s sixty downtime minutes are retained; Untracked days have null downtime; Tracked healthy days have zero downtime. Unasserted: The complete trailing daily-record length is reconciled for every component separately; The rendered downtime-day label contains its exact minute count; Rendered untracked days are visually distinct from healthy days. |
 | `UPTIME-007` | Measured uptime bars | target | missing |  | Not built. |
