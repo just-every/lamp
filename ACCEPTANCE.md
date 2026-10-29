@@ -13,7 +13,7 @@ The primary journey: An operator sets up the page and components, accepts eviden
 | Later | 0 | 0 | 0 | 0 |
 | Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. PAGE-004, COMP-002 and COMP-004 are rechecked at commit `2146ef3318d3753dd5820892527b5575d4b0c351` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
