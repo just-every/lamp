@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
@@ -23,7 +23,26 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const secondGroup = (await j.json('/api/app/component-groups', 'POST', { name: 'Platform services', displayOrder: 1 }, 201)).group;
     const main = await j.component('Public API', { groupId: firstGroup.id, note: 'Requests remain safe to retry.', displayOrder: 0 });
     const other = await j.component('Dashboard', { groupId: firstGroup.id, displayOrder: 1, onlyShowIfDegraded: true });
-    const hidden = await j.component('PRIVATE database replica', { groupId: secondGroup.id, internal: true, note: 'PRIVATE topology' });
+    const hidden = await j.component('PRIVATE database replica', { groupId: secondGroup.id, note: 'PRIVATE topology' });
+    // First observe the same component publicly, so exclusion cannot pass on
+    // an empty catalogue or a resource that never existed.
+    await j.json(`/api/app/components/${hidden.id}/standing-claim`, 'PUT', { state: 'Major outage' });
+    const exposed = await j.visible('/', hidden.name);
+    assert.match(exposed, /id="overall-status"[^>]*>Major outage<\/h1>/);
+    assert.ok(exposed.includes(hidden.note));
+    const exposedComponent = (await (await j.publicResponse('/api/public/v1/components')).json()).data.find(row => row.id === hidden.id);
+    assert.equal(exposedComponent.state, 'Major outage');
+    assert.ok(exposedComponent.uptime.marks.some(mark => mark.downtimeMinutes > 0));
+    for (const resource of ['feed.atom', 'feed.rss', 'badge.svg', 'uptime.svg']) {
+      assert.equal((await j.publicResponse(`/components/${hidden.id.toLowerCase()}/${resource}`)).status, 200, resource);
+    }
+    await j.json(`/api/app/components/${hidden.id}`, 'PUT', {
+      name: hidden.name, groupId: secondGroup.id, description: '', note: hidden.note, internal: true,
+    });
+    const privateCatalogue = (await j.json('/api/app/components')).components;
+    assert.equal(privateCatalogue.find(row => row.id === main.id).publicState, 'Operational');
+    assert.equal(privateCatalogue.find(row => row.id === hidden.id).publicState, 'Major outage');
+    assert.deepEqual(privateCatalogue.filter(row => row.publicState !== 'Operational').map(row => row.id), [hidden.id]);
     const limits = JSON.parse(await readFile('seed.json', 'utf8')).limits;
     const beforeCatalogue = await j.json('/api/app/components/bulk');
     const catalogue = { ...beforeCatalogue.catalogue, components: [...beforeCatalogue.catalogue.components] };
@@ -38,6 +57,46 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.ok(!html.includes(other.name), 'a healthy conditional component stays out of the public catalogue');
     assert.ok(html.includes(main.note));
     assert.ok(!html.includes(hidden.name) && !html.includes('PRIVATE topology'));
+    assert.match(html, /id="overall-status"[^>]*>Operational<\/h1>/, 'the only severe claim is internal');
+    assert.equal((await (await j.publicResponse('/api/public/status')).json()).overall, 'Operational');
+    assert.equal((await (await j.publicResponse('/badge.json')).json()).message, 'Operational');
+    assert.match(await j.publicText('/badge.svg'), /id="value"[^>]*>Operational<\/text>/);
+    const published = [], cursors = new Set();
+    let cursor;
+    do {
+      const path = `/api/public/v1/components${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const body = await (await j.publicResponse(path)).json();
+      for (const value of [hidden.id, hidden.name, hidden.note]) assert.ok(!JSON.stringify(body).includes(value), path);
+      published.push(...body.data);
+      cursor = body.nextCursor;
+      if (cursor) { assert.ok(!cursors.has(cursor), 'public pagination advances'); cursors.add(cursor); }
+    } while (cursor);
+    assert.ok(cursors.size > 0, 'internal exclusion is checked beyond the first public page');
+    const expectedPublicIds = catalogue.components.filter(row => !row.internal && !row.onlyShowIfDegraded).map(row => row.id).sort();
+    assert.deepEqual(published.map(row => row.id).sort(), expectedPublicIds, 'every public component and uptime record appears exactly once');
+    for (const row of published) {
+      assert.equal(row.state, 'Operational');
+      assert.equal(row.uptime.percentage, '100.00%', 'internal downtime never enters a visible uptime figure');
+      assert.ok(row.uptime.marks.every(mark => mark.downtimeMinutes === null || mark.downtimeMinutes === 0));
+      const uptimeBadge = await j.publicText(`/components/${row.slug}/uptime.svg`);
+      assert.match(uptimeBadge, /id="value"[^>]*>100\.00%<\/text>/);
+      for (const value of [hidden.id, hidden.name, hidden.note]) assert.ok(!uptimeBadge.includes(value));
+    }
+    for (const path of ['/api/v2/components.json', '/api/v2/summary.json']) {
+      const body = await (await j.publicResponse(path)).json();
+      assert.deepEqual(body.components.filter(row => !row.group).map(row => row.name).sort(), published.map(row => row.name).sort(), path);
+      for (const value of [hidden.id, hidden.name, hidden.note]) assert.ok(!JSON.stringify(body).includes(value), path);
+    }
+    for (const path of ['/', '/feed.atom', '/feed.rss', '/widget.js', '/embed/script.js']) {
+      const body = await j.publicText(path);
+      for (const value of [hidden.id, hidden.name, hidden.note]) assert.ok(!body.includes(value), `${path} excludes internal identity, note and uptime`);
+    }
+    for (const resource of ['feed.atom', 'feed.rss', 'badge.svg', 'uptime.svg']) {
+      const response = await j.publicResponse(`/components/${hidden.id.toLowerCase()}/${resource}`);
+      assert.equal(response.status, 404, `a previously public internal ${resource} is unavailable`);
+      const body = await response.text();
+      for (const value of [hidden.id, hidden.name, hidden.note]) assert.ok(!body.includes(value));
+    }
     assert.ok(html.includes('<form method="post" action="/subscribe">'));
     assert.ok(html.includes('data-local-time'));
     assert.ok(gzipSync(Buffer.from(html)).byteLength <= limits.snapshotMaxBytesGzipped.value, 'the declared catalogue remains usable at its public HTML budget');
@@ -86,6 +145,17 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const page = await scripted.newPage();
     await page.clock.install();
     await page.goto(j.publicOrigin);
+    assert.equal(await page.locator('#overall-status').innerText(), 'Operational');
+    assert.equal(await page.getByText(hidden.name, { exact: true }).count(), 0);
+    assert.equal(await page.locator('.uptime').count(), 1, 'only the visible healthy component has uptime on the representative page');
+    if (process.env.LAMP_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-internal-component-exclusion.png`, fullPage: true });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
     assert.equal(await page.locator('#status-live').getAttribute('aria-live'), 'polite');
     const generation = page.locator('[data-generated-at] time');
     assertVisibleTime(await generation.getAttribute('title'), await generation.getAttribute('datetime'), 'America/Los_Angeles');
@@ -126,6 +196,11 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.ok(!permalink.includes(hidden.name));
     const feedBefore = await j.publicText('/feed.atom');
     assert.ok(feedBefore.includes(incident.reference));
+    for (const path of ['/', '/feed.atom', '/widget.js']) {
+      const body = await j.publicText(path);
+      assert.ok(body.includes(incident.reference), `${path} contains the published incident control`);
+      for (const value of [hidden.id, hidden.name, hidden.note]) assert.ok(!body.includes(value), `${path} retains internal exclusion with a populated story`);
+    }
     const firstIds = [...feedBefore.matchAll(/<id>([^<]+)<\/id>/g)].map(match => match[1]);
     await j.save(incident.id, { lifecycle: 'Resolved', customerImpact: 'API requests are working again.', nextUpdateAt: null }); await j.publish(incident.id);
     await j.visible('/history', incident.title);
@@ -175,10 +250,71 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     await plain.locator('input[name=email]').fill('public-reader@example.test');
     await Promise.all([plain.waitForNavigation(), plain.locator('form[action="/subscribe"] button[type=submit]').click()]);
     await eventually(() => j.messages.find(message => message.to.includes('public-reader@example.test')), Boolean, 'plain form sends subscriber confirmation');
+    const maintenance = (await j.json('/api/app/maintenance', 'POST', {
+      title: 'Customer API capacity work', affectedAudience: 'Customers using the public API',
+      customerImpact: 'Requests may pause during the capacity work.', componentIds: [main.id],
+      startsAt: new Date(Date.now() + 3600000).toISOString(), endsAt: new Date(Date.now() + 7200000).toISOString(),
+      autoStart: false, autoComplete: false,
+    }, 201)).maintenance;
+    const maintenancePath = `/maintenance/${maintenance.reference}`;
+    const publishedMaintenance = await j.visible(maintenancePath, maintenance.customerImpact);
+    assert.ok(publishedMaintenance.includes(`Affects ${main.name}`));
+    const savedMaintenance = (await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id);
+    assert.ok(savedMaintenance.notices.some(row => row.kind === 'scheduled'));
     const beforeDelete = await j.publicText('/history'); assert.ok(beforeDelete.includes(main.name));
+    const warmedPage = await j.publicResponse('/');
+    const beforeVersion = warmedPage.headers.get('x-lamp-snapshot-version');
+    assert.ok(beforeVersion);
+    assert.match(await warmedPage.text(), /aria-label="[^"]*uptime record for Public API"/);
+    const componentPaths = ['feed.atom', 'feed.rss', 'badge.svg', 'uptime.svg'].map(resource => `/components/${publishedMain.slug}/${resource}`);
+    for (const path of componentPaths) {
+      const response = await j.publicResponse(path);
+      assert.equal(response.status, 200, `prewarm ${path}`);
+      await response.arrayBuffer();
+    }
+    await page.reload();
+    assert.ok((await page.locator('.component-health').innerText()).includes(main.name));
+    const beforeComponents = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
+    assert.deepEqual(beforeComponents.map(row => row.id), [main.id]);
+    assert.ok(beforeComponents[0].uptime.marks.some(mark => mark.downtimeMinutes > 0));
     await j.json(`/api/app/components/${main.id}`, 'DELETE', undefined, 204);
+    const deletedAt = performance.now(), deadline = deletedAt + 10000;
+    let removed;
+    do {
+      const root = await j.publicResponse('/');
+      const body = await root.text();
+      const components = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
+      const statuses = [];
+      for (const path of componentPaths) {
+        const response = await j.publicResponse(path);
+        statuses.push(response.status); await response.arrayBuffer();
+      }
+      if (root.status === 200 && root.headers.get('x-lamp-snapshot-state') !== 'stale'
+        && root.headers.get('x-lamp-snapshot-version') !== beforeVersion
+        && !body.includes('class="component-health"') && components.length === 0 && statuses.every(status => status === 404)) {
+        removed = { body, components, statuses }; break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    } while (performance.now() < deadline);
+    const disappearanceMs = performance.now() - deletedAt;
+    assert.ok(removed && disappearanceMs <= 10000, `all prewarmed public state and uptime disappear within ten seconds (${disappearanceMs.toFixed(1)} ms)`);
+    console.info(`COMP-007 public disappearance: ${disappearanceMs.toFixed(1)} ms`);
+    await page.reload();
+    assert.equal(await page.locator('.component-health, .uptime').count(), 0);
+    if (process.env.LAMP_SCREENSHOTS) {
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-deleted-component-history.png`, fullPage: true });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
     const afterDelete = await j.visible('/history', incident.title);
     assert.ok(afterDelete.includes(main.name), 'published history retains the name of a deleted component');
+    assert.ok((await j.publicText(`/incidents/${incident.reference}`)).includes(`Affecting ${main.name}`));
+    const retainedMaintenance = await j.publicText(maintenancePath);
+    assert.ok(retainedMaintenance.includes(`Affects ${main.name}`), 'published maintenance retains the independently captured component name');
+    assert.ok(retainedMaintenance.includes(maintenance.customerImpact));
+    assert.deepEqual((await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id).notices, savedMaintenance.notices, 'deletion preserves every published maintenance update');
     const remaining = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
     assert.ok(!remaining.some(row => row.id === main.id));
   } finally { await browser?.close(); await j.close(); }
