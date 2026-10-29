@@ -15,7 +15,7 @@ export async function publicCapacityJourney(j, limits) {
     await j.json('/api/app/components/bulk/apply', 'POST', { catalogue: review.catalogue, revision: review.revision, reviewToken: review.reviewToken });
   };
   const components = original.catalogue.components.map((row, index) => ({
-    ...row, name: `Customer service ${index}`, internal: false, onlyShowIfDegraded: false,
+    ...row, name: `Customer service ${index}`, internal: false, onlyShowIfDegraded: false, region: index % 2 ? 'North America' : 'Europe',
     description: (`Service ${index} availability information. ` + 'Customer-facing service. '.repeat(20)).slice(0, 280),
     note: (`Service ${index} current customer impact. ` + 'Requests remain available. '.repeat(20)).slice(0, 250),
   }));
