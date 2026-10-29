@@ -6856,7 +6856,7 @@
       "executable": false
     },
     "tests/e2e/helpers/status-journey.worker.ts": {
-      "sha256": "34d99b3ab120f1371721cb38555a91228a1360a6f2ec86b56491b4f874efe33c",
+      "sha256": "9d3e0148207f3f3396a2c0d7a985118666c7f6a1f1d21fb09d1c48619c05d40e",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-flow.mjs": {
@@ -6872,7 +6872,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-add-flow.mjs": {
-      "sha256": "2c601859c49a1696f94bbdf6db8ed992c934c0ff067abf0007eee692fd045072",
+      "sha256": "a00f8b75a946c32f707d8c8913f235dae2adff33a1cd3de2240f5591cbf304c2",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-csv-flow.mjs": {
@@ -6884,7 +6884,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-management-fixture.mjs": {
-      "sha256": "c681ed274a0775214d1894075c873eeb25e3917acd51170f465e01a586a80858",
+      "sha256": "e1df7e9e08e8c6ab5792afdf299a1cbfa27efaac6258101c5f453d5232fe049d",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-preferences-flow.mjs": {
@@ -6892,7 +6892,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-queued-unsubscribe.mjs": {
-      "sha256": "1b429fa1afc6811b17489bf993f8da8a4066ff592e87d7535b6c691b6a34271d",
+      "sha256": "8c7afe6c77b4c2fdc7ab28e3abaab58287eb3e2101bcaf93f07ca4afd71cc1d7",
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
