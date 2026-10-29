@@ -943,6 +943,10 @@
     {
       "id": "0068_incident_report_deliveries.sql",
       "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
+    },
+    {
+      "id": "0069_page_theme.sql",
+      "buyerSteps": "Apply after 0068. Adds empty theme and theme-asset settings while preserving the existing page appearance and stored records. Configure palette, typography, uploaded WOFF2 fonts, header artwork, links and layout in Settings. Publication carries the selected assets in the retained snapshot; no provider account or key is needed."
     }
   ],
   "breaking": false,
