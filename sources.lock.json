@@ -7032,11 +7032,11 @@
       "executable": false
     },
     "tests/e2e/snapshot-retained.test.mjs": {
-      "sha256": "173abb65b765101c14cde63cb0bbb67ae2b0c4c75449cc76d3bd475564de646b",
+      "sha256": "638fb2f8d0efeeffe6876a9743a74fb69ff6fbb30b52369239a1e38522eeb0cb",
       "executable": false
     },
     "tests/e2e/snapshot-retained.worker.ts": {
-      "sha256": "2b974477c2835e20cc1ecaf5b4020cf9264b5529dbb401589a4ded45925862e6",
+      "sha256": "4d3dccb6ac0996e5a92d66721074b065dd599ec1194a50ecba12983bf6fccaba",
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
