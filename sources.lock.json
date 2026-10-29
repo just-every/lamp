@@ -432,7 +432,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "8cf78120a5e58fc508b3c9fbf76833b7394b76842fce9766586b0393d4031e87",
+      "sha256": "1e10d80ef94d2bd86fccb6ba028a318a42c80acb6ccdff2abbde4a4f82ef1f28",
       "executable": false
     },
     ".gitignore": {
@@ -8064,7 +8064,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "b16e9b09f87f985e174e8bdb651d502c466094edd128c02fb5f3eca9e2513743",
+      "sha256": "821dd41bf7b883ade51329c3d7d76d9eac5ff21d1cfb95370e76e33cfd565c7b",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
