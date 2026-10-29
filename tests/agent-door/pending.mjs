@@ -15,7 +15,7 @@ export const closedAssertions = Object.freeze({
   baseArchiveRefresh: 'rer 0.2.88 edition-authoring/workflow-copies.mjs: archive refresh of the recorded door/identity/settings and contract-generator namespaces preserves the seed-owned workflow without requesting historical workflow bytes; copied-source drift is zero',
 });
 export const pendingAssertions = Object.freeze({
-  timedLifecycle: 'PENDING BASE 2026-10-29 rer 0.2.88 cli/agent-journey-fixtures.mjs:13-15 and modules/agent-door/conformance/step-hooks.mjs:4-12: phase-local current-minute/window fixtures are available, but late scheduling needs per-step current-time argument resolution before its real due dispatch',
+  timedLifecycle: 'PENDING BASE 2026-10-29 rer 0.2.88 cli/agent-journey-fixtures.mjs:13-15 and modules/agent-door/conformance/step-hooks.mjs:3: phase-local current-minute/window fixtures are available, but late scheduling needs per-step current-time argument resolution before its real due dispatch',
   dualHost: 'PENDING BASE 2026-10-29 rer 0.2.88 cli/agent-door.mjs:77-81: the native specialist public-host intake and public-state assertions remain active; the installed request adapter refuses the second native hostname',
   ownerNativeApi: 'PENDING BASE 2026-10-29 rer 0.2.88 modules/operator-auth/accounts/delegated.mjs:33-46: native delegated owner commands with genuine person proof remain unavailable',
   queuedLifecycle: 'PENDING BASE 2026-10-29 rer 0.2.86 cli/hosted-output.mjs:72 and cli/agent-door.mjs:138: real queue consumer and failed occurrence lifecycle in generic hosted runner',

@@ -46,6 +46,10 @@ export async function runNativeIdentityProofFlow(t) {
   const mapped = await people.sponsor({sub: 'business-teammate'});
   assert.ok(mapped?.active);
   assert.equal((await people.businessMember(mapped)).role, 'editor');
+  await r.auth.setProductRole(r.request('/api/app/operators/role', { method: 'POST', cookie: r.cookie }), mapped.id, 'responder');
+  await apply([{id: 'business-teammate', email: 'mapped-teammate@example.test', name: 'Mapped teammate', role: 'admin', invite: 1}]);
+  assert.equal((await people.sponsor({sub: 'business-teammate'})).role, 'responder', 'Signed settings preserve a current narrower native role');
+  assert.equal((await people.businessMember(await people.person(mapped.id))).role, 'editor', 'Business role mapping does not promote the native role');
   assert.equal((await people.sponsor({sub: 'business-owner'})).id, r.owner.id);
   const ownerPerson = await people.sponsor({sub: 'business-owner'});
   const mutable = peopleModule.createLocalCredentials(services, r.bindings);

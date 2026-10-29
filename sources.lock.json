@@ -528,7 +528,7 @@
       "executable": false
     },
     "docs/agent-native-proof.md": {
-      "sha256": "76efeee33474281e60c05655147ae73f4322302eef21ed1e85efc042953a4670",
+      "sha256": "853212f7364977ced74f9462396db352c3724eaf5b2ef5ddc4bd4d79e47a3186",
       "executable": false
     },
     "docs/agents.md": {
@@ -4736,7 +4736,7 @@
       "executable": false
     },
     "src/core/features/agent-door/identity-team.ts": {
-      "sha256": "2bbeb5732f9f18f4262550db0dcd6e8405c47391273ed506c2d8ed6176106c5c",
+      "sha256": "dd935a790bf3f7fc0e60b40874e5c2e7238f709d84bf5eb5055ac0995bc321c4",
       "executable": false
     },
     "src/core/features/agent-door/identity.repository.ts": {
@@ -4808,7 +4808,7 @@
       "executable": false
     },
     "src/core/features/agent-door/settings.ts": {
-      "sha256": "6a8ca532eca6e580b25fed729d16df13e306371d1e8a634f91e2331109a4c515",
+      "sha256": "35c97d530f42ca9e08c1080d5c9bc394811eb8c97ae9f2e313f6d6be87b32f44",
       "executable": false
     },
     "src/core/features/agent-door/targets.ts": {
@@ -8028,7 +8028,7 @@
       "executable": false
     },
     "tests/agent-door/identity-proof-flow.mjs": {
-      "sha256": "6baa88fff6a54b88f1f4580b16465a4d8975a65674c9e2f230b26d3c1233e623",
+      "sha256": "93af0fff62cf474e14c12bb9dcd93dabc89937df256fb6cc662715f0ffd72f24",
       "executable": false
     },
     "tests/agent-door/import-report-flow.mjs": {
@@ -8052,7 +8052,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "54183fb04d4f091ca50b01f3fd687455f278be7ca306cfa3093891d57c201680",
+      "sha256": "caa59aa34871f153d7e3227a64fd77c9be945aee87efe9d1f19880ef890b4eec",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
