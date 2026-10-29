@@ -1,5 +1,6 @@
 import type { CommunicationOwnership } from "./communication-owner.repository";
 import { incidentImpact, type IncidentImpact } from "../../shared/incident-impact";
+import { renderNotificationUpdate } from "../../shared/update-renderer";
 import { createIncidentTemplateService, type IncidentTemplateService } from "./template-service";
 export type { IncidentTemplateInput } from "./template-schema";
 import { stageComponentChoices, publicationComponents, componentChangeRecord } from "./component-staging";
@@ -297,7 +298,10 @@ export function createIncidentsService(
         return componentChangeRecord(component, current?.publishedAt ? current.state : "Operational", input.lifecycle === "Resolved" ? "Operational" : component.state, metadata?.internal ?? true);
       }))).filter((change): change is PublishedIncidentComponentChange => change !== null);
       const nextUpdateDisplay = input.nextUpdateAt ? await runtime.formatPreviewTimestamp?.(input.nextUpdateAt) : null;
-      const rendered = renderIncidentUpdate({ incidentReference: incident.reference, incidentTitle: incident.title, ...input, componentChanges, nextUpdateDisplay });
+      const renderInput = { incidentReference: incident.reference, incidentTitle: incident.title, ...input, componentChanges, nextUpdateDisplay };
+      const rendered = renderIncidentUpdate(renderInput);
+      const peak = mostSevereState([await repository.findPeakImpact(incidentId) ?? "Operational", ...proposed.map(component => component.state)]);
+      rendered.email = renderNotificationUpdate({ ...renderInput, incidentImpact: incidentImpact(peak, incident.impactOverride).effectiveImpact }).email;
       if (runtime.formatPreviewEmail) rendered.email = await runtime.formatPreviewEmail(rendered.email);
       return rendered;
     },
@@ -308,7 +312,9 @@ export function createIncidentsService(
       const componentChanges = matched.map(({ claim, component }) => ({ componentId: component!.id, name: component!.name, previousState: "Operational" as const, newState: update.lifecycle === "Resolved" ? "Operational" as const : claim.state, internal: component!.internal }))
         .filter((change) => change.previousState !== change.newState);
       const nextUpdateDisplay = update.nextUpdateAt ? await runtime.formatPreviewTimestamp?.(update.nextUpdateAt) : null;
-      const rendered = renderIncidentUpdate({ incidentReference: await repository.nextReference(), incidentTitle: title, ...update, componentChanges, nextUpdateDisplay });
+      const renderInput = { incidentReference: await repository.nextReference(), incidentTitle: title, ...update, componentChanges, nextUpdateDisplay };
+      const rendered = renderIncidentUpdate(renderInput);
+      rendered.email = renderNotificationUpdate({ ...renderInput, incidentImpact: incidentImpact(null, null, components.map(component => component.state)).effectiveImpact }).email;
       if (runtime.formatPreviewEmail) rendered.email = await runtime.formatPreviewEmail(rendered.email);
       return rendered;
     },

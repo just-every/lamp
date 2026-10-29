@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. UPDATE-004 is judged from the code and tests on this landing candidate (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -600,7 +600,7 @@ Core · published · **done**
 
 #### UPDATE-004 — Preview
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Before publication the composer previews the customer-facing update.
 
@@ -608,8 +608,8 @@ Core · published · **partial**
 1. The composer shows the update as the public page renders it.
 2. The composer shows the update as the notification email renders it.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** Asserted: public preview customer impact; email preview customer impact. Unasserted in old cited evidence: composer displays the public preview; composer displays the email preview.
+**Evidence.** `tests/e2e/publishing-browser.test.mjs` (compiled visual edits and the operator publication journey): the signed-in composer shows the complete Page and Email previews, with independently expected heading, lifecycle, every submitted wording field, configured-zone commitment, component changes, email subject and branded body; explicit publication retains the Page preview fields and exact commitment on the public incident page. `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): native preview wording remains asserted and the captured notification subject and complete customer message equal the preview before personal subscription links. Both journeys run in push Verify.
+**Gap.** None.
 
 #### UPDATE-005 — Drafts
 

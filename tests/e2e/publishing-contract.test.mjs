@@ -53,6 +53,8 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal(reached.updates[0].channels.find(row => row.channel === 'email').committed, 1);
     const customerMail = j.messages.find(mail => mail.to.includes(subscriber) && !mail.text.includes('/confirm-subscription/'));
     for (const value of Object.values(wording).filter(value => value !== 'Identified')) assert.ok(customerMail.text.includes(value));
+    assert.equal(customerMail.subject, preview.preview.email.subject, 'notification subject matches the preview');
+    assert.equal(customerMail.text.split('\n\nManage this subscription:')[0], preview.preview.email.plainText, 'the complete customer message matches the preview before personal subscription links');
     await j.visible(`/incidents/${incident.reference}`, wording.customerImpact);
     for (const path of ['/', `/incidents/${incident.reference}`, '/feed.atom', '/widget.js']) {
       const body = await j.publicText(path);
