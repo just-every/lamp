@@ -3572,7 +3572,7 @@
       "executable": false
     },
     "scripts/installer/archive-policy.mjs": {
-      "sha256": "8cfa8ec8b4af51e1dce15a83a37ea532851dd37a44c0da838c7e184502fba902",
+      "sha256": "bff4a0dbc11898ca4c1a71dd52d2b39ed56f0a22189c20009889fa5eb605056b",
       "executable": false
     },
     "scripts/installer/BASE-ADOPTION.md": {
