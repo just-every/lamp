@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "5d465857215ea43e18fdcf7b16639d60b0562c1866213ca8daa5f8be211cab05",
+      "sha256": "f17f5c63bb8a9c16157f048e8ab09eeb5eeaf50c37620e45c459d66673c8eaf9",
       "executable": false
     },
     "agent-surface.json": {
@@ -500,7 +500,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0217227bc5f0bd202771b4f394f7b1db0d2e8d367f79473da1b5c1eaf5cf1ca0",
+      "sha256": "4132d21c9b9d9392991d067c09cdefee5d1a439f1679ec0bc360f00eb667dda3",
       "executable": false
     },
     "DEMO.md": {
@@ -560,7 +560,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "8bf9a7adf96e82c90a84091b4f682367ceb6842296e05d95587646c82d52ef49",
+      "sha256": "3a16b7b6fa1424e5b838c3f5ddcd2f59d0006a32b4588a753437d562992d94c3",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -9080,7 +9080,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-alerts-flow.mjs": {
-      "sha256": "144dc39147c2eda9330c5c40bf1fbaa9731eb32f195a854bbe30de2ef8e860cd",
+      "sha256": "70d3c1461bd1faae8fc7f8ea86f0f0302673fbf5757373c7e85f3660a29e828b",
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
