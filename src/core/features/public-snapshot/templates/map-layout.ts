@@ -40,6 +40,13 @@ const MAP_STYLES: readonly MapStyle[] = [
   { view: "wide", from: NARROW_BELOW, to: MAP_MAX_WIDTH, pin: pin(18, 24), numbered: pin(24, 30), card: { name: 14, state: 12.5, dot: 13, padX: 14, height: 50 }, maxCards: 12 },
 ];
 
+function mapStyles(readableText: boolean): readonly MapStyle[] {
+  return readableText ? MAP_STYLES.map(style => ({ ...style, card: {
+    ...style.card, name: Math.max(13, style.card.name), state: 13,
+    height: style.view === "narrow" ? 44 : style.card.height,
+  } })) : MAP_STYLES;
+}
+
 const BAND = 20;
 const CARD_GAP = 2;
 const PIN_GAP = 1;
@@ -180,12 +187,13 @@ function layoutBand(markers: MapMarker[], style: MapStyle, from: number, to: num
 /** Every band of section widths, narrowest first; the last is open-ended, where the map has stopped growing. A keyed
  *  band's pins only move apart as the map widens, so a run of keyed bands keeps its first band's pins while the map
  *  grows by up to a quarter: fewer rules, and no pin drifts far from its place. */
-export function mapPlan(markers: MapMarker[]) {
+export function mapPlan(markers: MapMarker[], readableText = false) {
   const bands: MapBand[] = [];
-  for (const style of MAP_STYLES) {
+  const styles = mapStyles(readableText);
+  for (const style of styles) {
     for (let from = style.from; from < style.to; from += BAND) bands.push(layoutBand(markers, style, from, Math.min(from + BAND, style.to)));
   }
-  bands.push(layoutBand(markers, MAP_STYLES.at(-1)!, MAP_MAX_WIDTH, Infinity));
+  bands.push(layoutBand(markers, styles.at(-1)!, MAP_MAX_WIDTH, Infinity));
   const runs: MapBand[] = [];
   for (const band of bands) {
     const last = runs.at(-1);
@@ -212,8 +220,8 @@ function bandRules(band: MapBand) {
 
 /** The plan as container-query rules on the map's section (named rg-map in styles/regions.css): each view's card
  *  widths, then each run of bands that share one layout. */
-export function planStyles(markers: MapMarker[], bands: MapBand[]) {
-  const widths = MAP_STYLES.map((style) => {
+export function planStyles(markers: MapMarker[], bands: MapBand[], readableText = false) {
+  const widths = mapStyles(readableText).map((style) => {
     const rules = markers.map((marker, index) => `.rg-map .rg-card.m${index}{max-width:${cardWidth(marker, style)}px}`).join("");
     return `@container rg-map ${style.from === MAP_STYLES[0]!.from ? `(width < ${style.to}px)` : `(width >= ${style.from}px)`}{${rules}}`;
   });

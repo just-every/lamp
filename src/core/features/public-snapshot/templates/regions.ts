@@ -46,8 +46,9 @@ const maps = new WeakMap<PublicSnapshotModel, ReturnType<typeof regionsMapOf>>()
 function regionsMapOf(model: PublicSnapshotModel) {
   const groups = regionGroups(model.visibleComponents);
   const markers = mapMarkers(groups);
-  const bands = mapPlan(markers);
-  const styles = planStyles(markers, bands);
+  const readableText = model.theme.paletteEnabled && !!model.theme.palette;
+  const bands = mapPlan(markers, readableText);
+  const styles = planStyles(markers, bands, readableText);
   // Region membership and geometry determine the stylesheet. State labels refresh in place.
   const regions = groups.map((group) => `${group.key}:${group.components.length}`).join("|");
   return { groups, markers, keyed: bands.some((band) => band.keyed), styles, signature: fingerprint(`${regions}#${styles}`) };

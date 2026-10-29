@@ -25,6 +25,8 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
   }
   const { incident } = await api('/api/app/incidents', 'POST', { title: 'Palette checkout availability', components: [{ componentId: fixture[3].id, state: 'Major outage' }], update: { lifecycle: 'Investigating', affectedAudience: 'Customers placing new orders.', customerImpact: 'Checkout requests are failing.', whatStillWorks: 'Existing orders are safe.', details: 'See https://example.test/support for assistance.', nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() } });
   await api(`/api/app/incidents/${incident.id}/publish`, 'POST', { channels: [] });
+  const { incident: resolved } = await api('/api/app/incidents', 'POST', { title: 'Palette reporting recovered', components: [{ componentId: fixture[0].id, state: 'Degraded performance' }], update: { lifecycle: 'Resolved', affectedAudience: 'Customers using reports.', customerImpact: 'Reports are available again.', whatStillWorks: 'All services are available.', details: 'See https://example.test/support for assistance.', nextUpdateAt: null } });
+  await api(`/api/app/incidents/${resolved.id}/publish`, 'POST', { channels: [], overrideReason: 'The operator confirmed report requests succeed.' });
   await api('/api/app/maintenance', 'POST', { title: 'Palette database maintenance', affectedAudience: 'Customers using reporting.', customerImpact: 'Reporting may be briefly unavailable.', startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [fixture[4].id], autoStart: false, autoComplete: false });
   const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
   try {
@@ -54,6 +56,11 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     // pre-upgrade payload with colours and no enabled field enables them.
     const legacy = { ...original.theme, palette: null };
     delete legacy.paletteEnabled;
+    if (original.theme.palette) {
+      await updateSettings({ theme: { ...legacy, palette: original.theme.palette } });
+      assert.equal((await currentSettings()).theme.paletteEnabled, true, 'legacy stored colours infer an enabled palette');
+      assert.deepEqual((await currentSettings()).theme.palette, original.theme.palette);
+    }
     await updateSettings({ theme: legacy, template: 'default' });
     assert.equal((await currentSettings()).theme.paletteEnabled, false);
     const defaultCss = await css();
@@ -89,6 +96,12 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     await savedEdit(() => settings.getByLabel(/^History days/).fill('21'));
     assert.deepEqual((await currentSettings()).theme.palette, DARK, 'other theme saves while disabled retain all nine colours');
     assert.equal((await currentSettings()).theme.paletteEnabled, false);
+    await updateSettings({ theme: { historyDays: 22 } });
+    assert.deepEqual((await currentSettings()).theme.palette, DARK, 'a partial operator theme save preserves disabled colours');
+    await updateSettings({ theme: { palette: null } });
+    assert.deepEqual((await currentSettings()).theme.palette, DARK, 'a legacy null operator save cannot erase disabled colours');
+    await updateSettings({ theme: { paletteEnabled: false, palette: original.theme.palette } });
+    assert.deepEqual((await currentSettings()).theme.palette, DARK, 'a stale disabled operator save cannot replace owner colours');
     await openSettings();
     await savedEdit(() => toggle.check());
     assert.deepEqual((await currentSettings()).theme.palette, DARK, 're-ticking restores exactly the owner palette');
@@ -125,6 +138,7 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
         await publicPage.goto(pageUrl, { waitUntil: 'networkidle' });
         await expect(publicPage.getByText('Palette checkout availability', { exact: true }).first()).toBeVisible();
         await expect(publicPage.getByText('Palette database maintenance', { exact: true }).first()).toBeVisible();
+        await expect(publicPage.getByText('Palette reporting recovered', { exact: true }).first()).toBeVisible();
         await cardReadability(publicPage, { directory, name: `dark-${template}-${width}`, dark: true });
       }
     }

@@ -8,7 +8,7 @@ export async function cardReadability(page, { directory, name, dark = false }) {
     for (const details of document.querySelectorAll('details')) details.open = true;
     await document.fonts.ready;
   });
-  const cards = await page.locator('.status-banner, .components-section, .component, .timeline-entry, .maintenance-entry, .empty-state, .hm-frame, .hm-callout, .tl-open, .tl-maint, .tl-resolved, .rg-card, .rg-key-item, .rg-row, .calm-component, .data-card, .live-strip, .update-due-notice, .incident-operator-action').evaluateAll(elements => elements.filter(element => element.getClientRects().length).map(element => {
+  const cards = await page.locator('.status-banner, .component-group, .components-section, .component, .timeline-entry, .timeline-incident, .timeline-maintenance, .maintenance-entry, .resolved-list, .history-item, .empty-state, .hm-frame, .hm-callout, .tl-open, .tl-maint, .tl-resolved, .rg-card, .rg-key-item, .rg-row, .rg-rows, .calm-components, .calm-history, .calm-row, .up-figure, .up-situation, .up-band, .subscribe, .tpl-subscribe, .up-subscribe, .data-card, .live-strip, .update-due-notice, .incident-operator-action').evaluateAll(elements => elements.filter(element => element.getClientRects().length).map(element => {
     let painted = element;
     while (painted && getComputedStyle(painted).backgroundColor === 'rgba(0, 0, 0, 0)') painted = painted.parentElement;
     return { type: element.className, background: painted ? getComputedStyle(painted).backgroundColor : 'transparent' };

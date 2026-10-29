@@ -1361,6 +1361,8 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 **Requirement.** A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable.
 
+**Semantics.** One WCAG relative-luminance contrast measure checks the named card pairs used to paint enabled public palettes: the status canvas and summary, component groups, incident and maintenance cards, resolved history, subscription controls, Calm components, Uptime heatmaps and callouts, Regions cards and keys, state badges and inverse actions. Each includes its text, link and state colours against its painted background. The operator overview keeps its independent colours; its active incidents, component states, maintenance, follow-ups, communication performance, live status and update-due cards and controls are in the same pair list. A refusal names the card, foreground, background and measured ratio before writing settings or publishing a snapshot.
+
 **Acceptance.**
 1. The contrast check a palette passes uses the same contrast measure as the cards.
 2. No card keeps a fixed light background under a dark palette.
@@ -1373,6 +1375,8 @@ The primary journey: An operator sets up the page and components, accepts eviden
 *Tier:* Core
 
 **Requirement.** Turning the custom palette off never erases the owner's chosen colours.
+
+**Semantics.** The settings JSON retains the nine-colour `palette` independently from `paletteEnabled`. A legacy stored null palette reads as disabled; a legacy stored palette reads as enabled. A null palette in an older update disables the saved colours without deleting them. Partial theme updates merge with stored settings, and disabled updates cannot replace an existing palette. Enabling restores the stored values.
 
 **Acceptance.**
 1. Unticking the custom palette keeps all nine chosen colours stored.

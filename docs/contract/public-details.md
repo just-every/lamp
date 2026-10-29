@@ -189,3 +189,7 @@ Up to 10 public metrics, such as response time per region, error rate or queue d
 ## UPTIME-009 — Availability reports
 
 Operators download, per component and for any month or quarter, an availability report with claimed and (where linked) measured uptime, every incident and maintenance that affected it, and total downtime minutes, as CSV and PDF. The report can be shared with one audience (AUD-003) on its private page. Customers with contractual SLAs then get the same numbers the page shows.
+
+## THEME-004 and THEME-005 — Card contrast and saved colours
+
+Enabled palettes use the same named card colour pairs for publication validation and public card painting; a pair below 4.5:1 refuses the save with the card, colours and measured contrast named. The operator overview retains its independent appearance, whose card pairs are included in that check. Unticking the custom palette retains all nine stored colours and publishes the default palette; enabling it again restores those exact colours. Themes written before the enabled flag infer it from whether a palette was stored.

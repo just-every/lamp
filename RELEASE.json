@@ -926,6 +926,16 @@
       "migrationIds": [
         "0073_operator_roles.sql"
       ]
+    },
+    "THEME-004": {
+      "change": "added",
+      "summary": "A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable: A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable.",
+      "now": "A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable: **Requirement.** A dark palette that passes the 4.5:1 check keeps every dashboard card (Uptime, Regions and the other status cards) readable. **Acceptance.** 1. The contrast check a palette passes uses the same contrast measure as the cards. 2. No card keeps a fixed light background under a dark palette. 3. The check covers every card type on the public status page and the dashboard. 4. A palette that would leave any card below 4.5:1 is refused with that card named. 5. One public-door journey proves a dark palette on both pages at 1440 and 390."
+    },
+    "THEME-005": {
+      "change": "added",
+      "summary": "Turning the custom palette off never erases the owner's chosen colours: Turning the custom palette off never erases the owner's chosen colours.",
+      "now": "Turning the custom palette off never erases the owner's chosen colours: **Requirement.** Turning the custom palette off never erases the owner's chosen colours. **Acceptance.** 1. Unticking the custom palette keeps all nine chosen colours stored. 2. The public page shows the default look while the custom palette is off. 3. Ticking the custom palette on again restores exactly the stored colours. 4. Saving other theme settings while the custom palette is off never clears the colours. 5. One public-door journey proves untick, save, reload and re-tick."
     }
   },
   "extensionPointChanges": [],
