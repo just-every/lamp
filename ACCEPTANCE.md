@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
 Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -1360,15 +1360,15 @@ Core · published · **partial**
 
 #### HIST-003 — Report due
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A sufficiently severe resolved incident without a report becomes visibly report-due under the replaceable report-due policy.
 
 **Acceptance.**
 1. Seven days after an incident that claimed Partially unavailable or Major outage resolves without a report, the operator app marks it as owing a report.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Old cited evidence asserts A representative Major-outage incident is listed as report-due after eight days; The severity rule is represented by another Major-outage report-due case. Unasserted: The operator report-due listing is asserted at the seven-day boundary.
+**Evidence.** `tests/e2e/update-reminders.test.mjs` (AUTO-004 HIST-003 — both severe incidents become report-due at seven days and reviewed publication or reasoned waiver stops weekly reminders), loading `tests/e2e/helpers/report-reminders-flow.mjs` (reportRemindersFlow) and `tests/e2e/helpers/automation-clock-worker.ts`: native incident creation, severe claim publication and resolution; both severe states absent from the owing route one millisecond before seven days and present exactly at seven days; matching Overview due instant and overdue state; published-report and reasoned-waiver exclusions through later weeks.
+**Gap.** None.
 
 #### HIST-004 — Export contents
 
