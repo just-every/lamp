@@ -8052,7 +8052,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "caa59aa34871f153d7e3227a64fd77c9be945aee87efe9d1f19880ef890b4eec",
+      "sha256": "9eb466074c7c563454f230cc45ecd829203a310f33c1e881bb33919848cc8b07",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
