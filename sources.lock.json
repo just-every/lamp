@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "aef72f713a4b77a773bb8de07ce5a15bb4c3e93dc60edb1915ace8b9d57111c9",
+      "sha256": "4220cbc77dc155b0d077d5a1c0434edf796b46dad62fb52a2cb824d561acfa0e",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ecb0d9c6d331217753c6dca09d0e4e3942f0f8dc9cd66fc14ea2001699789654",
+      "sha256": "971be518ca23bcd2dc83a94eef85bdf6fa2f270c1a14b3eb28af8a0c8dec7970",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "e266409a77c8fb9f33b49e530dfa492f9c58547016c748496463889430c35a8f",
+      "sha256": "9665c748e8cb4137211aad2cb6fb62e38a49d7f26d282afdfbe796dd5309e95c",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -6844,7 +6844,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-component-deletion.mjs": {
-      "sha256": "b819e0100c4589284f08d9f90cba82b42b6e8bf44977b33b62a9f642fdb16c11",
+      "sha256": "ace90675e931cccf9e8df1a589d449ef0563092a2dc45df42504e9c6f28e4e6f",
       "executable": false
     },
     "tests/e2e/helpers/report-reminders-flow.mjs": {

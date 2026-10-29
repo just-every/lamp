@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `ae51d12048c527266200579993b435dba2fe99ff` (29 October 2026); COMP-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -312,7 +312,7 @@ Core · published · **partial**
 
 #### COMP-007 — Deletion
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Deleting a component removes its public state history and uptime while published communication retains its name.
 
@@ -320,8 +320,8 @@ Core · published · **partial**
 1. The component, its state history and every associated uptime figure disappear from the public page within ten seconds.
 2. Published incident and maintenance updates keep the deleted component’s name.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Component and uptime disappearance is observed on the public page within ten seconds; Published maintenance history retains the deleted name.
+**Evidence.** Points 1 and 2: `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-component-deletion.mjs` (publicComponentDeletion). A populated component and daily uptime record, warm component feeds and state and uptime badges disappear in one measured ten-second deadline after successful native deletion; every public catalogue section and both public component collections reconcile to the new healthy generation. Unauthenticated deletion is refused without changing the catalogue or public page; deletion preserves other components. Published incident updates and completed maintenance notices retain the independently captured component name and unchanged communication records through public collections, history, permanent pages and a browser.
+**Gap.** None.
 
 ### Uptime
 

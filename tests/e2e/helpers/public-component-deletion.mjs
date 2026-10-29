@@ -132,11 +132,15 @@ export async function publicComponentDeletion(j, { component, incident, browser 
     const catalogueText = (await page.locator('.component-health').allTextContents()).join('\n');
     assert.ok(!catalogueText.includes(name));
     assert.ok(catalogueText.includes(retained.name), 'the remaining public catalogue stays visible');
+    for (const [path, className] of [[`/incidents/${incident.reference}`, 'incident'], [`/maintenance/${maintenance.reference}`, 'maintenance']]) {
+      await page.goto(j.publicOrigin + path);
+      assert.ok((await page.locator(`article.${className}`).innerText()).includes(name), 'the published communication keeps the deleted name in the browser');
+    }
     if (process.env.LAMP_BROWSER_PROOF_DIRECTORY) {
       await mkdir(process.env.LAMP_BROWSER_PROOF_DIRECTORY, { recursive: true });
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 1000 });
-        for (const [label, path] of [['catalogue', '/'], ['history', '/history'], ['maintenance', `/maintenance/${maintenance.reference}`]]) {
+        for (const [label, path] of [['catalogue', '/'], ['history', '/history'], ['incident', `/incidents/${incident.reference}`], ['maintenance', `/maintenance/${maintenance.reference}`]]) {
           await page.goto(j.publicOrigin + path);
           await page.screenshot({ path: join(process.env.LAMP_BROWSER_PROOF_DIRECTORY, `comp007-${label}-${width}.png`), fullPage: true });
         }
