@@ -48,8 +48,11 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 native identity 
     assert.equal(discovery.status, 200, await discovery.clone().text());
     assert.ok((await discovery.json()).dependencies.some(d => d.interface === 'oidc-provider@1' && d.optional));
     const callback = async () => {
-      await call('/.well-known/rer-dependencies');
-      return post('/.well-known/rer-link/callback', { issuer, code: await edge.code() });
+      const document = await (await call('/.well-known/rer-dependencies')).json();
+      const dependency = document.dependencies.find(d => d.interface === 'oidc-provider@1');
+      const jwks = await call(new URL(dependency.jwks_uri).pathname);
+      assert.equal(jwks.status, 200, await jwks.clone().text());
+      return post('/.well-known/rer-link/callback', { issuer, code: await edge.code((await jwks.json()).keys[0], document.sector_id) });
     };
     assert.equal((await callback()).status, 403, 'configuration alone grants no link authority');
     assert.equal((await post('/auth/dependencies/setup', { issuer, token: setupToken })).status, 200);

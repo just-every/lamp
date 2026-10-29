@@ -7344,7 +7344,7 @@
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {
-      "sha256": "cf487891df8281e67c87f399a69770e90e8634fdf983b806739fb2d40d6c3d85",
+      "sha256": "1ee7dddb05ef1b035278d34096c7b6e128aa61d3fc12ee69c603b3feee96442d",
       "executable": false
     },
     "tests/auth-adoption/fixtures/prechange.sql": {
@@ -7892,7 +7892,7 @@
       "executable": false
     },
     "tests/fixtures/base/provider-edge.mjs": {
-      "sha256": "37b04371a5b7ce74e3c3d01eb6da4e7f5bbed19e2e872255787dd31b72918b68",
+      "sha256": "2289b2f3ae171562677176b4ab20db9421e67fe79bf915e877c76cdceecd6b9a",
       "executable": false
     },
     "tests/fixtures/betterstack/generate.mjs": {
