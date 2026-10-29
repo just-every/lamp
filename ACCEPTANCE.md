@@ -2800,7 +2800,7 @@ Core · target · **done** · Cites BASE-INPUT-001, BASE-OPS-003, BASE-ACCESSIBI
 6. At 1440 and 390 the saved mappings, receipt and linked private draft retain both matched components.
 7. The technical archive restores source configuration and grouped member evidence.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/grouped-alerts-flow.mjs` (groupedAlertsFlow): both configured browser components and their exact mappings survive reload, receipts open the private draft, and no public story exists at 1440 and 390. The cited native archive retains the source configuration and grouped member evidence.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/grouped-alerts-flow.mjs` (groupedAlertsFlow): both configured browser components and their exact mappings survive reload, receipts open the private draft, and no public story exists at 1440 and 390. The cited native archive retains the source configuration and grouped member evidence.  Kept archive citation: `tests/auth-adoption/portability.test.mjs` (native rer archive restores owner continuity and subscriber authority), loading `tests/helpers/archive-history.mjs` (populateArchiveHistory); its archive and restored re-export equality retains the Alertmanager source and grouped fingerprints and states.
 **Gap.** None.
 
 #### INTAKE-011 — New Relic, Datadog and Pingdom depth
@@ -2815,7 +2815,7 @@ Core · target · **done** · From INTAKE-011 · Cites BASE-INPUT-001, BASE-ACCE
 3. An activated workflow creates a private draft on its mapped component; its closed event resolves that same draft without public updates.
 4. The template and saved choices are usable at 1440 and 390.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/monitor-setup-journey.mjs` (monitorSetupJourney) and `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney): complete New Relic workflow bindings and replacement template, saved exact entities, mapped private ACTIVATED and CLOSED on one incident, and accessible persisted provider forms at 1440 and 390.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/monitor-setup-journey.mjs` (monitorSetupJourney) and `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney): complete New Relic workflow bindings and replacement template, saved exact entities, mapped private ACTIVATED and CLOSED on one incident, and accessible persisted provider forms at 1440 and 390.  Kept API and chart citations: `tests/e2e/helpers/operations-alerts-flow.mjs` (operationsAlertsFlow) and `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow), loaded by that same monitor registration, retain entity mapping, unmapped refusal and the Datadog, New Relic and Pingdom public chart observations.
 **Gap.** None.
 
 #### INTAKE-016 — Monitoring metric connectors
@@ -2829,7 +2829,7 @@ Core · target · **done** · From INTAKE-011 · Cites BASE-DATA-004, BASE-ACCES
 2. Query credentials are sealed and absent from operator and management metric listings.
 3. At 1440 and 390 an owner configures each provider’s metric in component settings and its connection survives reload.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney): every provider connection and exact query survives reload, with sealed keys absent from the owner form at 1440 and 390.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), loading `tests/e2e/helpers/metric-setup-journey.mjs` (metricSetupJourney): every provider connection and exact query survives reload, with sealed keys absent from the owner form at 1440 and 390.  Kept provider and secrecy citation: `tests/e2e/helpers/metrics-flow.mjs` (metricsFlow), loaded by that same monitor registration, retains all three provider chart values, sealed credential storage and credential absence from operator and management listings.
 **Gap.** None.
 
 #### INTAKE-012 — Oncall
