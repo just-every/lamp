@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `6a864865123712030b1b322d6ef40c48c91677ef` (29 October 2026); SUB-014 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -2395,7 +2395,7 @@ Core · target · **partial** · From SUB-013 · Cites BASE-INPUT-002, BASE-MAIL
 
 #### SUB-014 — Self-serve Slack subscriptions
 
-Core · target · **partial** · Cites BASE-MAIL-001 · Register R-41
+Core · target · **done** · Cites BASE-MAIL-001 · Register R-41
 
 **Requirement.** A public visitor receives selected-component updates in their Slack workspace through Slack's own authorization step. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md).
 
@@ -2406,8 +2406,8 @@ Core · target · **partial** · Cites BASE-MAIL-001 · Register R-41
 4. App removal, revoked tokens and an archived-channel response each deactivate with that reason and prevent the next publication.
 5. A recorded provider-schema OAuth exchange creates the subscription and its recorded app-uninstalled event removes it.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links, notifications shard), loading `tests/e2e/helpers/self-serve-chat-flow.mjs` (selfServeChatFlow) and `tests/e2e/slack-subscriptions-helper.mjs` (prepareSlackSubscription, removeSlackSubscription, verifySlackPublication). The recorded synthetic provider-edge request and response in `tests/fixtures/slack-subscriptions/oauth-exchange.json` are matched at the real Slack OAuth adapter: POST, client, code and callback path; the public Get updates in Slack control requests only incoming-webhook, selects components and completes cookie-free hashed-state installation at 1440/390. The active subscription receives the next eligible publish, and its webhook is stored encrypted in the existing subscriber-owned Slack kind from additive migration `migrations/core/0056_subscriber_channels_preferences.sql`. The signed app_uninstalled payload in `tests/fixtures/slack-subscriptions/events.json`, using its test signing secret, deactivates the subscription with that reason; selfServeChatFlow asserts the next publication skips it. verifySlackPublication asserts See <https://help.example.com/kb/123>. with punctuation outside the URL. The recorded tokens_revoked payload also deactivates and suppresses the next publish; a channel_is_archived edge reply deactivates with that reason and later publication skips it. Continuation and callback axe, overflow and script-error checks pass at both widths. `tests/e2e/update-reminders.test.mjs` (INCIDENT-010 — INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment) consumes the same OAuth reply and preserves the separation of public subscriptions from private operator alerts. These are recorded synthetic edge fixtures; no live Slack install or provider acceptance is claimed. Completion is a proposal pending ct judgment.
-**Gap.** Old cited evidence asserts minimal OAuth scope; active Slack state; sealed Slack URL. It does not assert: named public control; selected components persisted.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), invoking `tests/e2e/helpers/self-serve-chat-flow.mjs` (selfServeChatFlow) and `tests/e2e/slack-subscriptions-helper.mjs` (prepareSlackSubscription, verifySlackPublication, removeSlackSubscription) in push Verify’s delivery shard. Point 1: the real public form has the Get updates in Slack submit control and offers the selected and unrelated visible components; incoming-webhook is the only OAuth scope; the recorded callback saves exactly the two selected component identities and the chosen Slack workspace and channel. Point 2: the subscriber is active with a nonempty encrypted webhook and no plaintext destination. Point 3: the next eligible publication produces exactly one Slack post, preserving the bare secure-web URL with trailing punctuation outside. Point 4: app_uninstalled, tokens_revoked and channel_is_archived each deactivate with that reason and suppress the next publication. Point 5: the real OAuth adapter matches the recorded request and response in `tests/fixtures/slack-subscriptions/oauth-exchange.json`; signed recorded events from `tests/fixtures/slack-subscriptions/events.json` remove the subscription. The journey also erases its subscriber-owned destination. These are synthetic provider-edge fixtures; live Slack tenant acceptance remains not run in R-41 and no live installation or release is claimed.
+**Gap.** None.
 
 #### SUB-015 — Self-serve Microsoft Teams subscriptions
 
