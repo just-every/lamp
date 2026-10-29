@@ -78,11 +78,15 @@ export async function runV2AdmissionFlow(t) {
   };
   const limited = { person: { id: teammate.id }, agent: { id: 'role-limited-agent', name: 'Incident assistant' },
     scopes: ['lamp.components.update', 'lamp.incidents.create', 'lamp.incidents.publish', 'lamp.incidents.read'] };
+  const publicComponent = await agentDoor.invoke('lamp.components.create', { ...input, name: 'Public role-bound API', internal: false,
+    idempotency_key: crypto.randomUUID(),
+  }, principal);
+  assert.equal(publicComponent.outcome, 'done');
   await setRole('responder');
   const denied = await agentDoor.invoke('lamp.components.update', { ...args, idempotency_key: crypto.randomUUID() }, limited);
   assert.equal(denied.code, 'native_forbidden', 'Direct service tools retain the current native configuration role');
   const incident = await agentDoor.invoke('lamp.incidents.create', { title: 'Role-bound incident',
-    components: [{ componentId: id, state: 'Degraded performance', relationship: 'Primary' }],
+    components: [{ componentId: publicComponent.result.component.id, state: 'Degraded performance', relationship: 'Primary' }],
     update: { lifecycle: 'Investigating', affectedAudience: 'API customers', customerImpact: 'Some requests are delayed.',
       whatStillWorks: 'The dashboard is available.', details: 'Current responder evidence.', nextUpdateAt: null },
     idempotency_key: crypto.randomUUID(),
@@ -91,7 +95,8 @@ export async function runV2AdmissionFlow(t) {
   const publication = { id: incident.result.incident.id, version: incident.result.version, channels: [], idempotency_key: crypto.randomUUID() };
   assert.equal((await agentDoor.invoke('lamp.incidents.publish', publication, limited)).code, 'native_forbidden');
   await setRole('communicator');
-  assert.equal((await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited)).outcome, 'done', 'A current Communicator can publish the same native draft');
+  const communicated = await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited);
+  assert.equal(communicated.outcome, 'done', `A current Communicator can publish the same native draft: ${communicated.code}`);
   await setRole('viewer');
   assert.equal((await agentDoor.invoke('lamp.incidents.read', { id: publication.id }, limited)).outcome, 'done');
   assert.equal((await agentDoor.invoke('lamp.incidents.publish', { ...publication, idempotency_key: crypto.randomUUID() }, limited)).code, 'native_forbidden', 'A demotion stops the next agent mutation');
