@@ -51,6 +51,7 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
     values.chat = { id: chat.id };
   }
   nativeFixture().proofAt = proofAt;
+  if (nativeFixture().pullMetricId) await call(`/api/app/metrics/${nativeFixture().pullMetricId}`, 'DELETE');
   const pullMetric = await call('/api/app/metrics', 'POST', {
     componentId: nativeFixture().componentId, sourceId: null, provider: 'prometheus',
     name: `Customer API latency ${phase}`, unit: 'ms', query: 'lamp_api_latency_ms',
@@ -58,6 +59,7 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
     credentials: { key: token },
   });
   assert.equal(pullMetric.metric.connected, true, 'The provider fixture has real sealed native credentials');
+  nativeFixture().pullMetricId = pullMetric.metric.id;
   values.pullMetric = { id: pullMetric.metric.id };
   const now = Date.now(), instant = seconds => new Date(now + seconds * 1000).toISOString();
   values.clock = { minute: Math.floor(now / 60_000) * 60_000, nextUpdateAt: instant(3600),
@@ -65,7 +67,7 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
   const reminder = await call('/api/app/maintenance', 'POST', {
     title: `Planned customer API work ${phase}`, affectedAudience: 'API customers',
     customerImpact: 'A short interruption is expected during the announced window.',
-    componentIds: [nativeFixture().componentId], startsAt: instant(23 * 3600), endsAt: instant(24 * 3600),
+    componentIds: [nativeFixture().componentId], startsAt: instant(25 * 3600), endsAt: instant(26 * 3600),
     autoStart: false, autoComplete: false, social: false,
   });
   values.publicReminder = { id: reminder.maintenance.id };

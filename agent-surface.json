@@ -2020,7 +2020,9 @@
           "$from": "draft-save",
           "pointer": "/version"
         },
-        "channels": []
+        "channels": [
+          "chat"
+        ]
       },
       "expect": [
         {

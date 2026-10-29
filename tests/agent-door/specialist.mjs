@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { nativeFixture } from './fixture-state.mjs';
 import { pendingAssertions } from './pending.mjs';
 import { inspectNativePages } from './native-pages.mjs';
+import { connectIncidentChannel, prepareReminder } from './journey-fixtures.mjs';
 const pagesInspected = new Set();
 const errorCode = answer => answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.body?.error?.data?.code;
 const result = (answer, label) => {
@@ -40,7 +41,7 @@ export default async function specialist({ request, origin, email, cookie, mail,
   const saved = await call('lamp.drafts.save', { id, version: observed.version, draft });
   const preview = await call('lamp.incidents.preview', { id });
   assert.equal(preview.version, saved.version);
-  const published = await call('lamp.incidents.publish', { id, version: saved.version, channels: [] });
+  const published = await call('lamp.incidents.publish', { id, version: saved.version, channels: ['chat'] });
   const stale = await tool('lamp.incidents.publish', { id, version: saved.version, channels: [], idempotency_key: randomUUID() });
   assert.equal(errorCode(stale), 'revision_conflict', 'Stale versions publish nothing');
   const resolved = await call('lamp.drafts.save', { id, version: published.version, draft: { ...draft, lifecycle: 'Resolved', nextUpdateAt: null, componentChanges: [{componentId: fixture.componentId, state: 'Operational', relationship: 'Primary'}] } });
@@ -99,6 +100,7 @@ export default async function specialist({ request, origin, email, cookie, mail,
 
 /** Keep a real proposed public edit pending while its current policy is held. */
 export async function afterStep({ phase, step, args, result, tool, request, origin, cookie }) {
+  if (phase === 'autonomous' && step.id === 'public-component') await connectIncidentChannel({ request, origin, cookie }, result.component.id);
   let area;
   if (phase === 'autonomous') area = ({ 'report-publish': 'incident', 'maintenance-cancel': 'maintenance', deliveries: 'delivery' })[step.id];
   if (phase === 'held' && step.id === 'public-component') {
@@ -112,3 +114,5 @@ export async function afterStep({ phase, step, args, result, tool, request, orig
   await inspectNativePages({ request, origin, cookie, area, incidentId: args.id });
   pagesInspected.add(area);
 }
+
+export const beforeStep = prepareReminder;
