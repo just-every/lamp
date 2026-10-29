@@ -1,4 +1,5 @@
 /// <reference path="../scripts/dev-ingress/virtual.d.ts" />
+import { withNativePersonEvents } from './core/features/agent-door/person-events';
 import { withDemo } from '@runeditrun/rer/modules/demo';
 import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
@@ -107,13 +108,20 @@ export default withDemo({
     }
 
     const runtime = createApp(await prepareAppMailBindings(bindings, request), request);
+    if (surface === "app") {
+      const agentResponse = await runtime.agentDoor.handle(request);
+      if (agentResponse) return agentResponse;
+    }
     if (surface === "app" && (url.pathname === "/signin" || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/.well-known/rer-"))) {
       return authResponse(request, bindings, runtime.services);
     }
     await ensureDevelopmentSnapshot(runtime);
 
     if (isHonoRequest(surface, request, url.pathname)) {
-      const response = await runtime.app.fetch(request, bindings, executionContext);
+      const response = surface === 'app'
+        ? await withNativePersonEvents(request, bindings.DB, runtime.agentDoor.people, runtime.agentDoor,
+            async () => runtime.app.fetch(request, bindings, executionContext))
+        : await runtime.app.fetch(request, bindings, executionContext);
       queueDueWork(runtime, bindings, executionContext, request, response);
       return response;
     }

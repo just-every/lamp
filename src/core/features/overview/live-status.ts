@@ -16,7 +16,7 @@ export interface LiveStatus {
 }
 export interface LiveStatusService {
   /** Current state; checks older than the latest publish or two minutes run first. */
-  get(): Promise<LiveStatus>;
+  get(options?: {refresh?: boolean}): Promise<LiveStatus>;
   /** The page and subscribe-form checks, as the minute Cron runs them. */
   runChecks(): Promise<void>;
   /** The mail-provider check, when the sender changed or a day has passed. */
@@ -96,12 +96,12 @@ export function createLiveStatusService(repository: OverviewRepository, settings
   }
 
   return {
-    async get() {
+    async get(read = {}) {
       const [origin, publishedAt] = await Promise.all([options.publicOrigin(), options.publishedAt()]);
       let stored = await storedPageChecks(origin);
       const stale = !stored || Date.now() - Date.parse(stored.checkedAt) > PAGE_CHECK_MAX_AGE_MS || (publishedAt !== null && Date.parse(stored.checkedAt) < Date.parse(publishedAt));
-      if (stale && publishedAt) { await runChecks(); stored = await storedPageChecks(origin); }
-      await checkSenderIfDue();
+      if (read.refresh !== false && stale && publishedAt) { await runChecks(); stored = await storedPageChecks(origin); }
+      if (read.refresh !== false) await checkSenderIfDue();
       const check = (reason: string | null): LiveCheck | null => stored ? { ok: reason === null, checkedAt: stored.checkedAt, reason } : null;
       return { publicOrigin: origin, publishedAt, page: check(stored?.page ?? null), subscribe: check(stored?.subscribe ?? null), sender: await sender(),
         senderVerificationManaged: !options.sender.local && options.sender.provider === 'rer' && options.sender.mail.configured };

@@ -1,3 +1,4 @@
+import { agentAttributionStatements } from '../../agent-door/provenance.repository';
 import { createUlid } from "../../../shared/ids";
 import { followUpsQueries, followUpsQueryFor } from "./query.repository";
 import type { FollowUpRow } from "./types";
@@ -22,6 +23,7 @@ export function createFollowUpsRepository(db: D1Database) {
         db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at)
           SELECT ?,'follow-up',?,'follow-up.dismissed',?,?,json_object('occurrence',?),?,? WHERE changes()=1`)
           .bind(auditId,id,operatorId,reason,occurrence,now,now),
+        ...agentAttributionStatements(db,{entityType:'follow-up',entityId:id,operatorId,at:now,guard:{sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[auditId]}}),
       ]);
       return result.results.length === 1;
     },

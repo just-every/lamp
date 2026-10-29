@@ -11,7 +11,7 @@ export function publishingDraft(row: DraftRow | null): PublishingDraft | null {
   let candidate: unknown;
   try { candidate = JSON.parse(row.scheduledChannelsJson ?? "[]"); }
   catch { throw new Error("Scheduled delivery channel configuration is malformed."); }
-  if (!Array.isArray(candidate) || candidate.some(item => item !== "email" && item !== "webhook" && item !== "chat" && item !== "sms")) throw new Error("Scheduled delivery channel configuration is invalid.");
+  if (!Array.isArray(candidate) || candidate.some(item => item !== "email" && item !== "webhook" && item !== "chat" && item !== "sms" && item !== "social")) throw new Error("Scheduled delivery channel configuration is invalid.");
   const componentChanges = JSON.parse(row.componentChangesJson);
   if (!Array.isArray(componentChanges)) throw new Error("Draft component changes are malformed.");
   return { ...row, agentPreparation: row.agentPreparationJson ? JSON.parse(row.agentPreparationJson) : null, componentChanges, scheduledChannels: [...new Set(candidate)] };
