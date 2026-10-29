@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
 import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
+import { assertEmptyCalendar, validateMaintenanceCalendar } from './helpers/calendar-assertions.mjs';
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
   const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' } });
@@ -97,7 +98,9 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
 
     await saveReviewed(incident.id, { lifecycle: 'Resolved', customerImpact: 'Payment processing has recovered.', nextUpdateAt: null });
     await j.publish(incident.id);
-    assert.equal((await j.read(incident.id)).lifecycle, 'Resolved');
+    const resolved = await j.read(incident.id);
+    assert.equal(resolved.lifecycle, 'Resolved');
+    assert.equal(typeof resolved.resolvedAt, 'string');
     assert.equal((await j.read(incident.id)).draft, null);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');
     await j.visible('/history', incident.title);
@@ -169,43 +172,80 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
   const j = await openStatusJourney();
   try {
     const component = await j.component('Scheduled database service');
+    await assertEmptyCalendar(j);
     const now = Date.now();
     const startsAt = new Date(now + 3600000).toISOString();
     const endsAt = new Date(now + 7200000).toISOString();
-    const input = { title: 'Database capacity upgrade', affectedAudience: 'Customers using the database', customerImpact: 'Writes may pause during the upgrade.', startsAt, endsAt, componentIds: [component.id], autoStart: true, autoComplete: false };
+    const input = { title: 'Database capacity upgrade ;,\\\n' + 'é'.repeat(70), affectedAudience: 'Customers using the database', customerImpact: 'Writes may pause during the upgrade.', startsAt, endsAt, componentIds: [component.id], autoStart: true, autoComplete: false };
     const maintenance = (await j.json('/api/app/maintenance', 'POST', input, 201)).maintenance;
     const endpoint = `/api/app/maintenance/${maintenance.id}`;
     assert.ok(maintenance.reference);
+    const uid = `lamp-maintenance-${maintenance.id}@lamp`;
+    const readCalendar = async () => {
+      const response = await j.publicResponse('/maintenance.ics');
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get('content-type'), /^text\/calendar/);
+      const body = await response.text(), events = validateMaintenanceCalendar(body);
+      return { body, events, event: events.find(event => event.getFirstPropertyValue('uid') === uid) };
+    };
+    let calendar = await eventually(readCalendar, value => Boolean(value.event), 'scheduled calendar event');
+    assert.equal(calendar.event.getFirstPropertyValue('summary'), input.title);
+    assert.equal(calendar.event.getFirstPropertyValue('status'), 'CONFIRMED');
+    assert.equal(calendar.event.getFirstPropertyValue('sequence'), 0);
+    assert.equal(calendar.event.getFirstPropertyValue('dtstart').toJSDate().getTime(), Math.floor(Date.parse(startsAt) / 1000) * 1000);
     assert.ok(!(await j.json('/api/app/incidents')).incidents.some(row => row.id === maintenance.id));
     await j.visible(`/maintenance/${maintenance.reference}`, input.customerImpact);
     await j.tick(now + 1000); await j.tick(now + 1000);
     const list = async () => (await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id);
     assert.equal((await list()).notices.filter(row => row.kind === 'reminder').length, 1);
     const actualStart = new Date(now - 7200000).toISOString();
-    const elapsedEnd = new Date(now - 3600000).toISOString();
+    const elapsedEnd = new Date(Date.now() - 15 * 60000 + 30000).toISOString();
     await j.json(`${endpoint}/window`, 'PUT', { startsAt: actualStart, endsAt: elapsedEnd });
     await j.tick(Date.now());
     assert.equal((await list()).state, 'In progress');
-    assert.equal((await list()).overrunning, true, 'an elapsed unfinished window remains visibly overdue');
+    assert.equal((await list()).overrunning, false, 'an unfinished window has no overrun label before fifteen minutes');
+    calendar = await eventually(readCalendar, value => value.event?.getFirstPropertyValue('sequence') === 1, 'rescheduled calendar event');
+    assert.equal(calendar.event.getFirstPropertyValue('uid'), uid);
+    assert.equal(calendar.event.getFirstPropertyValue('dtstart').toJSDate().getTime(), Math.floor(Date.parse(actualStart) / 1000) * 1000);
+    assert.equal(calendar.event.getFirstPropertyValue('dtend').toJSDate().getTime(), Math.floor(Date.parse(elapsedEnd) / 1000) * 1000);
     // Public HTML localizes the human date; its semantic time attributes
     // carry the exact owner-selected window for browsers and calendar readers.
     const publicWindow = ends => eventually(() => j.publicText(`/maintenance/${maintenance.reference}`), html => html.includes(`data-maintenance-ends-at="${ends}"`) && html.includes(`<time datetime="${actualStart}"`), 'public maintenance window');
-    await publicWindow(elapsedEnd);
+    const beforeOverrun = await publicWindow(elapsedEnd);
+    assert.ok(!beforeOverrun.includes('Running longer than planned'));
+    const initialPage = await j.publicResponse('/');
+    const oldValidator = initialPage.headers.get('etag');
+    assert.ok(Date.parse(initialPage.headers.get('x-lamp-snapshot-generated-at')) < Date.parse(elapsedEnd) + 15 * 60000);
+    assert.ok(!(await initialPage.text()).includes('Running longer than planned'));
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, Date.parse(elapsedEnd) + 15 * 60000 - Date.now()) + 100));
+    const aged = await j.raw(j.publicOrigin + '/', { headers: { 'If-None-Match': oldValidator } });
+    assert.equal(aged.status, 200);
+    assert.notEqual(aged.headers.get('etag'), oldValidator);
+    for (const html of [await aged.text(), await j.publicText(`/maintenance/${maintenance.reference}`)]) {
+      assert.ok(html.includes('Running longer than planned'));
+      assert.ok(html.includes(`data-maintenance-ends-at="${elapsedEnd}"`), 'the overrun keeps its original end beside the warning');
+    }
+    assert.equal((await list()).overrunning, true);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Under maintenance');
     await j.tick(now + 3 * 3600000);
     assert.equal((await list()).state, 'In progress', 'an unchecked automatic completion never ends the window');
     const later = new Date(now + 4 * 3600000).toISOString();
     await j.json(`${endpoint}/window`, 'PUT', { startsAt: actualStart, endsAt: later });
+    assert.equal((await list()).startsAt, actualStart);
     assert.equal((await list()).endsAt, later);
-    await publicWindow(later);
-    const calendar = await j.publicText('/maintenance.ics');
-    assert.ok(calendar.includes(maintenance.reference) || calendar.includes(maintenance.id));
-    assert.ok(calendar.includes(input.title));
+    assert.equal((await list()).overrunning, false);
+    assert.ok(!(await publicWindow(later)).includes('Running longer than planned'));
+    const extendedPage = await eventually(() => j.publicText('/'), html => html.includes(`data-maintenance-ends-at="${later}"`), 'extended public window');
+    assert.ok(!extendedPage.includes('Running longer than planned'));
+    calendar = await eventually(readCalendar, value => value.event?.getFirstPropertyValue('sequence') === 2, 'extended calendar event');
+    assert.equal(calendar.event.getFirstPropertyValue('uid'), uid);
     await j.json(`${endpoint}/complete`, 'POST', {});
     await j.json(`${endpoint}/complete`, 'POST', {}, 409);
     const completed = await eventually(list, row => row.state === 'Completed', 'manual completion');
     assert.ok(completed.notices.some(row => row.kind === 'started'));
     assert.equal(completed.notices.filter(row => row.kind === 'completed').length, 1);
+    assert.ok(!(await j.visible(`/maintenance/${maintenance.reference}`, 'Completed')).includes('Running longer than planned'));
+    await eventually(readCalendar, value => !value.event, 'completed window leaves the calendar');
     assert.ok(completed.notices.some(row => row.kind === 'rescheduled'));
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');
     const feed = await j.visible('/feed.atom', input.customerImpact);
@@ -214,6 +254,12 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     await j.json(`/api/app/maintenance/${cancelled.id}/window`, 'PUT', { startsAt: new Date(now + 5 * 3600000).toISOString(), endsAt: new Date(now + 6 * 3600000).toISOString() });
     await j.json(`/api/app/maintenance/${cancelled.id}/cancel`, 'POST', {});
     assert.equal((await j.json('/api/app/maintenance')).maintenance.find(row => row.id === cancelled.id).state, 'Cancelled');
+    await eventually(readCalendar, value => value.events.some(event => event.getFirstPropertyValue('uid') === `lamp-maintenance-${cancelled.id}@lamp` && event.getFirstPropertyValue('status') === 'CANCELLED'), 'cancelled calendar event');
+    const internal = await j.component('Internal database topology', { internal: true });
+    const hidden = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Internal-only upgrade', componentIds: [internal.id] }, 201)).maintenance;
+    const barrier = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Public calendar generation barrier', componentIds: [component.id, internal.id] }, 201)).maintenance;
+    calendar = await eventually(readCalendar, value => value.body.includes(barrier.id), 'later public calendar generation');
+    for (const privateValue of [hidden.id, hidden.title, internal.id, internal.name]) assert.ok(!calendar.body.includes(privateValue), 'a later calendar generation excludes internal-only windows and component details');
     // A second window keeps automatic completion on and proves both scheduled
     // transitions, rather than treating manual completion as a Cron result.
     const automatic = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Automatic maintenance', startsAt: new Date(now - 7200000).toISOString(), endsAt: new Date(now - 3600000).toISOString(), autoComplete: true }, 201)).maintenance;

@@ -52,6 +52,8 @@ export async function vendorDependenciesFlow() {
       const history=(await j.json(`/api/app/components/${row.componentId}/history`)).history;
       assert.ok(history.some(item=>item.sourceName===row.vendorName && item.sourceUrl===row.statusPageUrl && item.newState==='Major outage' && Date.parse(item.changedAt)===outageAt),'changed fixture is source-attributed within the next two-minute trigger');
     }
+    const customerReports=await publicRows();
+    for(const row of [cloudflare,aws,same])assert.equal(customerReports.find(value=>value.componentId===row.componentId).state,'Major outage','changed vendor state reaches the public source read in the same trigger');
     const status=async()=>(await (await j.publicResponse('/api/public/status')).json());
     assert.equal((await status()).overall,'Operational');
     assert.equal((await j.json("/api/app/components")).components.find(row=>row.id===buyer.id).publicState,'Operational');
@@ -84,7 +86,14 @@ export async function vendorDependenciesFlow() {
     awsSource.status=503;await tick();await tick();const failedAt=await tick();
     const failed=(await list()).find(row=>row.id===aws.id);
     assert.equal(failed.failures,3);assert.equal(failed.state,'Major outage');assert.equal(Date.parse(failed.unavailableAt),failedAt);
-    await j.visible('/','Vendor status unavailable since');
+    const unavailablePage=await j.visible('/','Vendor status unavailable since');
+    assert.ok(unavailablePage.includes(`datetime="${failed.unavailableAt}"`),'the public unavailable notice names the first unavailable instant');
+    if(process.env.LAMP_DEP_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_DEP_SCREENSHOTS,{recursive:true});
+      browser=await chromium.launch({headless:true,executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+      const page=await browser.newPage({viewport:{width:1440,height:1000}});await page.goto(j.publicOrigin);
+      for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.screenshot({path:`${process.env.LAMP_DEP_SCREENSHOTS}/public-vendors-${width}.png`,fullPage:true});}
+    }
     assert.equal((await publicRows()).find(row=>row.componentId===aws.componentId).state,'Major outage');
     const firstUnavailable=failed.unavailableAt;await tick();assert.equal((await list()).find(row=>row.id===aws.id).unavailableAt,firstUnavailable);
     awsSource.status=200;awsSource.body=awsSource.fixture.cases.find(row=>row.expected==='Operational').body;await tick();
@@ -139,11 +148,5 @@ export async function vendorDependenciesFlow() {
     assert.ok(!(await publicRows()).some(row=>row.componentId===cloudflare.componentId));
     const history=(await j.json(`/api/app/components/${cloudflare.componentId}/history`)).history;
     assert.ok(history.some(row=>row.sourceName==='Cloudflare'),'unfollow retains attributed history');
-    if(process.env.LAMP_DEP_SCREENSHOTS) {
-      await mkdir(process.env.LAMP_DEP_SCREENSHOTS,{recursive:true});
-      browser=await chromium.launch({headless:true,executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
-      const page=await browser.newPage({viewport:{width:1440,height:1000}});await page.goto(j.publicOrigin);
-      for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.screenshot({path:`${process.env.LAMP_DEP_SCREENSHOTS}/public-vendors-${width}.png`,fullPage:true});}
-    }
   } finally {await browser?.close();await j.close();}
 }

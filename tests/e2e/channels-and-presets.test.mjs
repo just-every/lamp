@@ -3,6 +3,8 @@ import { automationRulesFlow } from "./helpers/automation-rules-flow.mjs";
 import { socialBrowserFlow } from "./helpers/social-browser-flow.mjs";
 import { socialPostsFlow } from "./helpers/social-posts-flow.mjs";
 import { metricsFlow } from "./helpers/metrics-flow.mjs";
+import { metricSetupJourney } from "./helpers/metric-setup-journey.mjs";
+import { monitorSetupJourney } from "./helpers/monitor-setup-journey.mjs";
 import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
 import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
@@ -206,7 +208,7 @@ const payloads = {
 };
 const sources = {};
 
-test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence", { timeout: 600_000 }, async t => {
+test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence", { timeout: 600_000 }, async t => {
   await uptimePairingFlow({ api, component, origin, cookie });
   for (const preset of Object.keys(payloads)) {
     const target = await component(`Shop (${preset})`);
@@ -254,6 +256,8 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005
   assert.ok(shop.id);
   await uptimePresetFlow({ api, post, component, publicOrigin });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
+  await monitorSetupJourney({ api, component, origin, publicOrigin, cookie });
+  await metricSetupJourney({ api, post, component, origin, cookie });
   await automationRulesBrowserFlow({ origin, publicOrigin, cookie, component, api, post });
   await pagerDutyFlow({ runtime, t });
   await operationsAlertsFlow({ t });

@@ -3,6 +3,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
 import assert from "node:assert/strict";
+import { subscriberQueuedUnsubscribe } from './subscriber-queued-unsubscribe.mjs';
 import { openSubscriberManagementFixture, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
 
 async function auditSubscriberEmails(messages) {
@@ -32,7 +33,7 @@ async function auditSubscriberEmails(messages) {
 /** Operator adds exercise the same public confirmation and real publication
  * doors as self-service consent, with recipient selection observed at Resend. */
 export async function subscriberAddFlow() {
-  const fixture = await openSubscriberManagementFixture();
+  const fixture = await openSubscriberManagementFixture({ workerEntry: 'tests/e2e/helpers/status-journey.worker.ts' });
   const { api, post, list, messagesFor } = fixture;
   try {
     const owner = (await api("/api/app/session")).body.operator;
@@ -159,6 +160,7 @@ export async function subscriberAddFlow() {
     assert.equal(fixture.messages.length, mailBeforeInvalid, "unconfigured SMS sends no confirmation through another provider");
 
 
+    await subscriberQueuedUnsubscribe({ fixture, component: first, subscriberId: id, email });
     assert.equal((await api(`/api/app/subscribers/${id}`, { method: "DELETE" })).status, 204);
     assert.equal((await api(`/api/app/subscribers/${webhook.body.subscriber.id}`, { method: "DELETE" })).status, 204);
     const erasedExport = await fixture.request("/api/app/subscribers.csv");
