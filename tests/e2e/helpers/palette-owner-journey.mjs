@@ -56,11 +56,10 @@ export async function paletteOwnerJourney({ appFetch, appUrl, pageUrl, currentSe
     // pre-upgrade payload with colours and no enabled field enables them.
     const legacy = { ...original.theme, palette: null };
     delete legacy.paletteEnabled;
-    if (original.theme.palette) {
-      await updateSettings({ theme: { ...legacy, palette: original.theme.palette } });
-      assert.equal((await currentSettings()).theme.paletteEnabled, true, 'legacy stored colours infer an enabled palette');
-      assert.deepEqual((await currentSettings()).theme.palette, original.theme.palette);
-    }
+    assert.ok(original.theme.palette, 'the preceding branded journey saved a real owner palette');
+    await updateSettings({ theme: { ...legacy, palette: original.theme.palette } });
+    assert.equal((await currentSettings()).theme.paletteEnabled, true, 'legacy stored colours infer an enabled palette');
+    assert.deepEqual((await currentSettings()).theme.palette, original.theme.palette);
     await updateSettings({ theme: legacy, template: 'default' });
     assert.equal((await currentSettings()).theme.paletteEnabled, false);
     const defaultCss = await css();
