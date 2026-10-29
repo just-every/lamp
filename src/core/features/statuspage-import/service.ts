@@ -1,3 +1,4 @@
+import { claimImportInvitation, releaseImportInvitation } from "./invitation-claim.repository";
 import { createIncidentFollowSettingsRepository } from "../subscribers/incident-follow-settings.repository";
 import { createSubscriberLimitRepository } from "../subscribers/limits.repository";
 import { fetchSorryPublicResponses } from "./sorry";
@@ -160,20 +161,20 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     await assertAuthority(context);
     const subscriberIds = plan.entries.flatMap((entry) => entry.effects.filter((effect) => effect.targetKind === "subscriber").map((effect) => effect.targetId));
     if (subscriberIds.length) await db.batch(subscriberIds.map((id) => db.prepare(`INSERT OR IGNORE INTO statuspage_import_invites (subscriber_id, job_id, sent_at) SELECT ?, ?, NULL WHERE ${fence.sql}`).bind(id, jobId, ...fence.params ?? [])));
-    const due = (await db.prepare("SELECT i.subscriber_id AS id FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours') ORDER BY i.subscriber_id LIMIT ?").bind(jobId, INVITES_PER_REQUEST).all<{ id: string }>()).results;
+    const due = (await db.prepare(`SELECT i.subscriber_id AS id,d.destination FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id JOIN subscriber_directory d ON d.id=s.id
+      WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' AND s.channel='email' AND julianday(s.created_at)>julianday('now','-72 hours')
+      AND NOT EXISTS(SELECT 1 FROM incident_subscriptions f WHERE f.subscriber_id=s.id AND (f.ended_at IS NOT NULL OR f.resolution_at IS NOT NULL))
+      AND (i.confirmation_address_hash IS NULL OR NOT EXISTS(SELECT 1 FROM subscriber_confirmation_attempts a WHERE a.email_hash=i.confirmation_address_hash AND julianday(a.last_sent_at)>=julianday('now','-24 hours')))
+      ORDER BY i.subscriber_id LIMIT ?`).bind(jobId, INVITES_PER_REQUEST).all<{ id: string;destination:string }>()).results;
     let sent = 0;
-    for (const { id } of due) {
+    for (const { id,destination } of due) {
       let claimedAt: string | undefined;
       try {
         if (await hooks.inviteSubscriber(id, async () => {
           // The final authority and eligibility check is atomic with the claim.
           const timestamp = nowIso();
-          const claimed = await db.prepare(`UPDATE statuspage_import_invites SET sent_at=?
-            WHERE subscriber_id=? AND job_id=? AND sent_at IS NULL AND ${fence.sql}
-            AND EXISTS (SELECT 1 FROM subscribers s WHERE s.id=subscriber_id AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours'))
-            AND EXISTS (SELECT 1 FROM ik_jobs WHERE id=? AND state='completed')`)
-            .bind(timestamp, id, jobId, ...fence.params ?? [], jobId).run();
-          if (claimed.meta.changes === 1) { claimedAt = timestamp; return true; }
+          const claimed=await claimImportInvitation(db,{id,jobId,destination,at:timestamp,fence});
+          if(claimed){claimedAt=timestamp;return true;}
           await assertAuthority(context);
           return false;
         })) sent += 1;
@@ -181,7 +182,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
         // A transport rejection/timeout or arbitrary extension error is not
         // evidence that nothing was sent. Release only this invocation's claim
         // when the adapter explicitly proves it never reached transport.
-        if (claimedAt && isMailPreparationError(error)) await db.prepare('UPDATE statuspage_import_invites SET sent_at=NULL WHERE subscriber_id=? AND job_id=? AND sent_at=?').bind(id, jobId, claimedAt).run();
+        if (claimedAt && isMailPreparationError(error)) await releaseImportInvitation(db,{id,jobId,destination,at:claimedAt});
         throw error;
       }
     }

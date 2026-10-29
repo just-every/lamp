@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 13 | 173 | 52 | 238 |
+| Core | 15 | 173 | 50 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 13 | 173 | 57 | 243 |
+| Full target | 15 | 173 | 55 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -2479,7 +2479,7 @@ Core · target · **partial** · Rules D-2
 
 #### SUB-019 — Follow one incident
 
-Core · target · **missing** · From SUB-019
+Core · target · **done** · From SUB-019 · Cites BASE-ACCESS-003, BASE-PUBLIC-001, BASE-DATA-003, BASE-OPS-003
 
 **Requirement.** Every incident permalink provides a script-free single-incident subscription form; email, enabled SMS, and webhooks with a contact address are offered. SUB-022 governs its notification lifetime.
 
@@ -2491,12 +2491,12 @@ Core · target · **missing** · From SUB-019
 5. The management API lists, creates and deletes incident subscriptions, including the Statuspage-compatible incident-subscriber doors.
 6. Unresolved Statuspage incidents import subscribers as pending under MOVE-002; these consume SUB-020 capacity, and a full channel creates and sends nothing while showing its usual full-channel response.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** Points 1 and 3: `tests/e2e/delivery-contract.test.mjs` (Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts), loading `tests/e2e/helpers/incident-follow-browser-flow.mjs` (incidentFollowBrowserFlow): script-free public email, configured SMS and webhook forms, confirmation, per-recipient report choice and 1440 and 390 screens. Point 2: the same file (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow); the same registration file (Subscriber consent, selected publication, channel delivery, export and erasure) loads `tests/e2e/helpers/incident-follow-sms-flow.mjs`: daily address allowance, pending expiry, neutral replies, cross-site refusal and signed channel consent. Point 4: incidentFollowFlow and incidentFollowBrowserFlow prove scoped token management, immediate unsubscribe and both operator views. Point 5: `tests/e2e/helpers/incident-subscription-api-flow.mjs` (incidentSubscriptionApiFlow), loaded by the same file (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), proves native and Statuspage-compatible CRUD, explicit private read and write scopes, refusal of existing public-data readers, wrong-incident refusal and revoked-credential refusal without writes. Point 6: `tests/e2e/statuspage-import.test.mjs` (owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes), loading `tests/e2e/helpers/incident-subscriber-import-flow.mjs` (incidentSubscriberImportFlow) and `tests/e2e/helpers/imported-incident-live-flow.mjs`; incidentFollowFlow proves capacity refusal without subscriber writes or mail.
+**Gap.** None.
 
 #### SUB-022 — Single-incident subscription lifetime
 
-Core · target · **missing** · From SUB-019
+Core · target · **done** · From SUB-019 · Cites BASE-DATA-003, BASE-OPS-003
 
 **Requirement.** A single-incident subscriber hears only that incident's later communication, with an explicit option to include its post-incident report.
 
@@ -2507,8 +2507,8 @@ Core · target · **missing** · From SUB-019
 4. After ending, no more notification is sent and the address is deleted within 24 hours unless it has another subscription.
 5. The script-free journey follows one incident through its next update and resolution, receives nothing for a second incident or maintenance and nothing after resolution, and reads address deletion 24 hours later.
 
-**Evidence.** None.
-**Gap.** Not built.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Scoped incident subscriptions — native and Statuspage API consent, private reads and revoked writes), loading `tests/e2e/helpers/incident-follow-flow.mjs` (incidentFollowFlow), `tests/e2e/helpers/incident-follow-lifecycle-flow.mjs` (incidentFollowLifecycleFlow), `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow); the same registration file (Subscriber consent, selected publication, channel delivery, export and erasure) loads `tests/e2e/helpers/incident-follow-sms-flow.mjs`. Point 1: only the followed incident delivers updates and resolution; other incidents, maintenance and component changes deliver nothing. Point 2: delivered resolution ends a follow without its report; report publication or the controlled 30-day deadline ends report following. Point 3: reopening before ending delivers; reopening afterwards does not. Point 4: scheduled erasure removes the ended scope within 24 hours, revokes old authority, preserves an independent subscription; `tests/e2e/helpers/incident-subscription-api-flow.mjs` (incidentSubscriptionApiFlow) proves captured confirmation and management links cannot resurrect or expose an erased follower. Point 5: `tests/e2e/helpers/incident-follow-browser-flow.mjs` (incidentFollowBrowserFlow), loaded by the same file (Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts), proves script-free INC-7 confirmation and management at 1440 and 390; `tests/e2e/helpers/incident-follow-browser-lifecycle.mjs` (incidentFollowBrowserLifecycle) keeps that same script-free recipient through its next update, exclusion cases, delivered resolution, later suppression and scheduled address deletion.
+**Gap.** None.
 
 #### SUB-020 — Subscriber limits are stated, enforced and reported
 

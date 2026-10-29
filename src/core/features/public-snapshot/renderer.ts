@@ -89,7 +89,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const maintenance: PublicMaintenance[] = source.maintenance
     .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
     .filter((item) => attachedMaintenanceIds.has(item.id));
-  return { smsEnabled: source.smsEnabled ?? false, metrics: source.metrics ?? [], websiteUrl: source.websiteUrl, origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
+  return { incidentIncludeReport:source.incidentIncludeReport===true, smsEnabled: source.smsEnabled ?? false, metrics: source.metrics ?? [], websiteUrl: source.websiteUrl, origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
 
 export type PublicSnapshotModel = ReturnType<typeof toPublicModel>;
@@ -228,7 +228,7 @@ function renderIncidentPage(incident: PublicIncident, model: ReturnType<typeof t
   const resolved = incident.lifecycle === "Resolved" && incident.resolvedAt
     ? `<p class="incident-resolution">${resolutionUpdateCarriesTime ? "" : `Resolved at ${timestamp(incident.resolvedAt, timezone)}. `}Duration: ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt))}</p>`
     : "";
-  const content = `<div class="incident-document"><div class="incident-document-main">${incidentMarkup(incident, timezone, undefined, "Incident", "h1")}${resolved ? `<section class="about"><h2>About this incident</h2>${resolved}</section>` : ""}${report}${incidentFollowMarkup(incident, model.smsEnabled)}</div><aside class="incident-summary" aria-label="Incident status"><p class="eyebrow">Incident status</p><h2 class="summary-state">${statePill(incident.lifecycle)}</h2><dl><div><dt>Opened</dt><dd>${timestamp(incident.openedAt, timezone)}</dd></div><div><dt>Updates</dt><dd>${incident.updates.length}</dd></div></dl><a class="text-link" href="/">Current status</a></aside></div>`;
+  const content = `<div class="incident-document"><div class="incident-document-main">${incidentMarkup(incident, timezone, undefined, "Incident", "h1")}${resolved ? `<section class="about"><h2>About this incident</h2>${resolved}</section>` : ""}${report}${incidentFollowMarkup(incident, model.smsEnabled,model.incidentIncludeReport)}</div><aside class="incident-summary" aria-label="Incident status"><p class="eyebrow">Incident status</p><h2 class="summary-state">${statePill(incident.lifecycle)}</h2><dl><div><dt>Opened</dt><dd>${timestamp(incident.openedAt, timezone)}</dd></div><div><dt>Updates</dt><dd>${incident.updates.length}</dd></div></dl><a class="text-link" href="/">Current status</a></aside></div>`;
   return pageShell(`${incident.title} · ${model.settings.pageName}`, content, model, slots, "other");
 }
 

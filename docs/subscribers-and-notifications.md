@@ -19,13 +19,29 @@ maintenance and component changes are excluded. Its management link shows
 can see the audience on the incident and in **Subscribers**.
 
 **Settings → Notifications → Include the post-incident report** defaults on and
-sets the choice for new incident follows. With it on, following ends when the
+sets the initial report choice on each public form. The visitor can change that
+choice before submitting; existing subscriptions retain their own choice.
+With the report selected, following ends when the
 report is published or 30 days after resolution, whichever comes first. With it
-off, following ends after the resolution is delivered. Lamp removes the ended
+unselected, following ends after the resolution is delivered. Lamp removes the ended
 follow's address within 24 hours; another subscription at the same address
 continues independently. Incident follows use the same confirmation allowance,
 pending expiry and channel capacity as other subscriptions. Native archives
 retain their incident scope and lifetime.
+
+Management credentials with the explicit `subscribers:read` scope list incident subscribers through
+`GET /api/v1/incidents/{incidentId}/subscribers`. The explicit `subscribers:write`
+scope creates pending subscriptions with POST and erases one with
+`DELETE /api/v1/incidents/{incidentId}/subscribers/{subscriberId}`. These scopes
+keep the existing active owner or admin issuer boundary. Revoked credentials
+cannot read or write. Existing `read` credentials keep their public-data access
+and cannot list subscriber destinations. Native creation accepts `includeReport` as a boolean.
+Statuspage-compatible clients use the same credentials with `Authorization: OAuth`
+and `/v1/pages/default/incidents/{incidentId}/subscribers`, including the matching
+subscriber DELETE door. The edition's local page identifier is `default`.
+Imported page and incident subscriptions sharing one address also share the daily
+confirmation allowance; a suppressed invitation stays available for a later
+explicit owner action.
 
 ## Process email unsubscribe requests
 

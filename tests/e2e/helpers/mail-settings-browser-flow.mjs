@@ -1,3 +1,4 @@
+import { incidentBrowserReceiptKey } from './incident-follow-browser-lifecycle.mjs';
 import { incidentFollowBrowserFlow } from './incident-follow-browser-flow.mjs';
 import { smsBindings, smsProviderEdge } from './sms-subscriber-flow.mjs';
 import { existsSync } from 'node:fs';
@@ -40,7 +41,7 @@ export async function mailSettingsBrowserFlow(t){
   let runtime,browser;
   const bindings={...options.workerOptions.bindings,...smsBindings,LAMP_APP_HOST:'127.0.0.1',LAMP_PAGE_HOST:'localhost',LAMP_LOCAL_ORIGIN:origin,AUTH_ORIGIN:origin,AUTH_LOCAL:'true',
     SETUP_OPERATOR_EMAIL:'synthetic-lamp-owner@example.test',SESSION_SECRET:'synthetic-lamp-ui-session-1'.repeat(3),SETUP_TOKEN:'synthetic-lamp-ui-setup-1'.repeat(3),
-    SUBSCRIBER_TOKEN_SECRET:'synthetic-lamp-ui-subscriber-1'.repeat(3),WEBHOOK_SIGNING_SECRET:'synthetic-lamp-ui-webhook-1'.repeat(3),
+    RESEND_WEBHOOK_SECRET:`whsec_${incidentBrowserReceiptKey.toString('base64url')}`,SUBSCRIBER_TOKEN_SECRET:'synthetic-lamp-ui-subscriber-1'.repeat(3),WEBHOOK_SIGNING_SECRET:'synthetic-lamp-ui-webhook-1'.repeat(3),
     MAIL_FROM_ADDRESS:'lamp@example.test',MAIL_PROVIDER:'resend',MAIL_PROVIDER_API_KEY:'synthetic-lamp-ui-resend-1',MAIL_SECONDARY_PROVIDER:'mailgun',MAIL_SECONDARY_API_KEY:'synthetic-lamp-ui-mailgun-1'};
   const twilioEdge=smsProviderEdge([]);
   const outboundService=async request=>{
@@ -74,7 +75,7 @@ export async function mailSettingsBrowserFlow(t){
     const context=await browser.newContext();
     await context.addCookies([{name:cookie.slice(0,cookie.indexOf('=')),value:cookie.slice(cookie.indexOf('=')+1),url:origin}]);
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await incidentFollowBrowserFlow({page,origin,pageOrigin,api,post,raw,messages});
+    await incidentFollowBrowserFlow({page,origin,pageOrigin,api,post,raw,messages,runtime,db:env.DB});
     if(process.env.LAMP_BROWSER_EVIDENCE)await mkdir(process.env.LAMP_BROWSER_EVIDENCE,{recursive:true});
     for(const width of [1440]){
       await page.setViewportSize({width,height:width===390?844:1000});
