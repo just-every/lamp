@@ -75,7 +75,7 @@ export async function inspectNativePages({ request, origin, cookie }) {
       await view('incident-report', `/app/incidents/${resolved.id}`, width);
       await view('maintenance-attribution', '/app/maintenance', width);
       await view('delivery-attribution', '/app/deliveries', width);
-      await view('audit-attribution', '/app/settings?tab=data', width);
+      await view('audit-attribution', '/app/settings#data', width);
       await page.getByRole('button', { name: 'Open audit log', exact: true }).click();
       await page.locator('#audit-log table').waitFor();
       await capture('audit-records', width);
