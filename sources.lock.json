@@ -8792,7 +8792,7 @@
       "executable": false
     },
     "tests/agent-door/v2-admission-flow.mjs": {
-      "sha256": "4d1237f5b0567bdd9e35abf6e462dc600df4da71679c9da5449aaa247cc2a59c",
+      "sha256": "8b4778a2f50d5f46d26b41906645deef5420e82328c91e159b43e7a5c37de106",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {
@@ -8821,6 +8821,10 @@
     },
     "tests/auth-adoption/upgrade.test.mjs": {
       "sha256": "6fc52830e09f3d6001739700e9d2d12323a8774e1f9693f628c146653487dcf0",
+      "executable": false
+    },
+    "tests/baseline/e2e-baseline/agent-door.test.mjs": {
+      "sha256": "da8afb4effb522c93764a38315470c66b0632e8f0adaf2569af16b5a835187ec",
       "executable": false
     },
     "tests/baseline/e2e-baseline/case.mjs": {

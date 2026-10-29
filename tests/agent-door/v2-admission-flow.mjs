@@ -18,10 +18,13 @@ export async function runV2AdmissionFlow(t) {
     body: { pageName: 'Native admission status', tagline: 'Incident communication', accentColor: '#163c60', timezone: 'UTC', hostname: 'page.example.test', footerCreditEnabled: true } }), r.bindings);
   assert.equal(configured.status, 201);
   const person = (path, method = 'GET', body) => agentDoor.handle(r.request(path, { method, body, cookie: r.cookie }));
-  const approve = async held => {
+  const approve = async (held, cookie) => {
     const path = `/agents/api/approvals/${held.approval.id}`;
-    const { approval } = await (await person(path)).json();
-    const response = await person(`${path}/approve`, 'POST', { revision: approval.revision, summary_sha256: approval.summary_sha256 });
+    const read = await agentDoor.handle(r.request(path, { cookie }));
+    assert.equal(read.status, 200);
+    const { approval } = await read.json();
+    const response = await agentDoor.handle(r.request(`${path}/approve`, { method: 'POST', cookie,
+      body: { revision: approval.revision, summary_sha256: approval.summary_sha256 } }));
     assert.equal(response.status, 200);
     const decided = await response.json();
     assert.equal(decided.approval.state, 'executed', JSON.stringify(decided));
@@ -111,7 +114,7 @@ export async function runV2AdmissionFlow(t) {
   const approvedPublication = { ...publication, idempotency_key: crypto.randomUUID() };
   const pendingPublication = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
   assert.equal(pendingPublication.outcome, 'pending');
-  await approve(pendingPublication);
+  await approve(pendingPublication, teammate.cookie);
   const communicated = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);
   assert.equal(communicated.outcome, 'done', `A current Communicator can publish the same native draft: ${communicated.code}`);
   const repeatedPublication = await agentDoor.invoke('lamp.incidents.publish', approvedPublication, limited);

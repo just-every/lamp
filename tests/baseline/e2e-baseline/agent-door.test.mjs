@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { before } from 'node:test';
+import { after, before } from 'node:test';
 import { baseline } from './case.mjs';
 
 // Use the installed CLI's production installation journey, as rer verify does.
@@ -30,7 +30,10 @@ for (const id of clauses) baseline(id, 'installed CLI native door conformance', 
   assert.ok(points.length, `${id}: the native conformance run executed no points for this clause`);
   const failed = points.filter(point => point.ok !== true);
   assert.deepEqual(failed, [], `${id}: ${failed.map(point => `${point.id}: ${point.detail ?? 'failed'}`).join('\n')}`);
-  // A point outside the numbered clauses must still fail the overall command.
+});
+
+after(() => {
+  if (!result?.points) return;
   const unassigned = result.points.filter(point => !clauses.some(clause => point.id === clause || point.id.startsWith(`${clause}.`)));
   assert.ok(unassigned.every(point => point.ok === true), 'Unassigned native conformance points failed');
 });
