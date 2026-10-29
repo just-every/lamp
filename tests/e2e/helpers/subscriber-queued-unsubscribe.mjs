@@ -30,12 +30,8 @@ export async function subscriberQueuedUnsubscribe({ fixture, component, subscrib
     assert.equal(stopped.status, 200, await stopped.text());
     assert.equal((await fixture.list()).find(row => row.id === subscriberId).state, 'deactivated');
     await pause(false);
-    const followUps = await api('/api/app/overview/follow-ups');
-    assert.equal(followUps.status, 200, followUps.text);
-    for (const item of followUps.body.followUps.filter(row => row.kind === 'notification-dispatch')) {
-      const retry = await post('/api/app/overview/follow-ups/retry', { id: item.id, occurrence: item.occurrence });
-      assert.equal(retry.status, 202, retry.text);
-    }
+    const redelivery = await (await fixture.runtime.getWorker()).queue('lamp-follow-ups-jobs', [{ id: 'queued-unsubscribe-redelivery', timestamp: new Date(), attempts: 2, body: { type: 'delivery-dispatch', eventId: published.body.update.id } }]);
+    assert.equal(redelivery.outcome, 'ok', 'the real Queue entry point consumes the committed notification after unsubscribe');
     const suppressed = await eventuallySubscriber(deliveries, rows => rows.length === 1 && rows[0].outcome === 'suppressed', 'the committed notification is durably suppressed after unsubscribe');
     assert.equal(suppressed[0].id, committed[0].id);
     assert.equal(fixture.messagesFor(email).length, before, 'no send occurs after the committed deactivation');

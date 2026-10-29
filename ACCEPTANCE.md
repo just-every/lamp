@@ -878,7 +878,7 @@ Core · published · **done**
 1. A deactivated subscription receives no later notification.
 2. A notification committed before deactivation but dispatched afterwards sends nothing and records suppression.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-add-flow.mjs` (subscriberAddFlow) and `tests/e2e/helpers/subscriber-queued-unsubscribe.mjs` (subscriberQueuedUnsubscribe): an active recipient is committed before public one-click unsubscribe; the same queued delivery becomes suppressed through the ordinary retry door with zero later sends.
+**Evidence.** `tests/e2e/delivery-contract.test.mjs` (Subscriber consent, selected publication, channel delivery, export and erasure), loading `tests/e2e/helpers/subscriber-add-flow.mjs` (subscriberAddFlow) and `tests/e2e/helpers/subscriber-queued-unsubscribe.mjs` (subscriberQueuedUnsubscribe): an active recipient is committed before public one-click unsubscribe; the same queued delivery becomes suppressed through Queue redelivery with zero later sends.
 **Gap.** None.
 
 #### SUB-009 — Webhook subscribers
