@@ -6824,7 +6824,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-capacity-journey.mjs": {
-      "sha256": "2ee2ad5d8703dfeb46764992de379a43bcf1afa6ddd27898792ed81133e32d5a",
+      "sha256": "4aaab9ae33babf6b3380df38c7de255b825b53661d153499e35ff614d8baa6b3",
       "executable": false
     },
     "tests/e2e/helpers/report-reminders-flow.mjs": {
