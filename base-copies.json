@@ -4028,20 +4028,6 @@
       ]
     },
     {
-      "path": "src/base/run-pricing.ts",
-      "originPath": "foundation/runtime/run-pricing.ts",
-      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
-      "files": {
-        "src/base/run-pricing.ts": "f95bdf9b5e62c7d302e97a57ae4dcb580846197fa4cf2222e17a5e1b2c0a02fd"
-      },
-      "modes": {
-        "src/base/run-pricing.ts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-pricing.ts"
-      ]
-    },
-    {
       "path": "modules/import-kit/src/receipt/index.ts",
       "originPath": "modules/import-kit/src/receipt/index.ts",
       "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
@@ -4126,34 +4112,6 @@
       ]
     },
     {
-      "path": "src/base/hosting-page.ts",
-      "originPath": "foundation/runtime/hosting-page.ts",
-      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
-      "files": {
-        "src/base/hosting-page.ts": "280e291c4d74cc27560379876044be55c7b2ba8d827ddb76b58e2a1b90b21569"
-      },
-      "modes": {
-        "src/base/hosting-page.ts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/hosting-page.ts"
-      ]
-    },
-    {
-      "path": "src/base/run-chooser-style.ts",
-      "originPath": "foundation/runtime/run-chooser-style.ts",
-      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
-      "files": {
-        "src/base/run-chooser-style.ts": "62cd0b43762dbe406958d929ee6d27440658ffaead40bb51229eca7c4aea0756"
-      },
-      "modes": {
-        "src/base/run-chooser-style.ts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-chooser-style.ts"
-      ]
-    },
-    {
       "path": "modules/import-kit/src/receipt/policy.ts",
       "originPath": "modules/import-kit/src/receipt/policy.ts",
       "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
@@ -4179,34 +4137,6 @@
       },
       "originFiles": [
         "modules/import-kit/src/receipt/validation.ts"
-      ]
-    },
-    {
-      "path": "src/base/run-data.mjs",
-      "originPath": "foundation/runtime/run-data.mjs",
-      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
-      "files": {
-        "src/base/run-data.mjs": "e27f7c181fe17f54771893a0988098f49395511a8264b4fd3b848ecda1f5c1c9"
-      },
-      "modes": {
-        "src/base/run-data.mjs": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-data.mjs"
-      ]
-    },
-    {
-      "path": "src/base/run-data.d.mts",
-      "originPath": "foundation/runtime/run-data.d.mts",
-      "revision": "5e869f64d02c3da28a6fe30db0b44dd6e2961acb",
-      "files": {
-        "src/base/run-data.d.mts": "8b8f8e6b6030abe061027eef4b1b1560fdc77f54b25c82048839887da4fe56c1"
-      },
-      "modes": {
-        "src/base/run-data.d.mts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-data.d.mts"
       ]
     }
   ],
