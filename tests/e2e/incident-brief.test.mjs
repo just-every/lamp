@@ -18,20 +18,46 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
       name: 'Customer API alerts', credentialKind: 'hmac-sha256', signingSecret: 'synthetic-lamp-source-secret',
       deduplicationPath: '$.alert.id', titlePath: '$.alert.title', statePath: '$.alert.state', recoveredValue: 'recovered', componentId: component.id,
     }, 201)).source;
-    const alert = async payload => {
+    const endpoint = new URL(`/api/intake/${source.id}`, j.publicOrigin).href;
+    const signedAlert = payload => {
       const body = JSON.stringify(payload), at = new Date().toISOString();
-      return j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: {
+      return { method: 'POST', headers: {
         'Content-Type': 'application/json', 'x-lamp-timestamp': at,
         'x-lamp-signature': createHmac('sha256', 'synthetic-lamp-source-secret').update(`${at}.${body}`).digest('base64url'),
-      }, body });
+      }, body };
     };
+    const alert = payload => j.raw(endpoint, signedAlert(payload));
     assert.equal((await j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
     const payload = { alert: { id: 'checkout-outage', title: 'PRIVATE monitor wording', state: 'firing' } };
-    const accepted = await alert(payload); assert.equal(accepted.status, 202);
-    const id = (await accepted.json()).incidentId;
-    const replay = await alert(payload); assert.equal(replay.status, 202); assert.equal((await replay.json()).incidentId, id);
+    const originalRequest = signedAlert(payload);
+    const accepted = await j.raw(endpoint, originalRequest); assert.equal(accepted.status, 202);
+    const original = await accepted.json(), id = original.incidentId;
+    assert.ok(id); assert.ok(original.receiptId); assert.equal(original.replayed, false);
+    const inventory = async () => {
+      const tables = ['incidents', 'incident_drafts', 'alert_receipts'];
+      const rows = await j.db.batch(tables.map(table => j.db.prepare(`SELECT * FROM ${table} ORDER BY id`)));
+      return Object.fromEntries(tables.map((table, index) => [table, rows[index].results]));
+    };
+    const beforeReplay = await inventory();
+    assert.deepEqual(beforeReplay.incidents.map(row => row.id), [id]);
+    assert.deepEqual(beforeReplay.incident_drafts.map(row => row.incident_id), [id]);
+    assert.deepEqual(beforeReplay.alert_receipts.map(row => row.id), [original.receiptId]);
+    // Reuse the body, timestamp and signature while the original authentication is valid.
+    const replay = await j.raw(endpoint, originalRequest);
+    assert.equal(replay.status, accepted.status);
+    const replayed = await replay.json();
+    assert.equal(replayed.incidentId, id); assert.equal(replayed.receiptId, original.receiptId);
+    assert.equal(replayed.replayed, true);
+    assert.deepEqual(await inventory(), beforeReplay, 'accepted replay leaves every incident, draft and alert receipt unchanged');
     const changed = await alert({ alert: { ...payload.alert, title: 'PRIVATE changed monitor wording' } });
-    assert.equal(changed.status, 202); assert.equal((await changed.json()).incidentId, id);
+    assert.equal(changed.status, 202);
+    const distinct = await changed.json();
+    assert.equal(distinct.incidentId, id); assert.notEqual(distinct.receiptId, original.receiptId);
+    assert.equal(distinct.replayed, false);
+    const afterDistinct = await inventory();
+    assert.deepEqual(afterDistinct.incidents, beforeReplay.incidents);
+    assert.deepEqual(afterDistinct.incident_drafts, beforeReplay.incident_drafts);
+    assert.deepEqual(afterDistinct.alert_receipts.map(row => row.id).sort(), [original.receiptId, distinct.receiptId].sort());
     assert.equal((await alert({ alert: { title: 'Missing deduplication key', state: 'firing' } })).status, 400);
     await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: component.id, state: 'Major outage', relationship: 'Primary' }, 201);
     await j.json(`/api/app/incidents/${id}/internal-notes`, 'POST', { body: 'PRIVATE responder investigation' }, 201);

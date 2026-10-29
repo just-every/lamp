@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 20 | 169 | 49 | 238 |
+| Core | 21 | 168 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 20 | 169 | 54 | 243 |
+| Full target | 21 | 168 | 54 | 243 |
 
-Judged from the code and tests at commit `30f238652f074eded32a61a5d1d7f33a35463ed2` (29 October 2026); COMP-005 and COMP-007 are rechecked on the landing candidate; SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d6296aa3edf87200bbe9136ba2c897c2735f6eb5` (29 October 2026); COMP-005 and COMP-007 are rechecked on the landing candidate; SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1140,7 +1140,7 @@ Core · published · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007
 
 #### INTAKE-003 — Deduplication
 
-Core · published · **partial** · Cites BASE-OPS-003
+Core · published · **done** · Cites BASE-OPS-003
 
 **Requirement.** Unresolved alert keys and redelivered requests retain one incident and one set of alert work.
 
@@ -1148,8 +1148,8 @@ Core · published · **partial** · Cites BASE-OPS-003
 1. Distinct deliveries with the same key attach to the same unresolved incident instead of creating another.
 2. Redelivery of an accepted request returns its original status and adds no incident, draft or alert record.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Equal incident identifiers and accepted replay status are asserted. Complete incident, draft and alert-record inventories are not compared across replay, leaving the absence of all additional records unasserted.
+**Evidence.** `tests/e2e/incident-brief.test.mjs` (INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002 DRAFT-003 DRAFT-004 AGENT-002 AGENT-004 — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails): distinct signed deliveries with one key retain the unresolved incident and draft, with separate receipts; an identical accepted signed request retains the original HTTP status, receipt and incident identities, and complete incident, draft and alert receipt inventories ordered by record identity remain unchanged.
+**Gap.** None.
 
 #### INTAKE-004 — Recovery alerts
 
