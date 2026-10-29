@@ -3116,13 +3116,13 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026).
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). UPTIME-002 is judged from the code and tests in this candidate commit (`HEAD`, 29 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 8 | 99 | 0 | 107 |
+| Published | 9 | 98 | 0 | 107 |
 | Target and push further | 8 | 74 | 54 | 136 |
-| All | 16 | 173 | 54 | 243 |
+| All | 17 | 172 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3173,7 +3173,7 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | `DEP-002` | Vendor state never silently becomes the buyer's outage | target | missing |  | Not built. |
 | `DEP-003` | Vendor watch for the team | target | missing |  | Not built. |
 | `UPTIME-001` | Definition | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): public collection readback asserts the complete ninety-day partial boundary and 99.99 percent for a one-minute outage. |  |
-| `UPTIME-002` | Downtime weights | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: The supplied policy’s Major outage weight is asserted; The supplied policy’s Partially unavailable weight is asserted. |
+| `UPTIME-002` | Downtime weights | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): isolated native closed history corrections of thirty minutes produce literal public daily-record and native availability-report totals of 30 for Major outage, 30 for Partially unavailable, 15 for Degraded performance and 0 for Under maintenance; existing Major outage boundary and one-minute rounding controls remain active. |  |
 | `UPTIME-003` | Short history | published | partial | `tests/e2e/public-contract.test.mjs`. First-day coverage reads in hours and minutes (`tests/e2e/public-contract.test.mjs`, line 405); whole-day labels apply from one day (`tests/e2e/public-contract.test.mjs`, line 452). Changed in 1.11.0 by the owner's S4 exception (DIVERGENCE.md "Public page clarity"): first-day coverage reads in hours and minutes, and a component with no data says No data; RELEASE.json records the change. | Old cited evidence asserts The public percentage denominator starts at the fixture’s first history record rather than inventing ninety days; Sub-day coverage is labeled in hours; Longer coverage is labeled in whole days; A zero-elapsed fixture displays No data. Unasserted: Minute-based short-coverage labels are asserted; Less-than-one-minute coverage labels are asserted. |
 | `UPTIME-004` | Corrections | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The corrected state is retained; The stored correction retains the exact interval start; The stored correction retains the exact interval end; The reason is retained. Unasserted: Every affected figure is observed within sixty seconds. |
 | `UPTIME-005` | Stated method | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Every state’s selected weight is asserted; Every published incident’s component claim affects the displayed uptime. |

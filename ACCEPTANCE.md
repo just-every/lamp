@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 16 | 173 | 49 | 238 |
+| Core | 17 | 172 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 16 | 173 | 54 | 243 |
+| Full target | 17 | 172 | 54 | 243 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). UPTIME-002 is judged from the code and tests in this candidate commit (`HEAD`, 29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -340,15 +340,15 @@ Core · published · **done**
 
 #### UPTIME-002 — Downtime weights
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** The owner-replaceable downtime policy weights affected minutes consistently with the displayed incident history.
 
 **Acceptance.**
 1. The supplied weights count Major outage and Partially unavailable as one downtime minute per minute, Degraded performance as one half, and Under maintenance as zero.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The supplied policy’s Major outage weight is asserted; The supplied policy’s Partially unavailable weight is asserted.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): isolated native closed history corrections of thirty minutes produce literal public daily-record and native availability-report totals of 30 for Major outage, 30 for Partially unavailable, 15 for Degraded performance and 0 for Under maintenance; existing Major outage boundary and one-minute rounding controls remain active.
+**Gap.** None.
 
 #### UPTIME-003 — Short history
 

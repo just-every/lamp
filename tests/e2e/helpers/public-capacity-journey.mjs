@@ -37,6 +37,25 @@ export async function publicCapacityJourney(j, limits) {
     }, 204);
     await correction(firstHour, now - 90 * 86400_000, 3600_000);
     await correction(oneMinute, now - 3600_000, 60_000);
+    // Isolate each supplied weight from incidents and the boundary controls.
+    // A completed UTC afternoon fits one Los Angeles day in either offset;
+    // its own date selects the report, even when the journey crosses a month.
+    const weightStart = Math.floor(now / 86400_000) * 86400_000 - 2 * 86400_000 + 16 * 3600_000;
+    const weightStartsAt = new Date(weightStart).toISOString();
+    const weightEndsAt = new Date(weightStart + 30 * 60_000).toISOString();
+    const weights = [
+      { component: components.at(-3), state: 'Major outage', expectedMinutes: 30 },
+      { component: components.at(-4), state: 'Partially unavailable', expectedMinutes: 30 },
+      { component: components.at(-5), state: 'Degraded performance', expectedMinutes: 15 },
+      { component: components.at(-6), state: 'Under maintenance', expectedMinutes: 0 },
+    ];
+    for (const { component, state } of weights) {
+      await j.json(`/api/app/components/${component.id}/history-corrections`, 'POST', {
+        state, startsAt: weightStartsAt, endsAt: weightEndsAt, reason: 'Verified isolated service interval',
+      }, 204);
+      const history = await j.json(`/api/app/components/${component.id}/history`);
+      assert.ok(history.corrections.some(row => row.state === state && row.startsAt === weightStartsAt && row.endsAt === weightEndsAt), `${state}: the closed interval is recorded`);
+    }
     for (let index = 0; index < 10; index++) {
       const metric = (await j.json('/api/app/metrics', 'POST', { componentId: components[0].id, provider: 'push', name: `Customer API latency ${index + 1}`, unit: 'ms' }, 201)).metric;
       metrics.push(metric);
@@ -61,6 +80,14 @@ export async function publicCapacityJourney(j, limits) {
     assert.equal(boundary.coverageMinutes, 90 * 24 * 60);
     const expectedMinutes = Math.max(0, (now + 3600_000 - Date.parse(generatedAt)) / 60_000);
     assert.ok(Math.abs(boundary.marks.reduce((sum, mark) => sum + (mark.downtimeMinutes ?? 0), 0) - expectedMinutes) < 0.001, 'the daily record includes all downtime inside the exact partial boundary');
+    for (const { component, state, expectedMinutes } of weights) {
+      const uptime = published.find(row => row.id === component.id).uptime;
+      assert.equal(uptime.marks.find(mark => mark.day === weightStartsAt.slice(0, 10)).downtimeMinutes, expectedMinutes, `${state}: public daily weighted minutes`);
+      assert.equal(uptime.marks.reduce((sum, mark) => sum + (mark.downtimeMinutes ?? 0), 0), expectedMinutes, `${state}: no downtime leaks outside the closed interval`);
+      const report = await j.json(`/api/app/availability-report?component=${component.id}&month=${weightStartsAt.slice(0, 7)}&format=json`);
+      assert.equal(report.component.id, component.id);
+      assert.equal(report.downtimeMinutes, expectedMinutes.toFixed(2), `${state}: availability report weighted minutes`);
+    }
 
     browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined, headless: true, args: ['--no-sandbox'] });
     for (const template of ['default', 'calm', 'uptime', 'regions']) {
