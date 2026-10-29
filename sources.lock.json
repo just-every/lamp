@@ -3168,7 +3168,7 @@
       "executable": false
     },
     "src/core/app/client/ui/composer.css": {
-      "sha256": "eeb656abf4e1ac1e4316791a0476f40fc85bf15816de7be7fcd1c87ff9b65c99",
+      "sha256": "9a4e967c79209fb55460615864548ccb54684c0ef2896f75e1ef2d494ecfa0cd",
       "executable": false
     },
     "src/core/app/client/ui/copy-button.tsx": {
@@ -3884,7 +3884,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "69a1d788d448e5f2820e710d810c7b5744ef2b20c01ef7c358a5d42de8ddf879",
+      "sha256": "b91cac6935465d457b41b44cc34b5c24bdeff83374c03f41a866e2e65d20db88",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-header.tsx": {
@@ -3928,7 +3928,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/recovery-check.tsx": {
-      "sha256": "a557a80803bac3c553b2fe6ca695021080317c2a8ad136a6cdfac4d539622ce3",
+      "sha256": "5658d9aa87eea16401b9368f8320d087f67a88232a0f9aa146fde8779cdc29b4",
       "executable": false
     },
     "src/core/features/incidents/ui/status-choice.tsx": {
