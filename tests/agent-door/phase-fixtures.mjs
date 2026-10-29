@@ -51,6 +51,14 @@ export default async function preparePhase({ request, origin, cookie, mail, phas
     values.chat = { id: chat.id };
   }
   nativeFixture().proofAt = proofAt;
+  const pullMetric = await call('/api/app/metrics', 'POST', {
+    componentId: nativeFixture().componentId, sourceId: null, provider: 'prometheus',
+    name: `Customer API latency ${phase}`, unit: 'ms', query: 'lamp_api_latency_ms',
+    endpoint: 'https://lamp-agent-provider.invalid/prometheus', accountId: null, region: null,
+    credentials: { key: token },
+  });
+  assert.equal(pullMetric.metric.connected, true, 'The provider fixture has real sealed native credentials');
+  values.pullMetric = { id: pullMetric.metric.id };
   const now = Date.now(), instant = seconds => new Date(now + seconds * 1000).toISOString();
   values.clock = { minute: Math.floor(now / 60_000) * 60_000, nextUpdateAt: instant(3600),
     windowStart: instant(7200), windowEnd: instant(10800), rescheduledStart: instant(9000), rescheduledEnd: instant(12600) };

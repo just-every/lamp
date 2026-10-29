@@ -13,6 +13,19 @@ const jsonBody = async request => {
 export default {
   async fetch(request, { fixture } = {}) {
     const url = new URL(request.url);
+    if (url.origin === 'https://cloudflare-dns.com' && url.pathname === '/dns-query'
+      && url.searchParams.get('name') === 'lamp-agent-provider.invalid') {
+      const type = Number(url.searchParams.get('type'));
+      requireShape(request.method === 'GET' && [1, 28].includes(type), 'Metric DNS uses native A and AAAA queries');
+      return Response.json({ Status: 0, Answer: [{ type, data: type === 1 ? '1.1.1.1' : '2606:4700:4700::1111' }] });
+    }
+    if (url.origin === 'https://lamp-agent-provider.invalid' && url.pathname === '/prometheus/api/v1/query_range') {
+      requireShape(request.method === 'GET' && request.headers.get('authorization')?.startsWith('Bearer '), 'Prometheus requires the native read-only credential');
+      requireShape(url.searchParams.get('query') === 'lamp_api_latency_ms' && url.searchParams.get('step') === '60', 'Prometheus uses the configured minute range query');
+      const at = Number(url.searchParams.get('end'));
+      requireShape(Number.isSafeInteger(at) && at % 60 === 0, 'Prometheus returns the requested completed minute');
+      return Response.json({ status: 'success', data: { resultType: 'matrix', result: [{ values: [[at, '123']] }] } });
+    }
     if (url.origin === 'https://lamp-agent-provider.invalid' && url.pathname === '/v1/chat/completions') {
       const body = await jsonBody(request);
       requireShape(request.headers.get('authorization')?.startsWith('Bearer '), 'Configured AI provider credential is required');
