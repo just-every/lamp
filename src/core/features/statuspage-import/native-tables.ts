@@ -23,6 +23,9 @@ export const allMarkers = ["SELECT kind,id,revision FROM statuspage_import_targe
  * owner edit: a native value equal to its default reads as absent. */
 export const sealedDefaults: Record<string, Row> = {
   components: { only_show_if_degraded: 0, uptime_start_date: null, region: null },
+  // Nullable vendor attribution leaves sealed component history unchanged.
+  // An actual attributed source remains an edit protected by custody and undo.
+  component_state_history: { source_name: null, source_url: null },
   // Additive subscriber intake, format and preference defaults leave sealed imports unchanged.
   // A real attribution, non-default format, preference choice or SMS marker remains an edit.
   subscribers: { created_by_operator_id: null, webhook_format: "lamp", event_kinds_json: '["incidents","maintenance","components"]', minimum_impact: null, chat_kind: null, preferences_set: 0, sms_kind: 0 },

@@ -1,0 +1,41 @@
+{
+  "source": "https://status.okta.com/",
+  "recording": "Public response structure with synthetic records and state variations; not a live delivery or availability receipt.",
+  "cases": [
+    {
+      "sourceState": "operational",
+      "expected": "Operational",
+      "body": "<html><body><span data-id=\"incidents\">[]</span></body></html>"
+    },
+    {
+      "sourceState": "Feature Disruption",
+      "expected": "Partially unavailable",
+      "body": "<html><body><span data-id=\"incidents\">[{\"Id\": \"synthetic-lamp-1\", \"Name\": \"synthetic-lamp-1\", \"Status__c\": \"Identified\", \"Category__c\": \"Feature Disruption\", \"Incident_Title__c\": \"synthetic-lamp-1\", \"Last_Updated__c\": \"2026-10-01T00:00:00.000+0000\"}]</span></body></html>"
+    },
+    {
+      "sourceState": "Major Service Disruption",
+      "expected": "Major outage",
+      "body": "<html><body><span data-id=\"incidents\">[{\"Id\": \"synthetic-lamp-1\", \"Name\": \"synthetic-lamp-1\", \"Status__c\": \"Identified\", \"Category__c\": \"Major Service Disruption\", \"Incident_Title__c\": \"synthetic-lamp-1\", \"Last_Updated__c\": \"2026-10-01T00:00:00.000+0000\"}]</span></body></html>"
+    },
+    {
+      "sourceState": "Minor Service Disruption",
+      "expected": "Degraded performance",
+      "body": "<html><body><span data-id=\"incidents\">[{\"Id\": \"synthetic-lamp-1\", \"Name\": \"synthetic-lamp-1\", \"Status__c\": \"Identified\", \"Category__c\": \"Minor Service Disruption\", \"Incident_Title__c\": \"synthetic-lamp-1\", \"Last_Updated__c\": \"2026-10-01T00:00:00.000+0000\"}]</span></body></html>"
+    },
+    {
+      "sourceState": "Performance Issue",
+      "expected": "Degraded performance",
+      "body": "<html><body><span data-id=\"incidents\">[{\"Id\": \"synthetic-lamp-1\", \"Name\": \"synthetic-lamp-1\", \"Status__c\": \"Identified\", \"Category__c\": \"Performance Issue\", \"Incident_Title__c\": \"synthetic-lamp-1\", \"Last_Updated__c\": \"2026-10-01T00:00:00.000+0000\"}]</span></body></html>"
+    },
+    {
+      "sourceState": "Service Degradation",
+      "expected": "Degraded performance",
+      "body": "<html><body><span data-id=\"incidents\">[{\"Id\": \"synthetic-lamp-1\", \"Name\": \"synthetic-lamp-1\", \"Status__c\": \"Identified\", \"Category__c\": \"Service Degradation\", \"Incident_Title__c\": \"synthetic-lamp-1\", \"Last_Updated__c\": \"2026-10-01T00:00:00.000+0000\"}]</span></body></html>"
+    },
+    {
+      "sourceState": "Service Disruption",
+      "expected": "Partially unavailable",
+      "body": "<html><body><span data-id=\"incidents\">[{\"Id\": \"synthetic-lamp-1\", \"Name\": \"synthetic-lamp-1\", \"Status__c\": \"Identified\", \"Category__c\": \"Service Disruption\", \"Incident_Title__c\": \"synthetic-lamp-1\", \"Last_Updated__c\": \"2026-10-01T00:00:00.000+0000\"}]</span></body></html>"
+    }
+  ]
+}

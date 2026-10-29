@@ -1,0 +1,38 @@
+{
+  "source": "https://status.pagerduty.com/api/impacted_services",
+  "recording": "Public impacted service and enum structures with synthetic records and state variations; the supplemental enum source is read at the same declared origin.",
+  "cases": [
+    {
+      "sourceState": "operational",
+      "expected": "Operational",
+      "body": "{\"status_page_id\": \"synthetic-lamp-1\", \"impacted_services\": []}",
+      "options": {
+        "supplementalBody": "{\"post_enums\": [{\"id\": \"synthetic-lamp-2\", \"name\": \"operational\", \"post_enum_type\": \"impacts\", \"post_type\": \"incident\", \"rank\": 1}]}"
+      }
+    },
+    {
+      "sourceState": "partial outage",
+      "expected": "Partially unavailable",
+      "body": "{\"status_page_id\": \"synthetic-lamp-1\", \"impacted_services\": [{\"id\": \"synthetic-lamp-1\", \"severityId\": \"synthetic-lamp-2\"}]}",
+      "options": {
+        "supplementalBody": "{\"post_enums\": [{\"id\": \"synthetic-lamp-2\", \"name\": \"partial outage\", \"post_enum_type\": \"impacts\", \"post_type\": \"incident\", \"rank\": 1}]}"
+      }
+    },
+    {
+      "sourceState": "outage",
+      "expected": "Major outage",
+      "body": "{\"status_page_id\": \"synthetic-lamp-1\", \"impacted_services\": [{\"id\": \"synthetic-lamp-1\", \"severityId\": \"synthetic-lamp-2\"}]}",
+      "options": {
+        "supplementalBody": "{\"post_enums\": [{\"id\": \"synthetic-lamp-2\", \"name\": \"outage\", \"post_enum_type\": \"impacts\", \"post_type\": \"incident\", \"rank\": 1}]}"
+      }
+    },
+    {
+      "sourceState": "maintenance",
+      "expected": "Under maintenance",
+      "body": "{\"status_page_id\": \"synthetic-lamp-1\", \"impacted_services\": [{\"id\": \"synthetic-lamp-1\", \"severityId\": \"synthetic-lamp-2\"}]}",
+      "options": {
+        "supplementalBody": "{\"post_enums\": [{\"id\": \"synthetic-lamp-2\", \"name\": \"maintenance\", \"post_enum_type\": \"impacts\", \"post_type\": \"maintenance\", \"rank\": 1}]}"
+      }
+    }
+  ]
+}

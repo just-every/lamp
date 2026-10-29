@@ -1,0 +1,21 @@
+{
+  "source": "https://status.stripe.com/current/full",
+  "recording": "Public response structure with synthetic records and state variations; not a live delivery or availability receipt.",
+  "cases": [
+    {
+      "sourceState": "up",
+      "expected": "Operational",
+      "body": "{\"currentTime\": 1790812800, \"message\": \"synthetic-lamp-1\", \"UptimeStatus\": \"up\", \"uptimeData\": [], \"tweetData\": []}"
+    },
+    {
+      "sourceState": "degraded",
+      "expected": "Degraded performance",
+      "body": "{\"currentTime\": 1790812800, \"message\": \"synthetic-lamp-1\", \"UptimeStatus\": \"degraded\", \"uptimeData\": [], \"tweetData\": []}"
+    },
+    {
+      "sourceState": "down",
+      "expected": "Major outage",
+      "body": "{\"currentTime\": 1790812800, \"message\": \"synthetic-lamp-1\", \"UptimeStatus\": \"down\", \"uptimeData\": [], \"tweetData\": []}"
+    }
+  ]
+}
