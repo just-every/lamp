@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 19 | 170 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 19 | 170 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `5c670c4d950eddd12988e29e771200461a69fa4d` (29 October 2026); UPDATE-016 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -2187,7 +2187,7 @@ Core · target · **partial**
 
 #### UPDATE-016 — Safe links in mail and chat
 
-Core · target · **partial** · From UPDATE-013
+Core · target · **done** · From UPDATE-013
 
 **Requirement.** Mail and chat retain the same direct destinations and literal wording. SUB-013 and NOTIFY-014 retain the future SMS URL obligation, SUB-014/015 retain subscriber Slack/Teams, and MAINT-009 retains maintenance wording.
 
@@ -2198,8 +2198,8 @@ Core · target · **partial** · From UPDATE-013
 4. Teams cards use the direct URL as link text with punctuation outside.
 5. Other schemes and markup stay escaped literal text in Slack and Teams.
 
-**Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs`
-**Gap.** Old cited evidence asserts Email text retains affected-audience wording; Email text retains customer-impact wording with its bare URL; Email text retains what-still-works wording with its bare URLs; Email text retains details wording with its bare URLs. Unasserted: Teams independently asserts literal HTTP-scheme text; Teams independently asserts retained escaped HTML markup.
+**Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs`. Acceptance 1: `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion) retains each mail field and its bare URLs. Acceptance 2: `tests/e2e/rer-mail.test.mjs` (Sign in, confirm a reader, publish, recover frozen mail, inspect receipts, notify maintenance and opt out) retains the HTML and text envelope and disables SendGrid tracking. Acceptances 3 to 5: `tests/e2e/channels-and-presets.test.mjs` (Private channels deliver the selected publication once with literal text and punctuated links) asserts direct links, punctuation and escaped literal schemes and markup at the synthetic Slack and Teams receivers, including independent HTTP and HTML expectations in the received Adaptive Card.
+**Gap.** None.
 
 #### UPDATE-017 — Safe link webhook formats
 
