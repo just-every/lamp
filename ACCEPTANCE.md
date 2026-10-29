@@ -280,8 +280,8 @@ Core · published · **partial**
 1. A new component note is empty by default.
 2. A note of up to 250 characters appears beside that component’s state exactly as entered; a longer note is refused.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty.
+**Evidence.** `tests/e2e/public-contract.test.mjs` — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story: omitted-note creation returns HTTP 201 with an empty note, independently read back from the native catalogue; a populated note and the full 250-character plain-text note render beside the state; overlength creation and edit requests are refused without changing the catalogue; an omitted edit note is still refused.
+**Gap.** Exact-candidate native journey and Verify proof pending.
 
 #### COMP-005 — Internal components
 
