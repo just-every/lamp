@@ -12,6 +12,9 @@ export function createAlertRuleRepository(db: D1Database) {
     list: async () => (await db.prepare(`SELECT ${fields} FROM alert_rules r ORDER BY r.name,r.id`).all<RuleView>()).results,
     runs: async () => (await db.prepare(`SELECT ${runFields} FROM alert_rule_runs ORDER BY created_at,id`).all<RuleRun>()).results,
     findRun,
+    async approvalActive(operatorId:string) {
+      return Boolean(await db.prepare("SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')").bind(operatorId).first());
+    },
     async publicationApproval(ruleId:string,firingUpdateId:string) {
       const row=await db.prepare(`SELECT audit.payload_json AS payloadJson,update_row.author_operator_id AS operatorId,update_row.automation_attribution AS attribution
         FROM incident_updates update_row JOIN audit_entries audit ON audit.entity_type='alert-rule' AND audit.entity_id=?
@@ -92,7 +95,7 @@ export function createAlertRuleRepository(db: D1Database) {
       const current=await findRun(rule.id,sourceIncidentId);if(current && !current.releasedAt)return current;
       const id=createUlid(),incidentId=createUlid(),reference=await allocateReference(db,'INC');
       try { await db.batch([
-        db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rules WHERE id=? AND updated_at=?) THEN 1 ELSE json('Rule changed') END`).bind(rule.id,rule.updatedAt),
+        db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rules WHERE id=? AND updated_at=? AND EXISTS(SELECT 1 FROM oa_operators WHERE id=alert_rules.approved_by_operator_id AND status='active' AND role IN ('owner','admin'))) THEN 1 ELSE json('Rule changed') END`).bind(rule.id,rule.updatedAt),
         db.prepare(`INSERT INTO incidents(id,reference,title,lifecycle,opened_at,created_by_operator_id,created_at,updated_at) VALUES(?,?,?,'Investigating',?,?,?,?)`).bind(incidentId,reference,title,at,rule.approvedByOperatorId,at,at),
         db.prepare(`INSERT INTO alert_rule_runs(id,rule_id,source_incident_id,incident_id,mode,created_at,updated_at) VALUES(?,?,?,?,?,?,?)`).bind(id,rule.id,sourceIncidentId,incidentId,rule.mode,at,at),
         db.prepare(`INSERT INTO incident_components(id,incident_id,component_id,component_name,state,relationship,created_at,updated_at) SELECT ?,?,id,name,?,'Primary',?,? FROM components WHERE id=?`).bind(createUlid(),incidentId,rule.state,at,at,rule.componentId),
@@ -106,7 +109,7 @@ export function createAlertRuleRepository(db: D1Database) {
       const active=await db.prepare(`SELECT published_at AS publishedAt FROM incident_components WHERE incident_id=? AND component_id=?`).bind(run.incidentId,rule.componentId).first<{publishedAt:string|null}>();
       if(release ? Boolean(run.releasedAt) : Boolean(active?.publishedAt))return false;
       try { await db.batch([
-        db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rules WHERE id=? AND updated_at=? AND (?=1 OR mode='claim') AND EXISTS(SELECT 1 FROM alert_sources WHERE id=alert_rules.source_id AND updated_at=?)) THEN 1 ELSE json('Rule changed') END`).bind(rule.id,rule.updatedAt,release?1:0,sourceVersion),
+        db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rules WHERE id=? AND updated_at=? AND (?=1 OR (mode='claim' AND EXISTS(SELECT 1 FROM oa_operators WHERE id=alert_rules.approved_by_operator_id AND status='active' AND role IN ('owner','admin')))) AND EXISTS(SELECT 1 FROM alert_sources WHERE id=alert_rules.source_id AND updated_at=?)) THEN 1 ELSE json('Rule changed') END`).bind(rule.id,rule.updatedAt,release?1:0,sourceVersion),
         db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rule_runs WHERE id=? AND rule_id=? AND released_at IS NULL)
           AND CASE WHEN ?=1 THEN NOT EXISTS(SELECT 1 FROM alert_rule_evidence WHERE rule_id=? AND source_incident_id=? AND firing=1)
             ELSE EXISTS(SELECT 1 FROM alert_rule_evidence WHERE rule_id=? AND source_incident_id=? AND firing=1)

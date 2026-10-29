@@ -5,11 +5,12 @@ import type { RuleView } from "./rule-schema";
 /** Durable clocks share the accepted receipt's evidence; Cron never invents an alert. */
 export function createRuleGuardRepository(db: D1Database) {
   return {
-    async heldIncident(ruleId: string) {
+    async heldIncident(ruleId: string, sourceIncidentId: string | null) {
       const row = await db.prepare(`SELECT window.source_incident_id AS id FROM alert_rule_windows window
+        JOIN alert_receipts receipt ON receipt.id=window.receipt_id
         JOIN alert_rule_runs run ON run.rule_id=window.rule_id AND run.source_incident_id=window.source_incident_id
-        WHERE window.rule_id=? AND window.firing=0 AND window.completed=0 AND run.released_at IS NULL
-        ORDER BY run.created_at DESC LIMIT 1`).bind(ruleId).first<{id:string}>();
+        WHERE window.rule_id=? AND (window.firing=0 OR receipt.incident_id=?) AND run.released_at IS NULL
+        ORDER BY run.created_at DESC LIMIT 1`).bind(ruleId,sourceIncidentId).first<{id:string}>();
       return row?.id ?? null;
     },
     async observe(rule: RuleView, incidentId: string, receiptId: string, firing: boolean, at: string, now: number, hasRun: boolean) {
@@ -34,16 +35,16 @@ export function createRuleGuardRepository(db: D1Database) {
         .all<{ruleId:string;incidentId:string;receiptId:string;sourceId:string;payloadJson:string;receivedAt:string;sourceVersion:string}>()).results;
     },
     async undo(runId: string, actor: string, at: string) {
-      const run = await db.prepare(`SELECT run.incident_id AS incidentId,run.rule_id AS ruleId,rule.component_id AS componentId,run.undone_at AS undoneAt
+      const run = await db.prepare(`SELECT run.incident_id AS incidentId,run.rule_id AS ruleId,rule.component_id AS componentId,run.source_incident_id AS sourceIncidentId,run.undone_at AS undoneAt
         FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id WHERE run.id=? AND run.released_at IS NULL`)
-        .bind(runId).first<{incidentId:string;ruleId:string;componentId:string;undoneAt:string|null}>();
+        .bind(runId).first<{incidentId:string;ruleId:string;componentId:string;sourceIncidentId:string;undoneAt:string|null}>();
       if (!run) return false;
       await db.batch([
         db.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM alert_rule_runs WHERE id=? AND released_at IS NULL AND undone_at IS NULL) THEN 1 ELSE json('Automatic change already ended') END").bind(runId),
         db.prepare("UPDATE incident_components SET state='Operational',updated_at=? WHERE incident_id=?").bind(at,run.incidentId),
         db.prepare("UPDATE incidents SET lifecycle='Resolved',resolved_at=?,updated_at=? WHERE id=?").bind(at,at,run.incidentId),
         db.prepare("UPDATE alert_rule_runs SET released_at=?,undone_at=?,undone_by_operator_id=?,updated_at=? WHERE id=?").bind(at,at,actor,at,runId),
-        db.prepare("UPDATE alert_rule_windows SET completed=1 WHERE rule_id=?").bind(run.ruleId),
+        db.prepare("UPDATE alert_rule_windows SET completed=1 WHERE rule_id=? AND source_incident_id=?").bind(run.ruleId,run.sourceIncidentId),
         db.prepare(`INSERT INTO component_claim_events(id,component_id,cause_type,cause_id,state,changed_at,created_at,updated_at) VALUES(?,?,'incident',?,NULL,?,?,?)`).bind(createUlid(),run.componentId,run.incidentId,at,at,at),
         currentStateHistoryStatement(db,{id:createUlid(),componentId:run.componentId,cause:{type:'incident',id:run.incidentId,operatorId:actor},changedAt:at,createdAt:at,updatedAt:at}),
         db.prepare("INSERT INTO incident_internal_notes(id,incident_id,body,author_operator_id,created_at,updated_at) VALUES(?,?,?,?,?,?)").bind(createUlid(),run.incidentId,"Automatic change undone. The rule claim was released; all earlier publications and history are retained.",actor,at,at),

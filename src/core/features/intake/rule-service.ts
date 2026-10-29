@@ -28,7 +28,7 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
         // A concurrent recovery can close the private intake draft before a
         // later firing is processed. Its next recovery still releases the
         // matching active rule execution, even without an open intake draft.
-        const episodeIncidentId=await work.guard.heldIncident(rule.id) ?? sourceIncidentId ?? await repository.findActiveEvidenceIncident(rule.id,members.map(member=>member.fingerprint));
+        const episodeIncidentId=await work.guard.heldIncident(rule.id,sourceIncidentId) ?? sourceIncidentId ?? await repository.findActiveEvidenceIncident(rule.id,members.map(member=>member.fingerprint));
         if(!episodeIncidentId)continue;
         let run=await repository.findRun(rule.id,episodeIncidentId);
         if(rule.mode==='draft' && !run?.firingUpdateId)continue;
@@ -49,8 +49,14 @@ export function createAlertRuleService(repository:ReturnType<typeof createAlertR
           executionRule={...rule,...approval.input,templateId:approval.input.templateId ?? null,approvedByOperatorId:approval.operatorId,degradationReason:null};
           attribution=approval.attribution;
         }
+        if (!await repository.approvalActive(executionRule.approvedByOperatorId)) {
+          await repository.degrade(rule,'The approving operator no longer has owner or admin authority. An active owner or admin must review and save this rule again.',receiptId,nowIso());
+          await work.guard.complete(rule.id,episodeIncidentId,receiptId);
+          continue;
+        }
         if (executionRule.degradationReason) {
           if (run && !evidence.active && await repository.claim(rule,run,receiptId,nowIso(),true,source.updatedAt)) await onPublicDataChanged();
+          await work.guard.complete(rule.id,episodeIncidentId,receiptId);
           continue;
         }
         let template:IncidentTemplate|null=null;

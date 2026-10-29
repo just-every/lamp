@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 15 | 173 | 50 | 238 |
+| Core | 16 | 173 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 15 | 173 | 55 | 243 |
+| Full target | 16 | 173 | 54 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -2945,12 +2945,12 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 4. Automatic publication names the rule and the owner who approved it, and the private timeline links the causing alert.
 5. Rule edits appear in the audit view with actor and time.
 
-**Evidence.** `src/core/features/intake/policies.ts`, `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs`
-**Gap.** The replaceable intake policy and preset-to-component mapping ship. Per-component rules, automatic claims and template publication remain absent; risk-policy decisions through these seed actions are not proved.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence; delivery shard), loading `tests/e2e/helpers/automation-rules-flow.mjs` (automationRulesFlow) and `tests/e2e/helpers/automation-rules-browser-flow.mjs` (automationRulesBrowserFlow). The native intake and operator journeys prove default and explicit draft silence; immediate configured claims and recovery without updates or subscriber deliveries; saved firing and Resolved template fields and selected channels exactly once through UPDATE-008 despite alert and Queue redelivery; private rule and approving-owner attribution; a working link from the incident timeline to the causing alert; and rule edits in the audit view with actor and time. Settings values survive reload, invalid approval and incomplete templates are refused, source erasure releases claims, and durable publication retries resume through Cron.
+**Gap.** Agent calls still need server-computed standard, live and external classes, company-policy decisions and agent-for-person attribution under BASE-AGENT-006, BASE-AGENT-007 and BASE-AGENT-008. The held Base pin has no company-policy decision API. Agent automation stays unavailable; owner and admin approval remains the conservative default. SURFACE-002 and SURFACE-003 retain these inherited duties.
 
 #### AUTO-002 — Flap guard and undo for automatic changes
 
-Core · target · **missing** · Cites BASE-OPS-005
+Core · target · **done** · Cites BASE-OPS-005
 
 **Requirement.** An automatic claim uses its rule’s firing delay and recovery hold to prevent flapping public changes. Operators can undo a claim or publication without erasing history.
 
@@ -2959,8 +2959,8 @@ Core · target · **missing** · Cites BASE-OPS-005
 2. A three-minute firing claims state; recovery followed by refiring two minutes later retains it under the default five-minute recovery hold.
 3. One Undo restores the previous state and appends the actor’s history and incident-timeline entry without deleting prior entries.
 
-**Evidence.** None.
-**Gap.** Automatic claim delays, recovery holds and undo are not built.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005 INTAKE-006 INTAKE-007 UPTIME-008 UPTIME-009 — Connect monitors, review private alert drafts, publish and recover with durable integration evidence; delivery shard), loading `tests/e2e/helpers/automation-flap-flow.mjs` (automationFlapFlow). The controlled-clock native HTTP and scheduled journey proves a 60-second firing never changes public state under the default two-minute delay; a three-minute firing claims state; refiring two minutes into the five-minute recovery hold keeps one claim and history; and a full recovery hold releases it without subscriber delivery. Owner Undo for both claim and publication restores the prior aggregate state and appends the actor to component history and the private incident timeline while retaining all previous history and immutable updates. Anonymous and Responder Undo and rule edits are refused without product changes; repeated Undo, captured firing, scheduled replay and pending-source erasure cannot reapply the change. `tests/e2e/helpers/automation-rules-browser-flow.mjs` (automationRulesBrowserFlow) proves persisted timing controls, native Undo and retained internal history at 1440, with the same changed screens captured at 1440 and 390.
+**Gap.** None.
 
 #### AUTO-003 — Every follow-up obligation is visible
 

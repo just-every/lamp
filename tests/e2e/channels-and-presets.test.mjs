@@ -1,3 +1,4 @@
+import { automationFlapFlow } from "./helpers/automation-flap-flow.mjs";
 import { automationRulesBrowserFlow } from "./helpers/automation-rules-browser-flow.mjs";
 import { automationRulesFlow } from "./helpers/automation-rules-flow.mjs";
 import { socialBrowserFlow } from "./helpers/social-browser-flow.mjs";
@@ -258,5 +259,6 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-010 INTAKE-009 INTAKE-008 INTAKE-005
   await pagerDutyFlow({ runtime, t });
   await operationsAlertsFlow({ t });
   await automationRulesFlow({ t });
+  await automationFlapFlow({ t });
   await metricsFlow({ t });
 });

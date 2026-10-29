@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "47f3985033f0af4c689cdf769391f8286bb36c1aede0b9232069f5b59a56072e",
+      "sha256": "4fd2270c52f25749caa6ef1a2a1a0ab90203cb3ea7d1e18f2ef85c8dccb273e5",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e58eb61bd88baa2eaf270e9e591658ecf680d371c8b1523e4a0c72f03908684b",
+      "sha256": "bdaae580562b960fa48a18dd65fcc5038474f4d4cc01dc50dd3e001f9ccf0104",
       "executable": false
     },
     "DEMO.md": {
@@ -528,7 +528,7 @@
       "executable": false
     },
     "docs/alerts-from-monitoring-tools.md": {
-      "sha256": "0e8cfe7f17640a71b0ad34025e5bb5b1fdd154d2b6d9ef717bae351df28f03d4",
+      "sha256": "9c48e5b8d539655817b28f394db53caf5a5689a407bf4cd8591c474ecc2d4293",
       "executable": false
     },
     "docs/backups-and-recovery.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "40f95fa7a88a109f0a5e5425976f69b3e15e4ae2660acefb664aba94efb4ede0",
+      "sha256": "bc1bd66c06fd51bc00e6cce6b812d19d6019d7c0a153dc9fb572c04850ab10e4",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -2472,7 +2472,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "5f8f47899e7fc54b9cec89661003af0aa14cab1b4ca6be6fe8cbcb6daa1f8bc1",
+      "sha256": "c24cccd869658800d345d5a1bddfe6063ecab45efb103c1508e6f4a7263e7a84",
       "executable": false
     },
     "rer-packaging.json": {
@@ -3904,7 +3904,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-record.tsx": {
-      "sha256": "a28cce2aae341910123da2089d54b239a8e6bbc4746d56850d3ea8ad5ac16cd4",
+      "sha256": "a7ae54788708081459f9ae86d4f353df17211322a6e8cd2b2ab700155c468727",
       "executable": false
     },
     "src/core/features/incidents/ui/incidents-page.tsx": {
@@ -4012,7 +4012,7 @@
       "executable": false
     },
     "src/core/features/intake/repository.ts": {
-      "sha256": "7d3d6c8a97546dc175b37a691a2112808ab0cac91c6630d8ee761eb04737fc52",
+      "sha256": "417db3b7d0db2959aac3fbb6f562e77ff356a7e2955b409d5327a9d99c22bd47",
       "executable": false
     },
     "src/core/features/intake/responder-repository.ts": {
@@ -4024,7 +4024,7 @@
       "executable": false
     },
     "src/core/features/intake/routes.ts": {
-      "sha256": "3a60241999feeee5e92636440d6ffd4caa224747f0590f53ffad9c02572a363e",
+      "sha256": "92d6414d6009b794ab8a84ab47c249094daffe29d21da3b85e0c716beb76c8d1",
       "executable": false
     },
     "src/core/features/intake/rule-evidence.ts": {
@@ -4032,11 +4032,11 @@
       "executable": false
     },
     "src/core/features/intake/rule-guard.repository.ts": {
-      "sha256": "710b4a9ebc2314b868699c49f8bbbad00876d236529cc4264d6ac56e67978bad",
+      "sha256": "f7f407e96674e4f49f3e41b59cf6f063642b15f92f9b402b54a9f68b51488727",
       "executable": false
     },
     "src/core/features/intake/rule-repository.ts": {
-      "sha256": "94abf5249edafb5eb1494a059deaccd88ef2c958ebcd348900cd6f6818bf9da5",
+      "sha256": "818920b69bc7d3e74aaac4c67aeecf7db2cfc172b07ef017c5087c8fe5994578",
       "executable": false
     },
     "src/core/features/intake/rule-routes.ts": {
@@ -4048,7 +4048,7 @@
       "executable": false
     },
     "src/core/features/intake/rule-service.ts": {
-      "sha256": "acedc0956ef8c9a76c299acbfab6f9374cbbc57c0d189f061c7443697bc1f74a",
+      "sha256": "450fb334fa42d60dd12e858e142daddcb72ad6ec9b62a9cf2a497bdef71e4329",
       "executable": false
     },
     "src/core/features/intake/rule-work.repository.ts": {
@@ -4056,7 +4056,7 @@
       "executable": false
     },
     "src/core/features/intake/service.ts": {
-      "sha256": "7eaf90fac2e4b2acd85d11f6b8ae3f2a8f1b01732f3dcfb827548eebda68f6fd",
+      "sha256": "97272096d4ca424646938e3ec8d9146763e43d6a9a9cfa71dd3444d05a3dfd43",
       "executable": false
     },
     "src/core/features/intake/ui/alert-rules.tsx": {
@@ -4064,7 +4064,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/alerts-page.tsx": {
-      "sha256": "c8c2f755edfc16d5389642b265458a0398de2733e8c60c954984035ac772f84e",
+      "sha256": "ef91dce614065b86a247b12aaf293b6750a48a249109274b36479040f09eb7e7",
       "executable": false
     },
     "src/core/features/intake/ui/connected-tools.tsx": {
@@ -4088,7 +4088,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/receipts-card.tsx": {
-      "sha256": "60e18d773179567eddda3a374a2510f5fadfa4449aeeb42a7cd41194725b829f",
+      "sha256": "0728e48b38198b339f9ce657ec239c7b868e1ec792ef1665acfacaf9cff7f9b3",
       "executable": false
     },
     "src/core/features/intake/ui/tool-form.tsx": {
@@ -6616,7 +6616,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "d683ee20d1e11574697434dd2564289049d870b028f524a7f5b446ed24431f77",
+      "sha256": "ae98984679f0d6b4ee12c5179b419e16e5f0f1002df96b8ffdafe9cb3a0468ce",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -6651,6 +6651,14 @@
       "sha256": "1067a92c81eecf71fec9b728d64c35fe8fcdab90479e56ffe46b1a74e8038c2d",
       "executable": false
     },
+    "tests/e2e/helpers/automation-clock-worker.ts": {
+      "sha256": "64c460eea587efde9d63df4e6028ef9d5e1464f44928a41aff1bbc378a4d5439",
+      "executable": false
+    },
+    "tests/e2e/helpers/automation-flap-flow.mjs": {
+      "sha256": "f7bca751a39c82e81dee59d8b2ea8d3ec7186c3ae0060fcb39fe648cbdc1860a",
+      "executable": false
+    },
     "tests/e2e/helpers/automation-portability-flow.mjs": {
       "sha256": "e0b27ebe8ea8edb18a62b7f4ffff16c8c635580668faef4436871d86a0c976d2",
       "executable": false
@@ -6660,7 +6668,7 @@
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-browser-flow.mjs": {
-      "sha256": "1df31fe58f9fbe234aad253c1fc51158b3f3f0551f78a58410782335b4f5c27a",
+      "sha256": "78b57246c936d7000750fda12f9fa57c618f862597bd858cfd5f0a74eb241edf",
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-flow.mjs": {
