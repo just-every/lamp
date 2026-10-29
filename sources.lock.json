@@ -3232,7 +3232,7 @@
       "executable": false
     },
     "src/core/app/client/ui/settings.css": {
-      "sha256": "c18a12dd988e9342d0e9932827c5362f18ead9e3cb79efb34a881c806e6ebfb2",
+      "sha256": "102a1020c242ed3dfb7c91a87109f175ab84e9ad2d4f7449574d2fbc7a50230d",
       "executable": false
     },
     "src/core/app/client/ui/setup-guides.css": {
@@ -3240,7 +3240,7 @@
       "executable": false
     },
     "src/core/app/client/ui/shell.css": {
-      "sha256": "ba36e2e1b44ae6794d279d781782802b2c999d956ee0eb32c977b69160367aeb",
+      "sha256": "ee626af1ecd7462e5e1a37640eb83caf661b1022383fdc15d3e01f3a4e161d0a",
       "executable": false
     },
     "src/core/app/client/ui/states.css": {
@@ -3260,7 +3260,7 @@
       "executable": false
     },
     "src/core/app/client/ui/tokens.css": {
-      "sha256": "1c30fcbd7467fa8b737057ec9f4b2f28c70c48b5a40e156d84a64d4c69081162",
+      "sha256": "6f22b8f2cb26c61268c845e2811a5ed4d576f7cbeed46e94ea7e117e61650714",
       "executable": false
     },
     "src/core/app/client/ui/visit-snapshot.ts": {
