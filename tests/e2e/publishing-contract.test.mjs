@@ -70,7 +70,10 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     }
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Major outage');
 
-    await saveReviewed(incident.id, { lifecycle: 'Monitoring', customerImpact: 'Payments are recovering.', componentChanges: [{ componentId: component.id, state: 'Degraded performance' }] });
+    await saveReviewed(incident.id, { lifecycle: 'Monitoring', customerImpact: 'Payments are recovering.', componentChanges: [
+      { componentId: component.id, state: 'Degraded performance' },
+      { componentId: hidden.id, state: 'Degraded performance' },
+    ] });
     const monitoring = (await j.publish(incident.id)).update;
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Degraded performance');
     assert.equal((await j.read(incident.id)).impact, 'Major outage');
@@ -100,6 +103,8 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     await j.publish(incident.id);
     const resolved = await j.read(incident.id);
     assert.equal(resolved.lifecycle, 'Resolved');
+    assert.equal(resolved.impact, 'Major outage', 'resolution retains the greatest published component impact');
+    assert.equal(resolved.effectiveImpact, 'critical');
     assert.equal(typeof resolved.resolvedAt, 'string');
     assert.equal((await j.read(incident.id)).draft, null);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');
@@ -165,6 +170,33 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     await eventually(() => j.publicText('/history'), body => !body.includes(incident.title), 'audited incident removed from public history');
     const audit = await j.json('/api/app/audit-log?limit=100');
     assert.ok(audit.entries.some(row => row.entityId === incident.id && row.reason === 'Duplicate incident replaced after review'));
+
+    // A never-published incident has no historical peak to retain after its
+    // sole component is detached. A complete reviewed draft still needs an
+    // affected component before it may become public.
+    await owner();
+    const unclaimed = await j.incident('Unpublished incident with no affected component', [component]);
+    await j.json(`/api/app/incidents/${unclaimed.id}/components/${component.id}`, 'DELETE');
+    const detached = await j.read(unclaimed.id);
+    assert.deepEqual(detached.components, []);
+    assert.equal(detached.impact, null);
+    assert.equal(detached.effectiveImpact, 'none');
+    await saveReviewed(unclaimed.id, { customerImpact: 'A complete draft must not publish without an affected component.' });
+    const prepared = await j.read(unclaimed.id);
+    assert.ok(prepared.draft);
+    assert.deepEqual(prepared.components, []);
+    assert.deepEqual(prepared.updates, []);
+    const publications = async () => (await j.db.prepare('SELECT * FROM incident_updates ORDER BY id').all()).results;
+    const beforePublications = await publications();
+    assert.ok(beforePublications.length > 0, 'the unchanged-publication control contains the earlier committed updates');
+    const publicPaths = ['/', '/history', '/feed.atom', '/api/public/status'];
+    const beforePublic = await Promise.all(publicPaths.map(path => j.publicText(path)));
+    const refusal = await j.publish(unclaimed.id, {}, 400);
+    assert.equal(refusal.error, 'Attach at least one component before publishing.');
+    assert.deepEqual(await j.read(unclaimed.id), prepared, 'refusal leaves the reviewed draft and unpublished incident unchanged');
+    assert.deepEqual(await publications(), beforePublications, 'refusal adds no publication and changes no earlier publication');
+    assert.deepEqual(await Promise.all(publicPaths.map(path => j.publicText(path))), beforePublic, 'refusal leaves every checked public surface unchanged');
+    for (const body of beforePublic) assert.ok(!body.includes(unclaimed.title));
   } finally { await j.close(); }
 });
 
