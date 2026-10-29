@@ -19,6 +19,9 @@ import { createWitnessTool } from './witness';
 import { withAgentActor } from './actor';
 import { withNativeTarget } from './targets';
 import { invokeQueuedAgentOperation } from './provenance.repository';
+import { nativeAuthority } from './native-authority';
+
+export const lampDoorCapabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency', 'events', 'resources', 'prompts', 'subscriptions'] as const;
 
 function installationTrust(bindings: AppBindings): Trust | null {
   const configured = [bindings.RER_OWNER_CLAIM_PUBLIC_KEYS, bindings.RER_OWNER_CLAIM_ISSUER,
@@ -35,7 +38,9 @@ export function createLampAgentRegistry(services: AppServices, bindings: AppBind
     ...createAccessTools(services, bindings), createQueuedDispatchTool(bindings.DB), createWitnessTool(bindings.DB)];
   const resources = [...createIncidentResources(services, bindings), ...createMaintenanceResources(services, bindings),
     ...createCatalogueResources(services, bindings), ...createCommunicationResources(services, bindings), ...createAccessResources(services, bindings)];
-  return {tools: tools.map(tool => withNativeTarget(tool, resources)), resources};
+  const authority = nativeAuthority(bindings.DB);
+  const visibleResources = resources.map(resource => authority.resource(resource));
+  return {tools: tools.map(tool => authority.tool(withNativeTarget(tool, visibleResources))), resources: visibleResources};
 }
 
 export function createLampAgentDoor(services: AppServices, bindings: AppBindings) {
@@ -47,7 +52,7 @@ export function createLampAgentDoor(services: AppServices, bindings: AppBindings
     run: (args, ctx) => withAgentActor(ctx, () => tool.run(args, ctx)),
   }));
   const door = createAgentDoor({seed: 'lamp', name: 'Lamp', specialist: 'incident-communicator',
-    db: bindings.DB, origin: authOrigin(bindings), trust: installationTrust(bindings), people,
+    db: bindings.DB, origin: authOrigin(bindings), trust: installationTrust(bindings), people, capabilities: lampDoorCapabilities,
     tools, nativeProof: proof.hooks, resources: registry.resources, ...createLocalCredentials(services, bindings),
     notTools: [
       {clauses: ['MOVE-002'], reason: 'import-door'},

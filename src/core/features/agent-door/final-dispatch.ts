@@ -48,7 +48,7 @@ export async function agentEffectHandled(db: D1Database, kind: string, id: strin
   const door = doors.get(db);
   if (!door) throw new Error('Agent delivery admission is unavailable.');
   const outcome = await door.invoke('lamp.deliveries.dispatch', {
-    kind, id, idempotency_key: `delivery/${await hashOpaqueToken(`${kind}/${id}/${description.attempt ?? 0}`)}`, expected_revision: description.revision,
+    kind, id, idempotency_key: custody.args.idempotency_key, expected_revision: description.revision,
   }, custody.principal);
   await recordQueuedAgentOutcome(db, { kind: 'publication', id: description.eventId }, outcome);
   if (outcome.outcome !== 'done') throw new AgentDeliveryHeld(outcome.code ?? outcome.outcome);
@@ -75,6 +75,12 @@ export function createQueuedDispatchTool(db: D1Database): ToolDefinition {
     } }, outputSchema: { type: 'object', required: ['id', 'kind', 'admitted'], properties: {
       id: { type: 'string' }, kind: { type: 'string' }, admitted: { type: 'boolean' },
     } }, revisionType: 'string',
+    async continuationItem(args) {
+      const { kind, id, description } = await effect(db, args);
+      const custody = await queuedAgentOperation(db, { kind: 'publication', id: description.eventId });
+      if (!custody?.principal.operationId) return null;
+      return { id: await hashOpaqueToken(`${kind}/${id}/${description.attempt ?? 0}`), operationId: custody.principal.operationId };
+    },
     async revision(args) { return (await effect(db, args)).description.revision; },
     async classify(args) { const { description } = await effect(db, args); return description.classes ?? [{ class: 'external', facts: { measure: 1, counterparty: description.counterparty } }]; },
     async summary(args) { const { id, description } = await effect(db, args); return {

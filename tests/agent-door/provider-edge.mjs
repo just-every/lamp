@@ -11,7 +11,7 @@ const jsonBody = async request => {
 };
 
 export default {
-  async fetch(request, fixture = {}) {
+  async fetch(request, { fixture = {} } = {}) {
     const url = new URL(request.url);
     if (url.origin === 'https://lamp-agent-provider.invalid' && url.pathname === '/v1/chat/completions') {
       const body = await jsonBody(request);

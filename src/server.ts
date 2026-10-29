@@ -3,6 +3,7 @@ import { withNativePersonEvents } from './core/features/agent-door/person-events
 import { withDemo } from '@runeditrun/rer/modules/demo';
 import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
+export { LampAgentJobs } from './core/features/agent-door/jobs.server';
 import { devGate } from "@runeditrun/rer/modules/operator-auth";
 import { authConfig, authOrigin } from "./core/platform/auth/config";
 import { authResponse } from "./core/platform/auth/http";

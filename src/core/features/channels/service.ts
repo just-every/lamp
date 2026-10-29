@@ -101,7 +101,9 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       const body = destination.kind === "slack" ? JSON.stringify(renderLampSlackMessage(text, [text])) : teamsTestCard(text);
       const provider = destination.kind === "slack" ? "Slack" : "Teams";
       try {
-        const url = await resolve(id);
+        // An explicit provider test can diagnose a retained destination after an
+        // archived-channel response. Normal notifications still require consent.
+        const url = await openUrl(destination.sealedUrl, destination.id, sealingSecrets(options.webhookSecret));
         const response = await transport.send({ url, headers: { "content-type": "application/json; charset=utf-8" }, body });
         const accepted = response.status >= 200 && response.status < 300 && (destination.kind !== "slack" || response.body === "ok");
         const providerError = destination.kind === "slack" && response.body ? `: ${response.body.replaceAll(url, "[webhook URL]")}` : "";

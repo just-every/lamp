@@ -10,6 +10,8 @@ export interface NativeAgentActor {
   scopes: string[];
   consent?: string;
   clientId?: string;
+  operationId: string;
+  idempotencyKey: string | null;
   label: string;
 }
 
@@ -24,5 +26,6 @@ export function withAgentActor<T>(ctx: ToolContext, action: () => T): T {
     agent: { ...ctx.agent }, sponsor: { id: ctx.person.id, name: ctx.person.name },
     approvers: ctx.approvers.map(person => ({ ...person })), scopes: [...ctx.scopes],
     consent: ctx.consent, clientId: ctx.clientId, label: ctx.actor.label,
+    operationId: ctx.operationId, idempotencyKey: ctx.idempotencyKey,
   }, action);
 }

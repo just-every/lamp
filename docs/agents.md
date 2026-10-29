@@ -8,8 +8,8 @@ The door supports the 2026-07-28 and 2025-11-25 protocol versions.
 
 Business supplies signed installation settings with durable owner and teammate
 IDs. An agent token carries the sponsoring person, consent and scopes. Token email
-never selects an operator. Every admitted Lamp operator currently has equal native
-product authority; signed Business owner/editor policy roles are separate.
+never selects an operator. Current native Owner/Admin, Communicator, Responder and Viewer restrictions
+also govern direct tools and resources; signed Business policy roles are separate.
 
 The company adopts signed policy at `/api/rer/agent-policy`. It chooses autonomous,
 review, approval or blocked dispositions for each class. Unset, unanswered or
@@ -28,7 +28,7 @@ Native management credentials retain their original read or metric-point scopes
 and sponsoring operator. Credential issuance, recent email proof, chat identity
 linking, connection secrets and import apply retain their native person doors.
 Some delegated native owner operations remain unavailable until the shared native
-owner API supports Lamp's equal-owner model; the door returns an explicit refusal.
+owner API supports Lamp's current native owner model; the door returns an explicit refusal.
 See [Native proof for protected changes](agent-native-proof.md) for the person proof workflow and current limits.
 
 ## Communicate an incident

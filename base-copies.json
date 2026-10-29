@@ -2482,13 +2482,16 @@
     {
       "path": "src/base/contract-docs.mjs",
       "originPath": "foundation/runtime/contract-docs.mjs",
-      "revision": "0fe27af9a5cb1bd9dc5e41da024784082e609010",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
-        "src/base/contract-docs.mjs": "d98e14f489c57f60446c2cc68310db09f298f7974d77026dbaa2c62868cc4838"
+        "src/base/contract-docs.mjs": "e43dc064aaedaff9309c5c52a42814784e761b82a618cf397cd91251177551e5"
       },
       "modes": {
         "src/base/contract-docs.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/contract-docs.mjs"
+      ]
     },
     {
       "path": "src/base/contract-filter.ts",
@@ -2511,6 +2514,34 @@
       "modes": {
         "src/base/contract-page.ts": "100644"
       }
+    },
+    {
+      "path": "src/base/contract-prose-patterns.mjs",
+      "originPath": "foundation/runtime/contract-prose-patterns.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/contract-prose-patterns.mjs": "5519a7439e28f7c2635a0170749c43ccdc96eaccc0c313f55a2294d0665c8ba4"
+      },
+      "modes": {
+        "src/base/contract-prose-patterns.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/contract-prose-patterns.mjs"
+      ]
+    },
+    {
+      "path": "src/base/contract-prose.mjs",
+      "originPath": "foundation/runtime/contract-prose.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/contract-prose.mjs": "7f606da0b4ac6f259fdaaa2a263250c1b6a20d5c906104c5a961271d23e818e0"
+      },
+      "modes": {
+        "src/base/contract-prose.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/contract-prose.mjs"
+      ]
     },
     {
       "path": "src/base/contract-style.ts",
@@ -2680,24 +2711,30 @@
     {
       "path": "src/base/seed-contract.d.mts",
       "originPath": "foundation/runtime/seed-contract.d.mts",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
         "src/base/seed-contract.d.mts": "89a49eeec744b201f66b3c5d599dad839174e28d3c463944823de25ecfae738d"
       },
       "modes": {
         "src/base/seed-contract.d.mts": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/seed-contract.d.mts"
+      ]
     },
     {
       "path": "src/base/seed-contract.mjs",
       "originPath": "foundation/runtime/seed-contract.mjs",
-      "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
         "src/base/seed-contract.mjs": "7beada5d271beaaf63d76e1f8cf2712ba906ec7d430f8312f4abedfad57428b4"
       },
       "modes": {
         "src/base/seed-contract.mjs": "100644"
-      }
+      },
+      "originFiles": [
+        "foundation/runtime/seed-contract.mjs"
+      ]
     },
     {
       "path": "src/base/select-style.ts",

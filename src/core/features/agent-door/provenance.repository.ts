@@ -72,7 +72,7 @@ export async function nativeAgentAttribution(db: D1Database, entityType: string,
 
 export interface QueuedAgentOperation {
   tool: string; args: Record<string, unknown>;
-  principal: Pick<NativeAgentActor, 'agent' | 'scopes' | 'consent' | 'clientId'> & { person: { id: string } };
+  principal: Pick<NativeAgentActor, 'agent' | 'scopes' | 'consent' | 'clientId'> & { person: { id: string }; operationId?: string };
 }
 
 /** Native schedule edits by a person supersede old machine custody. The final
@@ -88,11 +88,14 @@ export function agentQueuedOperationStatements(db: D1Database, input: {
     .bind(input.kind, input.id, ...(guard?.params ?? []))];
   if (typeof input.args.idempotency_key !== 'string' || !input.args.idempotency_key) throw new Error('A queued agent effect requires its exact idempotency key.');
   const principal: QueuedAgentOperation['principal'] = { person: { id: actor.sponsor.id }, agent: actor.agent,
-    scopes: actor.scopes, consent: actor.consent, clientId: actor.clientId };
+    scopes: actor.scopes, consent: actor.consent, clientId: actor.clientId,
+    ...(input.kind === 'publication' ? { operationId: actor.operationId } : {}) };
+  const args = input.kind === 'publication' ? { ...input.args, idempotency_key: actor.idempotencyKey } : input.args;
+  if (typeof args.idempotency_key !== 'string' || !args.idempotency_key) throw new Error('A queued publication requires its originating admission key.');
   return [db.prepare(`INSERT INTO lamp_agent_queued_operations(kind,id,tool,args_json,principal_json,created_at)
     SELECT ?,?,?,?,?,?${guard ? ` WHERE ${guard.sql}` : ''} ON CONFLICT(kind,id) DO UPDATE SET tool=excluded.tool,args_json=excluded.args_json,
     principal_json=excluded.principal_json,created_at=excluded.created_at,last_outcome_json=NULL`)
-    .bind(input.kind, input.id, input.tool, JSON.stringify(input.args), JSON.stringify(principal), input.at, ...(guard?.params ?? []))];
+    .bind(input.kind, input.id, input.tool, JSON.stringify(args), JSON.stringify(principal), input.at, ...(guard?.params ?? []))];
 }
 
 export async function queuedAgentOperation(db: D1Database, input: { kind: string; id: string }): Promise<QueuedAgentOperation | null> {

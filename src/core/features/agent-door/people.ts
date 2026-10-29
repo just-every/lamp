@@ -6,14 +6,16 @@ import type { AppServices } from '../../app/services';
 import { authConfig } from '../../platform/auth/config';
 import { createManagementApiService } from '../management-api/service';
 import { createAgentIdentityRepository, type NativePerson } from './identity.repository';
+import { createOperatorRolesRepository } from '../operators/roles.repository';
 
 export function createPeopleAdapter(services: AppServices, bindings: AppBindings): PeopleAdapter {
   const repository = createAgentIdentityRepository(bindings.DB), config = authConfig(bindings);
+  const roles = createOperatorRolesRepository(bindings.DB);
   const convert = (native: NativePerson): Person => ({id: native.id, email: native.email, name: native.displayName,
     role: native.role, active: isActiveOperator(native as Operator, config.allowList) && !native.email.endsWith('@operator.invalid')});
   const person = async (id: string): Promise<Person | null> => {
     const native = await repository.person(id);
-    return native ? convert(native) : null;
+    return native ? { ...convert(native), role: await roles.role(id) ?? native.role } : null;
   };
   return {
     person,
@@ -29,9 +31,7 @@ export function createPeopleAdapter(services: AppServices, bindings: AppBindings
       const current = await person(session.operator.id);
       return current?.active ? current : null;
     },
-    // Every admitted Lamp operator has the same native product authority.
-    // Paired policy editors are resolved separately from signed Business IDs.
-    businessRole: current => current.active ? 'owner' : null,
+    businessRole: current => !current.active ? null : current.role === 'owner' ? 'owner' : current.role === 'admin' ? 'editor' : null,
     async businessMember(current) {
       if (!(await person(current.id))?.active) return null;
       return repository.businessMember(current.id);
