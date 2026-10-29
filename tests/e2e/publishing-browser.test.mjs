@@ -1,3 +1,4 @@
+import { themeOwnerJourney } from "./helpers/theme-owner-journey.mjs";
 import { stripVTControlCharacters } from "node:util";
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
@@ -642,4 +643,9 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
 
 test('INCIDENT-001 AGENT-004 MOBILE-001 — 390-wide owner sign-in, alert review, publication, resolution and maintenance smoke', { timeout: 600_000 }, async () => {
   await phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink: async () => execFileSync(process.execPath, [resolve('scripts/signin-link.mjs'), '--email', 'operator@example.test', '--origin', appUrl, '--config', configPath, '--persist-to', statePath], { cwd: terminalDirectory, env: process.env, encoding: 'utf8' }).trim() });
+});
+
+
+test('THEME-001 — owner publishes branded themes and layouts within the page budget', { timeout: 600_000 }, async t => {
+  await themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, cookieName: sessionCookieName(appUrl), diagnostic: message => t.diagnostic(message) });
 });

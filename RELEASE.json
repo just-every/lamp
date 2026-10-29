@@ -951,6 +951,10 @@
     {
       "id": "0070_incident_subscriber_read_scope.sql",
       "buyerSteps": "Apply after 0069. Adds a default-off private subscriber read scope. Existing public-data read tokens retain their current access and gain no access to subscriber addresses. An active owner or admin explicitly issues the new scope when an integration needs incident subscriber lists."
+    },
+    {
+      "id": "0071_page_theme.sql",
+      "buyerSteps": "Apply after 0070. Adds empty theme and theme-asset settings while preserving the existing page appearance and stored records. Configure palette, typography, uploaded WOFF2 fonts, header artwork, links and layout in Settings. Publication carries the selected assets in the retained snapshot; no provider account or key is needed."
     }
   ],
   "breaking": false,
