@@ -6540,7 +6540,7 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "7b894420f3dfb20d22049bc94ec671dbde4c3f292880483f050d72e369ce03c3",
+      "sha256": "2ca81bd827fd896f1e048f3531591b1df2f8461f5339e34817832e19c1d525e7",
       "executable": false
     },
     "tests/auth-adoption/role-portability.mjs": {
@@ -6828,7 +6828,7 @@
       "executable": false
     },
     "tests/e2e/helpers/pagerduty-flow.mjs": {
-      "sha256": "8a18179c889cd10d563d0125234774394631826655a2f9d9a144db2ea47569aa",
+      "sha256": "548c9dc3baf0d232aa306978df584b7e440dcba57feb54784d7cd4c215f1038d",
       "executable": false
     },
     "tests/e2e/helpers/phone-desk-flow.mjs": {
