@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 16 | 173 | 49 | 238 |
+| Core | 17 | 172 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 16 | 173 | 54 | 243 |
+| Full target | 17 | 172 | 54 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -246,7 +246,7 @@ Core · published · **partial**
 
 #### COMP-002 — Grouping and order
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Operators organize public components into ordered groups.
 
@@ -254,8 +254,8 @@ Core · published · **partial**
 1. A component belongs to at most one group.
 2. Operators set group order and order within each group, and public rendering preserves both orders.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): native creation and editing refuse multiple groups; catalogue preview and apply refuse multiple groups and duplicate identities without changing saved records; native and reviewed reassignment retain one saved identity and one public placement; reordered groups and components render in their saved order.
+**Gap.** None.
 
 #### COMP-003 — Append-only state history
 

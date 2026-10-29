@@ -3120,9 +3120,9 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 8 | 99 | 0 | 107 |
+| Published | 9 | 98 | 0 | 107 |
 | Target and push further | 8 | 74 | 54 | 136 |
-| All | 16 | 173 | 54 | 243 |
+| All | 17 | 172 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3160,7 +3160,7 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | `I18N-003` | Subscriber language choice and reporting | target | missing |  | Subscriber language selection, management, reporting and language-aware CSV preview are absent. |
 | `I18N-002` | Translated updates | target | missing |  | Not built. |
 | `COMP-001` | States and their order | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational. |
-| `COMP-002` | Grouping and order | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded. |
+| `COMP-002` | Grouping and order | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): native creation and editing refuse multiple groups; catalogue preview and apply refuse multiple groups and duplicate identities without changing saved records; native and reviewed reassignment retain one saved identity and one public placement; reordered groups and components render in their saved order. |  |
 | `COMP-003` | Append-only state history | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present. |
 | `COMP-004` | State note | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty. |
 | `COMP-005` | Internal components | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Internal components are absent from every uptime figure; An internal severe claim leaves the public overall state unchanged. |
