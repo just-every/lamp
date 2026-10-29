@@ -39,6 +39,9 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).note, boundaryNote);
     const boundaryHtml = await j.visible('/', boundaryNote);
     assert.ok(boundaryHtml.includes(`<p class="component-note">&lt;state&gt;&amp;${'n'.repeat(242)}</p>`), 'the full 250-character note is displayed as plain text beside the state');
+    const cleared = (await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: '' })).component;
+    assert.equal(cleared.note, '', 'an explicit empty note still clears an existing note');
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).note, '');
     await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: main.note });
     const hidden = await j.component('PRIVATE database replica', { groupId: secondGroup.id, internal: true, note: 'PRIVATE topology' });
     const limits = JSON.parse(await readFile('seed.json', 'utf8')).limits;
