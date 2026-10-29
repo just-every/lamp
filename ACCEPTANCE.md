@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `30f238652f074eded32a61a5d1d7f33a35463ed2` (29 October 2026); COMP-005 and COMP-007 are rechecked on the landing candidate; SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -285,7 +285,7 @@ Core · published · **partial**
 
 #### COMP-005 — Internal components
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Internal components cannot affect or leak through public status.
 
@@ -293,8 +293,8 @@ Core · published · **partial**
 1. An internal component is absent from the page, Atom feed, widget and every uptime figure.
 2. It never contributes to overall status.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Internal components are absent from every uptime figure; An internal severe claim leaves the public overall state unchanged.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): a formerly public component has a Major outage and populated uptime before being marked internal; every paginated public component and uptime record, uptime badge, page, Atom feed and widget excludes its identity and note, its retained component resources return 404, and the root, status JSON and overall badges remain Operational while its private claim stays Major outage.
+**Gap.** None.
 
 #### COMP-006 — Component state is claimed, not set
 
@@ -312,7 +312,7 @@ Core · published · **partial**
 
 #### COMP-007 — Deletion
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Deleting a component removes its public state history and uptime while published communication retains its name.
 
@@ -320,8 +320,8 @@ Core · published · **partial**
 1. The component, its state history and every associated uptime figure disappear from the public page within ten seconds.
 2. Published incident and maintenance updates keep the deleted component’s name.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Component and uptime disappearance is observed on the public page within ten seconds; Published maintenance history retains the deleted name.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): after prewarming a component with downtime history and every component resource, successful native deletion removes its public catalogue, state history and uptime in a fresh healthy generation within one measured ten-second deadline; the incident permalink and published maintenance retain its captured name, and the complete maintenance notice inventory is unchanged.
+**Gap.** None.
 
 ### Uptime
 
