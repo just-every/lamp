@@ -20,6 +20,7 @@ const execute = promisify(execFile);
 const origin = 'https://app.example.test', publicOrigin = 'https://status.example.test';
 const signingSecret = 'synthetic-pagerduty-v3-subscription-secret';
 const apiKey = 'synthetic-pagerduty-rest-api-key';
+const pagerDutyFromEmail = ['synthetic-lamp-15', 'example.test'].join('@');
 const trigger = JSON.parse(await readFile(new URL('../../fixtures/pagerduty/triggered.json', import.meta.url), 'utf8'));
 
 function event(type, id, { incidentId = 'PDINC1', serviceId = 'PAPI123', at = '2026-10-20T01:01:00.000Z', title = trigger.event.data.title } = {}) {
@@ -37,8 +38,8 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
   await nativeRuntime.stop();
   const directory = await mkdtemp(join(tmpdir(), 'lamp-pagerduty-'));
   let worker;
-  const notes = [], requests = [];
-  let providerStatus = 201;
+  const notes = [], requests = [], noteAuthors = [];
+  let providerStatus = 201, expectedNoteAuthor = pagerDutyFromEmail;
   try {
     const env = fixtureProcessEnv();
     const configPath = join(directory, 'wrangler.json');
@@ -67,7 +68,8 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
         assert.equal(request.headers.get('authorization'), `Token token=${apiKey}`);
         assert.equal(request.headers.get('accept'), 'application/vnd.pagerduty+json;version=2');
         assert.equal(request.headers.get('content-type'), 'application/json');
-        assert.equal(request.headers.get('from'), 'operator@example.test', 'the connected owner is the default note author');
+        assert.equal(request.headers.get('from'), expectedNoteAuthor, 'every note uses the selected author');
+        noteAuthors.push(request.headers.get('from'));
         notes.push(await request.json());
         return Response.json(providerStatus === 201 ? { note: { id: `fixture-note-${notes.length}` } } : { error: { message: 'Provider refused note' } }, {
           status: providerStatus, ...(providerStatus === 302 ? { headers: { Location: 'https://credential-leak.example.test/notes' } } : {}),
@@ -135,14 +137,16 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     };
     assert.equal((await send(trigger)).status, 401, 'an endpoint can be created before the subscription secret is connected');
     assert.deepEqual(await receipts(source.id), []);
-    const connected = await put(`/api/app/intake/sources/${source.id}`, { ...input, pagerDutyApiKey: apiKey });
+    const connected = await put(`/api/app/intake/sources/${source.id}`, { ...input, pagerDutyApiKey: apiKey, pagerDutyFromEmail });
     assert.equal(connected.status, 200, connected.text);
     assert.equal(connected.body.source.webhookConnected, true);
     assert.equal(connected.body.source.responderConnection, 'connected');
     for (const response of [created, connected, await api('/api/app/intake/sources')]) {
-      assert.ok(!response.text.includes(signingSecret) && !response.text.includes(apiKey), 'both credentials are write-only');
+      for (const privateValue of [signingSecret, apiKey, pagerDutyFromEmail]) assert.ok(!response.text.includes(privateValue), 'credentials and the custom note author are write-only');
     }
-    assert.ok(!JSON.stringify((await db.prepare('SELECT * FROM alert_sources').all()).results).includes(apiKey), 'REST credential is sealed at rest');
+    const persistedSource = await db.prepare('SELECT * FROM alert_sources WHERE id=?').bind(source.id).first();
+    assert.ok(typeof persistedSource.responder_sealed_credentials === 'string' && persistedSource.responder_sealed_credentials.length > 0, 'connected credentials have nonempty ciphertext');
+    for (const privateValue of [apiKey, pagerDutyFromEmail]) assert.ok(!JSON.stringify(persistedSource).includes(privateValue), 'the REST key and custom note author are sealed at rest');
     assert.equal((await send(trigger, { signature: `v1=${'0'.repeat(64)}` })).status, 401);
     assert.deepEqual(await receipts(source.id), [], 'wrong signature records no receipt');
     const originalRaw = JSON.stringify(trigger, null, 2);
@@ -211,6 +215,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     t.diagnostic("PagerDuty: publish one note per update, including provider failure.");
     await publish('Some API requests fail.');
     assert.equal(notes.length, 1);
+    assert.equal(noteAuthors[0], pagerDutyFromEmail, 'the sealed custom author reaches the provider From header exactly');
     const note = notes[0].note.content;
     for (const text of ['Some API requests fail.', 'API customers.', 'The dashboard works.', 'Responders are investigating API requests.', `${publicOrigin}/incidents/${initial.reference}`]) assert.ok(note.includes(text));
     await post(`/api/app/incidents/${id}/publish`, { channels: [] });
@@ -249,7 +254,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     const runArchive = (script, args) => execute(process.execPath, [resolve('scripts', script), '--config', configPath, ...args], { env, maxBuffer: 4 * 1024 * 1024 });
     await runArchive('export.mjs', ['--persist-to', sourceState, '--out', archive]);
     const archived = await readFile(join(archive, 'entities.json'), 'utf8');
-    assert.ok(!archived.includes(apiKey), 'archive contains no REST key');
+    for (const privateValue of [apiKey, pagerDutyFromEmail, persistedSource.responder_sealed_credentials]) assert.ok(!archived.includes(privateValue), 'technical archives contain neither the REST key nor custom author nor their ciphertext');
     const archivedSource = JSON.parse(archived).tables.find(table => table.name === 'alert_sources').rows.find(row => row.id === source.id);
     assert.equal(archivedSource.responder_sealed_credentials, null, 'archive also strips the sealed REST credential');
     await runArchive('import.mjs', ['--persist-to', restoredState, '--from', archive]);
@@ -262,11 +267,13 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     await publish('Restored operators are checking API health.', 'Monitoring');
     assert.equal(notes.length, 4, 'restored connection sends nothing until the owner reconnects');
     providerStatus = 201;
+    expectedNoteAuthor = ['operator', 'example.test'].join('@');
     const reconnected = await put(`/api/app/intake/sources/${source.id}`, { ...input, pagerDutyApiKey: apiKey });
     assert.equal(reconnected.status, 200, reconnected.text);
     assert.equal(reconnected.body.source.responderConnection, 'connected');
     await publish('Both API components have recovered.', 'Resolved');
     assert.equal(notes.length, 5, 'supplying a new REST key reconnects the restored source');
+    assert.equal(noteAuthors[4], ['operator', 'example.test'].join('@'), 'reconnecting without a custom author uses the source owner email');
     const reportDraft = await post(`/api/app/incidents/${id}/report/draft`, {});
     assert.equal(reportDraft.status, 200, reportDraft.text);
     const restoredBrief = (await api(`/api/app/incidents/${id}/brief`)).body.brief;
@@ -301,7 +308,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     const restoredDb = await worker.getD1Database('DB');
     assert.equal((await restoredDb.prepare('SELECT count(*) AS n FROM alert_sources WHERE id=?').bind(source.id).first()).n, 0);
     assert.equal((await restoredDb.prepare('SELECT count(*) AS n FROM alert_responder_posts WHERE source_id=?').bind(source.id).first()).n, 0, 'erasure removes outbound source records too');
-    t.diagnostic('PagerDuty workerd proof: signed mapping, private recovery, timed brief, one note per publication, visible HTTP 403, credential-free restore/reconnect, and source erasure.');
+    t.diagnostic('PagerDuty workerd proof: signed mapping, private recovery, timed brief, one note per publication, visible HTTP 403, sealed custom authorship, owner-default reconnection, credential-free restore, and source erasure.');
   } catch (error) {
     console.error("PagerDuty journey failed:", error);
     throw error;
