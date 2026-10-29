@@ -12,6 +12,14 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     if (request.url === aiEndpoint) { requests.push(await request.json()); return answer(); }
   } });
   try {
+    const { settings } = await j.json('/api/app/page-settings');
+    const toneInstructions = 'Use calm, direct sentences for synthetic-lamp-7.\nLead with customer impact; keep uncertainty explicit.';
+    await j.json('/api/app/page-settings', 'PUT', {
+      pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor,
+      timezone: settings.timezone, hostname: settings.hostname, footerCreditEnabled: settings.footerCreditEnabled,
+      aiToneInstructions: toneInstructions,
+    });
+    assert.equal((await j.json('/api/app/page-settings')).settings.aiToneInstructions, toneInstructions);
     const component = await j.component('Checkout API');
     const hidden = await j.component('PRIVATE internal service', { internal: true });
     const source = (await j.json('/api/app/intake/sources', 'POST', {
@@ -46,6 +54,8 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     for (const path of ['/', '/history', '/feed.atom', '/widget.js']) assert.ok(!(await j.publicText(path)).includes(payload.alert.title));
     await j.save(id, { affectedAudience: 'Checkout customers', customerImpact: 'Some checkout requests fail.' });
     const before = await j.read(id);
+    const visibleBrief = await brief();
+    assert.equal(visibleBrief.toneInstructions, toneInstructions);
     answer = () => Response.json({ choices: [{ message: { content: JSON.stringify({
       affectedAudience: { text: 'Checkout customers', sources: ['C1'] },
       customerImpact: { text: 'Some checkout requests fail.', sources: ['A999'] },
@@ -54,6 +64,9 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     }) } }] });
     const suggested = await j.json(`/api/app/incidents/${id}/ai-suggestion`, 'POST', {});
     assert.deepEqual(JSON.parse(requests.at(-1).messages.find(row => row.role === 'user').content), suggested.brief);
+    const providerBrief = JSON.parse(requests.at(-1).messages.find(row => row.role === 'user').content);
+    assert.deepEqual(providerBrief, visibleBrief);
+    assert.equal(providerBrief.toneInstructions, toneInstructions);
     assert.ok(!JSON.stringify(requests.at(-1)).includes('PRIVATE responder investigation'));
     assert.ok(!JSON.stringify(requests.at(-1)).includes(hidden.name));
     assert.equal(suggested.suggestion.affectedAudience.text, 'Checkout customers');

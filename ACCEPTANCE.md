@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 16 | 173 | 49 | 238 |
+| Core | 17 | 172 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 16 | 173 | 54 | 243 |
+| Full target | 17 | 172 | 54 | 243 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -1226,7 +1226,7 @@ Core · published · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007
 
 #### DRAFT-002 — Inputs
 
-Core · published · **partial** · Cites BASE-DATA-004
+Core · published · **done** · Cites BASE-DATA-004
 
 **Requirement.** Suggestion requests use the same visible incident brief as the operator: accepted alerts, published updates, attached public components and their claims, plus configured tone instructions.
 
@@ -1235,8 +1235,8 @@ Core · published · **partial** · Cites BASE-DATA-004
 2. Internal notes and internal components are absent from the provider request even when present on the incident.
 3. Configured tone instructions are included with the request.
 
-**Evidence.** `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs`
-**Gap.** The exact brief and exclusion of populated internal notes/components are asserted. The configured tone instructions are not read back from the provider request in the old Evidence set.
+**Evidence.** `tests/e2e/incident-brief.test.mjs` (authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails): acceptance 1 compares the captured provider brief with the independently read operator brief and returned suggestion brief; acceptance 2 excludes populated internal notes and the attached internal component from the request; acceptance 3 saves distinctive nonempty tone instructions through native page settings, reads them back, and asserts their exact value in the captured synthetic provider request. `tests/e2e/publishing-browser.test.mjs` (compiled visual edits and the operator publication journey) retains tone instructions after a Settings reload.
+**Gap.** None.
 
 #### DRAFT-004 — Incident brief
 
