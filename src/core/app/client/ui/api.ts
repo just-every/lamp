@@ -10,6 +10,10 @@ export class ApiError extends Error {
   }
 }
 
+/** An answer that is not our JSON (a proxy's HTML 429 page) says what happened in plain words, with the status for support. */
+const plainFailure = (status: number, method: string | undefined) =>
+  `The server could not ${method && method !== "GET" ? "take this change" : "answer this request"} right now (HTTP ${status}).`;
+
 export async function appApi<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -23,7 +27,7 @@ export async function appApi<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const message = body && typeof body === "object" && "error" in body && typeof body.error === "string"
       ? body.error
-      : `The operator API returned ${response.status}.`;
+      : plainFailure(response.status, init?.method);
     const details = body && typeof body === "object" && "details" in body && body.details && typeof body.details === "object" ? body.details as Record<string, unknown> : undefined;
     throw new ApiError(message, response.status, details);
   }

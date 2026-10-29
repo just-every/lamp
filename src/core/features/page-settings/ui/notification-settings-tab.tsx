@@ -1,4 +1,4 @@
-import { TrafficAlertSettings, type TrafficSavePhase } from "./traffic-alert-settings";
+import { TrafficAlertSettings, type TrafficSave } from "./traffic-alert-settings";
 import type { LiveStatus } from "../../overview/live-status";
 import type { SettingsForm } from "./settings-form";
 import { Button } from "../../../app/client/ui/button";
@@ -8,10 +8,10 @@ import { EmailBrandingSettings } from "./email-branding-settings";
 import { SmsSettings } from "./sms-settings";
 import { IncidentFollowSettings } from "./incident-follow-settings";
 
-export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficPhase }: {
+export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficSave }: {
   settings: SettingsForm; live: LiveStatus | null; identityEditable: boolean;
   update: <K extends keyof SettingsForm>(field: K, value: SettingsForm[K], immediate?: boolean) => void;
-  needsConfirm: boolean; confirm: () => void; onTrafficPhase: (phase: TrafficSavePhase) => void;
+  needsConfirm: boolean; confirm: () => void; onTrafficSave: (save: TrafficSave) => void;
 }) {
   return <>
     <section className="data-card" aria-labelledby="sender-title">
@@ -20,7 +20,7 @@ export function NotificationSettingsTab({ settings, live, identityEditable, upda
       {needsConfirm && <div className="settings-confirm"><small>This address is not live until you confirm.</small><Button type="button" variant="secondary" className="table-action" onClick={confirm}>Confirm</Button></div>}
       <SenderStatusLine sender={live?.sender ?? null} />
     </section>
-    <TrafficAlertSettings onPhase={onTrafficPhase} />
+    <TrafficAlertSettings onSave={onTrafficSave} />
     <MailDeliverySettings />
     <SmsSettings />
     <IncidentFollowSettings />
