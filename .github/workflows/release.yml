@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
   schedule:
-    - cron: '23 4 * * 1,4'
+    - cron: '24 6 * * 1,4'
   workflow_dispatch:
 
 permissions:
@@ -15,6 +15,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    if: github.event_name != 'schedule'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/verify.yml
+    with:
+      tier: all
+
   journeys:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -28,21 +37,26 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Prepare runner-owned browser and apt caches
+        run: |
+          printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/ms-playwright" "$RUNNER_TEMP/rer-apt/archives"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: package.json
+          package-manager-cache: false
       - name: Cache shared pnpm store and Chromium
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: |
-            ~/.local/share/pnpm/store
-            ~/.cache/ms-playwright
-            ${{ runner.temp }}/rer-apt/archives
-          key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
+            ${{ runner.temp }}/pnpm-store
+            ${{ runner.temp }}/ms-playwright
+            ${{ runner.temp }}/rer-apt/archives/*.deb
+          key: lamp-ubuntu24-temp-release-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
       - name: Reserve disk for fresh native installations
         run: |
           free_kib() { df -Pk "$GITHUB_WORKSPACE" | awk 'END { print $4 }'; }
@@ -55,27 +69,23 @@ jobs:
       - name: Install pinned tools and dependencies
         env:
           LAMP_CI_XML: 'true'
-        run: nice -n 15 bash scripts/ci/bootstrap.sh 2>&1 | tee "$RUNNER_TEMP/lamp-release/bootstrap.log"
+        run: bash scripts/ci/bootstrap.sh 2>&1 | tee "$RUNNER_TEMP/lamp-release/bootstrap.log"
       - name: Install Chromium
         run: |
           set -euo pipefail
-          pnpm exec playwright install chromium
-          pnpm exec node scripts/chromium-probe.mjs || {
-            sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
-            pnpm exec node scripts/chromium-probe.mjs
-          }
+          bash scripts/ci/chromium.sh
       - name: Upgrade from the declared previous release tag
         if: matrix.journey == 'upgrade'
         run: |
           previous=$(node --input-type=module -e 'import fs from "node:fs"; const version=JSON.parse(fs.readFileSync("RELEASE.json")).previousVersion; if (!/^\d+\.\d+\.\d+$/.test(version)) throw Error("Missing previous release version"); console.log("v"+version);')
           git rev-parse --verify "refs/tags/$previous^{commit}"
-          nice -n 15 pnpm run verify:release --from "$previous" --evidence "$RUNNER_TEMP/lamp-release/upgrade" 2>&1 | tee "$RUNNER_TEMP/lamp-release/upgrade.log"
+          pnpm run verify:release --from "$previous" --evidence "$RUNNER_TEMP/lamp-release/upgrade" 2>&1 | tee "$RUNNER_TEMP/lamp-release/upgrade.log"
       - name: Run the actual installation journey from a fresh public clone
         if: matrix.journey != 'upgrade'
         env:
           LAMP_RELEASE_JOURNEY: ${{ matrix.journey }}
           LAMP_RELEASE_EVIDENCE: ${{ runner.temp }}/lamp-release
-        run: nice -n 15 node tests/release/installation-journey.mjs
+        run: node tests/release/installation-journey.mjs
       - name: Retain journey result, screenshots and upgrade evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

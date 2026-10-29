@@ -7,6 +7,15 @@ manager=$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "u
 if ! command -v pnpm >/dev/null || [ "$(pnpm --version)" != "${manager#pnpm@}" ]; then
   npm install --global "$manager" --no-audit --no-fund
 fi
+# Keep installs and journey scratch homes on the runner-owned temporary volume.
+# Fresh installer journeys clear their environment and create their own HOME
+# beneath TMPDIR; the browser-driving process keeps the runner's real HOME.
+: "${RUNNER_TEMP:?RUNNER_TEMP is required for CI caches}"
+export TMPDIR="$RUNNER_TEMP"
+printf 'TMPDIR=%s\n' "$TMPDIR" >> "$GITHUB_ENV"
+export npm_config_store_dir="$RUNNER_TEMP/pnpm-store"
+printf 'npm_config_store_dir=%s\n' "$npm_config_store_dir" >> "$GITHUB_ENV"
+pnpm config set store-dir "$npm_config_store_dir"
 pnpm install --frozen-lockfile
 # Preserve the locked native runtime launch check from agent-bootstrap.sh.
 node --input-type=module <<'NODE'

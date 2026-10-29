@@ -5,6 +5,11 @@ on:
     branches: ['**']
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tier:
+        type: string
+        default: push
 
 permissions:
   contents: read
@@ -21,43 +26,47 @@ jobs:
       contents: read
       actions: read
     outputs:
-      skip: ${{ steps.reuse.outputs.skip }}
+      skip: ${{ steps.plan.outputs.skip }}
       shards: ${{ steps.plan.outputs.shards }}
+      coverage: ${{ steps.plan.outputs.coverage }}
+      tier: ${{ steps.plan.outputs.tier }}
+      readers: ${{ steps.plan.outputs.readers }}
+      has_shards: ${{ steps.plan.outputs.has_shards }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 2
           persist-credentials: false
-      - id: reuse
-        name: Reuse only verified push evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EVENT: ${{ github.event_name }}
-          REF: ${{ github.ref }}
-          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
-          WF_REF: ${{ github.workflow_ref }}
-        run: bash scripts/ci/verify-reuse.sh
+      - name: Validate reusable workflow permissions and Base lifecycle helpers
+        run: |
+          node scripts/verify-ci.mjs --check-workflows
+          node --check scripts/verify-plan.mjs
+          node --check scripts/verify-evidence.mjs
+          node --check scripts/verify-light.mjs
       - id: plan
-        name: Read the shared local and CI verification plan
-        run: node --input-type=module -e 'import { ciShardNames } from "./scripts/verification/plan.mjs"; console.log("shards=" + JSON.stringify(ciShardNames));' >> "$GITHUB_OUTPUT"
+        name: Select coverage with Base evidence and Lamp's existing partitions
+        env:
+          TIER: ${{ inputs.tier || 'push' }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/plan.mjs
 
   build:
     needs: plan
-    if: needs.plan.outputs.skip != 'true'
+    if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.has_shards == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: package.json
+          package-manager-cache: false
       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
-          path: ~/.local/share/pnpm/store
-          key: lamp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ${{ runner.temp }}/pnpm-store
+          key: lamp-ubuntu24-temp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install pinned tools and dependencies
         run: bash scripts/ci/bootstrap.sh
       - name: Build the production Worker once
@@ -83,8 +92,9 @@ jobs:
           retention-days: 1
 
   shards:
+    name: shards (${{ matrix.shard }})
     needs: [plan, build]
-    if: needs.plan.outputs.skip != 'true'
+    if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.has_shards == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
@@ -92,28 +102,35 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
       PLAYWRIGHT_SKIP_BROWSER_GC: '1'
     defaults:
       run:
         shell: bash
     steps:
+      - name: Prepare runner-owned browser and apt caches
+        run: |
+          printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/ms-playwright" "$RUNNER_TEMP/rer-apt/archives"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: package.json
+          package-manager-cache: false
       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
-          path: ~/.local/share/pnpm/store
-          key: lamp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ${{ runner.temp }}/pnpm-store
+          key: lamp-ubuntu24-temp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Cache Chromium and its system packages
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: |
-            ~/.cache/ms-playwright
-            ${{ runner.temp }}/rer-apt/archives
-          key: lamp-chromium-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml') }}
+            ${{ runner.temp }}/ms-playwright
+            ${{ runner.temp }}/rer-apt/archives/*.deb
+          key: lamp-ubuntu24-temp-chromium-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml') }}
       # Base requires 15 GiB free before starting native local servers.
       - name: Reserve disk for native runtime journeys
         if: contains(fromJSON('["ownership", "demo", "imports", "portability"]'), matrix.shard)
@@ -135,11 +152,7 @@ jobs:
         if: matrix.shard != 'portability'
         run: |
           set -euo pipefail
-          pnpm exec playwright install chromium
-          pnpm exec node scripts/chromium-probe.mjs || {
-            sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
-            pnpm exec node scripts/chromium-probe.mjs
-          }
+          bash scripts/ci/chromium.sh
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: lamp-build-${{ github.sha }}
@@ -178,9 +191,43 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  light:
+    needs: plan
+    if: needs.plan.outputs.coverage == 'light'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: package.json
+          package-manager-cache: false
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ runner.temp }}/pnpm-store
+          key: lamp-ubuntu24-temp-pnpm-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: bash scripts/ci/bootstrap.sh
+      - name: Check source integrity, reviewed document readers and the run site
+        env:
+          LIGHT_READERS: ${{ needs.plan.outputs.readers }}
+        run: node scripts/ci/light.mjs
+
+  full-push-proof:
+    needs: [plan, build, shards]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') && needs.plan.outputs.tier == 'push' && needs.plan.outputs.coverage == 'full' && needs.build.result == 'success' && needs.shards.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - run: test '${{ needs.build.result }}:${{ needs.shards.result }}' = success:success
+
   # Preserve the stable required-check name while requiring every planned shard.
   verify:
-    needs: [plan, build, shards]
+    needs: [plan, build, shards, light, full-push-proof]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     steps:
@@ -189,17 +236,17 @@ jobs:
           PLAN_RESULT: ${{ needs.plan.result }}
         run: test "$PLAN_RESULT" = success
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        if: needs.plan.outputs.skip != 'true'
+        if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.has_shards == 'true'
         with:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        if: needs.plan.outputs.skip != 'true'
+        if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.has_shards == 'true'
         with:
           pattern: lamp-shard-${{ github.run_id }}-*
           path: ${{ runner.temp }}/lamp-verification/ci-shards
           merge-multiple: false
       - name: Require every planned command to succeed on this commit
-        if: ${{ always() && needs.plan.outputs.skip != 'true' }}
+        if: ${{ always() && needs.plan.outputs.coverage == 'full' && needs.plan.outputs.has_shards == 'true' }}
         env:
           SHARDS_RESULT: ${{ needs.shards.result }}
           LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
@@ -207,10 +254,38 @@ jobs:
           node scripts/verification/aggregate.mjs
           test "$SHARDS_RESULT" = success
       - name: Retain combined verification verdict
-        if: ${{ always() && needs.plan.outputs.skip != 'true' }}
+        if: ${{ always() && needs.plan.outputs.coverage == 'full' && needs.plan.outputs.has_shards == 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: lamp-verification-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/lamp-verification/ci-summary.json
           if-no-files-found: error
           retention-days: 7
+      - name: Require the selected coverage and its proof
+        if: ${{ always() }}
+        env:
+          PLAN: ${{ needs.plan.result }}
+          BUILD: ${{ needs.build.result }}
+          SHARDS: ${{ needs.shards.result }}
+          LIGHT: ${{ needs.light.result }}
+          PUSH_PROOF: ${{ needs.full-push-proof.result }}
+          COVERAGE: ${{ needs.plan.outputs.coverage }}
+          HAS_SHARDS: ${{ needs.plan.outputs.has_shards }}
+          SKIP: ${{ needs.plan.outputs.skip }}
+        run: |
+          set -euo pipefail
+          test "$PLAN" = success
+          case "$PUSH_PROOF" in failure|cancelled) exit 1 ;; esac
+          case "$COVERAGE" in
+            reuse) test "$SKIP" = true && test "$BUILD:$SHARDS:$LIGHT" = skipped:skipped:skipped ;;
+            light) test "$SKIP" = false && test "$BUILD:$SHARDS:$LIGHT" = skipped:skipped:success ;;
+            full)
+              test "$SKIP:$LIGHT" = false:skipped
+              if [ "$HAS_SHARDS" = true ]; then
+                test "$BUILD:$SHARDS" = success:success
+              else
+                test "$BUILD:$SHARDS" = skipped:skipped
+              fi
+              ;;
+            *) exit 1 ;;
+          esac

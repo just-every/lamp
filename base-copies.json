@@ -30,6 +30,29 @@
       ]
     },
     {
+      "path": ".github/workflows/verify.yml",
+      "originPath": "export/verify.yml",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        ".github/workflows/verify.yml": "09fe6d2a0b274d4925950ef0ddde9c8c7099e15edb5333a601ead2bbcec73a86"
+      },
+      "modes": {
+        ".github/workflows/verify.yml": "100644"
+      },
+      "originFiles": [
+        "export/verify.yml"
+      ],
+      "adapted": {
+        ".github/workflows/verify.yml": "114ef7a61f080da053af783c5fbe06f625d692cc"
+      },
+      "acknowledged": {
+        ".github/workflows/verify.yml": {
+          "sha256": "86478f83f5db195905cc54dbb12b34e0e27f3ff372533cf7984c7126ef2191b8",
+          "mode": "100644"
+        }
+      }
+    },
+    {
       "path": ".node-version",
       "originPath": "default-seed/.node-version",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
@@ -934,6 +957,90 @@
       ]
     },
     {
+      "path": "modules/import-kit/src/receipt/encoding.ts",
+      "originPath": "modules/import-kit/src/receipt/encoding.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "modules/import-kit/src/receipt/encoding.ts": "2e408d84dfeea6251d9f4406469688e09c1bd37b24e2f1be687a9219e0d1b410"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/encoding.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/encoding.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/index.ts",
+      "originPath": "modules/import-kit/src/receipt/index.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "modules/import-kit/src/receipt/index.ts": "874cafbaeb509f7a7eb465aadd6d5587caef209a235787ab2c5866a29d51f9e0"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/index.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/index.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/policy.ts",
+      "originPath": "modules/import-kit/src/receipt/policy.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "modules/import-kit/src/receipt/policy.ts": "ea954dfdbd0518c19addd13d94c7ed1f56e116eb690ee46b91a749ab00069695"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/policy.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/policy.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/types.ts",
+      "originPath": "modules/import-kit/src/receipt/types.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "modules/import-kit/src/receipt/types.ts": "338a32b4ba184236c37211a1902c4dd3aeb50b063882199b11db0871c3fbe87d"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/types.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/types.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/uri.ts",
+      "originPath": "modules/import-kit/src/receipt/uri.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "modules/import-kit/src/receipt/uri.ts": "39622c514ee2561dbada81a693a3a0b0766d5391cbc3d77f0e3e4cb2445cc961"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/uri.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/uri.ts"
+      ]
+    },
+    {
+      "path": "modules/import-kit/src/receipt/validation.ts",
+      "originPath": "modules/import-kit/src/receipt/validation.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "modules/import-kit/src/receipt/validation.ts": "ba8554d180c988c3ea7110685e3ffa2a069db0006ddc3c23a4d13201a70a0308"
+      },
+      "modes": {
+        "modules/import-kit/src/receipt/validation.ts": "100644"
+      },
+      "originFiles": [
+        "modules/import-kit/src/receipt/validation.ts"
+      ]
+    },
+    {
       "path": "modules/import-kit/src/reconcile",
       "originPath": "modules/import-kit/src/reconcile",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
@@ -1745,6 +1852,20 @@
       ]
     },
     {
+      "path": "schema/business-field-inputs.mjs",
+      "originPath": "schema/business-field-inputs.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "schema/business-field-inputs.mjs": "b028b576bc85758c4ed400d059d4aae4fdda7a29eeb290fd1032ea15aaf957d1"
+      },
+      "modes": {
+        "schema/business-field-inputs.mjs": "100644"
+      },
+      "originFiles": [
+        "schema/business-field-inputs.mjs"
+      ]
+    },
+    {
       "path": "schema/dependencies.mjs",
       "originPath": "schema/dependencies.mjs",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
@@ -2036,6 +2157,20 @@
       },
       "originFiles": [
         "modules/delivery-producer/payloads.mjs"
+      ]
+    },
+    {
+      "path": "scripts/delivery/base/schema/business-field-inputs.mjs",
+      "originPath": "schema/business-field-inputs.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "scripts/delivery/base/schema/business-field-inputs.mjs": "b028b576bc85758c4ed400d059d4aae4fdda7a29eeb290fd1032ea15aaf957d1"
+      },
+      "modes": {
+        "scripts/delivery/base/schema/business-field-inputs.mjs": "100644"
+      },
+      "originFiles": [
+        "schema/business-field-inputs.mjs"
       ]
     },
     {
@@ -2775,6 +2910,34 @@
       ]
     },
     {
+      "path": "src/base/contract-prose-patterns.mjs",
+      "originPath": "foundation/runtime/contract-prose-patterns.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/contract-prose-patterns.mjs": "5519a7439e28f7c2635a0170749c43ccdc96eaccc0c313f55a2294d0665c8ba4"
+      },
+      "modes": {
+        "src/base/contract-prose-patterns.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/contract-prose-patterns.mjs"
+      ]
+    },
+    {
+      "path": "src/base/contract-prose.mjs",
+      "originPath": "foundation/runtime/contract-prose.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/contract-prose.mjs": "7f606da0b4ac6f259fdaaa2a263250c1b6a20d5c906104c5a961271d23e818e0"
+      },
+      "modes": {
+        "src/base/contract-prose.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/contract-prose.mjs"
+      ]
+    },
+    {
       "path": "src/base/contract-style.ts",
       "originPath": "foundation/runtime/contract-style.ts",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
@@ -2842,6 +3005,20 @@
       },
       "originFiles": [
         "foundation/runtime/font-response.ts"
+      ]
+    },
+    {
+      "path": "src/base/hosting-page.ts",
+      "originPath": "foundation/runtime/hosting-page.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/hosting-page.ts": "280e291c4d74cc27560379876044be55c7b2ba8d827ddb76b58e2a1b90b21569"
+      },
+      "modes": {
+        "src/base/hosting-page.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/hosting-page.ts"
       ]
     },
     {
@@ -2968,6 +3145,62 @@
       },
       "originFiles": [
         "foundation/runtime/rejected-response.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-chooser-style.ts",
+      "originPath": "foundation/runtime/run-chooser-style.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/run-chooser-style.ts": "62cd0b43762dbe406958d929ee6d27440658ffaead40bb51229eca7c4aea0756"
+      },
+      "modes": {
+        "src/base/run-chooser-style.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-chooser-style.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-data.d.mts",
+      "originPath": "foundation/runtime/run-data.d.mts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/run-data.d.mts": "8b8f8e6b6030abe061027eef4b1b1560fdc77f54b25c82048839887da4fe56c1"
+      },
+      "modes": {
+        "src/base/run-data.d.mts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-data.d.mts"
+      ]
+    },
+    {
+      "path": "src/base/run-data.mjs",
+      "originPath": "foundation/runtime/run-data.mjs",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/run-data.mjs": "e27f7c181fe17f54771893a0988098f49395511a8264b4fd3b848ecda1f5c1c9"
+      },
+      "modes": {
+        "src/base/run-data.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-data.mjs"
+      ]
+    },
+    {
+      "path": "src/base/run-pricing.ts",
+      "originPath": "foundation/runtime/run-pricing.ts",
+      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
+      "files": {
+        "src/base/run-pricing.ts": "f95bdf9b5e62c7d302e97a57ae4dcb580846197fa4cf2222e17a5e1b2c0a02fd"
+      },
+      "modes": {
+        "src/base/run-pricing.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-pricing.ts"
       ]
     },
     {
@@ -3139,213 +3372,73 @@
       ]
     },
     {
-      "path": "src/base/run-pricing.ts",
-      "originPath": "foundation/runtime/run-pricing.ts",
+      "path": "scripts/verify-ci.mjs",
+      "originPath": "export/verify-ci.mjs",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
-        "src/base/run-pricing.ts": "f95bdf9b5e62c7d302e97a57ae4dcb580846197fa4cf2222e17a5e1b2c0a02fd"
+        "scripts/verify-ci.mjs": "cf1ceb8773ed276f82245fb8fb4c4bdc95bff40ecc0e8ca8ac9e776978b17340"
       },
       "modes": {
-        "src/base/run-pricing.ts": "100644"
+        "scripts/verify-ci.mjs": "100644"
       },
       "originFiles": [
-        "foundation/runtime/run-pricing.ts"
+        "export/verify-ci.mjs"
       ]
     },
     {
-      "path": "modules/import-kit/src/receipt/index.ts",
-      "originPath": "modules/import-kit/src/receipt/index.ts",
+      "path": "scripts/verify-plan.mjs",
+      "originPath": "export/verify-plan.mjs",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
-        "modules/import-kit/src/receipt/index.ts": "874cafbaeb509f7a7eb465aadd6d5587caef209a235787ab2c5866a29d51f9e0"
+        "scripts/verify-plan.mjs": "45fe2ab9c5cbc72d0186bf77fab32c985605caae6ecee50676dd618612c3e78f"
       },
       "modes": {
-        "modules/import-kit/src/receipt/index.ts": "100644"
+        "scripts/verify-plan.mjs": "100644"
       },
       "originFiles": [
-        "modules/import-kit/src/receipt/index.ts"
+        "export/verify-plan.mjs"
       ]
     },
     {
-      "path": "modules/import-kit/src/receipt/uri.ts",
-      "originPath": "modules/import-kit/src/receipt/uri.ts",
+      "path": "scripts/verify-evidence.mjs",
+      "originPath": "export/verify-evidence.mjs",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
-        "modules/import-kit/src/receipt/uri.ts": "39622c514ee2561dbada81a693a3a0b0766d5391cbc3d77f0e3e4cb2445cc961"
+        "scripts/verify-evidence.mjs": "9224f772d6a17f043448694eca3c149df83070417b995a2840497e36a9ad0100"
       },
       "modes": {
-        "modules/import-kit/src/receipt/uri.ts": "100644"
+        "scripts/verify-evidence.mjs": "100644"
       },
       "originFiles": [
-        "modules/import-kit/src/receipt/uri.ts"
+        "export/verify-evidence.mjs"
       ]
     },
     {
-      "path": "modules/import-kit/src/receipt/types.ts",
-      "originPath": "modules/import-kit/src/receipt/types.ts",
+      "path": "scripts/verify-light.mjs",
+      "originPath": "export/verify-light.mjs",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
-        "modules/import-kit/src/receipt/types.ts": "338a32b4ba184236c37211a1902c4dd3aeb50b063882199b11db0871c3fbe87d"
+        "scripts/verify-light.mjs": "f9b126130837144e43a65d10d370d602b63daad2be7ff66c93178d461a7521d9"
       },
       "modes": {
-        "modules/import-kit/src/receipt/types.ts": "100644"
+        "scripts/verify-light.mjs": "100644"
       },
       "originFiles": [
-        "modules/import-kit/src/receipt/types.ts"
+        "export/verify-light.mjs"
       ]
     },
     {
-      "path": "modules/import-kit/src/receipt/encoding.ts",
-      "originPath": "modules/import-kit/src/receipt/encoding.ts",
+      "path": "scripts/verify-app.mjs",
+      "originPath": "export/verify-app.mjs",
       "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
       "files": {
-        "modules/import-kit/src/receipt/encoding.ts": "2e408d84dfeea6251d9f4406469688e09c1bd37b24e2f1be687a9219e0d1b410"
+        "scripts/verify-app.mjs": "4c3a87c809e2b671a555dc36171b60675f87be96362de7d2269d9f5e1c3100b6"
       },
       "modes": {
-        "modules/import-kit/src/receipt/encoding.ts": "100644"
+        "scripts/verify-app.mjs": "100644"
       },
       "originFiles": [
-        "modules/import-kit/src/receipt/encoding.ts"
-      ]
-    },
-    {
-      "path": "schema/business-field-inputs.mjs",
-      "originPath": "schema/business-field-inputs.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "schema/business-field-inputs.mjs": "b028b576bc85758c4ed400d059d4aae4fdda7a29eeb290fd1032ea15aaf957d1"
-      },
-      "modes": {
-        "schema/business-field-inputs.mjs": "100644"
-      },
-      "originFiles": [
-        "schema/business-field-inputs.mjs"
-      ]
-    },
-    {
-      "path": "scripts/delivery/base/schema/business-field-inputs.mjs",
-      "originPath": "schema/business-field-inputs.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "scripts/delivery/base/schema/business-field-inputs.mjs": "b028b576bc85758c4ed400d059d4aae4fdda7a29eeb290fd1032ea15aaf957d1"
-      },
-      "modes": {
-        "scripts/delivery/base/schema/business-field-inputs.mjs": "100644"
-      },
-      "originFiles": [
-        "schema/business-field-inputs.mjs"
-      ]
-    },
-    {
-      "path": "src/base/contract-prose.mjs",
-      "originPath": "foundation/runtime/contract-prose.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "src/base/contract-prose.mjs": "7f606da0b4ac6f259fdaaa2a263250c1b6a20d5c906104c5a961271d23e818e0"
-      },
-      "modes": {
-        "src/base/contract-prose.mjs": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/contract-prose.mjs"
-      ]
-    },
-    {
-      "path": "src/base/hosting-page.ts",
-      "originPath": "foundation/runtime/hosting-page.ts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "src/base/hosting-page.ts": "280e291c4d74cc27560379876044be55c7b2ba8d827ddb76b58e2a1b90b21569"
-      },
-      "modes": {
-        "src/base/hosting-page.ts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/hosting-page.ts"
-      ]
-    },
-    {
-      "path": "src/base/run-chooser-style.ts",
-      "originPath": "foundation/runtime/run-chooser-style.ts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "src/base/run-chooser-style.ts": "62cd0b43762dbe406958d929ee6d27440658ffaead40bb51229eca7c4aea0756"
-      },
-      "modes": {
-        "src/base/run-chooser-style.ts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-chooser-style.ts"
-      ]
-    },
-    {
-      "path": "modules/import-kit/src/receipt/policy.ts",
-      "originPath": "modules/import-kit/src/receipt/policy.ts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "modules/import-kit/src/receipt/policy.ts": "ea954dfdbd0518c19addd13d94c7ed1f56e116eb690ee46b91a749ab00069695"
-      },
-      "modes": {
-        "modules/import-kit/src/receipt/policy.ts": "100644"
-      },
-      "originFiles": [
-        "modules/import-kit/src/receipt/policy.ts"
-      ]
-    },
-    {
-      "path": "modules/import-kit/src/receipt/validation.ts",
-      "originPath": "modules/import-kit/src/receipt/validation.ts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "modules/import-kit/src/receipt/validation.ts": "ba8554d180c988c3ea7110685e3ffa2a069db0006ddc3c23a4d13201a70a0308"
-      },
-      "modes": {
-        "modules/import-kit/src/receipt/validation.ts": "100644"
-      },
-      "originFiles": [
-        "modules/import-kit/src/receipt/validation.ts"
-      ]
-    },
-    {
-      "path": "src/base/contract-prose-patterns.mjs",
-      "originPath": "foundation/runtime/contract-prose-patterns.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "src/base/contract-prose-patterns.mjs": "5519a7439e28f7c2635a0170749c43ccdc96eaccc0c313f55a2294d0665c8ba4"
-      },
-      "modes": {
-        "src/base/contract-prose-patterns.mjs": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/contract-prose-patterns.mjs"
-      ]
-    },
-    {
-      "path": "src/base/run-data.mjs",
-      "originPath": "foundation/runtime/run-data.mjs",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "src/base/run-data.mjs": "e27f7c181fe17f54771893a0988098f49395511a8264b4fd3b848ecda1f5c1c9"
-      },
-      "modes": {
-        "src/base/run-data.mjs": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-data.mjs"
-      ]
-    },
-    {
-      "path": "src/base/run-data.d.mts",
-      "originPath": "foundation/runtime/run-data.d.mts",
-      "revision": "114ef7a61f080da053af783c5fbe06f625d692cc",
-      "files": {
-        "src/base/run-data.d.mts": "8b8f8e6b6030abe061027eef4b1b1560fdc77f54b25c82048839887da4fe56c1"
-      },
-      "modes": {
-        "src/base/run-data.d.mts": "100644"
-      },
-      "originFiles": [
-        "foundation/runtime/run-data.d.mts"
+        "export/verify-app.mjs"
       ]
     }
   ],
