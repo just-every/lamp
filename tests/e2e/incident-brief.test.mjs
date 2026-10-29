@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
 import { openStatusJourney } from './helpers/status-journey.mjs';
+import { recoveryPublicSurfaces, assertRecoveryPublicSurfacesUnchanged } from './helpers/intake-recovery-surfaces.mjs';
 
 const aiEndpoint = 'https://ai.example.test/v1/chat/completions';
 
@@ -28,10 +29,13 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.equal((await j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
     const payload = { alert: { id: 'checkout-outage', title: 'PRIVATE monitor wording', state: 'firing' } };
     const accepted = await alert(payload); assert.equal(accepted.status, 202);
-    const id = (await accepted.json()).incidentId;
+    const firing = await accepted.json();
+    const id = firing.incidentId;
     const replay = await alert(payload); assert.equal(replay.status, 202); assert.equal((await replay.json()).incidentId, id);
     const changed = await alert({ alert: { ...payload.alert, title: 'PRIVATE changed monitor wording' } });
-    assert.equal(changed.status, 202); assert.equal((await changed.json()).incidentId, id);
+    assert.equal(changed.status, 202);
+    const latestFiring = await changed.json();
+    assert.equal(latestFiring.incidentId, id);
     assert.equal((await alert({ alert: { title: 'Missing deduplication key', state: 'firing' } })).status, 400);
     await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: component.id, state: 'Major outage', relationship: 'Primary' }, 201);
     await j.json(`/api/app/incidents/${id}/internal-notes`, 'POST', { body: 'PRIVATE responder investigation' }, 201);
@@ -63,7 +67,53 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.deepEqual((await j.read(id)).updates, before.updates);
     await j.publish(id);
     await j.visible(`/incidents/${before.reference}`, 'Some checkout requests fail.');
-    assert.equal((await alert({ alert: { ...payload.alert, state: 'recovered' } })).status, 202);
+    const receipt = async receiptId => {
+      const { receipts } = await j.json(`/api/app/intake/receipts?receipt=${receiptId}`);
+      assert.equal(receipts.length, 1, 'the returned receipt identity independently addresses one alert');
+      return receipts[0];
+    };
+    const matchingAlert = { sourceId: source.id, sourceName: source.name, deduplicationKey: 'checkout-outage', incidentId: id };
+    for (const receiptId of [firing.receiptId, latestFiring.receiptId]) {
+      const row = await receipt(receiptId);
+      for (const [key, value] of Object.entries(matchingAlert)) assert.equal(row[key], value, key);
+      assert.equal(row.id, receiptId);
+      assert.equal(row.state, 'firing');
+      assert.equal(row.recoveredAt, null);
+    }
+    const publicBeforeRecovery = await recoveryPublicSurfaces(j);
+    for (const path of ['/', '/history', `/incidents/${before.reference}`, '/feed.atom', '/feed.rss', '/history.atom', '/history.rss', '/widget.js', '/embed/script.js', '/badge.svg', '/badge.json', '/api/public/status', '/api/public/v1/incidents.json', '/api/v2/incidents.json']) {
+      assert.ok(publicBeforeRecovery.responses.some(row => row.path === path), `${path} participates in recovery invariance`);
+    }
+    const publishedBeforeRecovery = await j.read(id);
+    assert.equal(publishedBeforeRecovery.updates.length, 1, 'the invariance control contains a real publication');
+    const publishedRows = async () => (await j.db.prepare('SELECT * FROM incident_updates ORDER BY id').all()).results;
+    const updatesBeforeRecovery = await publishedRows();
+    assert.equal(updatesBeforeRecovery.length, 1);
+    const recoveryStartedAt = Date.now();
+    const recoveredResponse = await alert({ alert: { ...payload.alert, state: 'recovered' } });
+    const recoveryFinishedAt = Date.now();
+    assert.equal(recoveredResponse.status, 202);
+    const recovered = await recoveredResponse.json();
+    assert.equal(recovered.incidentId, id);
+    assert.notEqual(recovered.receiptId, latestFiring.receiptId);
+    const recoveryReceipt = await receipt(recovered.receiptId);
+    for (const [key, value] of Object.entries(matchingAlert)) assert.equal(recoveryReceipt[key], value, key);
+    assert.equal(recoveryReceipt.id, recovered.receiptId);
+    assert.equal(recoveryReceipt.state, 'recovered');
+    const recoveredAt = Date.parse(recoveryReceipt.recoveredAt);
+    assert.ok(recoveredAt >= recoveryStartedAt && recoveredAt <= recoveryFinishedAt, 'the recorded recovery instant falls within the recovery request');
+    assert.equal(recoveryReceipt.receivedAt, recoveryReceipt.recoveredAt);
+    const recoveredFiring = await receipt(latestFiring.receiptId);
+    for (const [key, value] of Object.entries(matchingAlert)) assert.equal(recoveredFiring[key], value, key);
+    assert.equal(recoveredFiring.id, latestFiring.receiptId);
+    assert.equal(recoveredFiring.state, 'firing');
+    assert.equal(recoveredFiring.recoveredAt, recoveryReceipt.recoveredAt, 'recovery is recorded against the matching firing alert');
+    assert.equal((await receipt(firing.receiptId)).recoveredAt, null, 'the earlier firing receipt is not mistaken for the latest matching alert');
+    assertRecoveryPublicSurfacesUnchanged(publicBeforeRecovery, await recoveryPublicSurfaces(j));
+    const afterRecovery = await j.read(id);
+    assert.equal(afterRecovery.lifecycle, publishedBeforeRecovery.lifecycle, 'recovery cannot change incident lifecycle');
+    assert.deepEqual(afterRecovery.updates, publishedBeforeRecovery.updates, 'recovery cannot change any published update field');
+    assert.deepEqual(await publishedRows(), updatesBeforeRecovery, 'recovery cannot add, remove or alter a complete published record');
     const recovery = (await j.json(`/api/app/incidents/${id}/recovery-check`)).recovery;
     assert.equal(recovery.passed, false);
     assert.ok(recovery.items.some(row => row.state === 'holding'));

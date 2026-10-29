@@ -6775,6 +6775,10 @@
       "sha256": "e95d0515320279d2798e443491869f74af912441771ba68045aa27cf4e382664",
       "executable": false
     },
+    "tests/e2e/helpers/intake-recovery-surfaces.mjs": {
+      "sha256": "c2de182bfdcef37606697b17353b7bb01b776078a8a0106acf656a455f2450da",
+      "executable": false
+    },
     "tests/e2e/helpers/mail-failover-flow.mjs": {
       "sha256": "dd169d597eb57dca640ac7208e8c53e32afa900d24ffc7298c12ec27bc2e2151",
       "executable": false
@@ -6968,7 +6972,7 @@
       "executable": false
     },
     "tests/e2e/incident-brief.test.mjs": {
-      "sha256": "874930c49ff23d0c303f083a749db3ac6bbf184d395932c9bd5f4e9f89f7cf2a",
+      "sha256": "8e52403ccfd2136bb2f1dc26b9ae1f9bc678960196304044a2947b1f3c4ac611",
       "executable": false
     },
     "tests/e2e/independent-release.test.mjs": {
