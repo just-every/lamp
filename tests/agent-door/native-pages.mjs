@@ -26,7 +26,12 @@ export async function inspectNativePages(input) {
   }
   await withNativePageBrowser(input, async ({ page, capture, view }) => {
     for (const width of [1440, 390]) {
-      if (area === 'incident') await view('incident-report', `/app/incidents/${incidentId}`, width);
+      if (area === 'incident') {
+        await view('incident-report', `/app/incidents/${incidentId}`, width);
+        await view('channel-delivery', '/app/settings#channels', width);
+        await page.getByText('Recent posts', { exact: true }).click();
+        await capture('channel-outcomes', width);
+      }
       if (area === 'maintenance') await view('maintenance-attribution', '/app/maintenance', width);
       if (area === 'delivery') {
         await view('delivery-attribution', '/app/deliveries', width);

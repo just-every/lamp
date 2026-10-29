@@ -8048,7 +8048,7 @@
       "executable": false
     },
     "tests/agent-door/native-pages.mjs": {
-      "sha256": "e8caf581591666665636b4026f30fd3be0ae40dd61ac707b4fced89a9cd7ed9d",
+      "sha256": "a8c6d006c07c5e7232a83043f7af5b73af3c4557ff6356091124520ffea88e91",
       "executable": false
     },
     "tests/agent-door/owner-fixtures.mjs": {
@@ -8064,7 +8064,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "9eb466074c7c563454f230cc45ecd829203a310f33c1e881bb33919848cc8b07",
+      "sha256": "3c4128d70f6341de237b2c957994f57ffb63004b7301ace303d850c784333a8b",
       "executable": false
     },
     "tests/agent-door/phase-fixtures.mjs": {
