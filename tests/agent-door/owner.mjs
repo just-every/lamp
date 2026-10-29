@@ -9,11 +9,13 @@ export default async function initializeOwner({ request, origin, token, displayN
     headers: { Origin: origin, 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, displayName, returnTo: '/setup' }),
   });
+  console.log(`Native owner bootstrap: HTTP ${bootstrap.status}`);
   assert.equal(bootstrap.status, 303, 'Native owner claim must create a normal person session');
   const cookie = bootstrap.headers.getSetCookie().map(value => value.split(';', 1)[0]).join('; ');
   assert.ok(cookie, 'Native owner claim must retain its session cookie');
   const read = async path => {
     const response = await request(new URL(path, origin).href, { headers: { Origin: origin, Cookie: cookie } });
+    if (response.status !== 200) console.log(`Native owner read ${path}: HTTP ${response.status}`);
     assert.equal(response.status, 200, `Native owner read ${path}`);
     return response.json();
   };

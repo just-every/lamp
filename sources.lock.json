@@ -8760,7 +8760,7 @@
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
-      "sha256": "97120c2540a168ef565a4d88508e283c98b1a46d5c989c755f3b0dc342a75b19",
+      "sha256": "4b72c56d96a1049da27cc0865475bc5037866c201b9534a94444f2bd92523602",
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
