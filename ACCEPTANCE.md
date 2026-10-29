@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 171 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 171 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. MAINT-002 and INCIDENT-002 are rechecked on this candidate's committed tree; earlier clause judgments remain inherited. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -424,7 +424,7 @@ Core · published · **partial**
 
 #### INCIDENT-002 — Impact
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** An incident retains the greatest component impact it has reached.
 
@@ -433,8 +433,8 @@ Core · published · **partial**
 2. Resolution retains that peak impact.
 3. Without attached components the incident has no impact and cannot be published; UPDATE-001 governs the required attachment.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: peak impact; resolved peak impact. Unasserted in old cited evidence: no-component impact absent; no-component publication refused.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion): native publication retains Major outage after a lower component claim and after resolution. A fresh never-published incident loses its sole component through the native detach door and reads back no components, null impact and effective impact none. An otherwise complete reviewed draft is refused with the missing-component reason; the incident, draft, complete persisted publication inventory and checked public root, history, Atom and status bytes remain unchanged.
+**Gap.** None.
 
 #### INCIDENT-003 — Reference
 
@@ -703,7 +703,7 @@ Core · published · **partial**
 
 #### MAINT-002 — Automatic transitions
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Automatic maintenance follows its declared window.
 
@@ -711,8 +711,8 @@ Core · published · **partial**
 1. Scheduled moves to In progress within 240 seconds after start without an operator action.
 2. In progress moves to Completed within 240 seconds after end without an operator action.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: scheduled event starts; scheduled event completes. Unasserted in old cited evidence: 240-second start bound; 240-second completion bound.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history): a future native window remains Scheduled immediately before start, is In progress at start plus 240 seconds, remains In progress immediately before end and is Completed at end plus 240 seconds. The Worker Date clock and native Cron event advance together; native readback and the public permalink show the transitions, each has exactly one system-authored notice, and repeated ticks preserve the record and notices.
+**Gap.** None.
 
 #### MAINT-003 — Component states
 
