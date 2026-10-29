@@ -65,7 +65,7 @@ keys remain revoked.
 
 ## Owner administration API dependency
 
-As of 29 October 2026, the published rer 0.2.88 Base source's
+As of 29 October 2026, the published rer 0.2.89 Base source's
 `modules/operator-auth/accounts/delegated.mjs:33–46` exposes invitation, role change
 and operator listing. Its invitation method explicitly rejects the `owner`
 role, and its role method rejects owner targets and owner grants. It has no

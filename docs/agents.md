@@ -1,15 +1,24 @@
 # Work with an incident communicator
 
-Lamp exposes its incident desk through the shared MCP door at `/mcp`. Discovery,
-resource metadata and the incident-communication prompt describe supported jobs.
+Lamp exposes its incident desk through the shared MCP door at `/mcp`. Discovery
+and the incident-communication prompt describe supported jobs. The declared
+capabilities are `tools`, `policy`, `pause`, `audit`, `idempotency` and `prompts`.
 The door supports the 2026-07-28 and 2025-11-25 protocol versions.
+
+Events, MCP resources and subscriptions are unavailable in this declaration.
+Their calls return `capability_not_declared`; the events tool is absent from
+`tools/list`. Native read tools below retain their current authorization checks.
+The subset does not establish multi-sponsor, mail-edge, resource-refresh, timed,
+dual-host, queued-lifecycle or owner-administration support. Those families and
+the remaining Base conformance gaps are pending; this adoption is not a claim
+that the complete native journey passes.
 
 ## Connect and choose company policy
 
 Business supplies signed installation settings with durable owner and teammate
 IDs. An agent token carries the sponsoring person, consent and scopes. Token email
 never selects an operator. Current native Owner/Admin, Communicator, Responder and Viewer restrictions
-also govern direct tools and resources; signed Business policy roles are separate.
+also govern direct tools and native record projections; signed Business policy roles are separate.
 
 The company adopts signed policy at `/api/rer/agent-policy`. It chooses autonomous,
 review, approval or blocked dispositions for each class. Unset, unanswered or
@@ -20,9 +29,9 @@ Pause and revoked sponsor, agent or consent stop the next agent effect.
 
 Record actions resolve their native target through the current authorized
 resource projection. Audit rows identify its kind and ID; pending summaries bind
-that same identity into the summary hash. Resource refusals expose their machine
-code in JSON-RPC `error.data.code`. Hidden and missing records both return
-`resource_unavailable` without disclosing whether a record exists.
+that same identity into the summary hash. Hidden and missing targets share the
+`resource_unavailable` refusal without disclosing whether a record exists.
+The internal target projection does not enable the optional MCP resource family.
 
 Native management credentials retain their original read or metric-point scopes
 and sponsoring operator. Credential issuance, recent email proof, chat identity
@@ -40,8 +49,11 @@ See [Native proof for protected changes](agent-native-proof.md) for the person p
 3. Publish that version under company policy. The summary names public wording,
    components, selected channels, recipients and promises. Configured native review
    rules still apply.
-4. Read native resources, public state and actual delivery outcomes. Retained import reports are available at `lamp://imports/{id}/report` with `lamp.access.read`; this does not grant import apply, undo or invitation authority. Provider
-   acceptance and a person reading a notice remain separate facts.
+4. Use the listed native read tools, public state and actual delivery outcomes.
+   Retained import reports remain available on the native import screen; the MCP
+   resource family is unavailable. Import apply, undo and invitation retain their
+   separate authority. Provider acceptance and a person reading a notice remain
+   separate facts.
 5. Resolve with current native recovery evidence or an explicitly permitted recorded
    reasoned override. Prepare and publish the post-incident report from the record.
 
@@ -84,7 +96,6 @@ configuration or a provider is unavailable.
 | `lamp.deliveries.dispatch` | external, live | `deliveries:dispatch` |
 | `lamp.deliveries.read` | standard | `lamp.deliveries.read` |
 | `lamp.drafts.save` | standard | `lamp.drafts.save` |
-| `lamp.events.list` | standard | `events:read` |
 | `lamp.followups.dismiss` | standard | `lamp.followups.write` |
 | `lamp.followups.read` | standard | `lamp.followups.read` |
 | `lamp.followups.retry` | external | `lamp.followups.write` |
@@ -151,23 +162,13 @@ configuration or a provider is unavailable.
 
 ## Native records
 
-- `lamp://access/{id}`
-- `lamp://components/{id}`
-- `lamp://deliveries/{id}`
-- `lamp://groups/{id}`
-- `lamp://imports/{id}/report`
-- `lamp://incidents/{id}`
-- `lamp://incidents/{id}/brief`
-- `lamp://incidents/{id}/draft/{version}`
-- `lamp://incidents/{id}/recovery`
-- `lamp://maintenance/{id}`
-- `lamp://metrics/{id}`
-- `lamp://page/{id}`
-- `lamp://reports/{id}`
-- `lamp://subscribers/{id}`
+Read incidents, components, maintenance and delivery outcomes through their
+listed tools and native screens. The optional MCP resource family is not
+declared, so resource templates are not listed and `resources/read` returns
+`capability_not_declared`, including for previously documented `lamp://` URIs.
 
-Resources are classified reads under the same policy and current native visibility.
-Missing and restricted records share a refusal. Customer, provider and imported
+Native record projections still resolve current authorized targets for tool
+classification, audit and approval summaries. Customer, provider and imported
 text are untrusted evidence. Credentials, webhook capability paths and hidden
 operator notes do not enter public projections.
 
