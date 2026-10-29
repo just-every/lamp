@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b140c3577283fa802a1ff4756feb2d7a1270692ab26cf95c8cc485ac1c2833a2",
+      "sha256": "28a5e093ce365cd405b96511fc4db7fb0694e0faa5350294e70ea4da89656ece",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6fc92a399e9e5ac0a7c31601a8b4fa88fcddcd22fa7bded58bcbfc9c2af48322",
+      "sha256": "86004ef1ea8e072f6c6c30c6ddcc16f25d8c3be0b90a540901505f8983ce8a1a",
       "executable": false
     },
     "DEMO.md": {
@@ -6828,7 +6828,7 @@
       "executable": false
     },
     "tests/e2e/helpers/pagerduty-flow.mjs": {
-      "sha256": "548c9dc3baf0d232aa306978df584b7e440dcba57feb54784d7cd4c215f1038d",
+      "sha256": "1998bcfea7bc9fe5d9ecd77adcc43fb382604fd61ce95fd85ca310df55a94f84",
       "executable": false
     },
     "tests/e2e/helpers/phone-desk-flow.mjs": {

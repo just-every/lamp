@@ -39,7 +39,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
   const directory = await mkdtemp(join(tmpdir(), 'lamp-pagerduty-'));
   let worker;
   const notes = [], requests = [], noteAuthors = [];
-  let providerStatus = 201;
+  let providerStatus = 201, expectedNoteAuthor = pagerDutyFromEmail;
   try {
     const env = fixtureProcessEnv();
     const configPath = join(directory, 'wrangler.json');
@@ -68,6 +68,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
         assert.equal(request.headers.get('authorization'), `Token token=${apiKey}`);
         assert.equal(request.headers.get('accept'), 'application/vnd.pagerduty+json;version=2');
         assert.equal(request.headers.get('content-type'), 'application/json');
+        assert.equal(request.headers.get('from'), expectedNoteAuthor, 'every note uses the selected author');
         noteAuthors.push(request.headers.get('from'));
         notes.push(await request.json());
         return Response.json(providerStatus === 201 ? { note: { id: `fixture-note-${notes.length}` } } : { error: { message: 'Provider refused note' } }, {
@@ -266,6 +267,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     await publish('Restored operators are checking API health.', 'Monitoring');
     assert.equal(notes.length, 4, 'restored connection sends nothing until the owner reconnects');
     providerStatus = 201;
+    expectedNoteAuthor = ['operator', 'example.test'].join('@');
     const reconnected = await put(`/api/app/intake/sources/${source.id}`, { ...input, pagerDutyApiKey: apiKey });
     assert.equal(reconnected.status, 200, reconnected.text);
     assert.equal(reconnected.body.source.responderConnection, 'connected');
