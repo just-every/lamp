@@ -89,9 +89,13 @@ export async function publicCapacityJourney(j, limits) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
         assert.equal(await page.locator('[data-metric-chart]').count(), 10);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        const resources = page.locator('footer details.footer-resources');
+        if (await resources.getAttribute('open') === null) await resources.locator('summary').click();
         assert.equal(await page.getByRole('link', { name: 'Maintenance calendar', exact: true }).getAttribute('href'), '/maintenance.ics');
         if (process.env.LAMP_SCREENSHOTS) {
           await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+          await page.locator('footer').screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-calendar-footer-${template}.png` });
+          await page.evaluate(() => scrollTo(0, 0));
           await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-capacity-${template}.png` });
         }
       }
