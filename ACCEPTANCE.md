@@ -13,7 +13,7 @@ The primary journey: An operator sets up the page and components, accepts eviden
 | Later | 0 | 0 | 0 | 0 |
 | Full target | 22 | 167 | 54 | 243 |
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. COMP-002 and COMP-004 are rechecked at commit `487ce5031b0a85326f1692b94a87fee6883546f0` (30 October 2026); PAGE-004 retains main’s partial judgment while the candidate’s rollup assertions are preserved. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 

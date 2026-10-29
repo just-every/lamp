@@ -3116,7 +3116,7 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. COMP-002 and COMP-004 are rechecked at commit `487ce5031b0a85326f1692b94a87fee6883546f0` (30 October 2026); PAGE-004 retains main’s partial judgment while the candidate’s rollup assertions are preserved.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
