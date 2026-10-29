@@ -1647,3 +1647,12 @@ requirements; it needs no new capability for this schema.
 ## Public footer operator entry — 28 October 2026
 
 The public page keeps its operator sign-in entry usable beside the customer resource links, including when the optional credit is hidden. The entry has a full touch target rather than relying on surrounding whitespace; the public customer journey retains its WCAG 2.2 accessibility check.
+
+## Dependency identity custody — 29 October 2026
+
+Adopting rer 0.2.89 preserves Base's installation-key custody for dependency
+identity. Lamp forwards the generated current and previous installation keys to
+both dependency discovery/linking and operator authentication. Previously the
+native dependency document returned `installation_key_missing` (503) despite the
+installation having its generated key. No secret is derived from another binding;
+the existing provider approval and native setup journeys cover the integration.

@@ -516,7 +516,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "51713e052b1b3d24f3eb656ce0833ba38b2538522d07c2652e2cbeb184924af9",
+      "sha256": "de3c5f4ab6d6d6073bacf4d92b9c23b03773caa968097b1a3593197754e97d7b",
       "executable": false
     },
     "docs/accessibility/vpat.md": {
@@ -4120,7 +4120,7 @@
       "executable": false
     },
     "src/core/app/types.ts": {
-      "sha256": "72488f532499c56231c8c0729e5041d4c5d28a26489c83adffe7f837c9db8dd8",
+      "sha256": "f0ee3f74eaa5c5e1ef1744dc4f07a6eee0d00e792be2ec9656e6a884def8f6e0",
       "executable": false
     },
     "src/core/app/worker-lifecycle.ts": {
@@ -6228,11 +6228,11 @@
       "executable": false
     },
     "src/core/platform/auth/config.ts": {
-      "sha256": "1aab4f921a9952136b69bf86f5c5820e8aaba62417f8199e38bfd585d056e8f6",
+      "sha256": "ca9eaa789916411ff1d021190910f68452db039d1690f92dcbc8210085b860a3",
       "executable": false
     },
     "src/core/platform/auth/http.ts": {
-      "sha256": "99f11b1b44622942659ce6b65bc1ece4bea27227cc47b5dac346693b0515873e",
+      "sha256": "49bae3e948e25190e130cc3a2be8ebbcc971863350dc21eed96f4d1004dae698",
       "executable": false
     },
     "src/core/platform/auth/identity-provider-guides.ts": {
@@ -7340,7 +7340,7 @@
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {
-      "sha256": "bb3745baf37db536d2d535e489510fa21ab6f7c50e96ddf540299b63c2a2b95a",
+      "sha256": "bc412fa6c274d981bcb4e37fb735be4ccf7af8ac89ec5f6c989288c2d8528bb4",
       "executable": false
     },
     "tests/auth-adoption/fixtures/prechange.sql": {
