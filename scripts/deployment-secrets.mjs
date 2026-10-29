@@ -11,14 +11,15 @@ import { join } from 'node:path';
 // LAMP_REPLACE_SECRETS=NAME[,NAME], or `rer deploy --rotate-secret NAME`, replaces
 // one on purpose.
 export const signingSecrets = ['SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET', 'OIDC_TRANSACTION_SECRET'];
+const custodiedSecrets = [...signingSecrets, 'INSTALLATION_KEY'];
 
 export function replacedSecrets(env = process.env) {
   // rer deploy --rotate-secret NAME reaches this script as RER_ROTATE_SECRETS.
   const sources = [['LAMP_REPLACE_SECRETS', 'LAMP_REPLACE_SECRETS'], ['RER_ROTATE_SECRETS', 'rer deploy --rotate-secret']];
   return sources.flatMap(([variable, source]) => {
     const names = (env[variable] ?? '').split(',').map(name => name.trim()).filter(Boolean);
-    const unknown = names.filter(name => !signingSecrets.includes(name));
-    if (unknown.length) throw new Error(`${source} names ${unknown.join(', ')}; it takes only ${signingSecrets.join(', ')}.`);
+    const unknown = names.filter(name => !custodiedSecrets.includes(name));
+    if (unknown.length) throw new Error(`${source} names ${unknown.join(', ')}; it takes only ${custodiedSecrets.join(', ')}.`);
     return names;
   });
 }
@@ -31,7 +32,7 @@ export function ignoredOidcSecretNotice(config, kept) {
 
 /** The signing secrets this upload leaves as they are on a Worker that holds them. */
 export function keptSecrets(held, replace = []) {
-  return signingSecrets.filter(name => held.includes(name) && !replace.includes(name));
+  return custodiedSecrets.filter(name => held.includes(name) && !replace.includes(name));
 }
 
 export async function withDeploymentSecrets(config, kept, action) {
@@ -44,6 +45,8 @@ export async function withDeploymentSecrets(config, kept, action) {
     MAIL_PROVIDER_API_KEY: config.mailProviderApiKey ?? "",
     MAIL_API_KEY: config.mailApiKey ?? "",
     SESSION_SECRET: config.sessionSecret,
+    INSTALLATION_KEY: config.installationKey,
+    ...(config.installationKeyPrevious ? { INSTALLATION_KEY_PREVIOUS: config.installationKeyPrevious } : {}),
     SETUP_TOKEN: config.setupToken,
     AUTH_PROVIDERS:config.authProviders??"",
     // Absent, it is left out rather than blanked: Wrangler keeps what the Worker holds.

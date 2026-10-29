@@ -47,7 +47,7 @@ export default defineConfig(({ command, isPreview }) => {
         // Cloudflare's Worker module runner fetches these local module URLs
         // before Vite records them as imported safe paths.
         // The landing page imports repository metadata from this one root file.
-        allow: ["src", "public", "node_modules", "modules", "scripts/dev-ingress", "node_modules/@runeditrun/rer/modules", "package.json"],
+        allow: ["src", "public", "node_modules", "modules", "foundation/runtime", "scripts/dev-ingress", "node_modules/@runeditrun/rer/modules", "package.json"],
         deny: ["**/.rer/**", "**/.seed/**", "**/exports/**", "**/*.rer"],
       },
     },

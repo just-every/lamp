@@ -81,6 +81,11 @@ function optionalSecret(value, name) {
   return value ? secret(value, name) : undefined;
 }
 
+function installationKey(value, name) {
+  if (!/^[a-f0-9]{64}$/.test(value)) throw new Error(`${name} must contain 64 lowercase hexadecimal characters generated from 32 random bytes.`);
+  return value;
+}
+
 function tomlString(value) {
   return JSON.stringify(value);
 }
@@ -191,6 +196,8 @@ export function deploymentConfig(env = process.env, environment = "production", 
     mailFromAddress,
     setupOperatorEmail,
     sessionSecret: secret(required(env,"SESSION_SECRET"),"SESSION_SECRET"),
+    installationKey: installationKey(required(env,"INSTALLATION_KEY"),"INSTALLATION_KEY"),
+    installationKeyPrevious: optional(env.INSTALLATION_KEY_PREVIOUS) ? installationKey(optional(env.INSTALLATION_KEY_PREVIOUS),"INSTALLATION_KEY_PREVIOUS") : undefined,
     setupToken: claimsOwner ? secret(required(env,"SETUP_TOKEN"),"SETUP_TOKEN") : optionalSecret(optional(env.SETUP_TOKEN),"SETUP_TOKEN"),
     setupOperatorDisplayName,
     mailProviderApiKey,

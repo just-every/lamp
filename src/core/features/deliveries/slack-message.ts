@@ -8,6 +8,7 @@ import type { DispatchableDelivery } from "./repository";
 /** Slack receives native message fields, never Lamp's generic webhook envelope. */
 export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, origin: string) {
   const time = (instant: string) => formatTime(instant, delivery.timezone ?? "UTC");
+  const attribution = delivery.agentLabel ? [`Prepared by ${delivery.agentLabel}`] : [];
   if (delivery.incidentUpdateId) {
     if (delivery.incidentReference === null || delivery.incidentTitle === null || delivery.lifecycle === null || delivery.affectedAudience === null || delivery.customerImpact === null) throw new Error("Slack incident update content is unavailable.");
     const update = renderNotificationUpdate({
@@ -21,6 +22,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
     return renderLampSlackMessage(`${update.email.subject}${delivery.incidentImpact === null ? "" : ` · Incident impact: ${impactLabel(delivery.incidentImpact)}`}`, [
       update.public.heading, `Status: ${update.public.lifecycle}`,
       ...update.public.fields.map(field => `${field.label}: ${field.value}`),
+      ...attribution,
       new URL(`/incidents/${encodeURIComponent(delivery.incidentReference)}`, origin).href,
     ]);
   }
@@ -31,6 +33,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
       `${delivery.incidentReference}: ${delivery.incidentTitle}`,
       ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]),
       ...fields.flatMap(([label, value]) => value ? [`${label}: ${value}`] : []),
+      ...attribution,
       new URL(`/incidents/${encodeURIComponent(delivery.incidentReference)}`, origin).href,
     ]);
   }
@@ -40,6 +43,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
     ...(delivery.maintenanceStartsAt ? [`Start: ${time(delivery.maintenanceStartsAt)}`] : []),
     ...(delivery.maintenanceEndsAt ? [`End: ${time(delivery.maintenanceEndsAt)}`] : []),
     ...(delivery.maintenanceNoticeBody ? [delivery.maintenanceNoticeBody] : []),
+    ...attribution,
     new URL("/", origin).href,
   ]);
 }

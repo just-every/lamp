@@ -1,3 +1,4 @@
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 import type { MonitorMapping } from "./uptime";
 import { currentStateHistoryStatement } from "../components/state-history-repository";
 import { activeRuleRunsGuard } from "./rule-repository";
@@ -47,7 +48,7 @@ export interface IntakeRepository {
   deleteSource(sourceId: string, operatorId: string, at: string): Promise<{deleted:boolean;publicChanged:boolean}>;
   operatorEmail(operatorId: string): Promise<string | null>;
   findSource(sourceId: string): Promise<AlertSourceRow | null>;
-  upsertSource(source: AlertSourceRow): Promise<void>;
+  upsertSource(source: AlertSourceRow, operatorId?: string, expectedUpdatedAt?: string): Promise<void>;
   findReceipt(sourceId: string, requestHash: string): Promise<AlertReceiptRow | null>;
   findOpenIncident(sourceId: string, deduplicationKey: string): Promise<string | null>;
   findLatestLinkedIncident(sourceId: string, deduplicationKey: string): Promise<string | null>;
@@ -112,15 +113,26 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
     },
     async operatorEmail(operatorId) { return (await binding.prepare("SELECT email FROM operators WHERE id = ?").bind(operatorId).first<{ email: string }>())?.email ?? null; },
     async findSource(sourceId) { const value = await binding.prepare(`SELECT ${sourceFields} FROM alert_sources WHERE id = ?`).bind(sourceId).first<Record<string, unknown>>(); return value ? sourceRow(value) : null; },
-    async upsertSource(source) {
+    async upsertSource(source, operatorId=source.createdByOperatorId, expectedUpdatedAt) {
       const ids = [...new Set([...(source.labelMatchers ?? []), ...(source.monitorMappings ?? [])].map(row => row.componentId))];
       if (ids.length) {
         const found = await binding.prepare(`SELECT id FROM components WHERE id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(ids)).all<{ id: string }>();
         if (found.results.length !== ids.length) throw new Error("A mapped component no longer exists. Choose an existing component.");
       }
-      await binding.prepare(`INSERT INTO alert_sources (id,name,credential_kind,signing_secret,bearer_token_hash,timestamp_header,signature_header,deduplication_path,title_path,state_path,recovered_value,preset,component_id,created_by_operator_id,created_at,updated_at,grouped_preset,label_matchers_json,uptime_preset,monitor_mappings_json,responder_preset,responder_sealed_credentials,responder_connected,vendor_preset,close_alert_on_resolve)
+      const write=binding.prepare(`INSERT INTO alert_sources (id,name,credential_kind,signing_secret,bearer_token_hash,timestamp_header,signature_header,deduplication_path,title_path,state_path,recovered_value,preset,component_id,created_by_operator_id,created_at,updated_at,grouped_preset,label_matchers_json,uptime_preset,monitor_mappings_json,responder_preset,responder_sealed_credentials,responder_connected,vendor_preset,close_alert_on_resolve)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, credential_kind=excluded.credential_kind, signing_secret=excluded.signing_secret, bearer_token_hash=excluded.bearer_token_hash, timestamp_header=excluded.timestamp_header, signature_header=excluded.signature_header, deduplication_path=excluded.deduplication_path, title_path=excluded.title_path, state_path=excluded.state_path, recovered_value=excluded.recovered_value, preset=excluded.preset, grouped_preset=excluded.grouped_preset, label_matchers_json=excluded.label_matchers_json, uptime_preset=excluded.uptime_preset, monitor_mappings_json=excluded.monitor_mappings_json, component_id=excluded.component_id, responder_preset=excluded.responder_preset, responder_sealed_credentials=excluded.responder_sealed_credentials, responder_connected=excluded.responder_connected, vendor_preset=excluded.vendor_preset, close_alert_on_resolve=excluded.close_alert_on_resolve, updated_at=excluded.updated_at`)
-        .bind(source.id, source.name, source.credentialKind, source.signingSecret, source.bearerTokenHash, source.timestampHeader, source.signatureHeader, source.deduplicationPath, source.titlePath, source.statePath, source.recoveredValue, ["jsm", "opsgenie", "newrelic"].includes(source.preset ?? "") || source.preset === "pagerduty" || source.preset === "uptime" || source.preset === "alertmanager" || source.preset === "grafana" ? null : source.preset, source.componentId, source.createdByOperatorId, source.createdAt, source.updatedAt, source.preset === "alertmanager" || source.preset === "grafana" ? source.preset : null, JSON.stringify(source.labelMatchers ?? []), source.preset === "uptime" ? "uptime" : null, JSON.stringify(source.monitorMappings ?? []), source.preset === "pagerduty" ? source.preset : null, source.responderSealedCredentials ?? null, source.responderConnected ? 1 : 0, ["jsm", "opsgenie", "newrelic"].includes(source.preset ?? "") ? source.preset : null, source.closeAlertOnResolve ? 1 : 0).run();
+        .bind(source.id, source.name, source.credentialKind, source.signingSecret, source.bearerTokenHash, source.timestampHeader, source.signatureHeader, source.deduplicationPath, source.titlePath, source.statePath, source.recoveredValue, ["jsm", "opsgenie", "newrelic"].includes(source.preset ?? "") || source.preset === "pagerduty" || source.preset === "uptime" || source.preset === "alertmanager" || source.preset === "grafana" ? null : source.preset, source.componentId, source.createdByOperatorId, source.createdAt, source.updatedAt, source.preset === "alertmanager" || source.preset === "grafana" ? source.preset : null, JSON.stringify(source.labelMatchers ?? []), source.preset === "uptime" ? "uptime" : null, JSON.stringify(source.monitorMappings ?? []), source.preset === "pagerduty" ? source.preset : null, source.responderSealedCredentials ?? null, source.responderConnected ? 1 : 0, ["jsm", "opsgenie", "newrelic"].includes(source.preset ?? "") ? source.preset : null, source.closeAlertOnResolve ? 1 : 0);
+      const auditId=createUlid();
+      await binding.batch([
+        binding.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role='owner')
+          AND (? IS NULL OR EXISTS(SELECT 1 FROM alert_sources WHERE id=? AND updated_at=?))
+          THEN 1 ELSE json('The actor or alert source changed.') END`).bind(operatorId,expectedUpdatedAt??null,source.id,expectedUpdatedAt??null),
+        write,
+        binding.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+          VALUES(?,'alert-source',?,'alert-source.saved',?,json_object('name',?,'componentId',?),?,?)`)
+          .bind(auditId,source.id,operatorId,source.name,source.componentId,source.updatedAt,source.updatedAt),
+        ...agentAttributionStatements(binding,{entityType:'alert-source',entityId:source.id,operatorId,at:source.updatedAt,guard:{sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[auditId]}}),
+      ]);
     },
     async findReceipt(sourceId, requestHash) { const value = await binding.prepare(`SELECT ${receiptFields} FROM alert_receipts WHERE source_id = ? AND request_hash = ?`).bind(sourceId, requestHash).first<Record<string, unknown>>(); return value ? receiptRow(value) : null; },
     async findOpenIncident(sourceId, deduplicationKey) {

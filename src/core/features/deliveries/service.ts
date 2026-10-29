@@ -16,6 +16,8 @@ import { defaultDeliveryEvents, type DeliveryEvents } from "./events";
 import type { DeliveryRepository, DeliveryLogChannel, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
 import { statuspageWebhookBody } from "./statuspage-webhook";
 import { defaultPageStatusRollup, type PageStatusRollupPolicy } from "../public-snapshot/policies";
+import { agentEffectAdmitted, agentEffectHandled, registerAgentEffectHandler } from '../agent-door/final-dispatch';
+import { hashOpaqueToken } from '../../platform/security/opaque-tokens';
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 20 * 60_000, 20 * 60_000];
 const RESEND_IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -25,7 +27,7 @@ const PROVIDER_CALLBACK_CLAIM_MS = 5 * 60 * 1000;
 type FrozenMailPayload = MailMessage & { frozenAt: string };
 
 export interface DeliveriesService {
-  list(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
+  list(filter?: { id?: string; channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
   export(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit?: number): Promise<SubscriptionMailRow[]>;
   dispatchDue(origin: string, limit?: number): Promise<void>;
@@ -91,7 +93,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { operatorChatAlert?: (input: { eventId: string; title: string; text: string }) => Promise<void>; pageStatusRollup?: PageStatusRollupPolicy; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { publicOrigin?: () => Promise<string>; operatorChatAlert?: (input: { eventId: string; title: string; text: string }) => Promise<void>; pageStatusRollup?: PageStatusRollupPolicy; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
@@ -212,7 +214,8 @@ export function createDeliveriesService(
       const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
       const statusUrl = new URL("/", origin).href;
       const brand = options.emailBranding ? await options.emailBranding() : { branding: defaultEmailBranding, hasLogo: false };
-      const branded = brandEmail(rendered.email, { ...brand, pageName, fromAddress, origin, subscriptionLinks: { manageUrl, unsubscribeUrl } });
+      const email = delivery.agentLabel ? { ...rendered.email, plainText: `${rendered.email.plainText}\n\nPrepared by ${delivery.agentLabel}` } : rendered.email;
+      const branded = brandEmail(email, { ...brand, pageName, fromAddress, origin, subscriptionLinks: { manageUrl, unsubscribeUrl } });
       const candidate: FrozenMailPayload = {
         frozenAt: nowIso(), from: branded.from, ...(branded.replyTo ? { replyTo: branded.replyTo } : {}), to: delivery.destination, subject: branded.subject,
         text: `${branded.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
@@ -257,6 +260,7 @@ export function createDeliveriesService(
       : incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
       : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
+    const attributedEvent = delivery.agentLabel ? { ...event, preparedBy: delivery.agentLabel } : event;
     let payload:unknown;
     if(statuspage) {
       const links=await stableTokens(delivery.subscriberId);
@@ -264,7 +268,7 @@ export function createDeliveriesService(
       const source=await repository.statuspage.load(origin);
       if(!source)throw permanentDeliveryError("Page settings are required for Statuspage-format notifications.");
       payload=statuspageWebhookBody(source,delivery,origin,links.unsubscribe,pageRollup);
-    } else payload=slack ? renderSubscriberSlackMessage(delivery,origin) : event;
+    } else payload=slack ? renderSubscriberSlackMessage(delivery,origin) : attributedEvent;
     const body = JSON.stringify(payload);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = (await Promise.all(secrets.map(async (secret) => `v1=${await hmacSha256(secret, `${delivery.id}.${timestamp}.${body}`)}`))).join(" ");
@@ -338,7 +342,7 @@ export function createDeliveriesService(
     return applied;
   }
 
-  return {
+  const service: DeliveriesService = {
     async list(filter) {
       return repository.listDeliveries({ limit: filter?.limit ?? 100, offset: filter?.offset ?? 0, channel: filter?.channel, outcome: filter?.outcome, incidentUpdateId: filter?.incidentUpdateId });
     },
@@ -392,6 +396,11 @@ export function createDeliveriesService(
         await repository.releaseDeliveryClaim(deliveryId);
         return;
       }
+      if (delivery.agentOrigin && !agentEffectAdmitted('delivery', deliveryId)) {
+        await repository.releaseDeliveryClaim(deliveryId);
+        if (await agentEffectHandled(repository.binding, 'delivery', deliveryId)) return;
+        throw new Error('Agent delivery custody is unavailable.');
+      }
       try {
         if (delivery.channel === "email") await sendEmail(delivery, origin); else await sendWebhook(delivery, origin);
       } catch (error) { await recordFailure(delivery, error); throw error; }
@@ -410,4 +419,29 @@ export function createDeliveriesService(
     },
     queueOperatorAlert,
   };
+  registerAgentEffectHandler(repository.binding, 'delivery', {
+    async describe(id) {
+      const row = await repository.getDelivery(id);
+      if (!row || row.subscriberState !== 'active') return null;
+      const eventId = row.notificationEventId ?? row.incidentUpdateId ?? row.incidentReportId;
+      if (!eventId) return null;
+      const recipient = row.channel === 'email' ? row.destination : `webhook subscriber ${row.subscriberId}`;
+      const content = JSON.stringify({ incident: row.incidentReference, lifecycle: row.lifecycle, affectedAudience: row.affectedAudience,
+        customerImpact: row.customerImpact, whatStillWorks: row.whatStillWorks, details: row.details, nextUpdateAt: row.nextUpdateAt,
+        maintenance: row.maintenanceReference, kind: row.maintenanceNoticeKind, body: row.maintenanceNoticeBody,
+        summary: row.reportSummary, timeline: row.reportTimeline, cause: row.reportCause, remediation: row.reportRemediation,
+        component: row.componentName, state: row.newComponentState, preparedBy: row.agentLabel });
+      return { eventId, recipient, content, counterparty: 'known' as const,
+        attempt: await repository.getAttemptCount(id),
+        revision: await hashOpaqueToken(JSON.stringify({ eventId, content, destination: row.destination, subscriberState: row.subscriberState })) };
+    },
+    async dispatch(id) {
+      if (!options.publicOrigin) throw new Error('Native notification origin is unavailable.');
+      const source = await repository.getDelivery(id);
+      await service.dispatchDelivery(id, await options.publicOrigin());
+      const eventId = source?.notificationEventId ?? source?.incidentUpdateId ?? source?.incidentReportId;
+      if (eventId) await repository.completeOutboxForEvent(eventId, nowIso());
+    },
+  });
+  return service;
 }

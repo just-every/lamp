@@ -3,11 +3,15 @@ import { D1SqlDatabase } from "../../../../modules/integrations/core/database.ts
 import { IntegrationsRepository } from "../../../../modules/integrations/core/repository.ts";
 import type { DeliveryProtocol, TrustedTransport } from "../../../../modules/integrations/core/types.ts";
 import { createUlid, nowIso } from "../../shared/ids";
-import { createSocialRepository, type SocialAccount } from "./repository";
+import { createSocialRepository, type SocialAccount, type SocialPost } from "./repository";
 import { SocialAuthenticationError, socialOrigin, prepareSocialPost, prepareSocialRequest, extractSocialReceipt, classifySocialResponse, type SocialNetwork } from "./networks";
 import { renderSocialPost } from "./messages";
 import { createSocialTransport } from "./transport";
 import { openCredential, sealCredential } from "./sealing";
+
+import { agentEffectHandled, registerAgentEffectHandler } from '../agent-door/final-dispatch';
+import { nativeAgentAttribution } from '../agent-door/provenance.repository';
+import { hashOpaqueToken } from '../../platform/security/opaque-tokens';
 
 const namespace="lamp-social";
 const retryDelaysMs=[60_000,300_000,900_000,1_200_000,1_200_000];
@@ -53,6 +57,46 @@ export function createSocialService(db:D1Database,options:{webhookSecret?:string
     return response;
   }};
   const delivery=new DeliveryService({repository:integrations,protocols,transport});
+  async function textFor(post: SocialPost) {
+    const account=await accountFor(post.accountId);
+    const attribution=await nativeAgentAttribution(db,post.incidentId?'incident-update':'maintenance-notice',post.eventId);
+    const prefix=attribution?`${post.prefix} Prepared by ${attribution.label}.`:post.prefix;
+    return renderSocialPost(account.network,prefix,post.lifecycle,post.customerImpact,new URL(post.incidentId?`/incidents/${encodeURIComponent(post.reference)}`:`/maintenance/${encodeURIComponent(post.reference)}`,await options.publicOrigin()).href);
+  }
+  async function preparePost(pending: SocialPost) {
+    const account=await accountFor(pending.accountId);
+    let post=pending;
+    if(!post.body) {
+      const thread=await repository.thread(post);
+      const text=await textFor(post);
+      const credential=await openCredential(account.sealedCredential,account.id,options.webhookSecret);
+      const wire=await prepareSocialPost(account,credential,{id:post.id,text,createdAt:post.queuedAt,parent:thread.at(-1),root:thread[0]},provider);
+      post=(await repository.freeze(post.id,text,wire.body))!;
+    }
+    await delivery.enqueue({id:post.id,tenant:namespace,destinationId:post.accountId,event:post.incidentId?'incident.update':'maintenance.notice',protocol:`lamp-social-${account.network}`,body:post.body!},{maxAttempts:6,retryDelaysMs});
+  }
+  registerAgentEffectHandler(db,'social',{
+    async describe(id) {
+      const post=await repository.post(id);
+      if(!post)return null;
+      const account=await repository.account(post.accountId);
+      // Disconnection removes the live effect. The retained envelope still
+      // reaches native preflight, which records its rejection without sending.
+      if(!account)return null;
+      const content=post.text??await textFor(post);
+      const envelope=await delivery.get(id);
+      return {eventId:post.eventId,recipient:`${account.network}: ${account.name}`,content,counterparty:'public' as const,
+        attempt:envelope?.attempts??0,
+        revision:await hashOpaqueToken(JSON.stringify({event:post.eventId,account:account.id,host:account.host,credential:account.sealedCredential,content}))};
+    },
+    async dispatch(id) {
+      if(options.effectsPaused||options.unavailable)throw new Error('Social delivery is unavailable.');
+      let envelope=await delivery.get(id);
+      if(!envelope){const post=(await repository.pending(100,id))[0];if(!post)throw new Error('Social post is not currently eligible.');await preparePost(post);envelope=await delivery.get(id);}
+      if(!envelope)throw new Error('Social post is unavailable.');
+      await delivery.dispatch(id);
+    },
+  });
   return {
     async list() {return {accounts:(await repository.accounts()).map(view),postByDefault:await repository.postByDefault(),posts:await repository.log(),unavailable:options.unavailable??null};},
     async add(input:{network:SocialNetwork;name:string;prefix:string;credential:string;host?:string;identifier?:string;scopes:string[]},operatorId:string) {
@@ -72,26 +116,19 @@ export function createSocialService(db:D1Database,options:{webhookSecret?:string
     log:repository.log,
     async dispatchPending(limit=100) {
       if(options.effectsPaused||options.unavailable)return;
-      const origin=await options.publicOrigin();
       for(const pending of await repository.pending(limit)) {
-        try {
-          const account=await accountFor(pending.accountId);
-          let post=pending;
-          if(!post.body) {
-            const thread=await repository.thread(post);
-            const text=renderSocialPost(account.network,post.prefix,post.lifecycle,post.customerImpact,new URL(post.incidentId?`/incidents/${encodeURIComponent(post.reference)}`:`/maintenance/${encodeURIComponent(post.reference)}`,origin).href);
-            const credential=await openCredential(account.sealedCredential,account.id,options.webhookSecret);
-            const wire=await prepareSocialPost(account,credential,{id:post.id,text,createdAt:post.queuedAt,parent:thread.at(-1),root:thread[0]},provider);
-            post=(await repository.freeze(post.id,text,wire.body))!;
-          }
-          await delivery.enqueue({id:post.id,tenant:namespace,destinationId:post.accountId,event:post.incidentId?'incident.update':'maintenance.notice',protocol:`lamp-social-${account.network}`,body:post.body!},{maxAttempts:6,retryDelaysMs});
-        } catch {
-          // No provider or credential text enters a log. A malformed publication
-          // remains in the durable outbox for recovery and raises an alert.
+        if(await agentEffectHandled(db,'social',pending.id))continue;
+        try { await preparePost(pending); }
+        catch {
+          // Provider and credential details stay outside retained failure text.
           await options.operatorAlert({eventId:`delivery-failed/${pending.id}`,title:'Lamp could not deliver a social post',text:'A social publication could not be prepared. Review the connected social accounts.'});
         }
       }
-      await delivery.dispatchDue(limit);
+      await delivery.recoverExpired();
+      for(const id of await integrations.due(Date.now(),limit)){
+        if(await agentEffectHandled(db,'social',id))continue;
+        await delivery.dispatch(id);
+      }
       for(const failed of await repository.failed())await options.operatorAlert({eventId:`delivery-failed/${failed.id}`,title:'Lamp could not deliver a social post',text:'A social account failed to accept a published update. Review the social delivery log in Settings.'});
     },
   };

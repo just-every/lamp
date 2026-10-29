@@ -5,6 +5,7 @@ import { createDatabase } from "../../platform/db/client";
 import { allocateReference, type AllocatedReference } from "../../shared/references/repository";
 import { createUlid } from "../../shared/ids";
 import { maintenance, maintenanceComponents } from "../../shared/schema";
+import { agentAttributionStatements, agentQueuedOperationStatements, nativeAgentAttribution, type NativeAttribution } from '../agent-door/provenance.repository';
 
 export type StoredMaintenance = typeof maintenance.$inferSelect;
 export type MaintenanceWording = Pick<StoredMaintenance, "affectedAudience" | "customerImpact">;
@@ -17,9 +18,11 @@ export interface MaintenanceCollectionDetails {
   components: StoredMaintenanceComponent[];
   notices: MaintenanceNotice[];
   importedUpdates: Array<ImportedMaintenanceUpdate & { maintenanceId: string }>;
+  agentAttributions: Map<string, NativeAttribution>;
 }
 
 export interface MaintenanceRepository {
+  agentAttribution(maintenanceId: string, at: string): Promise<NativeAttribution | null>;
   automation: ReturnType<typeof createMaintenanceAutomationRepository>;
   listCollectionDetails(): Promise<MaintenanceCollectionDetails>;
   listImportedUpdates(maintenanceId: string): Promise<ImportedMaintenanceUpdate[]>;
@@ -42,7 +45,7 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
   const database = createDatabase(binding);
   const noticeStatement = (notice: MaintenanceNotice) => binding.prepare(`INSERT OR IGNORE INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
     .bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt);
-  const writeMutationWithNotice = async (mutation: D1PreparedStatement, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], automation?: Partial<MaintenanceAutomation>) => {
+  const writeMutationWithNotice = async (mutation: D1PreparedStatement, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], automation?: Partial<MaintenanceAutomation>, plan?: {startsAt:string;endsAt:string}) => {
     const auditId = createUlid();
     const guard = binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at)
       SELECT ?, 'maintenance', ?, 'notice-published', ?, NULL, '{}', ?, ?
@@ -56,13 +59,23 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
       mutation,
       guard,
       guardedNotice,
+      ...(notice.authorOperatorId ? agentAttributionStatements(binding, { entityType: 'maintenance', entityId: notice.maintenanceId, operatorId: notice.authorOperatorId, at: notice.createdAt,
+        guard: { sql: 'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)', params: [auditId] } }) : []),
+      ...(notice.authorOperatorId ? agentAttributionStatements(binding, { entityType: 'maintenance-notice', entityId: notice.id, operatorId: notice.authorOperatorId, at: notice.createdAt,
+        guard: { sql: 'EXISTS(SELECT 1 FROM maintenance_notices WHERE id=?)', params: [notice.id] } }) : []),
       ...(automation ? [automationStatement(binding,notice.maintenanceId,automation,notice.id)] : []),
+      ...(plan ? (['start', 'complete', 'reminder'] as const).flatMap(action => agentQueuedOperationStatements(binding, {
+        kind: `maintenance-${action}`, id: notice.maintenanceId, tool: `lamp.maintenance.${action === 'reminder' ? 'remind' : action}`,
+        args: { id: notice.maintenanceId, idempotency_key: `maintenance/${notice.maintenanceId}/${plan.startsAt}/${plan.endsAt}/${action}` }, at: notice.createdAt,
+        guard: {sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[auditId]},
+      })) : []),
       ...notificationStatements,
     ]);
     return results[1]?.meta.changes === 1;
   };
 
   return {
+    agentAttribution: (id,at) => nativeAgentAttribution(binding,'maintenance',id,at),
     automation: createMaintenanceAutomationRepository(binding),
     async allocateMaintenanceReference() { return allocateReference(binding, "SCH"); },
     async listMaintenance() {
@@ -74,7 +87,18 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM maintenance_notices ORDER BY maintenance_id, published_at DESC`).all<MaintenanceNotice>(),
         binding.prepare(`SELECT id, maintenance_id AS maintenanceId, body, published_at AS publishedAt, source_states AS sourceStates FROM import_maintenance_updates ORDER BY maintenance_id, published_at DESC, id`).all<ImportedMaintenanceUpdate & { maintenanceId: string }>(),
       ]);
-      return { components, notices: notices.results, importedUpdates: importedUpdates.results };
+      const attributed = (await binding.prepare(`SELECT p.entity_id AS id,p.agent_id AS agentId,p.agent_name AS agentName,p.operator_id AS sponsorId,
+        CASE WHEN o.id IS NULL OR o.email='deleted-' || lower(o.id) || '@operator.invalid'
+          THEN 'Erased operator · ' || p.operator_id ELSE o.display_name END AS sponsorName,
+        (SELECT json_group_array(json_object('id',json_extract(j.value,'$.id'),'name',
+          CASE WHEN a.id IS NULL OR a.email='deleted-' || lower(a.id) || '@operator.invalid'
+            THEN 'Erased operator · ' || json_extract(j.value,'$.id') ELSE a.display_name END))
+          FROM json_each(p.approvers_json) j LEFT JOIN oa_operators a ON a.id=json_extract(j.value,'$.id')) AS approvers
+        FROM lamp_agent_attribution p JOIN maintenance m ON m.id=p.entity_id AND m.updated_at=p.created_at
+        LEFT JOIN oa_operators o ON o.id=p.operator_id WHERE p.entity_type='maintenance'`)
+        .all<{id:string;agentId:string;agentName:string;sponsorId:string;sponsorName:string;approvers:string}>()).results;
+      const agentAttributions = new Map(attributed.map(row => [row.id,{agent:{id:row.agentId,name:row.agentName},sponsor:{id:row.sponsorId,name:row.sponsorName},approvers:JSON.parse(row.approvers),label:`${row.agentName} for ${row.sponsorName}`} satisfies NativeAttribution]));
+      return { components, notices: notices.results, importedUpdates: importedUpdates.results, agentAttributions };
     },
     async listComponents(maintenanceId) {
       return database.select().from(maintenanceComponents).where(eq(maintenanceComponents.maintenanceId, maintenanceId)).all();
@@ -89,6 +113,12 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         ...attached.map((component) => binding.prepare(`INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES (?,?,?,?,?,?,?)`).bind(component.id, component.maintenanceId, component.componentId, component.componentName, component.state, component.createdAt, component.updatedAt)),
         binding.prepare(`INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt),
         binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'maintenance', ?, 'notice-published', ?, ?, ?, ?)").bind(`${notice.id}-audit`, input.id, notice.authorOperatorId, JSON.stringify({ kind: notice.kind }), notice.createdAt, notice.updatedAt),
+        ...agentAttributionStatements(binding, { entityType: 'maintenance', entityId: input.id, operatorId: input.createdByOperatorId, at: notice.createdAt }),
+        ...agentAttributionStatements(binding, { entityType: 'maintenance-notice', entityId: notice.id, operatorId: input.createdByOperatorId, at: notice.createdAt }),
+        ...(['start', 'complete', 'reminder'] as const).flatMap(action => agentQueuedOperationStatements(binding, {
+          kind: `maintenance-${action}`, id: input.id, tool: `lamp.maintenance.${action === 'reminder' ? 'remind' : action}`,
+          args: { id: input.id, idempotency_key: `maintenance/${input.id}/${input.startsAt}/${input.endsAt}/${action}` }, at: notice.createdAt,
+        })),
         automationStatement(binding,input.id,automation,notice.id),
         ...notificationStatements,
       ]);
@@ -99,6 +129,7 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         notice,
         notificationStatements,
         automation,
+        {startsAt,endsAt},
       );
     },
     async extendInProgressWithNotice(maintenanceId, startsAt, previousEndsAt, endsAt, updatedAt, notice, notificationStatements, automation, wording) {
@@ -107,6 +138,7 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         notice,
         notificationStatements,
         automation,
+        {startsAt,endsAt},
       );
     },
     async transitionWithNotice(maintenanceId, from, to, completedAt, updatedAt, notice, notificationStatements, expectedWindow) {
@@ -138,6 +170,10 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
       const results = await binding.batch([
         noticeStatement(input),
         binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) SELECT ?, 'maintenance', ?, 'notice-published', ?, ?, ?, ? WHERE changes() = 1").bind(`${input.id}-audit`, input.maintenanceId, input.authorOperatorId, JSON.stringify({ kind: input.kind }), input.createdAt, input.updatedAt),
+        ...(input.authorOperatorId ? agentAttributionStatements(binding, { entityType: 'maintenance', entityId: input.maintenanceId, operatorId: input.authorOperatorId, at: input.createdAt,
+          guard: { sql: 'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)', params: [`${input.id}-audit`] } }) : []),
+        ...(input.authorOperatorId ? agentAttributionStatements(binding, { entityType: 'maintenance-notice', entityId: input.id, operatorId: input.authorOperatorId, at: input.createdAt,
+          guard: { sql: 'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)', params: [`${input.id}-audit`] } }) : []),
         ...notificationStatements,
       ]);
       return results[0].meta.changes === 1;

@@ -6,6 +6,7 @@ import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../h
 import { importedIncidentLiveFlow } from './helpers/imported-incident-live-flow.mjs';
 import { incidentSubscriberFiles, incidentSubscriberImportFlow } from './helpers/incident-subscriber-import-flow.mjs';
 import { postmortemTemplateImportFlow } from './helpers/postmortem-template-import-flow.mjs';
+import { assertNativeImportReport } from '../agent-door/import-report-flow.mjs';
 
 const fixtures = source => readdirSync(`tests/fixtures/${source}/small`).map(name => ({ name, text: readFileSync(`tests/fixtures/${source}/small/${name}`, 'utf8') }));
 const parsed = (files, name) => JSON.parse(files.find(file => file.name === name).text);
@@ -85,6 +86,10 @@ test('SUB-019 MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOV
       assert.deepEqual(await counts(), before, 'unreviewed source bytes cannot apply');
       const { review, result } = await apply(input);
       assert.deepEqual(result.report.counts, review.report.counts);
+      if (source === 'betterstack') {
+        const { operator } = (await api('/api/app/session')).body;
+        await assertNativeImportReport(runtime.db, result, operator.id);
+      }
       const after = await counts();
       for (const [kind, plural] of [['component', 'components'], ['group', 'groups'], ['incident', 'incidents'], ['maintenance', 'maintenance'], ['subscriber', 'subscribers']]) {
         assert.equal(after[plural] - before[plural], result.report.counts[kind].imported + result.report.counts[kind].changed, `${source} applies its complete reviewed ${kind} inventory`);
