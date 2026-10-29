@@ -3116,13 +3116,13 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026).
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). INCIDENT-005 is judged from the code and tests in this candidate (29 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 8 | 99 | 0 | 107 |
+| Published | 9 | 98 | 0 | 107 |
 | Target and push further | 8 | 74 | 54 | 136 |
-| All | 16 | 173 | 54 | 243 |
+| All | 17 | 172 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3187,7 +3187,7 @@ Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a
 | `INCIDENT-002` | Impact | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: peak impact; resolved peak impact. Unasserted in old cited evidence: no-component impact absent; no-component publication refused. |
 | `INCIDENT-003` | Reference | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts numeric reference; The numeric-reference permalink returns that incident’s title; increasing sequence; legacy reference unchanged. Unasserted: manual and intake share sequence; public address unchanged. |
 | `INCIDENT-004` | Published updates are immutable | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: original wording retained; correction identifies original; both updates retained. Unasserted in old cited evidence: published deletion refused; public publication order. |
-| `INCIDENT-005` | Reopening | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: reopened lifecycle; resolution retained; reopening retained. Unasserted in old cited evidence: both public. |
+| `INCIDENT-005` | Reopening | published | done | `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): publishing Investigating reopens the resolved native incident; its public permalink retains distinct Resolved and Investigating update articles with their original customer wording, lifecycle and exact publication datetime before another resolution is staged. |  |
 | `INCIDENT-006` | Overdue update | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: operator overdue; no public overdue label. Unasserted in old cited evidence: public committed time. |
 | `INCIDENT-007` | Deletion | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts missing reason refused. Unasserted: public page removal; history removal after demonstrated pre-deletion public visibility; Atom removal after demonstrated pre-deletion public visibility; ten-second removal; deletion actor; deletion reason; deletion time. |
 | `INCIDENT-008` | Internal notes | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts none of the audited outcomes. Unasserted: stored operator note read; populated note absent publicly after reading back the stored private note; populated note absent from Atom after reading back the stored private note; populated note absent from widget after reading back the stored private note; note absent from notifications; note absent from AI requests. |
