@@ -3,6 +3,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
 import assert from "node:assert/strict";
+import { subscriberQueuedUnsubscribe } from './subscriber-queued-unsubscribe.mjs';
 import { openSubscriberManagementFixture, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
 
 async function auditSubscriberEmails(messages) {
@@ -144,6 +145,7 @@ export async function subscriberAddFlow() {
     assert.equal(fixture.messages.length, mailBeforeInvalid, "unconfigured SMS sends no confirmation through another provider");
 
 
+    await subscriberQueuedUnsubscribe({ fixture, component: first, subscriberId: id, email });
     assert.equal((await api(`/api/app/subscribers/${id}`, { method: "DELETE" })).status, 204);
     assert.equal((await api(`/api/app/subscribers/${webhook.body.subscriber.id}`, { method: "DELETE" })).status, 204);
     const erasedExport = await fixture.request("/api/app/subscribers.csv");
