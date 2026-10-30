@@ -154,6 +154,12 @@
         "modules/agent-door/capabilities.d.mts": "af9a1d9f81a15df8caef2ab257c24b031dab60690984df557b9b82022888f339",
         "modules/agent-door/capabilities.mjs": "91b2e22470c325bf5ecf0aa8ef9c4e36f05069407101207ca0e5f0c2fa083695",
         "modules/agent-door/CLAUSES.md": "0568321ca8cc6c5ff5056d3e12868795aadfedd17c51aa693dd4517450a9e867",
+        "modules/agent-door/conformance/authority.d.mts": "8c6807239646015bdac4aefe0afe9714aa9baf6527f1d86fe401b420f62f836f",
+        "modules/agent-door/conformance/authority.mjs": "5a65a157a288507bb884105abbab65a0876b066f742a8474b33528333c9c0a73",
+        "modules/agent-door/conformance/narrowing.d.mts": "682cfd551854aa5ecaa3db981ab99b98aa8950b9e5dc38a60ab4259c2bbcba12",
+        "modules/agent-door/conformance/narrowing.mjs": "77c5158dc2f9727e1dc7afe2d566c6996b1caaf045af84cc7a33dc069fa305db",
+        "modules/agent-door/conformance/tool-name.d.mts": "1decc30a4b3ad7eeb46248114ef01a4967fea47129c00f25794d75c9912f505a",
+        "modules/agent-door/conformance/tool-name.mjs": "2bedd64a69b1e2a7dc02f7218cdda66e541a955b1a0cfc289d15d96630e616e8",
         "modules/agent-door/counting.ts": "cdd87d7b14b898985239a22cbde707c6b6e6c9d5f3d474b335aca2d478d4b57a",
         "modules/agent-door/credentials.ts": "a3e4fdd6bb00c2b2ef6049a3dc1c1c69bc38922b5eafe8186fb3de5b4ebba501",
         "modules/agent-door/errors.ts": "eddb4f4e05a028fb91ecf33cec78568424bf2bb329c6ca3c9b45abbcc84a56fd",
@@ -198,6 +204,12 @@
         "modules/agent-door/capabilities.d.mts": "100644",
         "modules/agent-door/capabilities.mjs": "100644",
         "modules/agent-door/CLAUSES.md": "100644",
+        "modules/agent-door/conformance/authority.d.mts": "100644",
+        "modules/agent-door/conformance/authority.mjs": "100644",
+        "modules/agent-door/conformance/narrowing.d.mts": "100644",
+        "modules/agent-door/conformance/narrowing.mjs": "100644",
+        "modules/agent-door/conformance/tool-name.d.mts": "100644",
+        "modules/agent-door/conformance/tool-name.mjs": "100644",
         "modules/agent-door/counting.ts": "100644",
         "modules/agent-door/credentials.ts": "100644",
         "modules/agent-door/errors.ts": "100644",
@@ -330,7 +342,16 @@
         "modules/agent-door/transport.ts",
         "modules/agent-door/types.ts",
         "modules/agent-door/wire.ts"
-      ]
+      ],
+      "adapted": {
+        "modules/agent-door/operator-people.ts": "2f77cdb6d8dfaa82903c2839600e23b76631a537"
+      },
+      "acknowledged": {
+        "modules/agent-door/operator-people.ts": {
+          "sha256": "d96e5a90d3f9bdf497a1feb3ef87cb2da01d763aee671ded2622cd202eb845fa",
+          "mode": "100644"
+        }
+      }
     },
     {
       "path": "modules/business-settings",
@@ -392,7 +413,16 @@
         "modules/business-settings/types.ts",
         "modules/business-settings/validation.ts",
         "modules/business-settings/verify.ts"
-      ]
+      ],
+      "adapted": {
+        "modules/business-settings/index.ts": "2f77cdb6d8dfaa82903c2839600e23b76631a537"
+      },
+      "acknowledged": {
+        "modules/business-settings/index.ts": {
+          "sha256": "05a93f9599c48c96cc77c60d72ccd5212a066130a4995763f51371c972d37883",
+          "mode": "100644"
+        }
+      }
     },
     {
       "path": "modules/d1-transport",

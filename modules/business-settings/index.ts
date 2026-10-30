@@ -1,4 +1,4 @@
-import { ink } from '../../foundation/runtime/theme-frame.ts';
+import { ink } from '../../src/base/theme-frame.ts';
 import { apply } from './apply.ts';
 import { base64, checkedLogo, imageType, logoHeaders } from './logo.ts';
 import { settingsRow, snapshot } from './store.ts';

@@ -19,6 +19,7 @@ export interface AppBindings {
   RER_IMPORT_DOOR?: string;
   SETUP_TOKEN?: string;
   SESSION_SECRET?: string;
+  RER_BUSINESS_TRUST?: string;
   INSTALLATION_KEY?: string;
   INSTALLATION_KEY_PREVIOUS?: string;
   SETUP_OPERATOR_EMAIL?: string;

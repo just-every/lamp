@@ -406,5 +406,17 @@
         "/auth/oidc/auth/logout"
       ]
     }
-  ]
+  ],
+  "business": {
+    "settings": 1,
+    "values": [
+      "display_name"
+    ],
+    "team": {
+      "roles": {
+        "admin": "admin",
+        "member": "member"
+      }
+    }
+  }
 }
