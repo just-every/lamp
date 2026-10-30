@@ -6,6 +6,7 @@ import { ownerClaimConfig } from '../../platform/auth/claim';
 import { lampAgentPeople } from './people';
 import { componentTools } from './components';
 import { incidentTools } from './incidents';
+import { queueTools } from './queue';
 
 export const lampAgentCapabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency'] as const;
 
@@ -20,7 +21,7 @@ export function lampAgentDoor(bindings: AppBindings, services: AppServices) {
     origin: authOrigin(bindings), db: bindings.DB, trust,
     capabilities: lampAgentCapabilities,
     people: lampAgentPeople(bindings, services),
-    tools: [...componentTools(bindings, services), ...incidentTools(bindings, services)],
+    tools: [...componentTools(bindings, services), ...incidentTools(bindings, services), ...queueTools(bindings)],
     limits: { requestsPerMinute: 6000, maxBodyBytes: 1048576 },
     notTools: [],
   });

@@ -1,7 +1,7 @@
 # Use an agent with Lamp
 
 Lamp exposes a limited incident communicator at `/mcp` on the operator hostname.
-It can save page settings, manage components, and prepare and publish incident
+It can save page settings, manage components, retry or dismiss native failed notifications, and prepare and publish incident
 updates through the same native services the operator desk uses. The complete incident-week workflow
 in the product contract is still incomplete.
 
@@ -40,9 +40,12 @@ that person's agent access too.
 | `lamp.incidents.draft` | `incidents:draft` | Save a private update using its current draft revision | standard |
 | `lamp.incidents.publish` | `incidents:publish` | Publish the current update to the public page | external and live |
 | `lamp.incidents.brief` | `incidents:read` | Read the incident brief and native recovery check | sensitive |
-| `lamp.witness` | `lamp:inspect` | Read counts and content hashes for native component and incident consistency | standard |
+| `lamp.followups.read` | `followups:read` | Read native due and failed obligations | sensitive |
+| `lamp.followups.retry` | `followups:write` | Queue one exact unfinished notification dispatch | external, using its current unfinished recipients |
+| `lamp.followups.dismiss` | `followups:write` | Dismiss one exact failed occurrence with an attributed reason | standard |
+| `lamp.witness` | `lamp:inspect` | Read counts and content hashes for native records, delivery work and dismissals | standard |
 
-Publication currently selects no notification channels. Subscriber invitations,
+Publication currently selects no notification channels. Retrying an existing notification queues its original unfinished work; queue acceptance does not mean delivery completed. Dismissal requires the current occurrence and a reason. Subscriber invitations,
 mail and SMS dispatch, maintenance, report publication, provider setup, authority
 changes and the other contract registry jobs are not available as MCP tools in
 this adoption.
@@ -110,9 +113,8 @@ Their lists remain empty or their operations return `capability_not_declared`;
 there is no agent event feed or record-resource link contract to rely on.
 
 The disposable conformance journey exercises the declared component and incident
-work under autonomous and held policies using native owner and provider flows.
+work and native failed-dispatch retry/dismissal under autonomous and held policies using native owner and provider flows. It also checks a dated native scheduled draft through Cron, public-host intake and incident reads, and silent subscriber imports with previously queued mail.
 Its results remain separate from complete product acceptance. It does not
 establish coverage for every Core job, a stranger specialist's full incident
-week, every native role and screen, delayed or queued execution, a second host,
-or the complete native owner-administration lifecycle. See the Agent surface
+week, every native role and screen, agent policy admission at delayed or queued execution, an unavailable JOBS producer, or the complete native owner-administration lifecycle. Published rer 0.2.94 exposes queue consumer hold/release, but no failed-producer declaration; timedLifecycle and queuedLifecycle remain unscoped. See the Agent surface
 clauses in the [product contract](../CONTRACT.md) for the remaining requirements.

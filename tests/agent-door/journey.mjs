@@ -4,8 +4,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
+import specialist from './specialist.mjs';
+import { afterQueueStep } from './queue-fixtures.mjs';
 
 const published = new Map();
+const history = new Map();
 const wording = new Set();
 const ownerInstructions = 'Keep the owner glossary and incident terminology.';
 async function settings(request, origin, cookie, input) {
@@ -23,22 +26,41 @@ export async function beforeStep({ request, origin, cookie, phase, step, args })
   await settings(request, origin, cookie, { ...input, aiToneInstructions: ownerInstructions });
   wording.add(`${origin}:${phase}`);
 }
-export async function afterStep({ request, origin, cookie, phase, step, args, result }) {
+export async function afterStep(context) {
+  const { request, origin, cookie, phase, step, args, result } = context;
+  await afterQueueStep(context);
   if (step.id === 'configure') assert.equal(Object.hasOwn(result.settings, 'aiToneInstructions'), false, 'The page-identity receipt does not disclose unrelated owner instructions');
   if (step.id === 'configure' && wording.has(`${origin}:${phase}`)) {
     const current = await settings(request, origin, cookie);
     assert.equal(current.aiToneInstructions, ownerInstructions, 'An MCP page identity change preserves owner AI wording instructions');
   }
   if (phase === 'autonomous' && step.id === 'incident-publish') published.set(origin, args);
+  if (step.id === 'scheduled-history' && ['autonomous', 'held'].includes(phase)) {
+    assert.equal(result.incident.updates.length, 1, 'Historical scheduled draft adds no public update before Cron');
+    assert.ok(Date.parse(result.incident.draft.scheduledPublishAt) < Date.now(), 'History fixture retains a genuinely due native schedule');
+    history.set(origin, [...(history.get(origin) ?? []), { id: args.id, due: result.incident.draft.scheduledPublishAt }]);
+  }
 }
 
 /** Inspect the actual hosted person door after the mandatory native phases. */
-export default async function journey({ request, origin, cookie, tool }) {
+export default async function journey({ request, origin, cookie, tool, scheduled, ...context }) {
   const before = await tool('lamp.witness', {});
   const stale = await tool('lamp.incidents.publish', { ...published.get(origin), idempotency_key: randomUUID() });
   assert.equal(stale.result?._meta?.['com.runeditrun/error']?.code, 'revision_conflict', 'A consumed draft cannot be published again under a new key');
   const after = await tool('lamp.witness', {});
   assert.deepEqual(after.result?.structuredContent, before.result?.structuredContent, 'Stale publication preserves all native product records');
+  await scheduled();
+  for (const { id, due } of history.get(origin) ?? []) {
+    const answer = await tool('lamp.incidents.get', { id });
+    assert.equal(answer.result?.structuredContent?.incident.updates.length, 2, 'Native Cron publishes the due historical draft once');
+    assert.equal(answer.result.structuredContent.incident.updates.find(update => update.publishedAt === due)?.publishedAt, due, 'Scheduled publication retains its original due time');
+  }
+  await scheduled();
+  for (const { id } of history.get(origin) ?? []) {
+    const answer = await tool('lamp.incidents.get', { id });
+    assert.equal(answer.result?.structuredContent?.incident.updates.length, 2, 'Cron replay does not publish the historical draft again');
+  }
+  await specialist({ request, origin, cookie, tool, scheduled, ...context });
   const browser = await chromium.launch({ headless: true,
     ...(process.env.LAMP_CHROMIUM_PATH || process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.LAMP_CHROMIUM_PATH || process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}),
     args: ['--no-sandbox'],
@@ -80,3 +102,4 @@ export default async function journey({ request, origin, cookie, tool }) {
     await browser.close();
   }
 }
+

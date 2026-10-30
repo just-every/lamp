@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import prepareQueueFixtures from './queue-fixtures.mjs';
 import { ownerFixtureState } from './owner.mjs';
 
-export default async function fixtures({ phase, request, origin, cookie, now = Date.now() }) {
+export default async function fixtures(context) {
+  const { phase, request, origin, cookie, now = Date.now() } = context;
+  const queueValues = await prepareQueueFixtures(context);
   const values = {
+    ...queueValues,
     clock: {
       nextUpdateAt: new Date(now + 60 * 60_000).toISOString(),
       startsAt: new Date(now + 10 * 60_000).toISOString(),

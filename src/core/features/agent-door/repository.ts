@@ -2,7 +2,10 @@
 export function agentNativeRepository(db: D1Database) {
   const tables = ['page_settings', 'components', 'component_groups', 'component_standing_claims', 'component_claim_events',
     'component_state_history', 'incidents', 'incident_components', 'incident_drafts',
-    'incident_updates', 'incident_internal_notes', 'maintenance', 'maintenance_components'];
+    'incident_updates', 'incident_internal_notes', 'maintenance', 'maintenance_components',
+    'notification_outbox', 'notification_deliveries', 'notification_delivery_attempts',
+    'component_notification_deliveries', 'component_delivery_attempts',
+    'report_notification_deliveries', 'report_delivery_attempts', 'follow_up_dismissals'];
   return {
     async witness() {
       const results = await db.batch(tables.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)));

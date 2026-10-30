@@ -3705,7 +3705,7 @@ Agent surface · target · **partial**
 6. The seed's embedded agents appear in the audit as calls to the same tools.
 
 **Evidence.** `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `agent-surface.json`
-**Gap.** Thirteen declared tools call native page-setting, component and incident services with current Lamp role decisions. The full Core registry, complete UI/tool parity, stable refusal parity and migration of every embedded caller to this registry remain incomplete.
+**Gap.** Sixteen declared tools call native page-setting, component, incident and follow-up services with current Lamp role decisions. The full Core registry, complete UI/tool parity, stable refusal parity and migration of every embedded caller to this registry remain incomplete.
 
 #### BASE-AGENT-003 — Records are resources
 
@@ -3895,7 +3895,7 @@ Agent surface · target · **partial**
 5. A stranger agent given only the seed URL completes the specialist journey through MCP.
 
 **Evidence.** `agent-surface.json`, `docs/agents.md`, `tests/baseline/e2e-baseline/agent-door.test.mjs`, `tests/agent-door/owner.mjs`, `tests/agent-door/fixtures.mjs`
-**Gap.** A CORE descriptor, current tool guide and installed-CLI native baseline collection are present. Registry-generated documentation, exact docs/discovery parity, full browser/role parity and the stranger specialist week remain incomplete; timed, queued, dual-host and complete owner-native proof is not established.
+**Gap.** A CORE descriptor, current tool guide and installed-CLI native baseline collection are present. Registry-generated documentation, exact docs/discovery parity, full browser/role parity and the stranger specialist week remain incomplete; The native history, public-host and failed-delivery journeys cover their declared cases; agent timed/queued final admission, failed JOBS producer injection and complete owner-native proof are not established.
 
 ### Agent surface
 
@@ -3912,7 +3912,7 @@ Agent surface · target · **partial** · From new · Cites BASE-AGENT-002, BASE
 4. The on-site agent guide and discovery manifest agree with the Lamp table, resource templates, event types and each computed-class fixture.
 
 **Evidence.** `agent-surface.json`, `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `docs/agents.md`
-**Gap.** The current descriptor offers thirteen native page-setting, component and incident tools. The table remains the target registry: other Core jobs, records/resources, prompts, events, on-site generated parity and full specialist coverage are incomplete or intentionally undeclared.
+**Gap.** The current descriptor offers sixteen native page-setting, component, incident and follow-up tools. The table remains the target registry: other Core jobs, records/resources, prompts, events, on-site generated parity and full specialist coverage are incomplete or intentionally undeclared.
 
 #### SURFACE-002 — Draft, exposure and sign-off classes
 
@@ -3976,7 +3976,7 @@ Agent surface · target · **partial** · From new · Cites BASE-AGENT-002, BASE
 5. The seeded week exercises a publication sign-off, an authority change, permanent removal, an authentication setting and a provider-kept consent step, so every computed Lamp class has a fixture and the provider-kept step remains truthfully attributed.
 
 **Evidence.** `agent-surface.json`, `tests/agent-door/owner.mjs`, `tests/agent-door/fixtures.mjs`, `tests/baseline/e2e-baseline/agent-door.test.mjs`
-**Gap.** The declared native journey prepares components, an incident, private notes and drafts, publication and a brief under both policies. A full incident week with evidence intake, reminders, recovery/report release, maintenance, subscribers, SMS, authority/sign-off/provider work and stranger/browser proof is incomplete.
+**Gap.** The declared native journey prepares components, an incident, private notes and drafts, publication, a brief and exact failed-dispatch retry/dismissal under both policies. `tests/agent-door/history.mjs` retains a due native draft for Cron; `tests/agent-door/specialist.mjs` checks public-host intake and incident reads, and `tests/agent-door/silent-import.mjs` checks import silence with previously queued mail. A full incident week with evidence intake, reminders, recovery/report release, maintenance, subscribers, SMS, authority/sign-off/provider work and stranger/browser proof is incomplete.
 
 ## Later
 

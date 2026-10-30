@@ -1,3 +1,4 @@
+import { queueProvider } from './queue-provider.mjs';
 // Disposable network provider only. Lamp still performs key custody, client
 // assertions, OIDC correlation, PKCE, token validation and native admission.
 export const IDENTITY_ORIGIN = 'https://lamp-agent-idp.example.invalid';
@@ -38,6 +39,8 @@ async function signedToken(claims) {
 
 export default {
   async fetch(request, { fixture } = {}) {
+    const queued = queueProvider(request, fixture);
+    if (queued) return queued;
     const url = new URL(request.url);
     if (url.origin !== IDENTITY_ORIGIN) return new Response('Undeclared provider', { status: 502 });
     if (request.method === 'GET' && url.pathname === '/.well-known/openid-configuration') return Response.json({

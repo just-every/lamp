@@ -1,10 +1,11 @@
-// Reproduced 2026-10-30 on published rer 0.2.93. These are active failures:
-// neither the descriptor nor the baseline collector skips or credits a point.
+// Verification boundaries on published rer 0.2.94. No marker skips, credits,
+// relabels or suppresses a conformance point. Full clause judgments stay partial.
 export const pendingBaseAssertions = [{
-  family: 'injectionAfterMutation',
-  points: ['BASE-AGENT-005.5.autonomous.incident-publish'],
-  source: 'modules/agent-door/conformance/injection.mjs:21-23; modules/agent-door/conformance/protocol.mjs:129-132',
-  ruling: 'C6',
-  writer: null,
-  reason: 'The injection probe allocates a new mutation key after publication has consumed its native draft. Reusing the old draft revision correctly refuses the second publication.',
+  family: 'failedQueueProducer',
+  source: 'cli/agent-door.mjs:73; cli/hosted-output.mjs:120,182; modules/agent-door/ADOPTING.md:773',
+  reason: 'The hosted verifier installs healthy native producers and exposes consumer hold/release only. verification.queues has no implementation in rer 0.2.94. Native failed webhook dispatch retry/dismissal is exercised separately; no failed JOBS.send is claimed.',
+}, {
+  family: 'timedAndQueuedFinalAdmission',
+  source: 'modules/agent-door/ADOPTING.md:773; cli/agent-history.mjs:61',
+  reason: 'CORE does not declare timedLifecycle or queuedLifecycle. Insert-only due-draft history proves native Cron publication and replay, not agent execution-time admission. The broader source branch’s due-dispatch tools are absent from the supplied CORE base.',
 }];
