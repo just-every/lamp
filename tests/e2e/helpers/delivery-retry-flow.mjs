@@ -59,8 +59,8 @@ export async function deliveryRetryFlow(t) {
       await eventuallySubscriber(outbox, row => row.available_at === new Date(deadline).toISOString(), 'all dispatch doors persist the same next wakeup');
       await advance(deadline - 1);
       await cron(deadline - 1);
-      await queue(retry * 10);
-      await queue(retry * 10 + 1);
+      assert.equal((await queue(retry * 10)).outcome, 'ok', 'an early Queue delivery is deferred cleanly');
+      assert.equal((await queue(retry * 10 + 1)).outcome, 'ok', 'repeated early delivery remains deferred');
       assert.equal(requests.length, retry, 'Cron and repeated early Queue delivery cannot consume a retry');
       assert.equal((await attempts()).length, retry, 'no fictitious attempt is recorded before eligibility');
       assert.equal((await read()).outcome, 'queued');
@@ -85,7 +85,9 @@ export async function deliveryRetryFlow(t) {
     assert.deepEqual((await attempts()).map(row => row.attempt_number), [1, 2, 3, 4, 5, 6]);
     assert.ok((await attempts()).every(row => row.error === 'Webhook destination returned 503.'));
     assert.equal(requests.length, 6, 'one initial receiver request plus exactly five actual webhook retries');
-    for (const request of requests) {
+    for (const [index, request] of requests.entries()) {
+      assert.equal(request.headers['webhook-timestamp'], String(Math.floor((initialAt + offsets[index]) / 1000)), 'the actual receiver request is signed at its independently expected retry instant');
+      assert.ok(!JSON.stringify(request).includes(contact), 'retry transport never exposes the subscriber contact address');
       assert.equal(request.headers['webhook-id'], first.id);
       assert.equal(request.body.deliveryId, first.id);
       assert.equal(request.body.updates.at(-1).id, updateId);
