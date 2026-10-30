@@ -6724,7 +6724,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-flow.mjs": {
-      "sha256": "6b0989c28b3de5f752ac77047d31a08d5a43b4f2144d631dd1a308dc06618884",
+      "sha256": "cafbab6aaba1a36c2dd7610118b3afb2cbe18114a9197b392c7af9cb29d3a52d",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-import.mjs": {
@@ -6732,7 +6732,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-notification-flow.mjs": {
-      "sha256": "b602d5686c0374844b14f32f20ad2a7484c8f3401c355216f0ee1144020f8343",
+      "sha256": "29b8729ad7bad56cfd61ed59201c5d012f3d4f4f83464d900e608d581a19e2f2",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-queue-flow.mjs": {
@@ -6841,6 +6841,14 @@
     },
     "tests/e2e/helpers/operations-alerts-flow.mjs": {
       "sha256": "70d3c1461bd1faae8fc7f8ea86f0f0302673fbf5757373c7e85f3660a29e828b",
+      "executable": false
+    },
+    "tests/e2e/helpers/operator-email-proof.mjs": {
+      "sha256": "3d06e31891a1971e5efe49f2fbb3cfbdbe9582bda2858c70b5ce0f57c5dfd30e",
+      "executable": false
+    },
+    "tests/e2e/helpers/operator-email-worker.ts": {
+      "sha256": "5db756ba842ff7b2f41c535becdf419e92a1026c076d4d26dd7cce29bec6657f",
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
@@ -7100,7 +7108,7 @@
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
-      "sha256": "9520c65cc67e19d10ecf2565fa6790631b7f2f9c73942aa8b792bf146301227d",
+      "sha256": "a71d798cb3cdbbac92110f5bc77d9a4eb57c144228168d7b94cc2c3ec4509a75",
       "executable": false
     },
     "tests/e2e/website-onboarding.test.mjs": {

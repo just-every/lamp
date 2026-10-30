@@ -3,6 +3,7 @@ import { openFollowUpsRuntime, eventuallyFollowUp, pageOrigin } from "./follow-u
 import { followUpsImport } from "./follow-ups-import.mjs";
 import { followUpsQueueFlow } from "./follow-ups-queue-flow.mjs";
 import { followUpsNotificationFlow } from "./follow-ups-notification-flow.mjs";
+import { assertOneOperatorEmail, settleOperatorEmails } from "./operator-email-proof.mjs";
 
 const endpoint = "/api/app/overview/follow-ups";
 const iso = value => new Date(value).toISOString();
@@ -10,13 +11,22 @@ const hour = 3_600_000;
 
 /** AUTO-003 public-door journey composed into the existing reminder case.
  * No SQL seeds or mutations create an obligation or its failure state. */
-export async function followUpsFlow() {
+export async function followUpsFlow(t) {
   const fixture = await openFollowUpsRuntime();
   const { api, post, request } = fixture;
   try {
     assert.equal((await fixture.raw(endpoint)).status, 401, "follow-ups require an operator session");
     assert.equal((await fixture.runtime.dispatchFetch(pageOrigin + endpoint)).status, 404, "follow-ups are absent from the public host");
     const owner = (await api("/api/app/session")).body.operator;
+    const colleague = "synthetic-lamp-follow-up-operator@example.test";
+    assert.equal((await post("/api/app/operators/invite", { email: colleague, displayName: "Follow-up operator" })).status, 202);
+    await fixture.signIn(colleague);
+    await fixture.signIn();
+    const operatorEmails = [owner.email, colleague];
+    const tick = async () => {
+      const result = await (await fixture.runtime.getWorker()).scheduled({ cron: "* * * * *", scheduledTime: Date.now() });
+      assert.equal(result.outcome, "ok");
+    };
     const componentResponse = await post("/api/app/components", { groupId: null, name: "Synthetic Lamp follow-up API", description: "", internal: false, displayOrder: 0, note: "" });
     assert.equal(componentResponse.status, 201, componentResponse.text);
     const component = componentResponse.body.component;
@@ -108,6 +118,18 @@ export async function followUpsFlow() {
     assert.equal(runningEnd?.dueAt, overrun.endsAt);
     assert.equal(overrunEntry?.dueAt, iso(Date.parse(overrun.endsAt) + 15 * 60_000));
     assert.equal(overrunEntry.failure.state, "failed");
+    // The ordinary maintenance listing and repeated Cron deliveries all raise
+    // the same obligation. Count actual serialized mail after dispatch settles.
+    await api("/api/app/maintenance");
+    await tick();
+    await settleOperatorEmails(fixture);
+    assertOneOperatorEmail(fixture, operatorEmails, /maintenance.*longer than planned/i, overrun.id);
+    await api("/api/app/maintenance");
+    await tick();
+    await tick();
+    await settleOperatorEmails(fixture);
+    assertOneOperatorEmail(fixture, operatorEmails, /maintenance.*longer than planned/i, overrun.id);
+    t?.diagnostic("PROBE NOTIFY-006 acceptance-3 maintenance overrun: POST /api/app/maintenance, POST /start, repeated GET /api/app/maintenance and Cron -> exactly one captured email to each of two active operators for the window");
     for (const report of reports) {
       assert.equal(find(rows, "report", report)?.dueAt, iso(Date.parse(report.resolvedAt) + 7 * 24 * hour));
       assert.equal(find(rows, "report-reminder", report)?.dueAt, iso(Date.parse(report.resolvedAt) + 7 * 24 * hour));
@@ -144,7 +166,7 @@ export async function followUpsFlow() {
     assert.equal((await fixture.runtime.dispatchFetch(confirmation)).status, 200);
     await expectAbsent([invitation.id]);
     await followUpsQueueFlow({ fixture, component, createIncident, publish });
-    await followUpsNotificationFlow({ fixture, component, createIncident, publish });
+    await followUpsNotificationFlow({ fixture, component, createIncident, publish, operatorEmails, tick, t });
     // Public-page requests cannot turn the operator-only dismissal into a write.
     assert.equal((await fixture.runtime.dispatchFetch(pageOrigin + `${endpoint}/dismiss`, { method: "POST", body: JSON.stringify({ id: promise.id, occurrence: promise.occurrence, reason: "Synthetic Lamp public rejection" }) })).status, 404);
     const denied = await request(`${endpoint}/dismiss`, { method: "POST", headers: { "Sec-Fetch-Site": "cross-site" }, body: JSON.stringify({ id: promise.id, occurrence: promise.occurrence, reason: "Synthetic Lamp cross-site rejection" }) });
