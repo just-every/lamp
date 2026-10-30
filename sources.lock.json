@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "5386457beda55ede4db78bfe199bcbf775056c301839602e11faa5eb377d95b8",
+      "sha256": "bd3da25be62886fe2d9906ef2bb3367a623aa4266e4d6cdd79632834f81fbafe",
       "executable": false
     },
     "agent-surface.json": {
@@ -500,7 +500,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2ea17e064d29c75d1836c3ba8b57507ab2d545c9886959ef057d1057625cd901",
+      "sha256": "3544900b3ff2081a35104b43ed45e96ebac88da01fb8ded3708f8f992489ce68",
       "executable": false
     },
     "DEMO.md": {
@@ -556,7 +556,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "992ba1fdb01f36b74b135c94ce6128ffed9dba46a13d1135cb9471f3de692518",
+      "sha256": "293dc4332fb60d25f8c6679e8e768b39d9296556d38a2b284632e02428ad0b83",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -7724,7 +7724,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "b0bdffd83f12c1b650b4fe50676d46fe2ffc32fbd63657218eceed4621434469",
+      "sha256": "faa026c6237bb9fdff8479f31798a7131c73c4bcb87d47eb10b100ce1af61dbb",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -7789,6 +7789,10 @@
     },
     "tests/e2e/helpers/channel-deletion-flow.mjs": {
       "sha256": "ae5c86cccf8618bb84018a8cf3fd72d1a25a30c6169ad192eee0146b7a737c7f",
+      "executable": false
+    },
+    "tests/e2e/helpers/channels-browser-flow.mjs": {
+      "sha256": "91f8845644edca1e98b27f3c382e3e587c6c0479f4da3568b48e8078daf39a9c",
       "executable": false
     },
     "tests/e2e/helpers/chat-preferences-flow.mjs": {
