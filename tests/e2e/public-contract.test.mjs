@@ -1,15 +1,122 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
+import { parse } from 'parse5';
 import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
 import { assertVisibleTime } from '../helpers/public-meaning.mjs';
 import { publicCapacityJourney } from './helpers/public-capacity-journey.mjs';
 
+function descendants(node) {
+  return (node.childNodes ?? []).flatMap(child => [child, ...descendants(child)]);
+}
+function nodeText(node) {
+  return node.nodeName === '#text' ? node.value : (node.childNodes ?? []).map(nodeText).join('');
+}
+function hasClass(node, name) {
+  return node.attrs?.some(attr => attr.name === 'class' && attr.value.split(' ').includes(name));
+}
+
+// A single isolated component keeps a published incident's contribution separate
+// from standing claims, corrections and the other journey's capacity fixtures.
+async function statedUptimeMethodJourney() {
+  const j = await openStatusJourney({ pageHost: 'localhost', workerEntry: 'tests/e2e/helpers/automation-clock-worker.ts' });
+  let browser;
+  const start = Date.UTC(2030, 0, 15, 12);
+  const minute = 60_000;
+  const iso = at => new Date(at).toISOString();
+  const advance = async at => assert.equal((await j.raw('/test/clock', { method: 'PUT', body: JSON.stringify({ now: at }) })).status, 204);
+  const snapshotAt = (path, at) => eventually(async () => {
+    const response = await j.publicResponse(path);
+    assert.equal(response.status, 200, path);
+    return { generatedAt: response.headers.get('x-lamp-snapshot-generated-at'), text: await response.text() };
+  }, result => result.generatedAt === iso(at), `${path} reflects the controlled publication instant`);
+  try {
+    await advance(start);
+    await j.signIn(undefined, { fresh: true });
+    const component = await j.component('Synthetic Lamp publication uptime');
+    assert.equal(component.createdAt, iso(start));
+    await advance(start + 60 * minute);
+    const savedSettings = (await j.json('/api/app/page-settings')).settings;
+    const settings = Object.fromEntries(['pageName', 'tagline', 'accentColor', 'timezone', 'hostname', 'mailFromAddress', 'template', 'footerCreditEnabled', 'widgetAllowedOrigins'].map(key => [key, savedSettings[key]]));
+    await j.json('/api/app/page-settings', 'PUT', { ...settings, pageName: 'Synthetic Lamp uptime method' });
+    const before = JSON.parse((await snapshotAt('/api/public/v1/components', start + 60 * minute)).text).data;
+    assert.deepEqual(before.map(row => [row.id, row.state, row.uptime.percentage, row.uptime.coverageMinutes]), [[component.id, 'Operational', '100.00%', 60]]);
+
+    const incident = await j.incident('Synthetic Lamp timed publication', [component]);
+    await j.save(incident.id, { nextUpdateAt: iso(start + 120 * minute) });
+    const published = (await j.publish(incident.id)).update;
+    assert.equal(published.publishedAt, iso(start + 60 * minute));
+    const active = await j.read(incident.id);
+    assert.deepEqual(active.components.map(row => [row.componentId, row.state]), [[component.id, 'Major outage']]);
+    await j.visible('/', incident.title);
+    const during = JSON.parse(await j.publicText('/api/public/v1/components')).data;
+    assert.equal(during.find(row => row.id === component.id).state, 'Major outage');
+
+    await advance(start + 90 * minute);
+    await j.save(incident.id, { lifecycle: 'Resolved', customerImpact: 'Synthetic Lamp requests have recovered.', nextUpdateAt: null });
+    const resolved = (await j.publish(incident.id)).update;
+    assert.equal(resolved.publishedAt, iso(start + 90 * minute));
+    assert.equal((await j.read(incident.id)).resolvedAt, iso(start + 90 * minute));
+    const after = JSON.parse((await snapshotAt('/api/public/v1/components', start + 90 * minute)).text).data;
+    assert.equal(after.length, 1);
+    assert.equal(after[0].id, component.id);
+    assert.equal(after[0].state, 'Operational');
+    // Sixty healthy minutes, then thirty published outage minutes: 60 of 90
+    // available minutes, rounded down. No production arithmetic is imported.
+    assert.equal(after[0].uptime.coverageMinutes, 90);
+    assert.equal(after[0].uptime.percentage, '66.66%');
+    assert.ok(parseFloat(after[0].uptime.percentage) < parseFloat(before[0].uptime.percentage));
+    assert.equal(after[0].uptime.marks.reduce((sum, mark) => sum + (mark.downtimeMinutes ?? 0), 0), 30);
+    const history = (await j.json(`/api/app/components/${component.id}/history`)).history;
+    for (const [at, state] of [[start + 60 * minute, 'Major outage'], [start + 90 * minute, 'Operational']]) {
+      assert.ok(history.some(row => row.causeId === incident.id && row.changedAt === iso(at) && row.newState === state));
+    }
+
+    const html = (await snapshotAt('/', start + 90 * minute)).text;
+    const nodes = descendants(parse(html));
+    const section = nodes.find(node => hasClass(node, 'component-health'));
+    assert.ok(section, 'initial HTML places the method beside the component figures');
+    const componentRows = descendants(section).filter(node => node.tagName === 'article' && hasClass(node, 'component')
+      && descendants(node).some(child => child.tagName === 'h4' && nodeText(child) === component.name));
+    assert.equal(componentRows.length, 1);
+    const figure = descendants(componentRows[0]).find(node => hasClass(node, 'uptime-number'));
+    assert.equal(nodeText(figure), '66.66% over 1 hour 30 minutes', 'the associated initial-HTML figure agrees with the public collection');
+    const method = descendants(section).find(node => hasClass(node, 'availability-method'));
+    assert.ok(method, 'the method is present before scripting runs');
+    const methodText = nodeText(method);
+    for (const expected of [
+      'Operational counts as 0 downtime minutes',
+      'Under maintenance counts as 0 downtime minutes',
+      'Degraded performance counts as 0.5 downtime minutes',
+      'Partially unavailable counts as 1 downtime minute',
+      'Major outage counts as 1 downtime minute',
+      'Uptime uses a 90-day window',
+    ]) assert.ok(methodText.includes(expected), `initial HTML explains ${expected}`);
+
+    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
+    const page = await context.newPage();
+    await page.goto(j.publicOrigin);
+    const visibleComponent = page.locator('article.component').filter({ has: page.getByRole('heading', { name: component.name, exact: true }) });
+    assert.equal(await visibleComponent.locator('.uptime-number').innerText(), '66.66% over 1 hour 30 minutes');
+    await page.getByText('How availability is calculated', { exact: true }).click();
+    assert.equal(await page.locator('.availability-method p').innerText(), nodeText(descendants(method).find(node => node.tagName === 'p')));
+    if (process.env.LAMP_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-stated-uptime-method.png`, fullPage: true });
+      }
+    }
+  } finally { await browser?.close(); await j.close(); }
+}
+
 // One catalogue-to-customer journey: no renderer or uptime helper is imported.
 test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PAGE-011 PAGE-012 PAGE-013 PAGE-014 PAGE-016 PAGE-017 PAGE-018 PAGE-019 PAGE-020 COMP-001 COMP-002 COMP-003 COMP-004 COMP-005 COMP-007 COMP-009 COMP-010 UPTIME-001 UPTIME-002 UPTIME-003 UPTIME-004 UPTIME-005 UPTIME-006 MOVE-009 — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story', async () => {
+  await statedUptimeMethodJourney();
   const j = await openStatusJourney({ pageHost: 'localhost' });
   let browser;
   try {
