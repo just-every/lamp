@@ -231,10 +231,11 @@ async function api(path, method = 'GET', body) {
 const saved = () => page.locator('.autosave-status.is-saved').waitFor();
 const readIncident = async id => (await api(`/api/app/incidents/${id}`)).incident;
 
-test('TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit', { timeout: 300_000 }, async () => {
+test('TEAM-001 TEAM-004 TEAM-007 INCIDENT-014 — operator roles, permissions, audit and Settings chat identities', { timeout: 300_000 }, async t => {
   const {actors}=await (await import('./helpers/operator-roles-flow.mjs')).operatorRolesFlow({appFetch,appUrl,persistTo:statePath,configPath});
   await (await import('./helpers/operator-roles-browser-flow.mjs')).operatorRolesBrowserFlow({page,appUrl,appFetch,actor:actors.viewer});
   await page.setViewportSize({width:1440,height:1000});
+  await (await import('../chat-desk/settings-browser-flow.mjs')).chatLinksSettingsFlow({ browser, t });
 });
 
 // Preserve the private-note and queued-save journeys in the consolidated operator day.
