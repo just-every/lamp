@@ -90,8 +90,14 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const generation = page.locator('[data-generated-at] time');
     assertVisibleTime(await generation.getAttribute('title'), await generation.getAttribute('datetime'), 'America/Los_Angeles');
     await j.json(`/api/app/components/${other.id}/standing-claim`, 'PUT', { state: 'Degraded performance' });
-    const incident = await j.incident('API outage under investigation', [main, hidden]);
-    await j.save(incident.id); await j.publish(incident.id);
+    const incident = await j.incident('Synthetic Lamp API outage under investigation', [main, hidden]);
+    const widgetWording = {
+      affectedAudience: 'Synthetic Lamp customers submitting API requests.',
+      customerImpact: 'New API requests cannot complete during this outage.',
+      whatStillWorks: 'Previously saved results remain available in the dashboard.',
+      details: 'Responders have isolated the failing API gateway.',
+    };
+    await j.save(incident.id, widgetWording); await j.publish(incident.id);
     await j.visible('/', incident.title);
     const firstStatus = await (await j.publicResponse('/api/public/status')).json();
     assert.ok((await j.publicText('/')).includes(other.name), 'a degraded conditional component becomes public');
@@ -127,6 +133,26 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const feedBefore = await j.publicText('/feed.atom');
     assert.ok(feedBefore.includes(incident.reference));
     const firstIds = [...feedBefore.matchAll(/<id>([^<]+)<\/id>/g)].map(match => match[1]);
+
+    // Install the banner while the published incident is still unresolved.
+    const widgetSource = await j.publicText('/widget.js');
+    assert.ok(gzipSync(Buffer.from(widgetSource)).byteLength <= 10 * 1024, 'the populated widget is at most ten KiB gzipped');
+    const loadWidget = async target => target.evaluate(url => new Promise((resolve, reject) => {
+      const script = document.createElement('script'); script.src = url; script.onload = resolve; script.onerror = reject; document.body.append(script);
+    }), j.publicOrigin + '/widget.js');
+    await loadWidget(page); await page.locator('section[role=status]').waitFor();
+    const banner = page.locator('section[role=status]');
+    assert.equal(await banner.count(), 1, 'one script tag installs one banner');
+    assert.equal(await banner.locator('strong').innerText(), 'Major outage', 'the banner shows the exact aggregate state');
+    const bannerMessage = await banner.locator('span').last().innerText();
+    assert.ok(bannerMessage.includes(incident.reference), 'the banner identifies the unresolved incident');
+    assert.ok(bannerMessage.includes('Synthetic Lamp API outage under investigation'), 'the banner retains its submitted title');
+    for (const value of Object.values(widgetWording)) assert.ok(bannerMessage.includes(value), `the banner retains submitted wording: ${value}`);
+    const denied = await scripted.newPage(); await denied.setContent('<main>Unlisted embedding site</main>'); await loadWidget(denied);
+    assert.equal(await denied.locator('section[role=status]').count(), 0); await denied.close();
+    const audit = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    assert.deepEqual(audit.violations.filter(item => ['serious', 'critical'].includes(item.impact)), []);
+
     await j.save(incident.id, { lifecycle: 'Resolved', customerImpact: 'API requests are working again.', nextUpdateAt: null }); await j.publish(incident.id);
     await j.visible('/history', incident.title);
     const feedAfter = await j.publicText('/feed.atom');
@@ -161,14 +187,6 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     for (const path of ['/api/v2/summary.json', '/api/v2/components.json', '/api/v2/incidents.json', '/api/v2/scheduled-maintenances.json', '/api/public/v1/incidents', '/history.rss', '/history.atom', `/components/${publishedMain.slug}/feed.atom`, `/components/${publishedMain.slug}/feed.rss`]) assert.equal((await j.publicResponse(path)).status, 200, path);
 
     await page.reload();
-    const loadWidget = async target => target.evaluate(url => new Promise((resolve, reject) => {
-      const script = document.createElement('script'); script.src = url; script.onload = resolve; script.onerror = reject; document.body.append(script);
-    }), j.publicOrigin + '/widget.js');
-    await loadWidget(page); await page.locator('section[role=status]').waitFor();
-    const denied = await scripted.newPage(); await denied.setContent('<main>Unlisted embedding site</main>'); await loadWidget(denied);
-    assert.equal(await denied.locator('section[role=status]').count(), 0); await denied.close();
-    const audit = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-    assert.deepEqual(audit.violations.filter(item => ['serious', 'critical'].includes(item.impact)), []);
     const noScript = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
     const plain = await noScript.newPage(); await plain.goto(j.publicOrigin);
     assert.ok((await plain.locator('body').innerText()).includes(main.name));
