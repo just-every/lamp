@@ -54,7 +54,8 @@ export async function uptimePairingFlow({ api, component, origin, cookie }) {
       await page.getByRole('button', { name: 'Make the Uptime address', exact: true }).click();
       const address = await page.getByLabel('Uptime address', { exact: true }).inputValue();
       assert.match(address, /\/api\/intake\/[0-9A-HJKMNP-TV-Z]{26}\/[A-Za-z0-9_-]{40,}$/, 'Lamp makes the key and puts it in the address');
-      assert.equal(await page.locator('input[type=password]').count(), 0, 'no secret to type anywhere');
+      // The tools' own body (the whole old Alerts page): Chat and social cards beside it keep their own secrets.
+      assert.equal(await page.locator('.alerts-page input[type=password]').count(), 0, 'no secret to type anywhere');
       assert.equal(await page.locator('.receipt-card').count(), 0);
       await inspect('address', { axe: true });
       await page.getByRole('button', { name: 'Done', exact: true }).click();
@@ -85,7 +86,7 @@ export async function uptimePairingFlow({ api, component, origin, cookie }) {
       await inspect('first-arrival');
 
       await row.getByRole('button', { name: 'Edit Uptime', exact: true }).click();
-      const pick = page.getByLabel('Storefront', { exact: true });
+      const pick = page.locator('.tool-form').getByLabel('Storefront', { exact: true });
       await pick.selectOption({ label: 'Storefront' });
       await page.locator('.tool-save-state').getByText('Saved', { exact: true }).waitFor();
       await inspect('picked', { axe: true });
