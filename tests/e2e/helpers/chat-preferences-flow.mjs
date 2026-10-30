@@ -4,8 +4,24 @@ import { subscriberTeamsUrl } from '../teams-subscriptions-helper.mjs';
 
 /** Token management, Settings, maintenance actions and the real scheduled entry
  * prove chat preferences and retained-recipient maintenance notices. */
-export async function chatPreferencesFlow({runtime,publicOrigin,received,publish,component,manageUrls}){
+export async function chatPreferencesFlow({runtime,publicOrigin,received,publish,component,other,manageUrls}){
   assert.ok(manageUrls.every(Boolean),'the channel confirmation pages supply management capabilities');
+  let teamsId;
+  const readTeamsSelection=async selectedId=>{
+    const listed=await runtime.api('/api/app/subscribers');
+    assert.equal(listed.status,200,listed.text);
+    assert.equal(listed.body.hasMore,false,'the fixture inventory includes every chat subscription');
+    const teams=listed.body.subscribers.filter(row=>row.channel==='teams');
+    assert.equal(teams.length,1,'confirmation retains one Teams subscription');
+    const subscription=teams[0];
+    teamsId??=subscription.id;
+    assert.equal(subscription.id,teamsId,'management updates the confirmed subscription');
+    assert.equal(subscription.state,'active');
+    assert.equal(subscription.selectionMode,'selected');
+    assert.deepEqual(subscription.componentSelections.map(row=>row.componentId),[selectedId],'a fresh native read returns exactly the persisted component selection');
+    assert.ok(!subscription.componentSelections.some(row=>row.componentId===(selectedId===component.id?other.id:component.id)),'the other visible component remains unselected');
+  };
+  await readTeamsSelection(component.id);
   const saved=(await runtime.api('/api/app/page-settings')).body.settings;
   const {pageName,tagline,accentColor,hostname,footerCreditEnabled,widgetAllowedOrigins,mailFromAddress}=saved;
   const timezone=await runtime.api('/api/app/page-settings',{method:'PUT',body:JSON.stringify({pageName,tagline,accentColor,hostname,footerCreditEnabled,widgetAllowedOrigins,mailFromAddress,timezone:'Australia/Brisbane'})});
@@ -16,6 +32,7 @@ export async function chatPreferencesFlow({runtime,publicOrigin,received,publish
       const result=await fetch(url,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded',Origin:publicOrigin},body:fields});
       assert.equal(result.status,200,await result.text());
     }
+    await readTeamsSelection(componentId);
   };
   const slackPath=new URL(RECORDED_SLACK_WEBHOOK).pathname,teamsPath=new URL(subscriberTeamsUrl).pathname;
   const posts=()=>({slack:received.filter(row=>row.path===slackPath),teams:received.filter(row=>row.path.startsWith(teamsPath))});
@@ -53,8 +70,7 @@ export async function chatPreferencesFlow({runtime,publicOrigin,received,publish
 
   let changedWindow;
   await nextNotice(async()=>{changedWindow=await create(72,'Previously selected chat maintenance.');},'a second scheduled notice');
-  const other=await runtime.post('/api/app/components',{groupId:null,name:'Unrelated chat selection',description:'',internal:false,displayOrder:1,note:''});assert.equal(other.status,201,other.text);
-  await manage(other.body.component.id,['maintenance']);
+  await manage(other.id,['maintenance']);
   await nextNotice(async()=>{
     const result=await runtime.api(`/api/app/maintenance/${changedWindow.id}/window`,{method:'PUT',body:JSON.stringify({startsAt:new Date(Date.parse(changedWindow.startsAt)+3600000).toISOString(),endsAt:new Date(Date.parse(changedWindow.endsAt)+3600000).toISOString()})});assert.equal(result.status,200,result.text);
   },'the original subscription\'s reschedule despite changed component selection');
