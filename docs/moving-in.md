@@ -3,6 +3,8 @@
 Lamp can bring components, incident history, scheduled maintenance and eligible
 email subscribers into your page.
 
+After building the candidate, `pnpm sorry:receipt --capture /unchanged/capture --key-file /private/test.pem --out /new/output` verifies a public capture in a disposable test installation and signs its receipt; reviewed receipts live in `docs/receipts/` and their public keys belong only in the consumer's test trust store.
+
 ## Common workflow
 
 1. Sign in and open **Settings → Move in** (`/app/move-in`). Choose the matching
