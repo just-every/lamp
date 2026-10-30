@@ -155,6 +155,7 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const firstIds = [...feedBefore.matchAll(/<id>([^<]+)<\/id>/g)].map(match => match[1]);
 
     // Install the banner while the published incident is still unresolved.
+    assert.equal((await j.read(incident.id)).lifecycle, 'Identified', 'the native incident remains unresolved when the widget is installed');
     const widgetSource = await j.publicText('/widget.js');
     assert.ok(gzipSync(Buffer.from(widgetSource)).byteLength <= 10 * 1024, 'the populated widget is at most ten KiB gzipped');
     const loadWidget = async target => target.evaluate(url => new Promise((resolve, reject) => {
