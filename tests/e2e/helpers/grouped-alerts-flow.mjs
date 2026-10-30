@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { chromium } from 'playwright';
-import { operatorHydrated } from './operator-hydrated.mjs';
+import { openFresh, operatorHydrated } from './operator-hydrated.mjs';
 
 export const groupedPayload = (key, states = ['firing', 'firing']) => ({ version: '4', receiver: 'lamp', status: states.some(state => state === 'firing') ? 'firing' : 'resolved', groupKey: key, groupLabels: { alertname: 'ServiceUnavailable' }, commonLabels: { region: 'us-east' }, commonAnnotations: {}, externalURL: 'https://monitor.example.test', truncatedAlerts: 0,
   alerts: states.map((status, index) => ({ status, labels: { alertname: 'ServiceUnavailable', service: index ? 'dashboard' : 'api', region: 'us-east' }, annotations: { summary: index ? 'Dashboard requests timing out' : 'API request failures' }, startsAt: '2026-10-18T00:00:00Z', endsAt: status === 'resolved' ? '2026-10-18T00:05:00Z' : '0001-01-01T00:00:00Z', generatorURL: 'https://monitor.example.test/graph', fingerprint: index ? 'b2b2b2' : 'a1a1a1' })) });
@@ -104,7 +104,7 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/settings#tools`); await operatorHydrated(page);
+      await openFresh(page, `${origin}/app/settings#tools`);
       await page.getByRole('button', { name: 'Grafana', exact: true }).click();
       const editor = page.locator('section.tool-form');
       await editor.getByLabel('Component 1', { exact: true }).selectOption(targets[0].id);

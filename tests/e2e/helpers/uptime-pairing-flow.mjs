@@ -4,7 +4,7 @@ import { createHmac } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium } from 'playwright';
-import { operatorHydrated } from './operator-hydrated.mjs';
+import { openFresh, operatorHydrated } from './operator-hydrated.mjs';
 
 // run-uptime creates each webhook destination's signing secret itself and shows it only to its own owner
 // (notification-destinations.server.ts), so this secret never reaches Lamp. The paired address carries
@@ -33,7 +33,7 @@ export async function uptimePairingFlow({ api, component, origin, cookie }) {
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     for (const width of [1440]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      const open = async () => { await page.goto(`${origin}/app/settings#tools`); await operatorHydrated(page); };
+      const open = () => openFresh(page, `${origin}/app/settings#tools`);
       const inspect = async (name, { axe = false } = {}) => {
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} ${name} has no horizontal overflow`);
         assert.deepEqual(await page.locator('.tool-picker button, .tool-row button, .tool-form button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], `${width} ${name} controls keep their full labels`);

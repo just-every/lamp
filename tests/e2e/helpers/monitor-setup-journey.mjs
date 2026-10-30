@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "playwright";
-import { operatorHydrated } from "./operator-hydrated.mjs";
+import { openFresh, operatorHydrated } from "./operator-hydrated.mjs";
 
 /** New Relic's displayed workflow is the payload the owner actually installs. */
 export async function monitorSetupJourney({ origin, publicOrigin, cookie, component, api }) {
@@ -22,7 +22,7 @@ export async function monitorSetupJourney({ origin, publicOrigin, cookie, compon
     const entities = ["checkout-api", "checkout-worker"];
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/settings#tools`); await operatorHydrated(page);
+      await openFresh(page, `${origin}/app/settings#tools`);
       await page.getByRole("button", { name: "New Relic", exact: true }).click();
       await editor.getByRole("combobox", { name: "Component", exact: true }).selectOption(target.id);
       await inspect("component");
