@@ -22,6 +22,7 @@ const ownerHistorySql = `
 INSERT INTO oa_operators (id,email,display_name,role,status,created_at) VALUES ('01J00000000000000000000099','former@example.test','Former Teammate','owner','inactive',1788825600000);
 INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at) VALUES
   ('01J00000000000000000000025','01J00000000000000000000020','Investigating','API customers','Some requests fail.','Dashboards','We are investigating.',NULL,'2026-09-08T00:30:00.000Z','01J00000000000000000000099','2026-09-08T00:30:00.000Z','2026-09-08T00:30:00.000Z');
+UPDATE incident_updates SET reviewed_by_operator_id='01J00000000000000000000099',reviewed_at='2026-09-08T00:20:00.000Z' WHERE id='01J00000000000000000000023';
 INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES
   ('01J00000000000000000000044','email','left@customer.example',NULL,'deactivated','all','fixture-left','unsubscribed','2026-09-10T00:00:00.000Z','2026-09-08T00:00:00.000Z','2026-09-10T00:00:00.000Z'),
   ('01J00000000000000000000045','email','pending@customer.example',NULL,'pending','all','fixture-pending',NULL,NULL,'2026-09-09T00:00:00.000Z','2026-09-09T00:00:00.000Z');
@@ -133,6 +134,13 @@ test("Page data restores verified consent and holds unverified addresses until c
     assert.equal(subscribers["pending@customer.example"].confirmed_at, null);
     assert.ok(exported.records.subscribers.every((row) => !("token_hash" in row)), "an installation credential left in the file");
     assert.ok(exported.records.incident_updates.some((row) => row.author_email === "former@example.test"));
+    const reviewedUpdate = exported.records.incident_updates.find(row => row.id === '01J00000000000000000000023');
+    assert.equal(reviewedUpdate.reviewed_by_email, ['former', 'example.test'].join('@'));
+    assert.equal(reviewedUpdate.reviewed_at, '2026-09-08T00:20:00.000Z');
+    assert.ok(!('reviewed_by_operator_id' in reviewedUpdate), 'review attribution leaves installation IDs behind');
+    const legacyUpdate = exported.records.incident_updates.find(row => row.id === '01J00000000000000000000025');
+    assert.equal(legacyUpdate.reviewed_by_email, null);
+    assert.equal(legacyUpdate.reviewed_at, null, 'a legacy update does not acquire invented review evidence');
     assert.equal(exported.records.incident_templates[0].name, "Regional API recovery");
     assert.equal(exported.records.incident_templates[0].should_send_notifications, 0);
     assert.equal(exported.records.incident_template_components[0].component_id, "01J00000000000000000000011");
@@ -160,11 +168,35 @@ test("Page data restores verified consent and holds unverified addresses until c
     assert.equal(restored.status, 200, JSON.stringify(await restored.clone().json()));
     const again = await (await destination.request("/api/app/page-data")).json();
     assert.deepEqual(withoutTime(again), withoutTime(exported));
+    const endpoint = '/api/app/incidents/01J00000000000000000000020';
+    const readIncident = async () => (await (await destination.request(endpoint)).json()).incident;
+    const restoredReview = (await readIncident()).updates.find(row => row.id === '01J00000000000000000000023');
+    assert.equal(restoredReview.reviewedAt, '2026-09-08T00:20:00.000Z');
+    assert.ok(restoredReview.reviewedByOperatorId);
+    assert.notEqual(restoredReview.reviewedByOperatorId, '01J00000000000000000000099', 'restore maps the reviewer to this installation');
 
     const publicPage = await (await fetch(`${destination.page}/`)).text();
     assert.match(publicPage, /Elevated API error rates/);
     const repeat = await destination.request("/api/app/page-data/restore", json(exported));
     assert.equal(repeat.status, 409, "a second restore must not duplicate the page");
+    const erased = await destination.request(`/api/app/operators/${restoredReview.reviewedByOperatorId}`, { method: 'DELETE' });
+    assert.equal(erased.status, 204, await erased.clone().text());
+    assert.deepEqual((await readIncident()).updates.find(row => row.id === restoredReview.id), restoredReview, 'erasure preserves the immutable review fact');
+    const erasedFile = await (await destination.request('/api/app/page-data')).json();
+    const erasedEmail = ['deleted-' + restoredReview.reviewedByOperatorId.toLowerCase(), 'operator.invalid'].join('@');
+    assert.equal(erasedFile.records.incident_updates.find(row => row.id === restoredReview.id).reviewed_by_email, erasedEmail);
+    assert.ok(erasedFile.people.some(person => person.email === erasedEmail && person.displayName === 'Erased operator'));
+    assert.ok(!JSON.stringify(erasedFile).includes(['former', 'example.test'].join('@')));
+    assert.ok(!JSON.stringify(erasedFile).includes('Former Teammate'));
+    assert.equal((await destination.request('/api/app/page-data/restore', json(exported))).status, 409, 'replaying the old file cannot resurrect an erased person');
+    assert.deepEqual(withoutTime(await (await destination.request('/api/app/page-data')).json()), withoutTime(erasedFile));
+    for (const path of ['/', '/incidents/INC-4821', '/api/public/v1/incidents', '/api/v2/incidents.json']) {
+      const response = await fetch(destination.page + path);
+      assert.equal(response.status, 200);
+      const body = await response.text();
+      assert.ok(!body.includes(restoredReview.reviewedByOperatorId) && !body.includes(erasedEmail));
+      assert.doesNotMatch(body, /reviewedByOperatorId|reviewedAt|reviewed_by_email|reviewed_at/);
+    }
   } finally {
     await destination.stop();
   }

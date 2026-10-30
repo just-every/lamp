@@ -53,6 +53,8 @@ export interface IncidentPublishRecord {
   publishedAt: string;
   isRetroactive: boolean;
   authorOperatorId: string;
+  reviewedByOperatorId: string | null;
+  reviewedAt: string | null;
   correctsUpdateId: string | null;
   peakImpact: ComponentState;
   createdAt: string;

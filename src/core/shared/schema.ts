@@ -163,6 +163,8 @@ export const incidentUpdates = sqliteTable("incident_updates", {
   publishedAt: text("published_at").notNull(),
   isRetroactive: integer("is_retroactive", { mode: "boolean" }).notNull().default(false),
   authorOperatorId: text("author_operator_id").notNull().references(() => operators.id),
+  reviewedByOperatorId: text("reviewed_by_operator_id").references(() => operators.id),
+  reviewedAt: text("reviewed_at"),
   correctsUpdateId: text("corrects_update_id").references((): ReturnType<typeof text> => incidentUpdates.id),
   componentChanges: text("component_changes_json", { mode: "json" }).$type<import("./incident-component-changes").PublishedIncidentComponentChange[]>().notNull().default([]),
   componentSnapshot: text("component_snapshot_json", { mode: "json" }).$type<import("./incident-component-changes").PublishedIncidentComponentChange[]>().notNull().default([]),
