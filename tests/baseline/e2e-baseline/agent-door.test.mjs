@@ -5,7 +5,11 @@ import { dirname, join } from 'node:path';
 import { before } from 'node:test';
 import { baseline } from './case.mjs';
 
-const clauses = Array.from({ length: 13 }, (_, index) => `BASE-AGENT-${String(index + 1).padStart(3, '0')}`);
+const clauses = [
+  'BASE-AGENT-001', 'BASE-AGENT-002', 'BASE-AGENT-003', 'BASE-AGENT-004',
+  'BASE-AGENT-005', 'BASE-AGENT-006', 'BASE-AGENT-007', 'BASE-AGENT-008',
+  'BASE-AGENT-009', 'BASE-AGENT-010', 'BASE-AGENT-011', 'BASE-AGENT-012', 'BASE-AGENT-013',
+];
 const belongsTo = (point, id) => typeof point?.id === 'string' && (point.id === id || point.id.startsWith(`${id}.`));
 let result;
 let executionError;
@@ -16,7 +20,8 @@ before(async () => {
     // Run the same installed-CLI journey as rer verify, against a disposable
     // production Worker and its native owner lifecycle, not a module fixture.
     const { checkAgentDoor } = await import(new URL('agent-door.mjs', import.meta.resolve('@runeditrun/rer/adapter')));
-    result = await checkAgentDoor(process.cwd());
+    const { commandAdapter } = await import('../../../scripts/installer/local.mjs');
+    result = await checkAgentDoor(process.cwd(), { declaration: commandAdapter.deployDeclaration });
   } catch (error) {
     if (error.code === 'agent_door_failed' && Array.isArray(error.agentDoor?.points)) result = error.agentDoor;
     else executionError = typeof error.code === 'string' && /^[a-z_]+$/.test(error.code) ? error.code : 'agent_conformance_unavailable';

@@ -365,7 +365,7 @@
     {
       "id": "sorry-api",
       "required": false,
-      "why": "MOVE-001 only, at the owner’s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
+      "why": "MOVE-001 only, at the owner\u2019s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
       "data": [
         "API key in authenticated Authorization header only",
         "Page ID or public status-page hostname and notice IDs"
@@ -753,6 +753,12 @@
       "required": false,
       "secret": false,
       "why": "Twilio Messaging Service identifier used instead of a sending number when configured."
+    },
+    {
+      "name": "RER_BUSINESS_TRUST",
+      "required": false,
+      "secret": true,
+      "why": "Signed Business settings trust for durable owner and team subject mapping; absent keeps remote settings off."
     }
   ],
   "deploy": {

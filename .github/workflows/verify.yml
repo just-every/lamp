@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
       - id: reuse
         name: Reuse only verified push evidence
@@ -50,6 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -99,6 +100,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -152,6 +154,7 @@ jobs:
           LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
           LAMP_BASELINE_REPORT: ${{ runner.temp }}/lamp-verification/baseline-report.json
           LAMP_AGENT_DOOR_REPORT: ${{ runner.temp }}/lamp-verification/agent-door-conformance.json
+          LAMP_AGENT_PROOF_DIR: ${{ runner.temp }}/lamp-verification/agent-browser
         run: |
           # rer verify adds Base's hosted-output and hydration checks after the
           # runtime shard has built and exercised the actual production Worker.
@@ -192,6 +195,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         if: needs.plan.outputs.skip != 'true'
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         if: needs.plan.outputs.skip != 'true'

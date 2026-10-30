@@ -1,5 +1,5 @@
 import type { PeopleAdapter, Person } from './types.ts'
-import { isActiveOperator, type Operator as NativeOperator } from '../operator-auth/index.mjs'
+import { isActiveOperator, type Operator as NativeOperator } from '@runeditrun/rer/modules/operator-auth'
 
 interface Operator { id: string; email: string; displayName: string; role: string; status: string }
 /** Business subjects bind through settings; native ids survive changes of address. */

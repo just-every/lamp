@@ -109,6 +109,11 @@
     {
       "binding": "TWILIO_MESSAGING_SERVICE",
       "environment": "TWILIO_MESSAGING_SERVICE"
+    },
+    {
+      "binding": "RER_BUSINESS_TRUST",
+      "environment": "RER_BUSINESS_TRUST",
+      "optional": true
     }
   ],
   "crons": [

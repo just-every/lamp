@@ -990,7 +990,7 @@
     },
     {
       "id": "0079_dependency_keys_sealed.sql",
-      "buyerSteps": "Apply after 0078. Adds dependency signing-key encryption custody markers without replacing existing keys. The normal setup/deploy lifecycle generates and retains INSTALLATION_KEY; retain it for the installation and use INSTALLATION_KEY_PREVIOUS during an explicit rotation. Archives contain neither secret."
+      "buyerSteps": "Apply after the preceding core migrations in filename order. Adds dependency signing-key encryption custody markers without replacing existing keys. The normal setup/deploy lifecycle generates and retains INSTALLATION_KEY; retain it for the installation and use INSTALLATION_KEY_PREVIOUS during an explicit rotation. Archives contain neither secret."
     }
   ],
   "breaking": false,
