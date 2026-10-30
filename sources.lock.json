@@ -6616,7 +6616,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "b0bdffd83f12c1b650b4fe50676d46fe2ffc32fbd63657218eceed4621434469",
+      "sha256": "36b55fd0cf4170b454e31cd1058f3c937b8932b1707e74b8a6a31f2036feaafa",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -6681,6 +6681,10 @@
     },
     "tests/e2e/helpers/channel-deletion-flow.mjs": {
       "sha256": "ae5c86cccf8618bb84018a8cf3fd72d1a25a30c6169ad192eee0146b7a737c7f",
+      "executable": false
+    },
+    "tests/e2e/helpers/channels-browser-flow.mjs": {
+      "sha256": "91f8845644edca1e98b27f3c382e3e587c6c0479f4da3568b48e8078daf39a9c",
       "executable": false
     },
     "tests/e2e/helpers/chat-preferences-flow.mjs": {
