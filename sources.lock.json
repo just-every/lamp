@@ -643,6 +643,14 @@
       "sha256": "e8140d3656f3a31a8ad2077d83752fb0d08d184dfb6ea8890a78820f6acea57d",
       "executable": false
     },
+    "docs/receipts/sorry-chargedesk-public-20261030/receipt.json": {
+      "sha256": "b0e09ebc123298f620db5305728a49f61346b86f37f6fa7f06aeb299031b1c26",
+      "executable": false
+    },
+    "docs/receipts/sorry-chargedesk-public-20261030/research.md": {
+      "sha256": "dba46bdb7dcc49c33dea482e52c0755cf74fdfd2f31cf14ae3456708ee672223",
+      "executable": false
+    },
     "docs/site.json": {
       "sha256": "843afbd307b7d6a4238d259d1d4aedc8685cc966cfa4eed4773e7bcf30e08a5b",
       "executable": false
@@ -673,6 +681,10 @@
     },
     "hosted-check.json": {
       "sha256": "e0da0831730860a036990c4176dff42c9032c3161cb2c1418f8ecbcdff4e25b7",
+      "executable": false
+    },
+    "importers.json": {
+      "sha256": "a09ece3859dd5b7c6de5840d2d70b7ace4ca6d6bfaca884c40633439c2afd84d",
       "executable": false
     },
     "LICENSE": {
@@ -2497,6 +2509,10 @@
     },
     "schema/dependencies.mjs": {
       "sha256": "4bfc30fa75029db2727a9d1fb095d4969dc756c5317ac55ce768202bb869e2b7",
+      "executable": false
+    },
+    "schema/importers.schema.json": {
+      "sha256": "18dc124807e02ccf65dafea079c110245e0f9fba7e3ed5a96c676ebf89035b11",
       "executable": false
     },
     "schema/json-schema.mjs": {
