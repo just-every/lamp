@@ -14,6 +14,28 @@ export async function publicCapacityJourney(j, limits) {
     const review = await j.json('/api/app/components/bulk/preview', 'POST', { catalogue, revision });
     await j.json('/api/app/components/bulk/apply', 'POST', { catalogue: review.catalogue, revision: review.revision, reviewToken: review.reviewToken });
   };
+  // Read the actual refresh bytes at both catalogue sizes, with no incident,
+  // maintenance or state change that could change the reader's public story.
+  const refresh = async () => {
+    const response = await j.publicResponse('/api/public/status');
+    assert.equal(response.status, 200);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return { bytes, status: JSON.parse(bytes.toString('utf8')) };
+  };
+  const limitRefresh = await refresh();
+  try {
+    await replace({ ...original.catalogue, components: original.catalogue.components.slice(0, 1) });
+    assert.equal((await j.json('/api/app/components/bulk')).catalogue.components.length, 1);
+    const smallRefresh = await refresh();
+    assert.notEqual(smallRefresh.status.generatedAt, limitRefresh.status.generatedAt, 'the small catalogue has its own published generation');
+    const story = ({ generatedAt, ...status }) => status;
+    assert.deepEqual(story(smallRefresh.status), { version: 1, overall: 'Operational', maintenance: null, incident: null });
+    assert.deepEqual(story(limitRefresh.status), story(smallRefresh.status), 'catalogue size is the only changing public input');
+    assert.equal(limitRefresh.bytes.byteLength, smallRefresh.bytes.byteLength, 'refresh response bytes do not grow from one component to the declared component limit');
+  } finally {
+    await replace(original.catalogue);
+  }
+  assert.equal((await j.json('/api/app/components/bulk')).catalogue.components.length, limits.components.value);
   const components = original.catalogue.components.map((row, index) => ({
     ...row, name: `Customer service ${index}`, internal: false, onlyShowIfDegraded: false, region: index % 2 ? 'North America' : 'Europe',
     description: (`Service ${index} availability information. ` + 'Customer-facing service. '.repeat(20)).slice(0, 280),
