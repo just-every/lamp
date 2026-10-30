@@ -18,7 +18,7 @@
 .found-row:first-child { padding-top: 0; }
 .found-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .found-row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.found-label { margin: 0 0 4px; color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.found-label { margin: 0 0 4px; color: var(--ink-3); font-size: var(--text-small); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
 .found-edit { min-height: 24px; border: 0; background: none; padding: 0; color: var(--ink-2); font-size: 13px; text-decoration: underline 1px var(--link-line); text-underline-offset: 3px; }
 .found-edit:hover { color: var(--ink); }
 .found-value { color: var(--ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }

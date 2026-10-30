@@ -23,5 +23,5 @@
   background: radial-gradient(ellipse 42% 100% at 50% 0, rgb(var(--lamp-light) / .42), rgb(var(--lamp-light) / .16) 45%, rgb(var(--lamp-light) / .05) 72%, rgb(var(--lamp-light) / 0));
   mask-image: linear-gradient(transparent, var(--ink) 22%); }
 .error-card { width: min(100%, 640px); overflow: hidden; border-radius: 12px; background: var(--card); box-shadow: var(--shadow-night); text-align: center; }
-.error-notice { margin: 0; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); padding: 28px 32px; color: var(--ink); font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -.012em; text-wrap: balance; }
+.error-notice { margin: 0; background: var(--amber-wash); padding: 28px 32px; color: var(--ink); font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -.012em; text-wrap: balance; }
 .error-card .button { margin: 20px 0 24px; }

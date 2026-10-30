@@ -6,7 +6,7 @@ SELECT 'notification-dispatch:' || n.id AS id,'notification-dispatch' AS kind,
   'Complete notification dispatch or dismiss this failure with a reason.' AS stop_condition,
   CASE WHEN n.failed_at IS NOT NULL OR n.last_error IS NOT NULL THEN 'Notification dispatch failed; delivery remains pending.' END AS failure_message,
   CASE WHEN n.failed_at IS NOT NULL OR n.last_error IS NOT NULL THEN COALESCE(n.failed_at,n.updated_at) END AS failure_at,
-  '/app/deliveries' AS link,
+  '/app/subscribers?view=log' AS link,
   json_array(n.id,n.attempts,n.available_at,n.failed_at,n.last_error IS NOT NULL,n.updated_at) AS occurrence
 FROM notification_outbox n
 WHERE n.completed_at IS NULL AND (n.kind='operator-alert' OR EXISTS(
@@ -17,6 +17,6 @@ UNION ALL
 SELECT 'notification-delivery:' || d.id,'notification-delivery','Failed ' || d.channel || ' notification',
   NULL,NULL,COALESCE(d.outcome_at,d.updated_at),
   'Resolve the failed notification or dismiss it with a reason.',
-  'Notification delivery failed.',COALESCE(d.outcome_at,d.updated_at),'/app/deliveries',
+  'Notification delivery failed.',COALESCE(d.outcome_at,d.updated_at),'/app/subscribers?view=log',
   json_array(d.id,d.outcome_at,d.updated_at,(SELECT COUNT(*) FROM notification_attempt_records a WHERE a.delivery_id=d.id))
 FROM notification_delivery_records d WHERE d.outcome='failed'`;

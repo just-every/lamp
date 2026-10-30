@@ -41,7 +41,7 @@
 .impact-field > .field-label { margin-bottom: 0; }
 .impact-field textarea { min-height: 68px; }
 .next-update-field small, .resolution-note { margin: 0; color: var(--ink-3); font-size: 13px; }
-.character-count { justify-self: end; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.character-count { justify-self: end; color: var(--ink-3); font-size: var(--text-small); font-variant-numeric: tabular-nums; }
 .time-warning { margin: 0; color: var(--amber-ink); font-size: 13px; font-weight: 500; }
 
 /* Choices are pills; the chosen one is the ink pill. */
@@ -96,11 +96,11 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
 .preview-switch button { min-height: 30px; border: 0; border-radius: 999px; background: none; color: var(--ink-2); padding: 4px 14px; font-size: 13px; font-weight: 500; }
 .preview-switch button[aria-pressed="true"] { background: var(--card); box-shadow: 0 1px 2px rgb(24 45 36 / .12); color: var(--ink); }
 .preview-card { box-sizing: border-box; display: block; width: 100%; min-width: 0; margin-top: 16px; overflow: hidden; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 0 20px 20px; }
-.preview-card .preview-type { margin: 0 -20px 16px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 11px 20px; font-size: 11px; }
+.preview-card .preview-type { margin: 0 -20px 16px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 11px 20px; font-size: var(--text-small); }
 .preview-card h3 { margin-top: 14px; font-size: 18px; letter-spacing: -.012em; overflow-wrap: anywhere; }
 .preview-card dl { display: grid; gap: 14px; margin: 16px 0 0; }
 .preview-card dl div { display: grid; gap: 4px; }
-.preview-card dt { color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.preview-card dt { color: var(--ink-3); font-size: var(--text-small); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .preview-card dd { margin: 0; color: var(--ink); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .email-preview-logo { display: block; width: 160px; max-width: 100%; height: auto; margin-top: 16px; }
 
