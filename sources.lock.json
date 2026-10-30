@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ea059ac459f3a972f4639cf6f766cf4c7289f1169492a5484f1e89c49ebcf197",
+      "sha256": "fcb03e8feb8d420376a651844ff5b27b382b80bca5f3e9f88932479a90d103e7",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "df9f9d3820daa598d9ef00e8454ed5befe5913c47404d0be20a143185288106b",
       "executable": false
     },
     "DEMO.md": {
@@ -3852,7 +3852,7 @@
       "executable": false
     },
     "src/core/features/incidents/service.ts": {
-      "sha256": "bb203ca9eee3beb0fd421a2c411a11765d0cf1670cd49d420f34508c5458a219",
+      "sha256": "58edacc38704c5ed34ce1b047d2fc5f72dbd611e92be20f1f2ce1b83fd98e675",
       "executable": false
     },
     "src/core/features/incidents/template-fields.ts": {
@@ -3900,7 +3900,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-preview.tsx": {
-      "sha256": "f6a4ab646c18a7e2d2d2889e844686adca31fc56c48413e193d608c31d65febf",
+      "sha256": "365d77b953ca4a8d3bb1d70b27323b040541a67e6cc9a1e1cc9b61edf07c5a65",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-record.tsx": {
@@ -4652,7 +4652,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/record-markup.ts": {
-      "sha256": "642471882d730a398f3762dfd33b812e973525aecfd998b7bfd6e59449c55a69",
+      "sha256": "256db006411ae87356e2cb6d843bffffdc35e35aa3a9ee5946fca911dc0ac4ab",
       "executable": false
     },
     "src/core/features/public-snapshot/renderer.ts": {
@@ -7000,11 +7000,11 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "7101b20d1024a23add46b3e172cbe894362ab7bf5e980b9f422178651782b543",
+      "sha256": "d9d541c71739017669d9e3396f6297fdbb87e97066bd1a94c095e32634b4bea6",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "cde1f024f476d32e8c97b1dd26780f7cb34c89bb9ea860e93b921d7cb72f754c",
+      "sha256": "897c0f9252f643befe9a87142e44430693a883fe9c441182f1979a001d26e8ec",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {
