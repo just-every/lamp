@@ -104,6 +104,8 @@ test('THEME-001 PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survi
       assert.equal((await blobReads()).getBytes[key], 1, `${path} reads its immutable artifact once when cold`);
     }
     const afterCold = await blobReads();
+    assert.equal(afterCold.getText['snapshots/current.json'] - (beforeCold.getText['snapshots/current.json'] ?? 0), paths.length, 'every cold read validates the current pointer');
+    assert.equal(afterCold.getText['snapshots/stale.json'] - (beforeCold.getText['snapshots/stale.json'] ?? 0), paths.length, 'every cold read checks snapshot freshness');
     for (let round = 0; round < 3; round++) {
       for (const path of paths) {
         const response = await read(path);
