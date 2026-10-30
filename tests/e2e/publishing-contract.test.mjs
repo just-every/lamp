@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { performance as clock } from 'node:perf_hooks';
 import { test } from 'node:test';
 import { parse } from 'parse5';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
@@ -232,12 +233,74 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     }
     const reach = await j.json(`/api/app/incidents/${incident.id}/reach`);
     assert.ok(reach.incident);
-    await j.json(endpoint, 'DELETE', {}, 400);
-    await j.json(endpoint, 'DELETE', { reason: 'Duplicate incident replaced after review' });
-    await j.json(endpoint, 'GET', undefined, 404);
-    await eventually(() => j.publicText('/history'), body => !body.includes(incident.title), 'audited incident removed from public history');
-    const audit = await j.json('/api/app/audit-log?limit=100');
-    assert.ok(audit.entries.some(row => row.entityId === incident.id && row.reason === 'Duplicate incident replaced after review'));
+
+    // Exercise both active and resolved public records. History intentionally
+    // lists resolved incidents; the root and Atom include both lifecycles.
+    const unresolved = await j.incident('synthetic-lamp-7 unresolved deletion', [component]);
+    await saveReviewed(unresolved.id, {}); await j.publish(unresolved.id);
+    const retained = await j.incident('synthetic-lamp-8 retained recovery', [component]);
+    await saveReviewed(retained.id, { lifecycle: 'Resolved', nextUpdateAt: null });
+    await j.publish(retained.id);
+    const surfaces = ['/', '/history', '/feed.atom'];
+    const readSurfaces = () => Promise.all(surfaces.map(path => j.publicText(path)));
+    const controlsVisible = bodies => bodies.every((body, index) => body.includes(retained.title)
+      && (surfaces[index] === '/history' || body.includes(live.title)));
+    const removed = [];
+    for (const [target, actor, reason] of [
+      [unresolved, reviewer, 'Synthetic active incident withdrawn after review'],
+      [incident, undefined, 'Duplicate incident replaced after review'],
+    ]) {
+      const targetPath = `/api/app/incidents/${target.id}`;
+      const applicable = target === unresolved ? ['/', '/feed.atom'] : surfaces;
+      const before = await eventually(readSurfaces, bodies => controlsVisible(bodies)
+        && applicable.every(path => bodies[surfaces.indexOf(path)].includes(target.title)),
+      'target and unaffected controls are published before deletion');
+      if (target === unresolved) assert.ok(!before[1].includes(target.title), 'active incidents do not enter resolved history');
+      await j.signIn(actor);
+      const operator = (await j.json('/api/app/session')).operator;
+      const unchanged = await j.read(target.id);
+      await j.json(targetPath, 'DELETE', {}, 400);
+      await j.json(targetPath, 'DELETE', { reason: '   ' }, 400);
+      assert.deepEqual(await j.read(target.id), unchanged, 'reasonless deletion changes nothing');
+      assert.ok(!(await j.json('/api/app/audit-log?action=deleted&limit=100')).entries
+        .some(row => row.entityType === 'incident' && row.entityId === target.id), 'refusal creates no deletion audit');
+      const refused = await readSurfaces();
+      assert.ok(controlsVisible(refused));
+      for (const path of applicable) assert.ok(refused[surfaces.indexOf(path)].includes(target.title), `${path}: refused deletion keeps the published incident`);
+
+      // One elapsed-time budget covers the native DELETE and reconciliation of
+      // every surface, rather than resetting a timeout for each individual read.
+      const started = clock.now();
+      const requestedAt = Date.now();
+      assert.equal((await j.json(targetPath, 'DELETE', { reason })).deleted, true);
+      const respondedAt = Date.now();
+      removed.push(target);
+      let bodies;
+      do {
+        bodies = await readSurfaces();
+        assert.ok(controlsVisible(bodies), 'deletion retains unrelated active and resolved public records');
+        if (bodies.every(body => removed.every(row => !body.includes(row.title)))) break;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } while (clock.now() - started < 10_000);
+      assert.ok(clock.now() - started <= 10_000, 'all public removals complete within one ten-second deadline from the request');
+      for (const [index, path] of surfaces.entries()) {
+        for (const row of removed) assert.ok(!bodies[index].includes(row.title), `${path}: deleted incident is absent`);
+      }
+      await j.json(targetPath, 'GET', undefined, 404);
+      assert.ok(!(await j.json('/api/app/incidents')).incidents.some(row => row.id === target.id));
+
+      const audit = (await j.json('/api/app/audit-log?action=deleted&limit=100')).entries
+        .filter(row => row.entityType === 'incident' && row.entityId === target.id);
+      assert.equal(audit.length, 1, 'one deletion audit is independently readable');
+      assert.equal(audit[0].actorId, operator.id, 'audit identifies the exact requesting operator');
+      assert.equal(audit[0].reason, reason);
+      const deletedAt = Date.parse(audit[0].createdAt);
+      assert.ok(Number.isFinite(deletedAt) && deletedAt >= requestedAt && deletedAt <= respondedAt,
+        'deletion audit time falls inside the native DELETE request');
+      const persisted = await j.db.prepare('SELECT deleted_at AS deletedAt, deletion_reason AS deletionReason FROM incidents WHERE id = ?').bind(target.id).first();
+      assert.equal(persisted.deletedAt, audit[0].createdAt, 'persisted deletion and audit share the exact instant');
+      assert.equal(persisted.deletionReason, reason);
+    }
   } finally { await j.close(); }
 });
 
