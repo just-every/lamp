@@ -17,6 +17,6 @@ export function IncidentPreview({ preview, error, headingRef }: { preview: Rende
     </div>
     {error ? <FormError>{error}</FormError> : !preview ? <LoadingState>Rendering this draft…</LoadingState> : view === "page"
       ? <PreviewCard title="Public page" heading={preview.public.heading} lifecycle={preview.public.lifecycle} fields={preview.public.fields} />
-      : <PreviewCard title="Notification email" heading={preview.email.subject} lifecycle={null} logoUrl={preview.email.logoUrl} logoAlt={preview.email.logoAlt} fields={[...(preview.email.from ? [{ label: "From", value: preview.email.from }] : []), ...(preview.email.replyTo ? [{ label: "Reply-To", value: preview.email.replyTo }] : []), ...preview.email.plainText.split("\n\n").slice(1).map(value => ({ label: "Message", value }))]} />}
+      : <PreviewCard title="Notification email" heading={preview.email.subject} lifecycle={null} logoUrl={preview.email.logoUrl} logoAlt={preview.email.logoAlt} fields={[...(preview.email.from ? [{ label: "From", value: preview.email.from }] : []), ...(preview.email.replyTo ? [{ label: "Reply-To", value: preview.email.replyTo }] : []), ...preview.email.plainText.split("\n\n").map(value => ({ label: "Message", value }))]} />}
   </aside>;
 }
