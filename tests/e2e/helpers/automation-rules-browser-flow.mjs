@@ -30,11 +30,11 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     if (proof) await mkdir(proof, { recursive: true });
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error" && /hydrat|did not match|server rendered/i.test(message.text())) errors.push(message.text()); });
-    await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
+    await page.goto(`${origin}/app/settings#tools`); await operatorHydrated(page);
     if (proof) await captureBoth("alert-entry", () => page.screenshot.bind(page));
     await page.getByRole("link", { name: "Manage alert rules in Settings", exact: true }).click();
     await operatorHydrated(page);
-    await page.getByRole("heading", { name: "Settings", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Connected tools", exact: true }).waitFor();
     const rules = page.getByRole("region", { name: "Alert rules", exact: true });
     await rules.getByLabel("Rule source", { exact: true }).selectOption(source.id);
     await rules.getByLabel("Rule component", { exact: true }).selectOption(target.id);

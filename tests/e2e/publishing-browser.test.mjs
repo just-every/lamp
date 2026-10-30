@@ -503,7 +503,15 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   await page.getByRole('region', { name: 'Your public page' }).waitFor();
   const { live } = await api('/api/app/overview/live');
   assert.equal(live.sender.state, 'local', 'local mail never claims provider verification');
-  await page.goto(`${appUrl}/app/settings#writing`); await operatorHydrated(page);
+  // Settings takes the rail over: its menu replaces the daily one, and a destination opens its pane.
+  const rail = page.getByRole('complementary', { name: 'Operator navigation', exact: true });
+  await rail.getByRole('navigation', { name: 'Workspace sections', exact: true }).getByRole('link', { name: 'Settings', exact: true }).click();
+  const settingsMenu = rail.getByRole('navigation', { name: 'Settings sections', exact: true });
+  await settingsMenu.getByRole('link', { name: 'Writing', exact: true }).click();
+  await page.getByRole('heading', { level: 1, name: 'Writing', exact: true }).waitFor();
+  assert.equal(new URL(page.url()).hash, '#writing');
+  assert.equal(await settingsMenu.getByRole('link', { name: 'Writing', exact: true }).getAttribute('aria-current'), 'page');
+  assert.equal(await rail.getByRole('navigation', { name: 'Workspace sections', exact: true }).count(), 0, 'the Settings menu replaces the daily menu');
   const tone = 'Lead with customer impact and the next update commitment.';
   await page.getByRole('textbox', { name: 'Tone instructions', exact: true }).fill(tone);
   await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
@@ -525,6 +533,16 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
   await page.reload(); await operatorHydrated(page);
   assert.equal(await page.getByLabel('Reply-to address', { exact: true }).inputValue(), 'support@journey.example');
+  await settingsMenu.getByRole('link', { name: 'Overview', exact: true }).click();
+  await page.waitForURL(url => url.pathname === '/app');
+  await rail.getByRole('navigation', { name: 'Workspace sections', exact: true }).waitFor();
+  // The addresses Settings and Subscribers replaced still land where their content went.
+  for (const [old, landing, content] of [['/app/page', '/app/settings#page', 'What Lamp checked'], ['/app/deliveries', '/app/subscribers?view=log', 'Delivery records'], ['/app/alerts', '/app/settings#tools', 'Connect a tool']]) {
+    await page.goto(`${appUrl}${old}`); await operatorHydrated(page);
+    await page.getByRole('region', { name: content, exact: true }).waitFor();
+    const landed = new URL(page.url());
+    assert.equal(`${landed.pathname}${landed.search}${landed.hash}`, landing, `${old} lands on ${landing}`);
+  }
 
 
   await page.goto(`${appUrl}/app/components`); await operatorHydrated(page);

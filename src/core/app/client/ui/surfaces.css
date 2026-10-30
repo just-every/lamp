@@ -27,13 +27,14 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .card-heading h2 { margin-bottom: 0; }
 .card-kicker + h2 { margin-top: 0; }
 .card-support { margin: 12px 0; color: var(--ink-2); }
-.count-label { flex: none; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.count-label { flex: none; color: var(--ink-3); font-size: var(--text-small); font-variant-numeric: tabular-nums; }
 
-/* The amber "live" block: the landing's .lamp-plate__current. Only what is live and needs the operator now. */
-.live-block { background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); }
+/* The amber "live" block: the landing's .lamp-plate__current, a wash inside a full amber ring. Only what is live and
+   needs the operator now. */
+.live-block { border: 1px solid var(--amber); background: var(--amber-wash); }
 
 /* State chips: a quiet pill with a coloured dot. */
-.state-pill { display: inline-flex; width: fit-content; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--chip); color: var(--ink); padding: 3px 10px; font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+.state-pill { display: inline-flex; width: fit-content; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--chip); color: var(--ink); padding: 3px 10px; font-size: var(--text-small); font-weight: 500; line-height: 1.4; white-space: nowrap; }
 .state-pill::before, .fact-dot::before { content: ''; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--quiet); }
 .fact-dot { display: inline-flex; align-items: center; gap: 8px; }
 .state-operational::before, .state-resolved::before, .state-completed::before, .state-delivered::before, .state-active::before, .state-monitoring::before { background: var(--ok); }
@@ -83,9 +84,9 @@ input[type="file"]::file-selector-button:hover { background: var(--stage); }
 .data-card > .button { margin: 4px 0 12px; }
 
 
-/* Updates due or overdue (INCIDENT-010): live work, so an amber block with one action. */
+/* Updates due or overdue (INCIDENT-010): live work, so the amber ring with one action. */
 .update-due-notice { display: grid; gap: 10px; }
-.update-due-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); padding: 14px 16px; }
+.update-due-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--amber); border-radius: 12px; background: var(--amber-wash); padding: 14px 16px; }
 .update-due-row > span { display: grid; gap: 2px; min-width: 0; }
 .update-due-row strong { color: var(--amber-ink); font-weight: 600; }
 .update-due-row small { color: var(--ink-2); overflow-wrap: anywhere; }

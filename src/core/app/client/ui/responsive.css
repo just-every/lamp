@@ -1,20 +1,26 @@
 /* The phone menu keeps every section visible together, above the current page. */
 @media (max-width: 900px) {
   .operator-shell { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow-x: clip; }
-  .operator-rail, .operator-workspace, .operator-header, .operator-main { width: 100%; min-width: 0; max-width: 100%; }
+  .operator-rail, .operator-workspace, .operator-main { width: 100%; min-width: 0; max-width: 100%; }
   .operator-workspace { border-left: 0; }
   .operator-rail { position: static; height: auto; border-bottom: 1px solid var(--line); padding: 10px 16px; }
   .app-brand { width: fit-content; padding: 0; }
   .operator-brand-row .operator-menu-button { display: inline-flex; min-height: 44px; }
-  .operator-navigation-panel { display: none; max-height: calc(100dvh - 65px); overflow-y: auto; }
+  .operator-navigation-panel { display: none; max-height: calc(100dvh - 65px); }
   .operator-navigation-panel.is-open { display: flex; }
-  .operator-navigation { margin-top: 12px; }
-  .operator-rail-footer { margin-top: 12px; padding: 14px 12px; }
-  .operator-header { display: none; }
-  .operator-header.is-menu-open { position: static; display: flex; height: auto; min-height: 64px; padding: 10px 28px; }
-  .operator-header > p { display: none; }
-  .operator-header .operator-account { width: 100%; justify-content: space-between; }
-  .operator-header .operator-identity { justify-items: start; }
+  .operator-navigation { margin: 12px 0 0; }
+  .operator-rail-footer { margin-top: 12px; padding: 14px 12px 4px; }
+  .operator-page-link, .operator-signout { min-height: 44px; }
+  /* In Settings the sheet is the Settings list alone: text rows at touch height, no icons and no foot, on one screen. */
+  .settings-menu { gap: 0; }
+  .settings-menu .operator-nav-link, .settings-menu-back { min-height: 44px; }
+  .settings-menu .operator-nav-link svg, .operator-rail.is-settings .operator-rail-footer { display: none; }
+  .settings-menu-title { margin-top: 0; }
+  .settings-menu-topic { gap: 0; }
+  .settings-menu-topic > p { margin-top: 6px; }
+  .settings-pill { display: inline-flex; width: fit-content; max-width: 100%; min-height: 44px; align-items: center; gap: 10px; margin-bottom: 16px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); color: var(--ink); padding: 0 16px; font-size: 15px; font-weight: 500; }
+  .settings-pill svg { flex: none; }
+  .settings-pill svg:last-child { color: var(--ink-3); }
   .operator-main { padding: 24px 16px; }
   .settings-workspace, .maintenance-workspace { grid-template-columns: 1fr; }
   .maintenance-schedule-card { position: static; }
@@ -23,10 +29,6 @@
 
 @media (max-width: 620px) {
   h1 { font-size: 32px; }
-  .operator-account { max-width: 100%; gap: 10px; }
-  .operator-identity { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
-  .operator-identity small { display: none; }
-  .header-signout { min-height: 36px; padding: 6px 14px; font-size: 13px; }
   .operator-main { padding: 20px 16px; }
   .page-title-row { align-items: stretch; flex-direction: column; min-height: 0; }
   .page-title-row .button { width: 100%; }
@@ -80,17 +82,13 @@
   .receipt-card tbody, .receipt-card tr { display: grid; }
   .receipt-card tr { padding: 12px 0; border-top: 1px solid var(--line); }
   .receipt-card td { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 12px; padding: 6px 0; border: 0; overflow-wrap: anywhere; }
-  .receipt-card td::before { content: attr(data-label); color: var(--ink-3); font-size: 12px; }
+  .receipt-card td::before { content: attr(data-label); color: var(--ink-3); font-size: var(--text-small); }
   .receipt-card td[colspan] { display: block; }
 }
 
-/* First run, Your page and Settings stack under 900px; the hero's small preview gives way first. */
-@media (max-width: 1180px) {
-  .page-hero { grid-template-columns: 84px minmax(0, 1fr); }
-  .page-hero-preview { display: none; }
-}
+/* First run and Settings › Page stack under 900px. */
 @media (max-width: 900px) {
-  .your-page-grid, .settings-pair { grid-template-columns: minmax(0, 1fr); }
+  .your-page-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
   .found-card { grid-template-columns: minmax(0, 1fr); }
