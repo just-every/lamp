@@ -43,5 +43,5 @@ export async function openStatusJourney(options = {}) {
     const result = await (await fixture.runtime.getWorker()).scheduled({ cron: '* * * * *', scheduledTime: at });
     assert.equal(result.outcome, 'ok');
   };
-  return { ...fixture, json, read, component, incident, save, publish, publicResponse, publicText, visible, tick };
+  return { ...fixture, get runtime() { return fixture.runtime; }, get db() { return fixture.db; }, json, read, component, incident, save, publish, publicResponse, publicText, visible, tick };
 }

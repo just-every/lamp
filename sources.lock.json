@@ -6740,7 +6740,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-runtime.mjs": {
-      "sha256": "6b2459915e66050851e28228a6a58793309f976b44b0e4e5ef5615ccddc611a8",
+      "sha256": "e540942a636d9d3f8f0b37323a225d651680d902fb99c5554ca3ee10fc879143",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-worker.ts": {
@@ -6789,6 +6789,10 @@
     },
     "tests/e2e/helpers/incident-follow-sms-flow.mjs": {
       "sha256": "772b5c9d99613063d67632f2a7881dc38c185c18a36a4ca0189b12bfdf83f14e",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-references-flow.mjs": {
+      "sha256": "4dee729efa8c16bb38ebdcd1449b8e5934a9c83bebce8a8f9379346a2b5168e9",
       "executable": false
     },
     "tests/e2e/helpers/incident-subscriber-import-flow.mjs": {
@@ -6908,7 +6912,7 @@
       "executable": false
     },
     "tests/e2e/helpers/status-journey.mjs": {
-      "sha256": "96a1b76056c721902e82997ede946f0532df75611c715cbbbdf1e891d9135317",
+      "sha256": "d299dc3024673a6cf55f5995b6ecc299116e55f8c6409a59b2b5eb8ed38beb35",
       "executable": false
     },
     "tests/e2e/helpers/status-journey.worker.ts": {
@@ -7040,7 +7044,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "9ede8bf9c715a75309396ad4da88712b2b92543b5a93a86139f7d993a4e39fc3",
+      "sha256": "6465ed9233e074d45c717fe06f5f9224c76afed00c70291d0af8b40787b23934",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {
