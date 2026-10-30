@@ -28,8 +28,12 @@ export async function selfServeChatFlow(t){
   try{
     t.diagnostic('SUB-014 SUB-015 synthetic Slack OAuth and Teams Workflows public subscriptions; no live provider call');
     const component=(await runtime.post('/api/app/components',{groupId:null,name:'Self-serve subscriptions',description:'',internal:false,displayOrder:0,note:''})).body.component;
+    const secondComponent=await runtime.post('/api/app/components',{groupId:null,name:'Selected Slack secondary component',description:'',internal:false,displayOrder:1,note:''});
+    assert.equal(secondComponent.status,201,secondComponent.text);
+    const unrelated=await runtime.post('/api/app/components',{groupId:null,name:'Unrelated visible Slack component',description:'',internal:false,displayOrder:2,note:''});
+    assert.equal(unrelated.status,201,unrelated.text);
     let slackManageUrl,teamsManageUrl;
-    const id=await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,onManage:url=>{slackManageUrl=url;}});
+    const id=await prepareSlackSubscription({componentId:component.id,componentIds:[component.id,secondComponent.body.component.id],excludedComponentId:unrelated.body.component.id,publicOrigin,sql,onManage:url=>{slackManageUrl=url;}});
     await prepareTeamsSubscription({componentId:component.id,publicOrigin,received,sql,onManage:url=>{teamsManageUrl=url;}});
     const incident=await runtime.post('/api/app/incidents',{title:'Self-serve channel incident',components:[{componentId:component.id,state:'Partially unavailable',relationship:'Primary'}]});
     assert.equal(incident.status,201,incident.text);
