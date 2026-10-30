@@ -85,7 +85,7 @@
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@playwright/test": "1.63.0",
-    "@runeditrun/rer": "0.2.76",
+    "@runeditrun/rer": "0.2.93",
     "@tailwindcss/vite": "^4.3.3",
     "@types/css-tree": "^3.2.0",
     "@types/node": "22.19.17",

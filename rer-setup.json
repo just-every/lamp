@@ -294,6 +294,23 @@
       "generate": "hex"
     },
     {
+      "name": "INSTALLATION_KEY",
+      "label": "Installation key",
+      "kind": "secret",
+      "input": "managed",
+      "required": true,
+      "ownerVisible": false,
+      "generate": "hex"
+    },
+    {
+      "name": "INSTALLATION_KEY_PREVIOUS",
+      "label": "Previous installation key",
+      "kind": "secret",
+      "input": "managed",
+      "required": false,
+      "ownerVisible": false
+    },
+    {
       "name": "IDENTITY_PROVIDER",
       "label": "Identity provider",
       "kind": "url",

@@ -587,6 +587,18 @@
       "why": "Stable random secret of at least 32 characters for Base operator session and link hashes. Installer generates and preserves it."
     },
     {
+      "name": "INSTALLATION_KEY",
+      "required": true,
+      "secret": true,
+      "why": "Installer-generated 256-bit key sealing dependency identity keys at rest. Retain private custody across updates."
+    },
+    {
+      "name": "INSTALLATION_KEY_PREVIOUS",
+      "required": false,
+      "secret": true,
+      "why": "Previous installation key supplied only during explicit custody rotation or recovery; never generated independently."
+    },
+    {
       "name": "IDENTITY_PROVIDER",
       "required": false,
       "secret": false,
