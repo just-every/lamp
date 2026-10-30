@@ -54,7 +54,7 @@ export async function publicDailyRecordJourney(t) {
       }
       return [component.id, marks];
     }));
-    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined, headless: true, args: ['--no-sandbox'] });
     for (const template of ['default', 'calm', 'uptime', 'regions']) {
       await j.json('/api/app/page-settings', 'PUT', { ...saved, timezone, template });
       const response = await j.publicResponse('/api/public/v1/components');
