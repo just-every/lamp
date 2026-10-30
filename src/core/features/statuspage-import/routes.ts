@@ -38,6 +38,12 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Your status pages could not be listed." }, 400); }
   });
   app.get("/api/app/statuspage-import/jobs", async (context) => context.json({ jobs: await service.list(context.get("operatorSession")) }));
+  app.get("/api/app/statuspage-import/jobs/:id/verification", async (context) => {
+    const id = jobId.safeParse(context.req.param("id"));
+    if (!id.success) return context.json({ error: "Import not found." }, 404);
+    try { return context.json(await service.verification(id.data, context.get("operatorSession"))); }
+    catch (cause) { return context.json({ error: refused(cause) }, 409); }
+  });
   // Imports made before the door keep their read, resume and undo here; every
   // import keeps its read and its Cutover invitations.
   app.get("/api/app/statuspage-import/jobs/:id", async (context) => {

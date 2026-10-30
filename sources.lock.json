@@ -624,7 +624,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "6c153217e59792f796bad5e933ad30523d5e4cb603a163044596c77299d61e03",
+      "sha256": "88a7559e42adfc251bcece6f0cff16dc95820438bd521a39e05fa2c77e60dd27",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -2312,7 +2312,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "6bd6db52f634a040144a733ebc5da85c519cf8d8de4dea14a7a7fcae680400dc",
+      "sha256": "ac78739ed4d6077b93716902016252f2d9459cb75147627e546b00279b9bab66",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -2968,7 +2968,7 @@
       "executable": false
     },
     "scripts/sorry-capture.mjs": {
-      "sha256": "dfe38428dc409ca4a83e37f7867bc1f4e4f289605ff8f911004c514831a48099",
+      "sha256": "f330dabcaee5a236990f13659ff7459bacd0877390f527a8949bf7069eda62e0",
       "executable": false
     },
     "scripts/validate-release.mjs": {
@@ -5056,7 +5056,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/routes.ts": {
-      "sha256": "91a6de31b971a9d3b489bc998e0ea9c385c013ad12d8b3740a304d40e34f5a77",
+      "sha256": "bd2f8b64c72feee650661d2166ec36c887ae7c2997005fb94b5841916e03736a",
       "executable": false
     },
     "src/core/features/statuspage-import/rows.ts": {
@@ -5064,7 +5064,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/service.ts": {
-      "sha256": "3f55281a6a3789858f46b220174e921c472475675a91aebbe3a8da41c04f0852",
+      "sha256": "d6b372c77ebb60f4bcdc34402b402f1a6a0ae316c3a7bb18cab5f93ea78e85a1",
       "executable": false
     },
     "src/core/features/statuspage-import/sorry-release.repository.ts": {
@@ -7040,7 +7040,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "a4ee6b3aed32e4bcf79ff98329158872a02b4b276d498ee9cf19fd856a7e50e4",
+      "sha256": "0dac2b1b85407b8c16673d0bb8cf674c47a1ad2872552a2d7d922d95507a7926",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
