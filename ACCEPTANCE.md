@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 20 | 169 | 49 | 238 |
+| Core | 21 | 168 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 20 | 169 | 54 | 243 |
+| Full target | 21 | 168 | 54 | 243 |
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. PAGE-013 is rechecked from the code and tests in this candidate commit; its earlier partial judgment is superseded on landing. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -203,7 +203,7 @@ Core · published · **partial**
 
 #### PAGE-013 — Enforced isolation
 
-Core · published · **partial** · Cites BASE-PUBLIC-001
+Core · published · **done** · Cites BASE-PUBLIC-001
 
 **Requirement.** Public status has restrictive same-origin isolation and needs no CAPTCHA or consent banner. The exact header policy is documented in the public mechanisms record. The formats and configuration details are in [Public status mechanisms](docs/contract/public-details.md).
 
@@ -212,8 +212,8 @@ Core · published · **partial** · Cites BASE-PUBLIC-001
 2. The public page contains neither a CAPTCHA nor a consent banner.
 3. The public page writes no visitor data to browser storage.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`
-**Gap.** Old cited evidence asserts The default-src directive names the own origin in the exact complete CSP; The script-src directive names the own origin in the exact complete CSP; The style-src directive names the own origin in the exact complete CSP; The img-src directive names the own origin in the exact complete CSP. Unasserted: A populated public page is checked for absence of CAPTCHA; A populated public page is checked for absence of consent banner; The public page writes no visitor data to browser storage.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): acceptance 1 checks the complete documented CSP, framing refusal, nosniff and referrer headers on the public page, history, feeds, widget, status JSON and badge. Its registered `tests/e2e/helpers/public-isolation-flow.mjs` (publicIsolationFlow) proves acceptance 2 and 3 on populated default, Calm headline, Uptime-history-led and Regions map pages: fresh anonymous readers load, poll, observe a native publication and reload without CAPTCHA, consent controls or attempted storage writes; independent cookies, localStorage, sessionStorage, IndexedDB and CacheStorage inventories remain empty. Existing `tests/baseline/e2e-baseline/core-baseline.test.mjs` retains public no-Set-Cookie and document.cookie controls under BASE-PUBLIC-001.
+**Gap.** None.
 
 #### PAGE-014 — Live refresh
 

@@ -3116,15 +3116,15 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. PAGE-013 is rechecked from the code and tests in this candidate commit; its earlier partial judgment is superseded on landing.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3141,7 +3141,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `PAGE-010` | Atom feed | published | partial | `tests/e2e/public-contract.test.mjs`, `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Full Atom 1.0 validation is asserted; Exactly one entry exists for each included event; Event identities are never reused. |
 | `PAGE-011` | Embeddable widget | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The widget is at most ten KiB gzipped; The nonempty widget source contains neither XMLHttpRequest nor importScripts. Unasserted: The banner content asserts both overall state and unresolved incident; The widget performs no other foreign-origin or alternate network load; Every widget load is observed to stay on the installation origin. |
 | `PAGE-012` | Branding | published | partial | `tests/e2e/public-contract.test.mjs`, `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts Changing the page name reaches the public page; Footer credit begins enabled; Enabled credit displays Powered by Lamp; Disabling credit removes it. Unasserted: Logo is changed and read back; Accent color is changed and read back; Time zone is changed and read back; Hostname is changed and read back; Disabling credit has no network effect; The direct first-party logo response bytes are read back as the configured logo; Open Graph title states the current overall status. |
-| `PAGE-013` | Enforced isolation | published | partial | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The default-src directive names the own origin in the exact complete CSP; The script-src directive names the own origin in the exact complete CSP; The style-src directive names the own origin in the exact complete CSP; The img-src directive names the own origin in the exact complete CSP. Unasserted: A populated public page is checked for absence of CAPTCHA; A populated public page is checked for absence of consent banner; The public page writes no visitor data to browser storage. |
+| `PAGE-013` | Enforced isolation | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): acceptance 1 checks the complete documented CSP, framing refusal, nosniff and referrer headers on the public page, history, feeds, widget, status JSON and badge. Its registered `tests/e2e/helpers/public-isolation-flow.mjs` (publicIsolationFlow) proves acceptance 2 and 3 on populated default, Calm headline, Uptime-history-led and Regions map pages: fresh anonymous readers load, poll, observe a native publication and reload without CAPTCHA, consent controls or attempted storage writes; independent cookies, localStorage, sessionStorage, IndexedDB and CacheStorage inventories remain empty. Existing `tests/baseline/e2e-baseline/core-baseline.test.mjs` retains public no-Set-Cookie and document.cookie controls under BASE-PUBLIC-001. | |
 | `PAGE-014` | Live refresh | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: The refresh response has exactly the fixed field set; The refresh response size does not grow with component count; Scripting-disabled content never refreshes itself. |
 | `PAGE-015` | Served independently of what it reports | target | partial | `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs` | Configured hostname and isolated public routing are delivered; custom-hostname provisioning, certificate issuance and DNS-record guidance are absent. |
 | `PAGE-022` | Secondary snapshot mirror | target | missing | `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs` | The secondary origin, supported-provider setup, mirror writes and lag reporting are absent. |
