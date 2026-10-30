@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ea059ac459f3a972f4639cf6f766cf4c7289f1169492a5484f1e89c49ebcf197",
+      "sha256": "8b2f8f6076bb659dfbd05b7912a73a71f6413d8c9794a9add2ee00aeb3a75d6e",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "83af28d39224e59d14d002071311978f6f70a7da294415e051247d9878f53586",
       "executable": false
     },
     "DEMO.md": {
@@ -6972,7 +6972,7 @@
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-flow.mjs": {
-      "sha256": "b011f642b696f30e407eb4b01c99298d20164faa3efe3d2f3f0c79b6dab2be67",
+      "sha256": "8981f3c975c21d3bcca161c570574f07a3a13039fb935140122029bc317cb314",
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-runtime.mjs": {
