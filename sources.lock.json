@@ -7032,7 +7032,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "105d23d5dc57056c5cc2f457bf988e51e43735849f9d975a9c360cd676684999",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
