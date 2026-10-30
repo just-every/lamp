@@ -1,0 +1,21 @@
+{
+  "$schema": "./schema/importers.schema.json",
+  "schemaVersion": 1,
+  "importers": [
+    {
+      "incumbent": "Sorry",
+      "product": "Lamp",
+      "status": "verified",
+      "evidence": {
+        "link": "evidence:docs/receipts/sorry-chargedesk-public-20261030/receipt.json",
+        "sha256": "b0e09ebc123298f620db5305728a49f61346b86f37f6fa7f06aeb299031b1c26",
+        "size": 4097,
+        "research": {
+          "link": "evidence:docs/receipts/sorry-chargedesk-public-20261030/research.md",
+          "sha256": "dba46bdb7dcc49c33dea482e52c0755cf74fdfd2f31cf14ae3456708ee672223",
+          "size": 20969
+        }
+      }
+    }
+  ]
+}

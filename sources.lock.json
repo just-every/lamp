@@ -2971,6 +2971,14 @@
       "sha256": "f330dabcaee5a236990f13659ff7459bacd0877390f527a8949bf7069eda62e0",
       "executable": false
     },
+    "scripts/sorry-receipt.mjs": {
+      "sha256": "b5f50099b1433f04bd4493ebbc319bfa1b71d2459cea430b6ec5f098c141423f",
+      "executable": false
+    },
+    "scripts/sorry-receipt/runtime.mjs": {
+      "sha256": "fe354857f8dee89d4fc1ae248e18cf2da3cd457a4ede00ebe05f7eaecae4f02e",
+      "executable": false
+    },
     "scripts/validate-release.mjs": {
       "sha256": "a533241930db27c71b9aff0a6ec82145f606a658d9bdee126d49add592fc5d3a",
       "executable": false
@@ -5139,6 +5147,10 @@
       "sha256": "b06df6ee8097f218b9f8c006d29192690794a3614703069fad67af7488c6e64e",
       "executable": false
     },
+    "src/core/features/statuspage-import/verification.repository.ts": {
+      "sha256": "8b063ac2d5027e4f4805c54d43663e18ddd1caee83eeadc174695df0d2863382",
+      "executable": false
+    },
     "src/core/features/statuspage-import/visibility.ts": {
       "sha256": "1a36bb39b4754f44563f663aded8d2bc65392afaee7bd97ec03b4c7ac7e94505",
       "executable": false
@@ -6865,6 +6877,14 @@
     },
     "tests/e2e/helpers/social-posts-flow.mjs": {
       "sha256": "a1fff330e84a23726ebd80b3961771ab5180bf22d6be22b38f24a9cf960ba11c",
+      "executable": false
+    },
+    "tests/e2e/helpers/sorry-public-edge.mjs": {
+      "sha256": "0a2d385922daaa14e57ff671c726dfef150e727c8f8ef0f21dad09a601d34ed0",
+      "executable": false
+    },
+    "tests/e2e/helpers/sorry-receipt-flow.mjs": {
+      "sha256": "62a60cf4174dfeca6dcbeeecc420d1601d1fa109972a3c36f431af9174223180",
       "executable": false
     },
     "tests/e2e/helpers/status-journey.mjs": {
