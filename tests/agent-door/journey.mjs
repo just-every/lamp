@@ -6,7 +6,29 @@ import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const published = new Map();
-export async function afterStep({ origin, phase, step, args }) {
+const wording = new Set();
+const ownerInstructions = 'Keep the owner glossary and incident terminology.';
+async function settings(request, origin, cookie, input) {
+  const response = await request(`${origin}/api/app/page-settings`, {
+    method: input ? 'PUT' : 'GET',
+    headers: { Cookie: cookie, Origin: origin, ...(input ? { 'Content-Type': 'application/json' } : {}) },
+    ...(input ? { body: JSON.stringify(input) } : {}),
+  });
+  assert.equal(response.status, 200, 'The current owner can read and save native page settings');
+  return (await response.json()).settings;
+}
+export async function beforeStep({ request, origin, cookie, phase, step, args }) {
+  if (step.id !== 'configure' || phase === 'autonomous') return;
+  const { idempotency_key: _key, expected_revision: _revision, ...input } = args;
+  await settings(request, origin, cookie, { ...input, aiToneInstructions: ownerInstructions });
+  wording.add(`${origin}:${phase}`);
+}
+export async function afterStep({ request, origin, cookie, phase, step, args, result }) {
+  if (step.id === 'configure') assert.equal(Object.hasOwn(result.settings, 'aiToneInstructions'), false, 'The page-identity receipt does not disclose unrelated owner instructions');
+  if (step.id === 'configure' && wording.has(`${origin}:${phase}`)) {
+    const current = await settings(request, origin, cookie);
+    assert.equal(current.aiToneInstructions, ownerInstructions, 'An MCP page identity change preserves owner AI wording instructions');
+  }
   if (phase === 'autonomous' && step.id === 'incident-publish') published.set(origin, args);
 }
 
