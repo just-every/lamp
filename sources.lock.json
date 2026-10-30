@@ -4600,7 +4600,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/feeds.ts": {
-      "sha256": "7188c7a7850ef34285391b9a3c8bf5d4eb974ea1fed44081ecd26e9d300ea870",
+      "sha256": "c23dbb8113b0b93104e09cc08ab7cb497b118d78bdb2ee776c289c59c03a858d",
       "executable": false
     },
     "src/core/features/public-snapshot/fonts/inter-latin.woff2": {
@@ -6679,6 +6679,14 @@
       "sha256": "1067a92c81eecf71fec9b728d64c35fe8fcdab90479e56ffe46b1a74e8038c2d",
       "executable": false
     },
+    "tests/e2e/helpers/atom-assertions.mjs": {
+      "sha256": "8aaf8fd4d710f2266c28c21d627ec9e3b0e6b29acc64e152720bf7eee2100c43",
+      "executable": false
+    },
+    "tests/e2e/helpers/atom-history-flow.mjs": {
+      "sha256": "cf71b7dc75eb9cafe8234c90abedfde6fc48e0e4f951eef6018e97640dccde29",
+      "executable": false
+    },
     "tests/e2e/helpers/automation-clock-worker.ts": {
       "sha256": "64c460eea587efde9d63df4e6028ef9d5e1464f44928a41aff1bbc378a4d5439",
       "executable": false
@@ -6740,7 +6748,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-runtime.mjs": {
-      "sha256": "6b2459915e66050851e28228a6a58793309f976b44b0e4e5ef5615ccddc611a8",
+      "sha256": "0b7ccab0d4cd4f15351350b9998e5d1c4b15e05455da877ca0f4b73c739c172b",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-worker.ts": {
@@ -6988,7 +6996,7 @@
       "executable": false
     },
     "tests/e2e/helpers/update-link-evidence.mjs": {
-      "sha256": "81d83619ac188fb27bf559dfb8ea80fde702536bfdf8ac9c214004ccc75cbab2",
+      "sha256": "de4db12f6c6c046686756cdb590eea218e60f3a5ce969d81815105347889b80e",
       "executable": false
     },
     "tests/e2e/helpers/uptime-pairing-flow.mjs": {
@@ -7032,7 +7040,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "18570ac78513c145cef93da50b3f846e81e684e1cd143741c3db541c9799d93e",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {

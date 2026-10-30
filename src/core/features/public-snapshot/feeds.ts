@@ -3,7 +3,7 @@ import { renderAtomContent, renderRssDescription } from "./feed-content";
 import type { PublicSnapshotModel, SnapshotArtifact } from "./renderer";
 import type { PublicSnapshotSource } from "./repository";
 import { componentSlug, publicComponentResources } from "./component-address";
-import { DAY, escapeXml } from "./format";
+import { escapeXml } from "./format";
 import { updateText } from "./feed-widget";
 
 interface FeedEntry {
@@ -18,6 +18,15 @@ interface FeedEntry {
 
 /** Atom and RSS deliberately share the same event IDs, order and reporting window. */
 export function publicFeedEntries(model: PublicSnapshotModel): FeedEntry[] {
+  const now = new Date(model.generatedAt);
+  const cutoff = new Date(now);
+  // Twelve calendar months can include a leap day. Clamp an anniversary that
+  // does not exist in the preceding year to that month's final day.
+  cutoff.setUTCDate(1);
+  cutoff.setUTCFullYear(now.getUTCFullYear() - 1);
+  const lastDay = new Date(Date.UTC(cutoff.getUTCFullYear(), cutoff.getUTCMonth() + 1, 0)).getUTCDate();
+  cutoff.setUTCDate(Math.min(now.getUTCDate(), lastDay));
+  const noticeKinds = new Set(["scheduled", "rescheduled", "started", "completed", "cancelled"]);
   return [
     ...model.incidents.flatMap((incident) => incident.updates.map((update) => ({
       id: `update-${update.id}`,
@@ -28,7 +37,7 @@ export function publicFeedEntries(model: PublicSnapshotModel): FeedEntry[] {
       recordKind: "incident" as const,
       recordId: incident.id,
     }))),
-    ...model.maintenance.flatMap((item) => item.notices.map((notice) => ({
+    ...model.maintenance.flatMap((item) => item.notices.filter((notice) => noticeKinds.has(notice.kind)).map((notice) => ({
       id: `maintenance-notice-${notice.id}`,
       title: `${item.reference}: ${item.title} — ${notice.kind}`,
       publishedAt: notice.publishedAt,
@@ -37,7 +46,7 @@ export function publicFeedEntries(model: PublicSnapshotModel): FeedEntry[] {
       recordKind: "maintenance" as const,
       recordId: item.id,
     }))),
-  ].filter((entry) => new Date(entry.publishedAt).getTime() >= new Date(model.generatedAt).getTime() - 365 * DAY)
+  ].filter((entry) => Date.parse(entry.publishedAt) >= cutoff.getTime() && Date.parse(entry.publishedAt) <= now.getTime())
     .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
 }
 
