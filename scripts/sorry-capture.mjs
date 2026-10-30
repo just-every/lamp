@@ -18,6 +18,8 @@ No token argument or environment variable is accepted. The token file must be a
 regular file owned by you, with no group/other permissions. --out must be a new
 directory outside this checkout. Public mode accepts an HTTPS origin only and
 does not read a key. Capture performs GET requests only; redirects are refused.
+Public mode also writes <out>.metadata.json beside the folder, so every file in
+the folder can be selected in Move in.
 `;
 
 class CaptureError extends Error {}
@@ -57,10 +59,16 @@ async function destination(path) {
   const checkout = await realpath(fileURLToPath(new URL("..", import.meta.url)));
   const within = relative(checkout, canonical);
   if (within === "" || (within !== ".." && !within.startsWith(`..${sep}`) && !isAbsolute(within))) fail("Save capture data outside this checkout.");
-  try { await lstat(canonical); fail("The destination already exists; choose a new directory."); }
-  catch (error) { if (error.code !== "ENOENT") throw error; }
+  for (const taken of [canonical, metadataPath(canonical)]) {
+    try { await lstat(taken); fail("The destination already exists; choose a new directory."); }
+    catch (error) { if (error.code !== "ENOENT") throw error; }
+  }
   return canonical;
 }
+
+// Public captures record their request metadata beside the folder, never inside
+// it, so every file in the folder is one Move in accepts.
+const metadataPath = (directory) => `${directory}.metadata.json`;
 
 function validToken(value) {
   const token = value.trim();
@@ -138,11 +146,12 @@ async function persist(path, files, token, metadata) {
   await mkdir(path, { mode: 0o700 });
   try {
     for (const file of files) await writeFile(resolve(path, file.name), file.text, { flag: "wx", mode: 0o600 });
-    if (metadata) await writeFile(resolve(path, "capture-metadata.json"), JSON.stringify({ ...metadata,
+    if (metadata) await writeFile(metadataPath(path), JSON.stringify({ ...metadata,
       files: files.map(file => ({ name: file.name, sha256: createHash('sha256').update(file.text).digest('hex'), size: Buffer.byteLength(file.text) })),
     }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
   } catch {
     await rm(path, { recursive: true, force: true }).catch(() => {});
+    await rm(metadataPath(path), { force: true }).catch(() => {});
     fail("Capture could not be saved; inspect the destination before trying again.");
   }
 }

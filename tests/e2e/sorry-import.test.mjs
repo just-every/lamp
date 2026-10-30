@@ -23,7 +23,6 @@ async function custodyHolds(runtime, value) {
 }
 
 test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 — Sorry move-in, Business approval, bounded catch-up, original archive, cutover and erasure remain one recoverable owner flow', { timeout: 600_000 }, async () => {
-  await sorryReceiptFlow();
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   const kid = 'synthetic-business', installationId = randomUUID(), issuer = 'https://business.example.test';
   const trust = { RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify({ [kid]: publicKey.export({ format: 'jwk' }) }), RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId };
@@ -61,6 +60,10 @@ test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 — Sorry move-in, B
       assert.equal(result.status, 200, JSON.stringify(result.body)); assert.equal(result.body.job.state, 'completed'); return result.body;
     };
     const undo = async imported => { const result = await moveIn.undo(imported.door); assert.equal(result.status, 200, JSON.stringify(result.body)); assert.equal(result.body.job.state, 'undone'); return result.body; };
+    await sorryReceiptFlow(async files => {
+      const reviewed = await moveIn.preview({ ...source, files });
+      assert.equal(reviewed.status, 200, `every .json file of a fresh capture folder is accepted: ${JSON.stringify(reviewed.body)}`);
+    });
     const initial = await snapshot(), quiet = await notificationActivity(runtime);
     const publicFiles = fixture('sorry', 'public');
     await preview(publicFiles); assert.deepEqual(await snapshot(), initial, 'public saved-response review writes nothing');

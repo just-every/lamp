@@ -624,7 +624,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "88a7559e42adfc251bcece6f0cff16dc95820438bd521a39e05fa2c77e60dd27",
+      "sha256": "fcaa42d81a81654f3ff32483917a8bfaa9ae3def4540dcd34a07bbdf09d0c8f3",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -2984,11 +2984,11 @@
       "executable": false
     },
     "scripts/sorry-capture.mjs": {
-      "sha256": "f330dabcaee5a236990f13659ff7459bacd0877390f527a8949bf7069eda62e0",
+      "sha256": "ece856c10cf5731ad4993a8455b3a74ac4b0debec40e8f54a44bb48563755713",
       "executable": false
     },
     "scripts/sorry-receipt.mjs": {
-      "sha256": "b5f50099b1433f04bd4493ebbc319bfa1b71d2459cea430b6ec5f098c141423f",
+      "sha256": "dbd2d06f8570a5bfa021a8323ea96f477e820d7213a80c23bfad75d7ce368e2b",
       "executable": false
     },
     "scripts/sorry-receipt/runtime.mjs": {
@@ -6904,7 +6904,7 @@
       "executable": false
     },
     "tests/e2e/helpers/sorry-receipt-flow.mjs": {
-      "sha256": "62a60cf4174dfeca6dcbeeecc420d1601d1fa109972a3c36f431af9174223180",
+      "sha256": "6086c7fdf7efa386326b79cd3b14737b35b48a2de4a28b08746b06009de24f1f",
       "executable": false
     },
     "tests/e2e/helpers/status-journey.mjs": {
@@ -7080,7 +7080,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "0dac2b1b85407b8c16673d0bb8cf674c47a1ad2872552a2d7d922d95507a7926",
+      "sha256": "7775bbe48720610e20bf956ada3c0d574e60905f34f58698025aa98b06e752a8",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
