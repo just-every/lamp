@@ -6720,7 +6720,7 @@
       "executable": false
     },
     "tests/e2e/helpers/component-notification-flow.mjs": {
-      "sha256": "2ecc7c71c692e3653b7731656112a9d70657856d9a60d3dd0bf510fcfb091e63",
+      "sha256": "0af0b63ad634bd2959147d07ccf7f3c8639506ad6f435aaf903fb380dad64091",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-flow.mjs": {
@@ -6916,7 +6916,7 @@
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-flow.mjs": {
-      "sha256": "e89767072801a16dbf657972c7b82b34c02e32819c8c609034af2efd58f40801",
+      "sha256": "eb33bb94254c75a12b109545a08999b1d750b79a3c383d3cb5f3f8afa379a660",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-maintenance.mjs": {
