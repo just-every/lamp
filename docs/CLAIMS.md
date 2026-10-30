@@ -2,7 +2,7 @@
 
 # Lamp homepage claims
 
-A claim is done when every clause behind it is done, missing when every one is missing, and partial otherwise.
+A product claim is done when every clause behind it is done, missing when every one is missing, and partial otherwise. Explicit source-bound non-product facts are unassessed; their historical status is history, not current proof.
 
 | # | Claim | Clauses | Status |
 | --- | --- | --- | --- |

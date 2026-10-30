@@ -17,6 +17,16 @@
       "environment": "SESSION_SECRET"
     },
     {
+      "binding": "INSTALLATION_KEY",
+      "environment": "INSTALLATION_KEY",
+      "verifyStandIn": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "binding": "INSTALLATION_KEY_PREVIOUS",
+      "environment": "INSTALLATION_KEY_PREVIOUS",
+      "optional": true
+    },
+    {
       "binding": "SUBSCRIBER_TOKEN_SECRET",
       "environment": "SUBSCRIBER_TOKEN_SECRET"
     },

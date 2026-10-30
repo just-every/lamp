@@ -24,6 +24,32 @@
   ],
   "additionalProperties": false,
   "properties": {
+    "homepage": {
+      "type": "string",
+      "pattern": "^https?://",
+      "description": "Canonical public homepage; defaults to https://run-<repository name minus run->.com."
+    },
+    "headline": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The authored homepage headline, for listing sync."
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mark": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Committed SVG path; default public/brand/mark.svg."
+        },
+        "markLight": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional committed SVG for dark backgrounds; default public/brand/mark-light.svg."
+        }
+      }
+    },
     "id": {
       "$ref": "#/$defs/slug",
       "description": "The seed's stable identifier, used in catalogue URLs, `rer` commands, and provisioned resource names. Lower case, hyphenated. It never changes once published, even when the checkout directory or repository is renamed."

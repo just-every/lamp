@@ -121,6 +121,12 @@
           "title": "Slack and Teams incident desk",
           "source": "docs/chat-desk.md",
           "summary": "Link your chat identity and prepare signed incident commands."
+        },
+        {
+          "slug": "agents",
+          "title": "Use an agent",
+          "source": "docs/agents.md",
+          "summary": "Native incident and component tools, company policy, approvals and the current proof boundary."
         }
       ]
     },
@@ -160,7 +166,7 @@
           "slug": "contract-rulings",
           "title": "Contract rulings",
           "source": "RULINGS.md",
-          "summary": "Decisions that shape Lamp\u2019s contract and their rationale."
+          "summary": "Decisions that shape Lamp’s contract and their rationale."
         },
         {
           "slug": "contract-evidence",

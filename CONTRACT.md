@@ -2799,6 +2799,193 @@ The primary journey: An operator sets up the page and components, accepts eviden
 2. Erasing an SMS subscriber removes its number from every table and leaves only an anonymized delivery outcome.
 3. Erasing an audience member ends that person's private-page session.
 
+### Agent surface (Base-delivered)
+
+#### BASE-AGENT-001 — One MCP door per seed
+
+*Tier:* Agent surface
+
+**Requirement.** Every seed, hosted or self-hosted, serves one remote MCP endpoint at `/mcp` over Streamable HTTP. It speaks the current revision (2026-07-28) and accepts 2025-11-25 clients through the twelve-month deprecation window. It implements `server / discover`, tools, resources and prompts. Lists are deterministic and carry `ttlMs` and `cacheScope: "private"`. Roots, Sampling and Logging are not served.
+
+**Acceptance.**
+1. `server / discover` returns the supported versions, capabilities, `serverInfo` and instructions.
+2. A 2026-07-28 request works with no handshake, and a 2025-11-25 client completes `initialize` and lists the same tools.
+3. An unsupported version returns `UnsupportedProtocolVersion`.
+4. Two `tools / list` calls return the same order, with cache fields.
+5. A foreign Origin returns 403, and a header and body method mismatch returns `HeaderMismatch`.
+6. An oversized body returns 413 with no effect.
+
+#### BASE-AGENT-002 — The seed's jobs are tools, through the UI's own actions
+
+*Tier:* Agent surface
+
+**Requirement.** Each Core job a person does in the product is a tool. Where one is not, the Agent surface says why: it runs on a device, it is a person's interactive screen, it belongs to a connector or the import door, or it is an installation fact. Risk is never the reason: a risky job is a tool with its class (BASE-AGENT-006). Tools are named `<seed>.<area>.<verb>` and declare input and output schemas and truthful annotations. Each calls the same server action as the UI, so validation and authorization are written once, and the seed's embedded agents use the same registry. A business refusal returns `isError` with the seed's stable error code.
+
+**Acceptance.**
+1. The Core clause ids in each tool's `_meta`, with the not-a-tool reasons that `server / discover` serves, cover every Core clause in the contract, and no reason is risk; the harness and `rer check` fail on a gap.
+2. Each tool's fixture result validates against its `outputSchema`.
+3. Read tools declare `readOnlyHint`; tools that can carry destructive declare `destructiveHint`, and tools that can carry external declare `openWorldHint`.
+4. A refusal returns the same error code the UI gets for the same action.
+5. The UI action and its tool, on the same fixture, give the same record state and the same audit event type.
+6. The seed's embedded agents appear in the audit as calls to the same tools.
+
+#### BASE-AGENT-003 — Records are resources
+
+*Tier:* Agent surface
+
+**Requirement.** Each primary record type has a URI template, and tools return `resource_link`s to the records they touch. A read returns exactly the fields the caller's role sees in the UI. File bytes count against any byte budget on the grant. A record the caller cannot open reads as not found, identical to a missing id. Text from customers, imports or files carries an untrusted marker in `_meta`.
+
+**Acceptance.**
+1. `resources / templates / list` names every record type in the Agent surface.
+2. Reads as two roles return exactly what the UI shows each.
+3. An out-of-scope id and a missing id give identical responses.
+4. A write's `resource_link` reads back the new state.
+5. Bytes over budget return `budget_exhausted` and no partial content.
+6. Customer-sourced text carries the untrusted marker.
+
+#### BASE-AGENT-004 — Business identity and short-lived, audience-bound tokens
+
+*Tier:* Agent surface
+
+**Requirement.** The door is an OAuth 2.1 resource server. Its RFC 9728 metadata names the authorization servers this installation trusts. That is the paired Business when Business provisioned it, verified with the owner-claim trust the installation already holds for its import door; otherwise it is the seed's own sign-in. Access tokens are RFC 9068 JWTs with `aud` set to the seed's canonical MCP URI, `sub` the sponsoring person, `act` the agent (RFC 8693) with its specialist, scopes per tool family, and a lifetime of 15 minutes or less (5 by default). The policy scopes rules on the sponsor, agent and specialist the token names. The consent behind the tokens can last longer and is revocable. Tokens travel only in the Authorization header, and there is no passthrough.
+
+**Acceptance.**
+1. An unauthenticated call returns 401 with `resource_metadata`, and the metadata names the trusted servers and scopes.
+2. A Business token for this seed works, and the same token sent to a sibling seed returns 401.
+3. An expired token returns 401, and a token with a lifetime over 15 minutes is refused.
+4. A read-only token calling a write tool returns 403 `insufficient_scope` with every needed scope in one challenge.
+5. A token in a query string is refused and not logged.
+6. Revoking consent in the seed or in Business refuses the next call within 60 seconds.
+7. After unpairing, Business tokens are refused and the seed's own sign-in still works.
+
+#### BASE-AGENT-005 — An agent acts as a person in a role, never more
+
+*Tier:* Agent surface
+
+**Requirement.** Every call is authorized as the sponsoring person's current role and access (BASE-ACCESS-004), intersected with the grant's resources, actions and budget. A grant only narrows. No call widens the calling agent's own authority. A call that would widen its own grant or its sponsor's role, or change the company policy or Pause, is refused with `self_escalation`, whatever the policy says; narrowing its own grant is allowed. Other access and security changes are ordinary actions in the access and security classes. An agent never acts after its sponsor is suspended. Anything an agent reads (records, files, emails, imports, other seeds' results) is data and cannot change its scope, its targets or a call's class.
+
+**Acceptance.**
+1. For each role fixture, every tool's allow or deny through MCP equals the UI's for the same action.
+2. A one-folder, read-only grant holds, and widening through arguments is refused.
+3. Downgrading the sponsor changes the next call's result, and suspending the sponsor returns 401.
+4. Calls that widen the agent's own grant or its sponsor's role, or change the policy or Pause, return `self_escalation` and change nothing, even under a policy with every class autonomous; dropping a scope from its own grant runs.
+5. An injection fixture yields no out-of-grant call and no change of class: record text asking for a wider action, or claiming that a recipient is internal.
+
+#### BASE-AGENT-006 — Every action declares its risk class
+
+*Tier:* Agent surface
+
+**Requirement.** Classes come from the fleet list in RISK-POLICY.md: standard, external, money, commitment, accounts, gated, access, security, destructive, sensitive and live. In the registry, each tool declares the classes it can carry and a server-side classifier that decides them per call from the arguments, current records and, for gated, the provider's answer. The classifier also supplies each class's facts: the measure (items, recipients, amount and currency, people or records), the counterparty (internal, known, new or public), the direction for access, the provider and step for gated, and the data kind for sensitive. A classifier never reads a flag, label or claim supplied by the agent or by record text. A seed cannot add a class; it proposes one for the fleet list.
+
+**Acceptance.**
+1. Every tool in `tools / list` carries its possible classes in `_meta`, equal to the Agent surface table.
+2. For each tool, fixture calls cover every class it can carry, and the computed classes and facts equal the fixture's expected values.
+3. An argument or record text asserting a class or a confirmation (`internal: true`, `confirmExternal: true`) leaves the computed classes unchanged.
+4. Money calls carry amount and currency, external calls their counterparty and recipient count, access calls their direction, and destructive calls their item count.
+5. No tool in `tools / list` declares a class outside the fleet list, and `rer check` fails on one.
+6. A refused call's audit row still records its computed classes.
+
+#### BASE-AGENT-007 — The company's policy decides, at one chokepoint
+
+*Tier:* Agent surface
+
+**Requirement.** Every agent door calls one decision function: MCP, the integration API with agent tokens, and the seed's embedded agents. It evaluates the call's classes against the company's policy, as above. The seed ships no dispositions and fills no gap with one: agent access opens only under a complete policy that setup has asked for (RISK-POLICY.md), and before then every agent call returns `policy_unset` with the setup link and changes nothing. *Autonomous* runs the call. *Review* runs it and adds it to the review feed. *Approval* saves a pending action with server-computed facts and returns `input_required`, with a URL-mode elicitation to the seed's approval page and a pending handle. Each person the rule names approves the exact saved revision in a signed-in browser, and changed inputs need a new approval. The retried call returns the result and a receipt. A rejection returns `approval_rejected`, and a lapse past the wait the rule sets returns `approval_expired`. *Blocked* returns `policy_blocked`, naming the class, rule and revision.
+
+**Acceptance.**
+1. The Base harness runs each tool under each disposition for every class it can carry, and sees it run, run and enter the review feed, wait with no effect, or be refused.
+2. Before setup is complete, the setup page lists every class the seed's tools carry with examples and no answer pre-selected, an agent call returns `policy_unset` with the setup link and changes nothing, and an incomplete revision cannot be confirmed; a `*` rule completes it, and a tool an upgrade adds with an unanswered class appears in `tools / list` once that class is answered, while the other tools keep running.
+3. Under "money autonomous up to $500, approval up to $10,000, blocked above", calls of $400, $600 and $20,000 run, wait and are refused; a per-day cap sends the call that crosses it to the next rule.
+4. A call carrying two classes takes the stricter disposition.
+5. An approval shows server-computed facts and an expiry, returns the URL elicitation and a handle, and completes once after the named approver approves; a changed input needs a new approval, and a rejection or lapse leaves no effect.
+6. The same call through MCP, the integration API and an embedded agent gets the same decision.
+7. A policy change applies to the next call within 60 seconds, and the audit cites the new revision.
+8. A policy document with a bad signature or another Business's id is rejected, and the door keeps the last valid revision.
+
+#### BASE-AGENT-008 — Truthful attribution
+
+*Tier:* Agent surface
+
+**Requirement.** Every agent act is recorded and shown as `"<agent> for <person>"`, and mail and messages an agent sends outside name it that way as their sender. An approval, a review mark, a confirmation (a warning dialog, a typed-field confirmation, a delivery confirmation), a decision or a signature attributed to a person comes only from that person's signed-in session. When an agent does the equivalent act, the record names the agent, and the act carries its own class; a binding decision or a signature is commitment. Agent doors ignore arguments that stand for a person's confirmation. No tool solves a bot check, or enters a person's own password or 2FA code at an outside service. A provider step that demands a person goes to a person, whatever the policy says; the gated class marks such steps before they run.
+
+**Acceptance.**
+1. An agent call carrying a person-confirmation flag is classified and decided exactly as without it.
+2. Approving, marking reviewed or answering a policy question with an agent or device token returns 403 and changes nothing.
+3. A form-mode elicitation "accept" never completes an approval.
+4. Where an agent's decision, signature or field confirmation runs without a person, it reads `"<agent> for <person>"` in the record, the activity view, exports and any certificate, never as the person's own act.
+5. After a person approves an agent's prepared action, the record shows the person as approver and the agent as preparer.
+6. Activity and exports at 1440 and 390 show `"<agent> for <person>"` for every agent act.
+7. Mail an agent sends to an outside address names `"<agent> for <person>"` as its sender.
+
+#### BASE-AGENT-009 — Every agent action is audited with its class and decision
+
+*Tier:* Agent surface
+
+**Requirement.** Extending BASE-OPS-005, each call that reads private data or changes anything records the agent client, name and specialist, and the run or task id (`traceparent` when sent); the sponsoring person, the grant, the tool and the targets; the classes and their facts, and the policy revision and rule; the decision (autonomous, review, approval, blocked, unset or self_escalation) and the outcome (done, refused, pending or failed); the approval or review id and person, and the idempotency key. For a period, the seed's Agents page shows actions by class and decision with the notable ones, the review feed (Mark reviewed, Flag, and Undo where reversible), pending approvals, steps waiting for a person and setup questions. Business shows the same across seeds.
+
+**Acceptance.**
+1. One write leaves a complete audit row.
+2. Refused, pending, unset and self-escalation calls are audited.
+3. The Agents page's counts by class and decision equal the audit rows on a fixture week.
+4. The review feed lists exactly the calls decided as review; Mark reviewed records the person, and Undo restores a reversible one.
+5. Filtering by agent or class lists only those rows, and export includes every field.
+6. Removing the agent keeps its rows and its name.
+7. The Agents page works at 1440 and 390 with no serious or critical axe findings.
+
+#### BASE-AGENT-010 — Agents can follow changes
+
+*Tier:* Agent surface
+
+**Requirement.** The seed emits a typed event for every record change and for every approval, review and policy decision. Each event carries a stable id, a type, the record URI, the actor (a person, or an agent acting for a person) and a time. Events never carry secrets or more than the subscriber may read. Agents can read events three ways: `subscriptions / listen`, an `events.list` tool with a cursor, and signed webhooks from Base `integrations` using the same ids. Every channel delivers at least once and filters by access at delivery.
+
+**Acceptance.**
+1. A subscribed record changed in the UI produces a notification within 10 seconds.
+2. `events.list` returns the same event id the webhook carries.
+3. Replaying from a cursor returns the same ids in order.
+4. After access is revoked, no channel delivers events about that record.
+5. A failed webhook is visible and replays without duplicate effects.
+6. `approval.pending`, `approval.decided`, `review.flagged` and `policy.adopted` carry the class and decision and nothing the subscriber may not read.
+
+#### BASE-AGENT-011 — Limits are policy, and Pause stops everything
+
+*Tier:* Agent surface
+
+**Requirement.** Business limits are rules in the company's policy: per-call and per-day thresholds on any class's measure, such as money moved, outside recipients or items destroyed; spend caps on provider cost (models, SMS, email) per seed, specialist or agent, which setup asks with the classes; "no cap" is an answer. Tools with provider cost declare an estimate before they run, and an exhausted cap returns `budget_exhausted` before any partial effect. The seed's capacity limits (request rate, body and byte sizes) protect the installation: they bound rate and size, never daily business volume, are documented and are not policy. A grant carries budgets only when the person granting it sets them. A **Pause agents** control in the seed, and Pause all agents in Business when paired, refuses every agent token within 60 seconds until a person resumes; browser sessions and devices keep working.
+
+**Acceptance.**
+1. A rate overrun returns 429 with `Retry-After`.
+2. A per-day cap of three outside recipients sends the fourth to the rule that applies past the cap.
+3. An exhausted spend cap returns `budget_exhausted` with no partial effect and shows the spend.
+4. Under the answer "no cap", a spending call runs and its spend shows in usage; a call that spends nothing is unaffected by any cap.
+5. The usage view shows calls, decisions by class, money moved and provider spend per agent.
+6. Pause and Pause all agents each stop the next call within 60 seconds, and resume restores access.
+7. An agent token cannot resume.
+
+#### BASE-AGENT-012 — Writes are idempotent and conflict-safe
+
+*Tier:* Agent surface
+
+**Requirement.** Every mutating tool requires an idempotency key and takes an optional expected revision. The same key with the same arguments returns the first outcome for at least 24 hours; the same key with different arguments returns `idempotency_conflict`; a stale revision returns `revision_conflict` with the current revision. Long work returns a job handle and a status tool, with no dependence on the Tasks extension.
+
+**Acceptance.**
+1. Two calls with one key give one effect and equal results.
+2. A retry with a new JSON-RPC id and the same key, after a dropped stream, returns the recorded outcome.
+3. The same key with different arguments returns a conflict and no effect.
+4. A stale revision returns a conflict naming the current revision.
+5. A job handle used by another person's token reads as not found.
+
+#### BASE-AGENT-013 — Manifest, docs and the conformance journey
+
+*Tier:* Agent surface
+
+**Requirement.** `server / discover` instructions and an on-site `/docs/agents` page are generated from the action registry. The page lists tools by job, with each tool's classes, the test that adds each computed class, its scopes, resource templates, event types, capacity limits and error codes, and the specialist role. `prompts / list` carries the specialist's jobs. Base ships the conformance journey, a harness that `rer verify` runs against `rer dev` and seeds run in CI. It is an MCP client; a signed-in test person takes a person's steps (setup answers, approvals, review marks, resume) through the URLs the door returns, and the same browser leg runs the UI-parity actions and the page checks at 1440 and 390. It runs every acceptance point of BASE-AGENT-001 to 012 and of the seed's SURFACE clauses under two company policies: *all autonomous* (`*`), and *held* (standard review, every other class the seed declares approval, which the test person grants), plus the single-class variants a point names. A point that names no disposition passes under both.
+
+**Acceptance.**
+1. The docs list exactly the names in `tools / list` and `resources / templates / list`.
+2. Each tool's classes, and the test behind each computed one, are documented.
+3. The harness fails on any of: a tool without a schema; an effect under approval or blocked, or before setup is complete; a computed class that differs from its fixture; a flag that changes a class or completes a person's step; a role-parity mismatch; a wrong-audience token being accepted; a duplicate effect on retry.
+4. Every acceptance point runs under both policies, every decision matches the policy in force, and under all autonomous no call waits for a person or is refused by policy.
+5. A stranger agent given only the seed URL completes the specialist journey through MCP.
+
 ### Agent surface
 
 **Specialist: incident communicator.** It keeps the customer story aligned with operational evidence, publishes incident and maintenance communication, follows update promises and prepares the lasting report.
@@ -2818,14 +3005,14 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 
 | Tool | Does | Core clauses | Risk class | Today |
 | --- | --- | --- | --- | --- |
-| `lamp.pages.manage` | Operate pages records and their named actions | PAGE-001, PAGE-004, PAGE-012, PAGE-015, PAGE-022, PAGE-023, PAGE-024 | standard or external (+ security) (+ gated) (+ live) | No MCP implementation |
-| `lamp.theme.manage` | Operate theme records and their named actions | THEME-001, THEME-002, THEME-003 | standard or external | No MCP implementation |
+| `lamp.pages.manage` | Operate pages records and their named actions | PAGE-001, PAGE-004, PAGE-012, PAGE-015, PAGE-022, PAGE-023, PAGE-024 | standard or external (+ security) (+ gated) (+ live) | Partial native settings subset: `lamp.configuration.save`; other page jobs remain incomplete |
+| `lamp.theme.manage` | Operate theme records and their named actions | THEME-001, THEME-002, THEME-003 | standard or external | Partial colour setting through `lamp.configuration.save`; assets and the remaining theme jobs are not implemented |
 | `lamp.languages.manage` | Operate languages records and their named actions | I18N-001, I18N-003, I18N-002 | standard or external (+ money) (+ live) | No MCP implementation |
-| `lamp.components.manage` | Operate components records and their named actions | COMP-001, COMP-002, COMP-003, COMP-004, COMP-005, COMP-006, COMP-007, COMP-008, COMP-009, COMP-010 | standard or external (+ destructive) (+ live) (+ money) | No MCP implementation |
+| `lamp.components.manage` | Operate components records and their named actions | COMP-001, COMP-002, COMP-003, COMP-004, COMP-005, COMP-006, COMP-007, COMP-008, COMP-009, COMP-010 | standard or external (+ destructive) (+ live) (+ money) | Partial native subset: `lamp.components.list`, `lamp.components.create`, `lamp.components.claim`, `lamp.components.remove`; the target manage tool and remaining component jobs are not implemented |
 | `lamp.dependencies.manage` | Operate dependencies records and their named actions | DEP-001, DEP-002, DEP-003 | standard or external (+ security) (+ live) (+ money) | No MCP implementation |
 | `lamp.uptime.manage` | Operate uptime records and their named actions | UPTIME-001, UPTIME-002, UPTIME-003, UPTIME-004, UPTIME-005, UPTIME-006, UPTIME-007, UPTIME-008, UPTIME-009, UPTIME-010, UPTIME-011 | standard or external (+ security) | No MCP implementation |
-| `lamp.incidents.manage` | Operate incidents records and their named actions | INCIDENT-001, INCIDENT-002, INCIDENT-003, INCIDENT-004, INCIDENT-005, INCIDENT-006, INCIDENT-007, INCIDENT-008, INCIDENT-009, INCIDENT-010, INCIDENT-011, INCIDENT-012, INCIDENT-014, INCIDENT-013 | standard or external (+ destructive) (+ live) (+ money) (+ access) (+ security) (+ gated) | No MCP implementation |
-| `lamp.updates.manage` | Operate updates records and their named actions | UPDATE-001, UPDATE-002, UPDATE-003, UPDATE-004, UPDATE-005, UPDATE-006, UPDATE-007, UPDATE-008, UPDATE-009, UPDATE-010, UPDATE-011, UPDATE-012, UPDATE-014, UPDATE-015, UPDATE-013, UPDATE-016, UPDATE-017 | standard or external (+ commitment) (+ live) (+ money) | No MCP implementation |
+| `lamp.incidents.manage` | Operate incidents records and their named actions | INCIDENT-001, INCIDENT-002, INCIDENT-003, INCIDENT-004, INCIDENT-005, INCIDENT-006, INCIDENT-007, INCIDENT-008, INCIDENT-009, INCIDENT-010, INCIDENT-011, INCIDENT-012, INCIDENT-014, INCIDENT-013 | standard or external (+ destructive) (+ live) (+ money) (+ access) (+ security) (+ gated) | Partial native subset: `lamp.incidents.list`, `lamp.incidents.get`, `lamp.incidents.create`, `lamp.incidents.note`, `lamp.incidents.brief`; other incident jobs remain incomplete |
+| `lamp.updates.manage` | Operate updates records and their named actions | UPDATE-001, UPDATE-002, UPDATE-003, UPDATE-004, UPDATE-005, UPDATE-006, UPDATE-007, UPDATE-008, UPDATE-009, UPDATE-010, UPDATE-011, UPDATE-012, UPDATE-014, UPDATE-015, UPDATE-013, UPDATE-016, UPDATE-017 | standard or external (+ commitment) (+ live) (+ money) | Partial native subset: `lamp.incidents.draft` and `lamp.incidents.publish` with no selected notification channels; other update and review/sign-off jobs remain incomplete |
 | `lamp.maintenance.manage` | Operate maintenance records and their named actions | MAINT-001, MAINT-002, MAINT-003, MAINT-004, MAINT-005, MAINT-006, MAINT-007, MAINT-008, MAINT-009, MAINT-011, MAINT-012, MAINT-013, MAINT-014, MAINT-015, MAINT-010 | standard or external (+ destructive) (+ live) (+ money) | No MCP implementation |
 | `lamp.subscribers.manage` | Operate subscribers records and their named actions | SUB-001, SUB-002, SUB-003, SUB-004, SUB-005, SUB-006, SUB-007, SUB-008, SUB-009, SUB-010, SUB-011, SUB-012, SUB-013, SUB-021, SUB-014, SUB-015, SUB-016, SUB-017, SUB-018, SUB-019, SUB-022, SUB-020, SUB-023 | standard or external (+ access) (+ destructive) (+ money) (+ security) (+ gated) | No MCP implementation |
 | `lamp.notifications.manage` | Operate notifications records and their named actions | NOTIFY-001, NOTIFY-002, NOTIFY-003, NOTIFY-004, NOTIFY-005, NOTIFY-006, NOTIFY-007, NOTIFY-008, NOTIFY-010, NOTIFY-009, NOTIFY-011, NOTIFY-012, NOTIFY-013, NOTIFY-014, NOTIFY-021, NOTIFY-015, NOTIFY-016, NOTIFY-017, NOTIFY-018, NOTIFY-019, NOTIFY-022, NOTIFY-020, NOTIFY-023, NOTIFY-024 | standard or external (+ money) (+ security) (+ gated) | No MCP implementation |
@@ -2837,10 +3024,10 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 | `lamp.audiences.manage` | Operate audiences records and their named actions | AUD-001, AUD-002, AUD-003, AUD-004, AUD-005 | standard or external (+ access) (+ security) (+ gated) (+ money) (+ live) | No MCP implementation |
 | `lamp.applications.manage` | Operate applications records and their named actions | API-001, API-002, API-003, API-004, API-005, API-006 | standard or external (+ access) (+ security) (+ live) (+ money) (+ destructive) | No MCP implementation |
 | `lamp.integrations.manage` | Operate integrations records and their named actions | INTEG-001, INTEG-002 | standard or external (+ security) (+ gated) | No MCP implementation |
-| `lamp.setup.manage` | Operate setup records and their named actions | SETUP-001, SETUP-002 | standard or external (+ security) (+ gated) (+ live) | No MCP implementation |
+| `lamp.setup.manage` | Operate setup records and their named actions | SETUP-001, SETUP-002 | standard or external (+ security) (+ gated) (+ live) | Partial native page settings through `lamp.configuration.save`; broader setup and provider jobs remain incomplete |
 | `lamp.identity.manage` | Operate identity records and their named actions | ACCESS-001, ACCESS-002 | access or security (+ gated) | No MCP implementation |
 | `lamp.data.manage` | Operate data records and their named actions | PORT-001, PORT-002 | standard (+ security) (+ destructive) (+ access) | No MCP implementation |
-| `lamp.communication.manage` | Operate communication records and their named actions | AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008, AGENT-009 | standard or external (+ commitment) (+ live) (+ money) (+ access) | No MCP implementation |
+| `lamp.communication.manage` | Operate communication records and their named actions | AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008, AGENT-009 | standard or external (+ commitment) (+ live) (+ money) (+ access) | Partial native subset: incident preparation, drafts and brief/recovery reads through `lamp.incidents.create`, `lamp.incidents.draft`, `lamp.incidents.brief`; no complete specialist week |
 
 **Resources.** `lamp://pages/{id}`, `lamp://components/{id}`, `lamp://incidents/{id}`, `lamp://updates/{id}`, `lamp://maintenance/{id}`, `lamp://subscribers/{id}`, `lamp://deliveries/{id}`, `lamp://alerts/{id}`, `lamp://reports/{id}`, `lamp://imports/{id}` and `lamp://audiences/{id}`.
 
@@ -3123,8 +3310,8 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 11 | 96 | 0 | 107 |
-| Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| Target and push further | 9 | 87 | 53 | 149 |
+| All | 20 | 183 | 53 | 256 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3366,8 +3553,21 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `AGENT-007` | Translations drafted from the glossary | push-further | missing |  | Not built. |
 | `AGENT-008` | Scoped MCP tools for outside agents | push-further | missing |  | Not built. |
 | `AGENT-009` | Maintenance notices drafted from change plans | push-further | missing |  | Not built. |
-| `SURFACE-001` | Lamp jobs and records in the registry | target | missing |  | The Lamp MCP registry, server-computed risk classifiers and company-policy conformance journey are not built. |
-| `SURFACE-002` | Draft, exposure and sign-off classes | target | missing |  | The Lamp MCP registry, server-computed risk classifiers and company-policy conformance journey are not built. |
-| `SURFACE-003` | Authority, removal and provider-step classes | target | missing |  | The Lamp MCP registry, server-computed risk classifiers and company-policy conformance journey are not built. |
-| `SURFACE-004` | Incident communication handoffs | target | missing |  | The Lamp MCP registry, server-computed risk classifiers and company-policy conformance journey are not built. |
-| `SURFACE-005` | A stranger specialist runs an incident week | target | missing |  | The Lamp MCP registry, server-computed risk classifiers and company-policy conformance journey are not built. |
+| `SURFACE-001` | Lamp jobs and records in the registry | target | partial | `agent-surface.json`, `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `docs/agents.md` | The current descriptor offers thirteen native page-setting, component and incident tools. The table remains the target registry: other Core jobs, records/resources, prompts, events, on-site generated parity and full specialist coverage are incomplete or intentionally undeclared. |
+| `SURFACE-002` | Draft, exposure and sign-off classes | target | partial | `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `agent-surface.json` | Private incident drafts and notes compute standard; current public component changes and incident publication compute external/live from native state. Recipient/destination facts for notification jobs, commitment sign-off, security settings and full attribution/parity are not implemented or proved. |
+| `SURFACE-003` | Authority, removal and provider-step classes | target | missing | `src/core/features/agent-door/components.ts`, `agent-surface.json` | Component removal declares destructive and public component changes declare live, but authority changes, irreversible history/import removal, provider-kept consent, combined sign-off classes and SMS money facts are not exposed by this adoption. The full clause remains unimplemented and unproved. |
+| `SURFACE-004` | Incident communication handoffs | target | missing | `agent-surface.json`, `src/core/features/agent-door/index.server.ts` | Resources, events and subscriptions are undeclared. No specialist Uptime/Oncall intake handoff or exact-revision incident/report release to support desks is offered through this door. |
+| `SURFACE-005` | A stranger specialist runs an incident week | target | partial | `agent-surface.json`, `tests/agent-door/owner.mjs`, `tests/agent-door/fixtures.mjs`, `tests/baseline/e2e-baseline/agent-door.test.mjs` | The declared native journey prepares components, an incident, private notes and drafts, publication and a brief under both policies. A full incident week with evidence intake, reminders, recovery/report release, maintenance, subscribers, SMS, authority/sign-off/provider work and stranger/browser proof is incomplete. |
+| `BASE-AGENT-001` | One MCP door per seed | target | partial | `src/core/features/agent-door/index.server.ts`, `modules/agent-door/transport.ts`, `agent-surface.json` | One mounted CORE MCP door and shared protocol/discovery machinery are integrated. Full hosted/self-hosted client acceptance and every required transport assertion through Lamp remain unproven; resources and prompts are intentionally undeclared. |
+| `BASE-AGENT-002` | The seed's jobs are tools, through the UI's own actions | target | partial | `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `agent-surface.json` | Thirteen declared tools call native page-setting, component and incident services with current Lamp role decisions. The full Core registry, complete UI/tool parity, stable refusal parity and migration of every embedded caller to this registry remain incomplete. |
+| `BASE-AGENT-003` | Records are resources | target | missing | `agent-surface.json`, `src/core/features/agent-door/index.server.ts` | Resources are intentionally undeclared in the CORE capability set. No native resource templates, returned resource-link readback or role/byte-budget resource journey is offered; typed omission refusal does not satisfy this clause. |
+| `BASE-AGENT-004` | Business identity and short-lived, audience-bound tokens | target | partial | `src/core/features/agent-door/business.ts`, `src/core/features/agent-door/people.ts`, `src/core/features/agent-door/index.server.ts`, `tests/agent-door/owner.mjs` | Signed Business settings bind durable owner/team subjects to current native people, and the door uses existing installation trust for audience-bound credentials. Complete consent/unpairing coverage, independent local token issuance and the full owner-native lifecycle remain unproven. |
+| `BASE-AGENT-005` | An agent acts as a person in a role, never more | target | partial | `src/core/features/agent-door/people.ts`, `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `src/core/features/agent-door/business.ts` | Every exposed tool checks current Lamp roles; signed team reconciliation preserves narrower native roles and scopes still restrict admission. Exhaustive role parity, resource and byte budgets, and real authority-changing tool/self-escalation fixtures are incomplete. |
+| `BASE-AGENT-006` | Every action declares its risk class | target | partial | `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `agent-surface.json` | Current tools compute standard, sensitive, external, live and destructive facts from their proposed work and native records. The remaining Core jobs and their other required class families are not implemented or proved; declared class fixtures are not whole-clause acceptance. |
+| `BASE-AGENT-007` | The company's policy decides, at one chokepoint | target | partial | `src/core/features/agent-door/index.server.ts`, `modules/agent-door/pipeline.ts`, `modules/agent-door/policy-store.ts`, `agent-surface.json` | The exposed native tools enter the shared policy, approval and review path. Full company-policy acceptance across every Core job, embedded caller, timed action and queued continuation remains incomplete; no reproduced failure is attributed to Base without measurement. |
+| `BASE-AGENT-008` | Truthful attribution | target | partial | `modules/agent-door/audit.ts`, `modules/agent-door/pages.ts`, `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts` | Shared door activity and decisions carry agent-for-person attribution while native services retain operator ids. Complete preparer/approver attribution and native/public presentation parity across every required record and screen remain unproven. |
+| `BASE-AGENT-009` | Every agent action is audited with its class and decision | target | partial | `modules/agent-door/audit.ts`, `modules/agent-door/pipeline.ts`, `tests/baseline/e2e-baseline/agent-door.test.mjs` | The shared door retains classified call, policy and outcome audit data and the baseline executes the installed native conformance journey. Complete Lamp audit equality, target/link/decision assertions and queued-continuation coverage remain unproven. |
+| `BASE-AGENT-010` | Agents can follow changes | target | missing | `agent-surface.json`, `src/core/features/agent-door/index.server.ts` | Events and subscriptions are intentionally undeclared. Internal event retention is not an offered native agent feed; no subscriber visibility, delivery, cursor or pause-termination acceptance is claimed. |
+| `BASE-AGENT-011` | Limits are policy, and Pause stops everything | target | partial | `modules/agent-door/person-doors.ts`, `modules/agent-door/pipeline.ts`, `src/core/features/agent-door/index.server.ts`, `agent-surface.json` | The shared person controls and admission path implement owner Pause and policy checks for the exposed tools. Full volume/spend-budget acceptance, every resume boundary and delayed/queued execution-time coverage remain incomplete; request capacity is not a company budget. |
+| `BASE-AGENT-012` | Writes are idempotent and conflict-safe | target | partial | `modules/agent-door/pipeline.ts`, `src/core/features/agent-door/components.ts`, `src/core/features/agent-door/incidents.ts`, `src/core/features/agent-door/repository.ts` | Mutations enter retained idempotent admission and component/draft/publication tools carry native revision checks. Complete dropped-stream, conflict, changed-authority and long-job ownership acceptance across the full product remains unproven. |
+| `BASE-AGENT-013` | Manifest, docs and the conformance journey | target | partial | `agent-surface.json`, `docs/agents.md`, `tests/baseline/e2e-baseline/agent-door.test.mjs`, `tests/agent-door/owner.mjs`, `tests/agent-door/fixtures.mjs` | A CORE descriptor, current tool guide and installed-CLI native baseline collection are present. Registry-generated documentation, exact docs/discovery parity, full browser/role parity and the stranger specialist week remain incomplete; timed, queued, dual-host and complete owner-native proof is not established. |

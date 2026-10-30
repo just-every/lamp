@@ -1,6 +1,7 @@
 import { dependencyErrors } from './dependencies.mjs';
 export { validateDependencyGraph } from './dependencies.mjs';
 import {checkSchema, validate} from './json-schema.mjs';
+import {businessFieldInputError} from './business-field-inputs.mjs';
 
 export const SETUP_SCHEMA_ID = 'urn:rer:setup:1';
 
@@ -103,12 +104,31 @@ function rejectDuplicateObjectKeys(text) {
   visit();
 }
 
+// Run before grammar diagnostics too, so off-list names receive a useful next step.
+function businessFieldErrors(data) {
+  const errors = [], claims = new Map();
+  for (const [index, field] of (Array.isArray(data?.fields) ? data.fields : []).entries()) {
+    if (!field || typeof field.name !== 'string' || !Object.hasOwn(field, 'businessField')) continue;
+    const path = `$.fields[${index}].businessField`;
+    const refusal = businessFieldInputError(field);
+    if (refusal) errors.push(`${path}: ${refusal}`);
+    if (typeof field.businessField !== 'string') continue;
+    const previous = claims.get(field.businessField);
+    if (previous !== undefined) errors.push(`${path}: ${previous} and ${field.name} both claim Business field ${field.businessField}; each Business field needs a single input`);
+    else claims.set(field.businessField, field.name);
+  }
+  return errors;
+}
+
 /** Semantic checks that cannot be expressed in the portable JSON Schema subset. */
 export function setupManifestSemanticErrors(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)
     || !Array.isArray(data.fields) || !Array.isArray(data.groups) || !Array.isArray(data.steps)) return [];
-  const errors = dependencyErrors(data);
+  const errors = [...dependencyErrors(data), ...businessFieldErrors(data)];
   const fail = (path, message) => errors.push(`${path}: ${message}`);
+  if (Array.isArray(data.business?.values) && !data.business.values.includes('display_name')) {
+    fail('$.business.values', 'Business settings adoption must include display_name');
+  }
   const groups = new Map();
   for (const [index, group] of data.groups.entries()) {
     if (!group || typeof group !== 'object' || typeof group.id !== 'string') continue;
@@ -329,11 +349,11 @@ export function validateSetupManifest(schema, data) {
   if (schema?.$id !== SETUP_SCHEMA_ID) throw new Error('Expected setup schema version 1');
   checkSchema(schema);
   const errors = validate(schema, data);
-  if (errors.length) return errors.map(error => {
+  if (errors.length) return [...businessFieldErrors(data), ...errors.map(error => {
     const match = error.match(/^(\$\.(fields|groups)\[(\d+)\]\.audience):/);
     if (!match) return error;
     const item = data[match[2]][Number(match[3])];
     return `${match[1]}: ${item.name ?? item.id} audience must be "owner" or "developer"`;
-  });
+  })];
   return setupManifestSemanticErrors(data);
 }

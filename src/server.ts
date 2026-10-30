@@ -28,6 +28,10 @@ function isHonoRequest(surface: LampSurface, request: Request, pathname: string)
     || pathname.startsWith("/api/v1/")
     || pathname.startsWith('/api/rer/import/')
     || pathname === '/api/rer/cutover-status'
+    || pathname === '/mcp' || pathname === '/agents' || pathname.startsWith('/agents/')
+    || pathname === '/api/rer/agent-policy' || pathname === '/api/rer/business-settings'
+    || pathname === '/.well-known/oauth-protected-resource' || pathname === '/.well-known/oauth-protected-resource/mcp'
+    || pathname === '/rer-business-logo' || pathname === '/rer-business.css'
     || pathname.startsWith('/api/operator/import/')
 ;
 }
