@@ -172,13 +172,59 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
   const j = await openStatusJourney();
   try {
     const component = await j.component('Scheduled database service');
+    const operatorComponent = await j.component('Database console');
+    const incidentComponent = await j.component('Database replication');
+    await j.json(`/api/app/components/${operatorComponent.id}/standing-claim`, 'PUT', { state: 'Degraded performance' });
+    const incident = await j.incident('Database replication unavailable', [incidentComponent]);
+    await j.save(incident.id);
+    await j.publish(incident.id);
+    const standingClaims = async () => (await j.db.prepare('SELECT * FROM component_standing_claims ORDER BY component_id, id').all()).results;
+    const incidentClaims = async () => (await j.db.prepare('SELECT * FROM incident_components ORDER BY component_id, id').all()).results;
+    const retainedStanding = await standingClaims();
+    const retainedIncident = await incidentClaims();
+    assert.equal(retainedStanding.length, 1);
+    assert.equal(retainedStanding[0].component_id, operatorComponent.id);
+    assert.equal(retainedStanding[0].state, 'Degraded performance');
+    assert.equal(retainedIncident.length, 1);
+    assert.equal(retainedIncident[0].component_id, incidentComponent.id);
+    assert.equal(retainedIncident[0].incident_id, incident.id);
+    assert.equal(retainedIncident[0].state, 'Major outage');
+    assert.ok(retainedIncident[0].published_at);
     await assertEmptyCalendar(j);
     const now = Date.now();
     const startsAt = new Date(now + 3600000).toISOString();
     const endsAt = new Date(now + 7200000).toISOString();
-    const input = { title: 'Database capacity upgrade ;,\\\n' + 'é'.repeat(70), affectedAudience: 'Customers using the database', customerImpact: 'Writes may pause during the upgrade.', startsAt, endsAt, componentIds: [component.id], autoStart: true, autoComplete: false };
+    const input = { title: 'Database capacity upgrade ;,\\\n' + 'é'.repeat(70), affectedAudience: 'Customers using the database', customerImpact: 'Writes may pause during the upgrade.', startsAt, endsAt, componentIds: [component.id, operatorComponent.id, incidentComponent.id], autoStart: true, autoComplete: false };
     const maintenance = (await j.json('/api/app/maintenance', 'POST', input, 201)).maintenance;
     const endpoint = `/api/app/maintenance/${maintenance.id}`;
+    const list = async () => (await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id);
+    const attachments = async () => (await j.db.prepare('SELECT * FROM maintenance_components WHERE maintenance_id = ? ORDER BY component_id').bind(maintenance.id).all()).results;
+    const retainedAttachments = await attachments();
+    assert.deepEqual(retainedAttachments.map(row => [row.component_id, row.state]),
+      [...input.componentIds].sort().map(id => [id, 'Under maintenance']));
+    const reconcileClaims = async (phase, controlState, active) => {
+      assert.equal((await list()).state, phase);
+      assert.deepEqual(await standingClaims(), retainedStanding, `${phase}: the exact standing claim survives`);
+      assert.deepEqual(await incidentClaims(), retainedIncident, `${phase}: the exact published incident claim survives`);
+      assert.equal((await j.read(incident.id)).lifecycle, 'Identified');
+      assert.deepEqual(await attachments(), retainedAttachments, `${phase}: every maintenance attachment is retained`);
+      const activeClaims = (await j.db.prepare(`SELECT attached.* FROM maintenance_components AS attached
+        JOIN maintenance AS window ON window.id = attached.maintenance_id
+        WHERE window.id = ? AND window.state = 'In progress' ORDER BY attached.component_id`).bind(maintenance.id).all()).results;
+      assert.deepEqual(activeClaims, active ? retainedAttachments : [], `${phase}: only an in-progress window contributes maintenance claims`);
+      const expected = [[component.id, controlState], [operatorComponent.id, 'Degraded performance'], [incidentComponent.id, 'Major outage']];
+      const operatorRows = (await j.json('/api/app/components')).components;
+      assert.deepEqual(expected.map(([id]) => [id, operatorRows.find(row => row.id === id)?.publicState]), expected, `${phase}: operator aggregates`);
+      assert.equal(operatorRows.find(row => row.id === operatorComponent.id).standingClaimState, 'Degraded performance');
+      const publicRows = await eventually(async () => (await (await j.publicResponse('/api/public/v1/components')).json()).data,
+        rows => expected.every(([id, state]) => rows.find(row => row.id === id)?.state === state), `${phase}: public aggregates`);
+      assert.deepEqual(expected.map(([id]) => [id, publicRows.find(row => row.id === id)?.state]), expected);
+      const status = await eventually(async () => (await (await j.publicResponse('/api/public/status')).json()),
+        row => active ? row.maintenance?.reference === maintenance.reference : row.maintenance === null, `${phase}: public maintenance state`);
+      assert.equal(status.overall, 'Major outage');
+      assert.equal(status.incident.reference, incident.reference);
+    };
+    await reconcileClaims('Scheduled', 'Operational', false);
     assert.ok(maintenance.reference);
     const uid = `lamp-maintenance-${maintenance.id}@lamp`;
     const readCalendar = async () => {
@@ -196,13 +242,13 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     assert.ok(!(await j.json('/api/app/incidents')).incidents.some(row => row.id === maintenance.id));
     await j.visible(`/maintenance/${maintenance.reference}`, input.customerImpact);
     await j.tick(now + 1000); await j.tick(now + 1000);
-    const list = async () => (await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id);
     assert.equal((await list()).notices.filter(row => row.kind === 'reminder').length, 1);
     const actualStart = new Date(now - 7200000).toISOString();
     const elapsedEnd = new Date(Date.now() - 15 * 60000 + 30000).toISOString();
     await j.json(`${endpoint}/window`, 'PUT', { startsAt: actualStart, endsAt: elapsedEnd });
     await j.tick(Date.now());
     assert.equal((await list()).state, 'In progress');
+    await reconcileClaims('In progress', 'Under maintenance', true);
     assert.equal((await list()).overrunning, false, 'an unfinished window has no overrun label before fifteen minutes');
     calendar = await eventually(readCalendar, value => value.event?.getFirstPropertyValue('sequence') === 1, 'rescheduled calendar event');
     assert.equal(calendar.event.getFirstPropertyValue('uid'), uid);
@@ -229,11 +275,13 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Under maintenance');
     await j.tick(now + 3 * 3600000);
     assert.equal((await list()).state, 'In progress', 'an unchecked automatic completion never ends the window');
+    await reconcileClaims('In progress', 'Under maintenance', true);
     const later = new Date(now + 4 * 3600000).toISOString();
     await j.json(`${endpoint}/window`, 'PUT', { startsAt: actualStart, endsAt: later });
     assert.equal((await list()).startsAt, actualStart);
     assert.equal((await list()).endsAt, later);
     assert.equal((await list()).overrunning, false);
+    await reconcileClaims('In progress', 'Under maintenance', true);
     assert.ok(!(await publicWindow(later)).includes('Running longer than planned'));
     const extendedPage = await eventually(() => j.publicText('/'), html => html.includes(`data-maintenance-ends-at="${later}"`), 'extended public window');
     assert.ok(!extendedPage.includes('Running longer than planned'));
@@ -242,6 +290,7 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     await j.json(`${endpoint}/complete`, 'POST', {});
     await j.json(`${endpoint}/complete`, 'POST', {}, 409);
     const completed = await eventually(list, row => row.state === 'Completed', 'manual completion');
+    await reconcileClaims('Completed', 'Operational', false);
     assert.ok(completed.notices.some(row => row.kind === 'started'));
     assert.equal(completed.notices.filter(row => row.kind === 'completed').length, 1);
     assert.ok(!(await j.visible(`/maintenance/${maintenance.reference}`, 'Completed')).includes('Running longer than planned'));
