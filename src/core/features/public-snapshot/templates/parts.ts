@@ -127,7 +127,9 @@ export function dayClass(mark: Uptime["marks"][number]) {
 
 /** The reporting window's daily record (PAGE-001), oldest day first. */
 export function recordDays(component: Component) {
-  return component.uptime.marks.slice(-Math.min(REPORTING_DAYS, component.uptime.marks.length));
+  // An elapsed reporting window can touch an extra partial calendar day.
+  // Keep that day's evidence, just as the public API and default page do.
+  return component.uptime.marks;
 }
 
 /** A component's daily record as a bar of labelled days. Unlabelled, it only repeats days a reader already has as
