@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d9dfdc7d735d41e084e57d8251dc1bb846fee405` (30 October 2026); UPTIME-003 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -352,7 +352,7 @@ Core · published · **partial**
 
 #### UPTIME-003 — Short history
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Uptime begins only where state evidence exists and labels short coverage honestly. Under RL-2, short coverage does not invent a whole day.
 
@@ -361,8 +361,8 @@ Core · published · **partial**
 2. Coverage under one day is labeled in elapsed hours and minutes, with less than 1 minute below a minute; from one day it uses whole days.
 3. A component with no data says No data.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`. First-day coverage reads in hours and minutes (`tests/e2e/public-contract.test.mjs`, line 405); whole-day labels apply from one day (`tests/e2e/public-contract.test.mjs`, line 452). Changed in 1.11.0 by the owner's S4 exception (DIVERGENCE.md "Public page clarity"): first-day coverage reads in hours and minutes, and a component with no data says No data; RELEASE.json records the change.
-**Gap.** Old cited evidence asserts The public percentage denominator starts at the fixture’s first history record rather than inventing ninety days; Sub-day coverage is labeled in hours; Longer coverage is labeled in whole days; A zero-elapsed fixture displays No data. Unasserted: Minute-based short-coverage labels are asserted; Less-than-one-minute coverage labels are asserted.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (UPTIME-003 — newly observed services report only their recorded coverage), loading `tests/e2e/helpers/short-history-flow.mjs` (shortHistoryFlow): native component creation and standing claims use the controlled Worker clock; a one-minute outage in two observed minutes reads 50.00% despite an older component. Independent public API coverage and associated component labels prove zero elapsed No data, thirty seconds, one minute, two minutes, one hour seven minutes, just under one day, exactly one whole day and two whole days with seven minutes discarded. Browser proof shows the same populated page at 1440 and 390. RL-2 retains the owner’s short-coverage and No data semantics.
+**Gap.** None.
 
 #### UPTIME-004 — Corrections
 

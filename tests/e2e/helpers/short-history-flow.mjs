@@ -26,7 +26,7 @@ export async function shortHistoryFlow() {
     assert.equal(history.length, 1);
     assert.ok(history.every(row => row.changedAt === '2031-04-03T12:00:00.000Z'));
 
-    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined, headless: true, args: ['--no-sandbox'] });
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     const coverage = async (now, expected) => {
@@ -72,7 +72,10 @@ export async function shortHistoryFlow() {
     await j.json(`/api/app/components/${observed.id}/standing-claim`, 'PUT', { state: 'Operational' });
     // One observed minute down and one up is 50%, even though another component
     // has two days of history. Earlier unobserved time cannot dilute the outage.
-    await coverage(first + 120_000, [[observed, started, 2, 0, '50.00%', '50.00% over 2 minutes']]);
+    const twoMinutes = await coverage(first + 120_000, [[observed, started, 2, 0, '50.00%', '50.00% over 2 minutes']]);
+    assert.deepEqual(twoMinutes.data.find(row => row.id === observed.id).uptime.marks.filter(mark => mark.downtimeMinutes !== null), [
+      { day: '2031-04-03', downtimeMinutes: 1, worstDowntimeState: 'Major outage' },
+    ], 'only the observed day has data, including the independently known one-minute outage');
 
     await clock(first + 3_960_000);
     const minute = await j.component('Synthetic Lamp one minute service');

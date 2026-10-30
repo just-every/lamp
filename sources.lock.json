@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "aef72f713a4b77a773bb8de07ce5a15bb4c3e93dc60edb1915ace8b9d57111c9",
+      "sha256": "10f0412884d0e77f2420e2814a0b196560923a9e6e352c924cf924b6ad8fa15c",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ecb0d9c6d331217753c6dca09d0e4e3942f0f8dc9cd66fc14ea2001699789654",
+      "sha256": "df9919ab6dcd27d8559ff2bb5f705f91b5e3d21a1ba9589cef20276a8a9ee832",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "e266409a77c8fb9f33b49e530dfa492f9c58547016c748496463889430c35a8f",
+      "sha256": "bf9b8503bed4464607c10706000d1bb499b37d0c99954eac610ecc120ede2172",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -6852,7 +6852,7 @@
       "executable": false
     },
     "tests/e2e/helpers/short-history-flow.mjs": {
-      "sha256": "2800d59b816db869453fa5742ed9f5274db96ab3bbe3d5b71554d1c6e94995b8",
+      "sha256": "419f9268b105803457959a279cdfa7720ef0ab6a0f58dfa597dc1fdc5e460dd3",
       "executable": false
     },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
