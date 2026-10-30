@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `e6dcf893619e2a32855e349e7922df9d18fbe0f4` (30 October 2026); INCIDENT-001 is rechecked on the landing candidate with additional Resolved publication readback; earlier clause judgments are retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -410,7 +410,7 @@ Core · published · **partial**
 
 #### INCIDENT-001 — Lifecycle
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** An incident follows one public lifecycle.
 
@@ -419,8 +419,8 @@ Core · published · **partial**
 2. A new incident starts in Investigating.
 3. Only publishing an update changes the incident to the lifecycle that update selects.
 
-**Evidence.** `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: Investigating; Identified; Resolved; starts Investigating; published lifecycle. Unasserted in old cited evidence: Monitoring; exactly one lifecycle; no unpublished lifecycle change.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): scalar Investigating creation; Identified publication; saved and reviewed Monitoring draft leaves the Identified incident and complete published records unchanged; multiple-state input is refused without record changes; explicit publication commits Monitoring; Resolved and reopening controls.
+**Gap.** None.
 
 #### INCIDENT-002 — Impact
 

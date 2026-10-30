@@ -137,9 +137,11 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.ok(!(await j.publicText(`/incidents/${incident.reference}`)).includes('overdue'));
 
     await saveReviewed(incident.id, { lifecycle: 'Resolved', customerImpact: 'Payment processing has recovered.', nextUpdateAt: null });
-    await j.publish(incident.id);
+    const resolution = (await j.publish(incident.id)).update;
+    assert.equal(resolution.lifecycle, 'Resolved');
     const resolved = await j.read(incident.id);
     assert.equal(resolved.lifecycle, 'Resolved');
+    assert.deepEqual(resolved.updates.find(row => row.id === resolution.id), resolution);
     assert.equal(typeof resolved.resolvedAt, 'string');
     assert.equal((await j.read(incident.id)).draft, null);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');
