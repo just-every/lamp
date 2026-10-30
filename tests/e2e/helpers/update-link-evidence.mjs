@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { validateAtomFeed } from "./atom-assertions.mjs";
 
 /** UPDATE-013's surface checks over the UPDATE_LINK_FIELDS input matrix. */
 export const LINKED_URL = "https://help.example.com/kb/123";
@@ -24,6 +25,7 @@ function unescapeXml(text) {
 /** A well-formed Atom or RSS document whose entry HTML carries the same links. */
 export function assertLinkedFeed(xml, surface) {
   execFileSync("python3", ["-c", "import sys, xml.etree.ElementTree as ET; ET.fromstring(sys.stdin.buffer.read())"], { input: xml });
+  if (!surface.endsWith(".rss")) validateAtomFeed(xml);
   assert.match(xml, surface.endsWith(".rss") ? /^<\?xml[^>]*\?><rss version="2\.0"/ : /^<\?xml[^>]*\?><feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom">/, `${surface}: feed root`);
   const entries = [...xml.matchAll(/<(?:content type="html"|description)>([^<]*)<\/(?:content|description)>/g)].map(match => unescapeXml(match[1]));
   const linked = entries.find(html => html.includes(LINKED_URL));

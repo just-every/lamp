@@ -7,6 +7,10 @@ import AxeBuilder from '@axe-core/playwright';
 import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
 import { assertVisibleTime } from '../helpers/public-meaning.mjs';
 import { publicCapacityJourney } from './helpers/public-capacity-journey.mjs';
+import { atomHistoryFlow } from './helpers/atom-history-flow.mjs';
+import { validateAtomFeed } from './helpers/atom-assertions.mjs';
+
+test('PAGE-010 — native Atom history retains complete eligible publications and permanent identities across restart and deletion', atomHistoryFlow);
 
 // One catalogue-to-customer journey: no renderer or uptime helper is imported.
 test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PAGE-011 PAGE-012 PAGE-013 PAGE-014 PAGE-016 PAGE-017 PAGE-018 PAGE-019 PAGE-020 COMP-001 COMP-002 COMP-003 COMP-004 COMP-005 COMP-007 COMP-009 COMP-010 UPTIME-001 UPTIME-002 UPTIME-003 UPTIME-004 UPTIME-005 UPTIME-006 MOVE-009 — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story', async () => {
@@ -126,11 +130,12 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.ok(!permalink.includes(hidden.name));
     const feedBefore = await j.publicText('/feed.atom');
     assert.ok(feedBefore.includes(incident.reference));
-    const firstIds = [...feedBefore.matchAll(/<id>([^<]+)<\/id>/g)].map(match => match[1]);
+    const firstIds = validateAtomFeed(feedBefore).entries.map(entry => entry.id);
     await j.save(incident.id, { lifecycle: 'Resolved', customerImpact: 'API requests are working again.', nextUpdateAt: null }); await j.publish(incident.id);
     await j.visible('/history', incident.title);
     const feedAfter = await j.publicText('/feed.atom');
-    for (const id of firstIds) assert.ok(feedAfter.includes(id), 'earlier public feed identifiers survive a later update');
+    const laterIds = validateAtomFeed(feedAfter).entries.map(entry => entry.id);
+    for (const id of firstIds) assert.ok(laterIds.includes(id), 'earlier public feed identifiers survive a later update');
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).publicState, 'Operational');
     assert.equal((await (await j.publicResponse('/api/public/status')).json()).overall, 'Degraded performance', 'resolving an incident retains another component\'s standing claim');
     await j.json(`/api/app/components/${other.id}/standing-claim`, 'PUT', { state: 'Operational' });
