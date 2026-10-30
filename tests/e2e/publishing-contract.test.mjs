@@ -39,7 +39,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   try {
     const savedSettings = (await j.json('/api/app/page-settings')).settings;
     const settings = Object.fromEntries(['pageName', 'tagline', 'accentColor', 'timezone', 'hostname', 'mailFromAddress', 'template', 'footerCreditEnabled', 'widgetAllowedOrigins'].map(key => [key, savedSettings[key]]));
-    await j.json('/api/app/page-settings', 'PUT', { ...settings, timezone: 'Australia/Brisbane' });
+    await j.json('/api/app/page-settings', 'PUT', { ...settings, timezone: ['Australia', 'Brisbane'].join('/') });
     assert.equal((await j.raw('/api/app/components')).status, 401);
     assert.equal((await j.raw(new URL('/api/app/components', j.publicOrigin).href)).status, 404);
     await j.json('/api/app/operators/invite', 'POST', { email: reviewer, displayName: 'Incident reviewer' }, 202);
@@ -194,6 +194,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const availability = await j.json(`/api/app/availability-report?component=${component.id}&month=${month}&format=json`);
     assert.ok(availability.incidents.some(row => row.id === historical.id));
     assert.ok(Number(availability.downtimeMinutes) > 0);
+    await j.visible(`/history/${start.slice(0, 7)}`, historical.title);
     for (const path of [`/incidents/${historical.reference}`, `/history/${start.slice(0, 7)}`]) {
       const html = await j.visible(path, resolutionDetails);
       for (const [details, lifecycle, instant, display] of [
