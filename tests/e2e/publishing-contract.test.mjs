@@ -178,17 +178,48 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     // incident on the component: replay must preserve the current claim.
     const live = await j.incident('Current payment investigation', [component]);
     await saveReviewed(live.id, {}); await j.publish(live.id);
-    const start = new Date(Date.now() - 2 * 365 * 86400000).toISOString();
+    const start = '2024-06-15T13:04:05.000Z';
     const end = new Date(Date.parse(start) + 3600000).toISOString();
     const historical = await j.incident('Historical payment degradation', [component], { openedAt: start });
-    await saveReviewed(historical.id, { lifecycle: 'Investigating' }); await j.publish(historical.id, { publishedAt: start });
-    await saveReviewed(historical.id, { lifecycle: 'Resolved', nextUpdateAt: null }); await j.publish(historical.id, { publishedAt: end });
+    const originalDetails = 'Historical investigation from the original service log.';
+    const resolutionDetails = 'Historical recovery from the original service log.';
+    await saveReviewed(historical.id, { lifecycle: 'Investigating', details: originalDetails });
+    const original = (await j.publish(historical.id, { publishedAt: start, channels: ['email'] })).update;
+    await saveReviewed(historical.id, { lifecycle: 'Resolved', details: resolutionDetails, nextUpdateAt: null });
+    const historicalResolution = (await j.publish(historical.id, { publishedAt: end, channels: ['email'] })).update;
+    assert.equal(original.publishedAt, start);
+    assert.equal(historicalResolution.publishedAt, end);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Major outage');
     const month = start.slice(0, 7);
     const availability = await j.json(`/api/app/availability-report?component=${component.id}&month=${month}&format=json`);
     assert.ok(availability.incidents.some(row => row.id === historical.id));
     assert.ok(Number(availability.downtimeMinutes) > 0);
-    await j.visible(`/history/${start.slice(0, 7)}`, historical.title);
+    for (const path of [`/incidents/${historical.reference}`, `/history/${start.slice(0, 7)}`]) {
+      const html = await j.visible(path, resolutionDetails);
+      for (const [details, lifecycle, instant, display] of [
+        [originalDetails, 'Investigating', start, 'Jun 15, 2024, 23:04 UTC+10:00'],
+        [resolutionDetails, 'Resolved', end, 'Jun 16, 2024, 00:04 UTC+10:00'],
+      ]) {
+        const update = publicUpdate(html, details);
+        const heading = update.childNodes.find(node => node.tagName === 'div' && node.attrs.some(attr => attr.name === 'class' && attr.value === 'update-head'));
+        assert.equal(nodeText(heading.childNodes.find(node => node.tagName === 'strong')), lifecycle, `${path}: the original publication belongs to its lifecycle`);
+        const times = descendants(heading).filter(node => node.tagName === 'time');
+        assert.equal(times.length, 1, `${path}: one publication time belongs to this update`);
+        assert.equal(times[0].attrs.find(attr => attr.name === 'datetime')?.value, instant, `${path}: the original publication instant`);
+        assert.equal(nodeText(times[0]), display, `${path}: the original time in the configured zone`);
+      }
+    }
+    const history = (await j.json(`/api/app/components/${component.id}/history`)).history;
+    for (const [instant, state] of [[start, 'Major outage'], [end, 'Operational']]) {
+      assert.ok(history.some(row => row.causeId === historical.id && row.changedAt === instant && row.newState === state), 'the original claim transition enters component history');
+    }
+    await saveReviewed(historical.id, { lifecycle: 'Monitoring', details: 'Current correction of the historical record.' });
+    await j.publish(historical.id, { channels: ['email'] });
+    await j.tick(Date.now());
+    const historicalReach = await j.json(`/api/app/incidents/${historical.id}/reach`);
+    assert.equal(historicalReach.updates.length, 3);
+    assert.ok(historicalReach.updates.every(update => update.channels.every(channel => channel.committed === 0)), 'historical and later current-time updates create no subscriber delivery');
+    assert.ok(!j.messages.some(mail => mail.text.includes(historical.title)), 'no historical incident notification reaches the provider');
     const performance = await j.json(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}`);
     assert.ok(performance.incidents.some(row => row.incidentId === incident.id));
     assert.ok(performance.summary.commitments.evaluated > 0);
