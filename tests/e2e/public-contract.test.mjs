@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
@@ -47,6 +47,72 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).note, '');
     await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: main.note });
     const hidden = await j.component('PRIVATE database replica', { groupId: secondGroup.id, internal: true, note: 'PRIVATE topology' });
+    const sibling = await j.component('Payments', { groupId: firstGroup.id, displayOrder: 2 });
+    const catalogueBeforeRefusal = await j.json('/api/app/components/bulk');
+    const { id: componentId, ...mainInput } = catalogueBeforeRefusal.catalogue.components.find(row => row.id === main.id);
+    for (const membership of [{ groupId: [firstGroup.id, secondGroup.id] }, { groupIds: [firstGroup.id, secondGroup.id] }]) {
+      await j.json('/api/app/components', 'POST', { ...mainInput, name: 'Refused component', ...membership }, 400);
+      assert.deepEqual(await j.json('/api/app/components/bulk'), catalogueBeforeRefusal, 'refused creation leaves the saved catalogue and revision unchanged');
+      await j.json(`/api/app/components/${componentId}`, 'PUT', { ...mainInput, ...membership }, 400);
+      assert.deepEqual(await j.json('/api/app/components/bulk'), catalogueBeforeRefusal, 'refused editing leaves the saved catalogue and revision unchanged');
+    }
+    const unchangedReview = await j.json('/api/app/components/bulk/preview', 'POST', catalogueBeforeRefusal);
+    for (const components of [
+      catalogueBeforeRefusal.catalogue.components.map(row => row.id === main.id ? { ...row, groupId: [firstGroup.id, secondGroup.id] } : row),
+      [...catalogueBeforeRefusal.catalogue.components, { ...catalogueBeforeRefusal.catalogue.components.find(row => row.id === main.id), groupId: secondGroup.id }],
+    ]) {
+      const invalid = { ...catalogueBeforeRefusal, catalogue: { ...catalogueBeforeRefusal.catalogue, components } };
+      await j.json('/api/app/components/bulk/preview', 'POST', invalid, 400);
+      assert.deepEqual(await j.json('/api/app/components/bulk'), catalogueBeforeRefusal, 'a refused preview changes no saved component or group');
+      await j.json('/api/app/components/bulk/apply', 'POST', { ...invalid, reviewToken: unchangedReview.reviewToken }, 400);
+      assert.deepEqual(await j.json('/api/app/components/bulk'), catalogueBeforeRefusal, 'direct apply cannot bypass single membership');
+    }
+
+    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    const scripted = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'America/New_York' });
+    const page = await scripted.newPage();
+    await page.clock.install();
+    const assertMembership = async (group, expectedOrder) => {
+      const saved = (await j.json('/api/app/components/bulk')).catalogue.components.filter(row => row.id === main.id);
+      assert.equal(saved.length, 1);
+      assert.equal(saved[0].groupId, group.id);
+      const native = (await j.json('/api/app/components')).components.filter(row => row.id === main.id);
+      assert.equal(native.length, 1);
+      assert.equal(native[0].groupId, group.id);
+      await j.visible('/', group.name);
+      await page.goto(j.publicOrigin);
+      const sections = page.locator('.component-health .component-group');
+      const placement = await sections.evaluateAll(nodes => nodes.map(node => ({
+        heading: node.querySelector('h3, summary')?.textContent,
+        names: [...node.querySelectorAll('.component-name h4')].map(item => item.textContent),
+      })));
+      assert.deepEqual(placement, expectedOrder);
+    };
+    const moved = await j.json(`/api/app/components/${main.id}`, 'PUT', { ...mainInput, groupId: secondGroup.id });
+    assert.equal(moved.component.groupId, secondGroup.id);
+    await assertMembership(secondGroup, [
+      { heading: firstGroup.name, names: [sibling.name] },
+      { heading: secondGroup.name, names: [main.name] },
+    ]);
+    const movedCatalogue = await j.json('/api/app/components/bulk');
+    const returnedCatalogue = {
+      ...movedCatalogue.catalogue,
+      groups: movedCatalogue.catalogue.groups.map(row => ({ ...row, displayOrder: row.id === firstGroup.id ? 1 : 0 })),
+      components: movedCatalogue.catalogue.components.map(row => row.id === main.id ? { ...row, groupId: firstGroup.id, displayOrder: 3 } : row),
+    };
+    const returnReview = await j.json('/api/app/components/bulk/preview', 'POST', { catalogue: returnedCatalogue, revision: movedCatalogue.revision });
+    await j.json('/api/app/components/bulk/apply', 'POST', { catalogue: returnReview.catalogue, revision: returnReview.revision, reviewToken: returnReview.reviewToken });
+    await assertMembership(firstGroup, [{ heading: firstGroup.name, names: [sibling.name, main.name] }]);
+    if (process.env.LAMP_COMP002_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_COMP002_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_COMP002_SCREENSHOTS}/group-membership-${width}.png`, fullPage: true });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
+    // Restore the original group order for the existing capacity and public story proof.
+    await j.json(`/api/app/component-groups/${firstGroup.id}`, 'PUT', { name: firstGroup.name, displayOrder: 0 }, 204);
     const limits = JSON.parse(await readFile('seed.json', 'utf8')).limits;
     const beforeCatalogue = await j.json('/api/app/components/bulk');
     const catalogue = { ...beforeCatalogue.catalogue, components: [...beforeCatalogue.catalogue.components] };
@@ -100,14 +166,10 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     // customer journey representative instead of rebuilding that capacity load
     // after every unrelated operator edit.
     const populatedCatalogue = await j.json('/api/app/components/bulk');
-    const customerCatalogue = { ...populatedCatalogue.catalogue, components: populatedCatalogue.catalogue.components.filter(row => [main.id, other.id, hidden.id].includes(row.id)) };
+    const customerCatalogue = { ...populatedCatalogue.catalogue, components: populatedCatalogue.catalogue.components.filter(row => [main.id, other.id, hidden.id, sibling.id].includes(row.id)) };
     const customerReview = await j.json('/api/app/components/bulk/preview', 'POST', { catalogue: customerCatalogue, revision: populatedCatalogue.revision });
     await j.json('/api/app/components/bulk/apply', 'POST', { catalogue: customerReview.catalogue, revision: customerReview.revision, reviewToken: customerReview.reviewToken });
 
-    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
-    const scripted = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'America/New_York' });
-    const page = await scripted.newPage();
-    await page.clock.install();
     await page.goto(j.publicOrigin);
     assert.equal(await page.locator('#status-live').getAttribute('aria-live'), 'polite');
     const generation = page.locator('[data-generated-at] time');
