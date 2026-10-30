@@ -113,6 +113,31 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     }
     // Restore the original group order for the existing capacity and public story proof.
     await j.json(`/api/app/component-groups/${firstGroup.id}`, 'PUT', { name: firstGroup.name, displayOrder: 0 }, 204);
+    // Competing saved claims choose severity, independently of component order.
+    await j.json(`/api/app/components/${hidden.id}/standing-claim`, 'PUT', { state: 'Major outage' });
+    for (const [mainState, siblingState, expected] of [
+      ['Under maintenance', 'Operational', 'Under maintenance'],
+      ['Degraded performance', 'Under maintenance', 'Degraded performance'],
+      ['Partially unavailable', 'Degraded performance', 'Partially unavailable'],
+      ['Major outage', 'Partially unavailable', 'Major outage'],
+      ['Operational', 'Operational', 'Operational'],
+    ]) {
+      await j.json(`/api/app/components/${main.id}/standing-claim`, 'PUT', { state: mainState });
+      await j.json(`/api/app/components/${sibling.id}/standing-claim`, 'PUT', { state: siblingState });
+      for (const [mainOrder, siblingOrder] of [[0, 2], [3, 0]]) {
+        await j.json(`/api/app/components/${main.id}`, 'PUT', { ...mainInput, displayOrder: mainOrder });
+        await j.json(`/api/app/components/${sibling.id}`, 'PUT', { name: sibling.name, groupId: firstGroup.id, description: '', internal: false, displayOrder: siblingOrder, note: '' });
+        const status = await eventually(async () => (await j.publicResponse('/api/public/status')).json(), value => value.overall === expected, 'the visible claims reach the public rollup');
+        assert.equal(status.overall, expected);
+        await page.goto(j.publicOrigin);
+        assert.equal(await page.locator('#overall-status').count(), 1);
+        assert.equal(await page.locator('#overall-status').innerText(), expected);
+        const names = await page.locator('.component-health .component-name h4').allTextContents();
+        assert.deepEqual(names, mainOrder < siblingOrder ? [main.name, sibling.name] : [sibling.name, main.name]);
+        assert.ok(!names.includes(hidden.name), 'an internal severe claim never enters the public list or rollup');
+      }
+    }
+    await j.json(`/api/app/components/${hidden.id}/standing-claim`, 'PUT', { state: 'Operational' });
     const limits = JSON.parse(await readFile('seed.json', 'utf8')).limits;
     const beforeCatalogue = await j.json('/api/app/components/bulk');
     const catalogue = { ...beforeCatalogue.catalogue, components: [...beforeCatalogue.catalogue.components] };
