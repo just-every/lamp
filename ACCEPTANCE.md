@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `6a5285f043441e0d1b81a580952fb8889daa85d6` (30 October 2026); PAGE-011 is rechecked on the landing candidate, with earlier clause judgments retained, including SUB-007 at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -175,7 +175,7 @@ Core · published · **partial**
 
 #### PAGE-011 — Embeddable widget
 
-Core · published · **partial** · Cites BASE-PUBLIC-002
+Core · published · **done** · Cites BASE-PUBLIC-002
 
 **Requirement.** An embeddable banner shows overall status and an unresolved incident using the same public snapshot.
 
@@ -183,8 +183,8 @@ Core · published · **partial** · Cites BASE-PUBLIC-002
 1. Installing one script tag renders the overall state and any unresolved incident from PAGE-005 content.
 2. The widget is at most 10 KiB gzipped and loads only from the installation’s own origin.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** Old cited evidence asserts The widget is at most ten KiB gzipped; The nonempty widget source contains neither XMLHttpRequest nor importScripts. Unasserted: The banner content asserts both overall state and unresolved incident; The widget performs no other foreign-origin or alternate network load; Every widget load is observed to stay on the installation origin.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story) installs one script while a native published incident remains unresolved, asserts one banner with the exact Major outage label, incident reference, submitted title and all four submitted wording fields, and enforces the populated script’s ten KiB gzip bound. `tests/e2e/helpers/widget-privacy-flow.mjs` (widgetPrivacyFlow), invoked by `tests/baseline/e2e-baseline/core-baseline.test.mjs` (An owner publishes private installation data safely, then erases identities and signs out), observes the actual script and polling requests: installation origin only, GET without query, body or cookie; an unlisted embedding origin renders no widget.
+**Gap.** None.
 
 #### PAGE-012 — Branding
 
