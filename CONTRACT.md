@@ -3124,9 +3124,9 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3193,7 +3193,7 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 | `INCIDENT-004` | Published updates are immutable | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: original wording retained; correction identifies original; both updates retained. Unasserted in old cited evidence: published deletion refused; public publication order. |
 | `INCIDENT-005` | Reopening | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: reopened lifecycle; resolution retained; reopening retained. Unasserted in old cited evidence: both public. |
 | `INCIDENT-006` | Overdue update | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: operator overdue; no public overdue label. Unasserted in old cited evidence: public committed time. |
-| `INCIDENT-007` | Deletion | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts missing reason refused. Unasserted: public page removal; history removal after demonstrated pre-deletion public visibility; Atom removal after demonstrated pre-deletion public visibility; ten-second removal; deletion actor; deletion reason; deletion time. |
+| `INCIDENT-007` | Deletion | published | done | `tests/e2e/publishing-contract.test.mjs` — reviewed incident from private template to immutable updates, recovery, report and audited deletion: missing and blank reasons are refused without changing the incident or publishing a deletion audit; distinct active and resolved records are positively visible before native DELETE, then disappear from root, applicable history and Atom within one measured ten-second deadline per deletion while unrelated records remain; the independently read deletion audit has the requesting session operator ID and exact reason, its time is bounded by the request and equals persisted deleted_at. |  |
 | `INCIDENT-008` | Internal notes | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts none of the audited outcomes. Unasserted: stored operator note read; populated note absent publicly after reading back the stored private note; populated note absent from Atom after reading back the stored private note; populated note absent from widget after reading back the stored private note; note absent from notifications; note absent from AI requests. |
 | `INCIDENT-009` | Retroactive incidents | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts first original time; resolution original time; history first time; history resolution time. Unasserted: public timeline original times. |
 | `INCIDENT-010` | Update due | published | partial | `tests/e2e/update-reminders.test.mjs` | Asserted: before lead no reminder; due at lead; list due time; Overview due; one due email; one overdue email; scheduled trigger without browser; public commitment; no due or overdue label. Unasserted in old cited evidence: composer and brief action; resolved suppression; newer-publication suppression; retroactive suppression; old expired commitment silent. |
