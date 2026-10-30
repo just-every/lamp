@@ -3118,13 +3118,15 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
 
+INCIDENT-001 is rechecked on this landing candidate with the published candidate’s lifecycle assertions and additional Resolved publication readback; main’s other clause judgments are retained.
+
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3185,7 +3187,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `UPTIME-009` | Availability reports | target | partial | `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts CSV is an attached CSV document; PDF is an attached PDF document; The CSV summary contains the computed uptime; The CSV summary contains the expected weighted downtime. Unasserted: The CSV month and quarter incident lists are completely reconciled; The PDF month and quarter incident lists are completely reconciled; Complete maintenance membership is reconciled in the CSV report; Complete maintenance membership is reconciled in the PDF report; The complete quarter incident-membership set is reconciled; A current-period report stops at elapsed current time; Every overlapping scheduled maintenance retains its state label; Every overlapping cancelled maintenance retains its state label; Every overlapping completed maintenance retains its state label. |
 | `UPTIME-010` | Measured availability exports | target | partial | `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The original evidence does not assert this part’s complete outcome; unasserted: Linked measured availability appears in CSV; Linked measured availability appears in PDF; Claimed results remain unchanged when measured figures are added. |
 | `UPTIME-011` | Audience availability report sharing | target | partial | `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The original evidence does not assert this part’s complete outcome; unasserted: The selected audience receives the report on its private page; The shared numbers equal the component page’s figures. |
-| `INCIDENT-001` | Lifecycle | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: Investigating; Identified; Resolved; starts Investigating; published lifecycle. Unasserted in old cited evidence: Monitoring; exactly one lifecycle; no unpublished lifecycle change. |
+| `INCIDENT-001` | Lifecycle | published | done | `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): scalar Investigating creation; Identified publication; saved and reviewed Monitoring draft leaves the Identified incident and complete published records unchanged; multiple-state input is refused without record changes; explicit publication commits Monitoring; Resolved and reopening controls. |  |
 | `INCIDENT-002` | Impact | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: peak impact; resolved peak impact. Unasserted in old cited evidence: no-component impact absent; no-component publication refused. |
 | `INCIDENT-003` | Reference | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts numeric reference; The numeric-reference permalink returns that incident’s title; increasing sequence; legacy reference unchanged. Unasserted: manual and intake share sequence; public address unchanged. |
 | `INCIDENT-004` | Published updates are immutable | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: original wording retained; correction identifies original; both updates retained. Unasserted in old cited evidence: published deletion refused; public publication order. |
