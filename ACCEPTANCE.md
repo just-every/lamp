@@ -808,8 +808,8 @@ Core · published · **partial** · Cites BASE-DATA-002
 **Acceptance.**
 1. An unconfirmed pending subscription and its address are deleted after 72 hours.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`
-**Gap.** Old cited evidence asserts a very old pending subscriber row is absent after expiry runs. Unasserted: expiry takes effect at the specified 72-hour boundary.
+**Evidence.** `tests/e2e/helpers/subscriber-expiry-flow.mjs` (subscriberExpiryFlow), loaded by the Subscriber consent journey in `tests/e2e/delivery-contract.test.mjs`: two public email subscriptions retain their pending rows and addresses immediately before each creation-plus-72-hour deadline, then native scheduled processing deletes each row and every persisted address copy exactly at its deadline. Operator inventory reconciles independently with D1; confirmed subscription fields remain unchanged; expired confirmation replay and repeated scheduled processing cannot restore an address. `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow), loaded by the Scoped incident subscriptions journey in the same test file, retains incident-scoped expiry. `tests/e2e/sorry-import.test.mjs` (Sorry move-in, Business approval, bounded catch-up, original archive, cutover and erasure remain one recoverable owner flow) retains imported-address custody erasure.
+**Gap.** Old cited evidence asserts a very old pending subscriber row is absent after expiry runs. Unasserted: expiry takes effect at the specified 72-hour boundary. Candidate boundary evidence is retained here without promoting main’s partial judgment; acceptance remains pending clause review.
 
 #### SUB-004 — Component selection
 

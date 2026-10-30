@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "aef72f713a4b77a773bb8de07ce5a15bb4c3e93dc60edb1915ace8b9d57111c9",
+      "sha256": "59145c889f9e216334eedcf0116e1be860584e3b26c51c5e59c6be5aec149da8",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ecb0d9c6d331217753c6dca09d0e4e3942f0f8dc9cd66fc14ea2001699789654",
+      "sha256": "230d6b2b868c940f4f34d430a5fdb08f762b699c03a9b9dc14f4dc40983117b7",
       "executable": false
     },
     "DEMO.md": {
@@ -5276,7 +5276,7 @@
       "executable": false
     },
     "src/core/features/subscribers/repository.ts": {
-      "sha256": "21ac3f199532027f4fb2025671ac48d16fcb4622f18109e29c1f320cbf2deff7",
+      "sha256": "8ea2338563204157481a3d3e8defccfdafecbc02e2a8a0dd194b4dd843789123",
       "executable": false
     },
     "src/core/features/subscribers/routes.ts": {
@@ -6624,7 +6624,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "035d96cd89c21676b76c6da4ebe66f182ae60efc5aa42a796231756380fa1c79",
+      "sha256": "164ca8f406d11df897c3afb32f305bcfa49c41ab7ea791f76599950e013b0c94",
       "executable": false
     },
     "tests/e2e/draft-version-helper.mjs": {
@@ -6893,6 +6893,10 @@
     },
     "tests/e2e/helpers/subscriber-csv-flow.mjs": {
       "sha256": "c86b92b6b1ceeefd9eb05787333472880953275ee2c7583ab57e5ab60d5d8176",
+      "executable": false
+    },
+    "tests/e2e/helpers/subscriber-expiry-flow.mjs": {
+      "sha256": "ded4ded5d68c759908a02d699bb2e4108704b43e61e1545aff69ab2af63a2db3",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-limits-flow.mjs": {
