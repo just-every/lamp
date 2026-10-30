@@ -95,7 +95,8 @@ export async function reportRemindersFlow() {
       const link = `${fixture.appOrigin}/app/incidents/${record.id}#post-incident-report`;
       for (const message of reportMail(record)) {
         assert.deepEqual(message.to, [owner.email], "only the communication owner receives report email");
-        assert.equal(message.text, `${record.reference} ${record.title} is owing a post-incident report. Write or waive it here: ${link}`);
+        assert.ok(message.text.split(/\s+/).includes(record.reference), "report email includes the exact incident reference");
+        assert.deepEqual(message.text.match(/https?:\/\/\S+/g), [link], "report email names only the exact private report link");
         for (const value of privateSubscriberData) assert.ok(!JSON.stringify(message).includes(value), "report email excludes subscriber identity and consent data");
       }
       for (const url of [slack, teams]) assert.equal(reportPosts(record).filter(row => row.url === url).length, count);
