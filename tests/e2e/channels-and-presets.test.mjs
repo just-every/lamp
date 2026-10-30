@@ -9,6 +9,7 @@ import { monitorSetupJourney } from "./helpers/monitor-setup-journey.mjs";
 import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
 import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
+import { channelsBrowserFlow } from "./helpers/channels-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
@@ -36,9 +37,9 @@ import { devKey } from '../helpers/dev-key.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 
 // Synthetic channel addresses; a local receiver stands in for Slack and Teams.
-const SLACK_A = "https://hooks.slack.com/services/T0LAMPTEST/B0SLACKA/slackAsecret01";
-const SLACK_B = "https://hooks.slack.com/services/T0LAMPTEST/B0SLACKB/slackBsecret02";
-const TEAMS = "https://prod-00.westus.logic.azure.com:443/workflows/0lamptest/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=teamsSecretSignature0003";
+const SLACK_A = "https://hooks.slack.com/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-3";
+const SLACK_B = "https://hooks.slack.com/services/synthetic-lamp-4/synthetic-lamp-5/synthetic-lamp-6";
+const TEAMS = "https://prod-00.westus.logic.azure.com:443/workflows/synthetic-lamp-7/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=synthetic-lamp-8";
 let cookie;
 let runtime;
 let receiver;
@@ -117,14 +118,59 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   const created = await post("/api/app/channels", { kind: "slack", name: "#payments", url: SLACK_A, componentIds: [api_.id] });
   assert.equal(created.status, 201, created.text);
   assert.equal(created.body.channel.host, "hooks.slack.com");
-  assert.equal((await post("/api/app/channels", { kind: "teams", name: "Status team", url: TEAMS, componentIds: [] })).status, 201);
-  assert.equal((await post("/api/app/channels", { kind: "slack", name: "#other", url: SLACK_B, componentIds: [(await component("Search")).id] })).status, 201);
-  assert.equal((await post("/api/app/channels", { kind: "slack", name: "#bad", url: "https://example.com/services/a/b/c", componentIds: [] })).status, 400);
+  const slackChannel = created.body.channel;
+  const teamsCreated = await post("/api/app/channels", { kind: "teams", name: "Status team", url: TEAMS, componentIds: [] });
+  assert.equal(teamsCreated.status, 201, teamsCreated.text);
+  const teamsChannel = teamsCreated.body.channel;
+  const otherCreated = await post("/api/app/channels", { kind: "slack", name: "#other", url: SLACK_B, componentIds: [(await component("Search")).id] });
+  assert.equal(otherCreated.status, 201, otherCreated.text);
+  const refusals = [];
+  for (const kind of ["slack", "teams"]) {
+    const refused = await post("/api/app/channels", { kind, name: "#bad", url: "https://example.com/services/a/b/c", componentIds: [] });
+    assert.equal(refused.status, 400, `${kind} refuses a nonprovider host`);
+    refusals.push(refused);
+  }
+  assert.equal(received.length, 0, "saving or refusing a destination sends no webhook request");
   const listed = await api("/api/app/channels");
-  for (const secret of ["slackAsecret", "slackBsecret", "teamsSecretSignature", "/services/T0LAMPTEST"]) {
-    assert.doesNotMatch(listed.text, new RegExp(secret));
-    assert.doesNotMatch(JSON.stringify(sql("SELECT * FROM channel_destinations")), new RegExp(secret), "only ciphertext is stored");
-    assert.doesNotMatch(runtime.output, new RegExp(secret), "never logged");
+  const destinations = sql("SELECT * FROM channel_destinations");
+  const credentials = [SLACK_A, SLACK_B, TEAMS, new URL(TEAMS).href, ...[SLACK_A, SLACK_B].map(url => new URL(url).pathname), "synthetic-lamp-3", "synthetic-lamp-6", "synthetic-lamp-8"];
+  assert.equal(destinations.length, 3, "the refused host creates no destination");
+  for (const [channel, kind, host, selectionMode, componentIds] of [
+    [slackChannel, "slack", "hooks.slack.com", "selected", [api_.id]],
+    [teamsChannel, "teams", "prod-00.westus.logic.azure.com", "all", []],
+  ]) {
+    const stored = destinations.find(row => row.id === channel.id);
+    assert.ok(stored, `${kind} has its own persisted destination`);
+    assert.equal(typeof stored.sealed_url, "string");
+    assert.ok(stored.sealed_url.length > 0, `${kind} has a nonempty encrypted destination`);
+    assert.deepEqual([stored.kind, stored.host, stored.selection_mode], [kind, host, selectionMode]);
+    const selections = sql("SELECT destination_id, component_id FROM channel_destination_components").filter(row => row.destination_id === channel.id);
+    assert.deepEqual(selections.map(row => row.component_id), componentIds, `${kind} persists its exact component selection`);
+    // Separate native GETs prove each saved selection independently of the create response.
+    const loaded = await api("/api/app/channels");
+    assert.equal(loaded.status, 200, loaded.text);
+    const saved = loaded.body.channels.find(row => row.id === channel.id);
+    assert.ok(saved, `${kind} survives a fresh Settings read`);
+    assert.deepEqual([saved.kind, saved.host, saved.selectionMode, saved.componentIds], [kind, host, selectionMode, componentIds]);
+    assertCredentialsHidden(loaded, `${kind} readback`);
+    for (const enabled of [true, false]) {
+      const patched = await api(`/api/app/channels/${channel.id}`, { method: "PATCH", body: JSON.stringify({ operatorAlerts: enabled }) });
+      assert.equal(patched.status, 200, patched.text);
+      assertCredentialsHidden(patched, `${kind} patch`);
+      assert.equal((await api("/api/app/channels")).body.channels.find(row => row.id === channel.id).operatorAlerts, enabled);
+    }
+  }
+  function assertCredentialsHidden(response, door) {
+    for (const secret of [...credentials, ...destinations.map(row => row.sealed_url)]) {
+      assert.ok(!response.text.includes(secret), `${door} never exposes a webhook credential or sealed ciphertext`);
+    }
+    assert.doesNotMatch(response.text, /"(?:sealedUrl|sealed_url)"\s*:/, `${door} omits sealed destination fields`);
+  }
+  for (const [door, response] of [["Slack create", created], ["Teams create", teamsCreated], ["other create", otherCreated], ["list", listed], ...refusals.map(response => ["host refusal", response])]) assertCredentialsHidden(response, door);
+  for (const secret of credentials) {
+    assert.ok(!listed.text.includes(secret), "listed channels hide webhook credentials");
+    assert.ok(!JSON.stringify(destinations).includes(secret), "only ciphertext is stored");
+    assert.ok(!runtime.output.includes(secret), "never logged");
   }
   const [payments] = (await api("/api/app/components")).body.components.filter((row) => row.name === "Payments API");
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
@@ -141,9 +187,10 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled`);
   await settle();
   const slack = received.filter((entry) => entry.path === new URL(SLACK_A).pathname);
-  const teams = received.filter((entry) => entry.path.startsWith("/workflows/0lamptest/"));
+  const teams = received.filter((entry) => entry.path === `${new URL(TEAMS).pathname}${new URL(TEAMS).search}`);
   assert.equal(slack.length, 1);
   assert.equal(teams.length, 1);
+  assert.deepEqual(sql("SELECT destination_id FROM channel_posts ORDER BY destination_id").map(row => row.destination_id), [slackChannel.id, teamsChannel.id].sort(), "the saved destinations receive the selected publication");
   assert.equal(received.filter((entry) => entry.path === new URL(SLACK_B).pathname).length, 0, "a channel for another component receives nothing");
   assert.match(JSON.parse(slack[0].body).text, /INC-\d+ Investigating: Card payments failing/);
   assert.equal(JSON.parse(teams[0].body).attachments[0].contentType, "application/vnd.microsoft.card.adaptive");
@@ -168,10 +215,9 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   assert.doesNotMatch(teamsBody, /\]\((?:javascript:|http:|data:|https:\/\/x\.test)/);
   assert.ok(teamsBody.includes("\\*\\*markdown\\*\\*"), "Teams keeps author markup literal");
   assert.ok(teamsBody.includes("javascript:alert\\(1\\)") && teamsBody.includes("data:text/html,x"), "Teams keeps other schemes literal");
-  assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
+  assert.match(teams[0].path, /sig=synthetic-lamp-8/, "Teams keeps its signed query");
   assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
-  const channels = (await api("/api/app/channels")).body.channels;
-  const slackChannel = channels.find(channel => channel.name === "#payments");
+  assertCredentialsHidden(await api("/api/app/channels"), "list with publication log");
   for (const reply of [
     { status: 200, body: "invalid_payload" },
     { status: 400, body: "channel_is_archived" },
@@ -185,14 +231,27 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
     assert.equal(result.status, 200, result.text);
     assert.equal(result.body.sent, reply.body === "ok", `Slack HTTP ${reply.status}: ${reply.body || "empty response"}`);
     if (reply.body && reply.body !== "ok") assert.ok(result.body.message.includes(reply.body.replaceAll(SLACK_A, "[webhook URL]")), "show Slack's rejection text without the webhook credential");
-    assert.doesNotMatch(result.text, /slackAsecret|\/services\/T0LAMPTEST/);
+    assertCredentialsHidden(result, "Slack test result");
     assert.match(JSON.parse(received.at(-1).body).text, /Test post from Lamp/);
   }
-  const teamsChannel = channels.find(channel => channel.kind === "teams");
   const teamsTest = await post(`/api/app/channels/${teamsChannel.id}/test`, {});
   assert.equal(teamsTest.status, 200, teamsTest.text);
   assert.equal(teamsTest.body.sent, true, "Teams accepts an empty HTTP 202 response");
+  assertCredentialsHidden(teamsTest, "Teams test result");
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
+  await channelsBrowserFlow({ origin, devLink: async () => `${origin}/__dev/key#${new URLSearchParams({ 'rer-dev': devKey, as: 'owner' })}`, channels: [slackChannel, teamsChannel], componentName: api_.name, secrets: [...credentials, ...destinations.map(row => row.sealed_url)] });
+  for (const channel of [slackChannel, teamsChannel]) {
+    const removed = await api(`/api/app/channels/${channel.id}`, { method: "DELETE" });
+    assert.equal(removed.status, 200, removed.text);
+    assertCredentialsHidden(removed, "removal");
+    const remaining = await api("/api/app/channels");
+    assert.ok(!remaining.body.channels.some(row => row.id === channel.id), "removed destination stays absent from fresh reads");
+    assertCredentialsHidden(remaining, "list after removal");
+    const afterRemoval = await post(`/api/app/channels/${channel.id}/test`, {});
+    assert.equal(afterRemoval.status, 404, afterRemoval.text);
+    assertCredentialsHidden(afterRemoval, "test after removal");
+  }
+  for (const secret of [...credentials, ...destinations.map(row => row.sealed_url)]) assert.ok(!runtime.output.includes(secret), "channel operations never log webhook credentials or ciphertext");
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
   await socialBrowserFlow({ origin, devLink: async () => `${origin}/__dev/key#${new URLSearchParams({ 'rer-dev': devKey, as: 'owner' })}`, diagnostic: text => t.diagnostic(text) });
   await runtime.stop();

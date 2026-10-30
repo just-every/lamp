@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1082,7 +1082,7 @@ Core · published · **partial** · Cites BASE-MAIL-001, BASE-OPS-004
 
 #### NOTIFY-011 — Slack and Teams channels
 
-Core · published · **partial** · Cites BASE-SECRET-001
+Core · published · **done** · Cites BASE-SECRET-001
 
 **Requirement.** Operators connect Slack and Microsoft Teams publication channels, selecting components; no selection follows all visible components. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md).
 
@@ -1091,8 +1091,8 @@ Core · published · **partial** · Cites BASE-SECRET-001
 2. The destination URL is stored encrypted and never returned or shown again after saving.
 3. Only each provider's documented webhook hosts are accepted.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs`
-**Gap.** Old cited evidence asserts the created Slack channel response reports the expected provider host; no URL in list; stored ciphertext; nonprovider host refused. Unasserted: the Slack destination and selected components are persisted; the Teams destination is persisted with all-visible component selection; saved component selections read back; no saved URL on other API responses.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loaded by push Verify’s delivery shard: acceptance 1 reconciles nonempty encrypted Slack and Teams destination rows, exact stored selections, independent native GET readbacks and exact receiver paths; acceptance 2 checks create, list, patch, successful and rejected test, removal and removed-channel responses for raw credentials and sealed ciphertext, plus plaintext-at-rest absence and log redaction; acceptance 3 retains nonprovider-host refusal without a saved destination. `tests/e2e/helpers/channels-browser-flow.mjs` (channelsBrowserFlow), loaded by that journey, checks reloaded Settings at 1440 and 390 with both saved selections, an empty webhook input, no credentials or ciphertext in the document and no overflow. Only synthetic provider edges are claimed.
+**Gap.** None.
 
 #### NOTIFY-012 — Channel posts
 
