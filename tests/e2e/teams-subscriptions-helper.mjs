@@ -20,6 +20,7 @@ export async function prepareTeamsSubscription({ componentId, publicOrigin, rece
   });
   assert.equal(refused.status, 400, 'a non-Microsoft webhook host is refused');
   assert.equal(outboundDestinations.filter(url => url === rejectedUrl).length, 0, 'the refused destination receives no outbound request');
+  assert.equal(received.filter(entry => entry.path.startsWith(path)).length, 0, 'host refusal sends no card to the accepted endpoint either');
   const requested = await fetch(`${publicOrigin}/subscribe/teams`, {
     method: 'POST', headers, body: new URLSearchParams({ url: subscriberTeamsUrl, componentId }),
   });

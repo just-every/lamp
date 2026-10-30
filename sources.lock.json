@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "f9bb5f4810ff410809b092468a585c95347ab79e379548290622544a46c0be1e",
       "executable": false
     },
     "DEMO.md": {
@@ -7096,7 +7096,7 @@
       "executable": false
     },
     "tests/e2e/teams-subscriptions-helper.mjs": {
-      "sha256": "113b22bb5000476c2a1e5e7ec7168f63761ab43e08182c0a54dea337e8b416b0",
+      "sha256": "c9e37a024ec311798aca78dab17b2c0fc579188d1ea991efd0222310f97266cd",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
