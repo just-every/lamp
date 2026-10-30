@@ -1,3 +1,4 @@
+import { deliveryRetryFlow } from "./helpers/delivery-retry-flow.mjs";
 import { incidentSubscriptionApiFlow } from './helpers/incident-subscription-api-flow.mjs';
 import { incidentFollowFlow } from './helpers/incident-follow-flow.mjs';
 import { test } from 'node:test';
@@ -34,3 +35,7 @@ test('Scoped incident subscriptions — native and Statuspage API consent, priva
   await incidentFollowFlow();
   await incidentSubscriptionApiFlow();
 });
+
+// Registered in the existing delivery Verify shard; it advances the real Worker
+// clock across the contractual hour rather than bypassing the dispatch doors.
+test('NOTIFY-003 — Durable exponential retry eligibility, exhaustion and replay silence', { timeout: 120_000 }, deliveryRetryFlow);

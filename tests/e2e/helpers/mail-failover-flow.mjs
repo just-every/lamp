@@ -123,17 +123,21 @@ export async function mailFailoverFlow({ t, vite, secondaryProvider='mailgun' })
     const queuedLog=(await api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}`)).body.deliveries.find(row=>row.destination===address);
     const stored=await ownBindings.DB.prepare('SELECT mail_payload_json AS payload FROM notification_delivery_records WHERE id=?').bind(queuedLog.id).first();
     const {frozenAt,...frozenMessage}=JSON.parse(stored.payload);
+    const primaryBeforeReplay=primary.filter(row=>row.body.to.includes(address)&&row.key.startsWith('notification/')).length;
+    const attemptsBeforeReplay=await ownBindings.DB.prepare('SELECT * FROM notification_attempt_records WHERE delivery_id=? ORDER BY attempt_number').bind(queuedLog.id).all();
     for(let replay=0;replay<6;replay++){
-      let retried=false;
-      await assert.rejects(runQueue({messages:[{body:{type:'delivery-dispatch',eventId:published.body.update.id},ack(){assert.fail('a rejected primary must not acknowledge the Queue event');},retry(){retried=true;}}]},bindings),/Synthetic provider outage/);
-      assert.equal(retried,true);
+      let retryOptions;
+      await runQueue({messages:[{body:{type:'delivery-dispatch',eventId:published.body.update.id},ack(){assert.fail('a rejected primary must not acknowledge the Queue event');},retry(options){retryOptions=options;}}]},bindings);
+      assert.ok(retryOptions.delaySeconds>0,'early Queue replay is deferred to durable eligibility');
     }
+    assert.equal(primary.filter(row=>row.body.to.includes(address)&&row.key.startsWith('notification/')).length,primaryBeforeReplay,'early replay never resubmits to the primary provider');
+    assert.deepEqual((await ownBindings.DB.prepare('SELECT * FROM notification_attempt_records WHERE delivery_id=? ORDER BY attempt_number').bind(queuedLog.id).all()).results,attemptsBeforeReplay.results,'early replay consumes no mail retry');
     const beforeDeadline=(await api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}`)).body.deliveries.find(row=>row.destination===address);
     assert.equal(beforeDeadline.outcome,'queued','fast Queue replays cannot exhaust delivery before its five-minute failover deadline');
-    t.mock.timers.tick(60_000);
+    t.mock.timers.tick(2*60_000);
     await scheduled();
     assert.equal(secondary.filter(body=>body.to===address).length,0);
-    t.mock.timers.tick(5*60_000);
+    t.mock.timers.tick(4*60_000);
     await scheduled();
     const accepted=secondary.filter(body=>body.to===address);
     assert.equal(accepted.length,1,'one secondary acceptance within seven controlled minutes');

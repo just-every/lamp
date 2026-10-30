@@ -14,7 +14,7 @@ export async function followUpsQueueFlow({ fixture, component, createIncident, p
   });
   assert.equal(subscribed.status, 201, subscribed.text);
   const incident = await createIncident("Synthetic Lamp queued dispatch");
-  await publish(incident.id, { channels: ["webhook"] });
+  const update = await publish(incident.id, { channels: ["webhook"] });
   await eventuallyFollowUp(() => fixture.webhookRequests.length, count => count > 0, "publication reaches the failing webhook network edge");
   const pending = await eventuallyFollowUp(async () => (await api(endpoint)).body.followUps,
     rows => rows.some(row => row.kind === "notification-dispatch" && !before.has(row.id)), "real unfinished subscriber outbox appears");
@@ -52,6 +52,15 @@ export async function followUpsQueueFlow({ fixture, component, createIncident, p
   fixture.recoverWebhook();
   const accepted = await retry(recurrence.occurrence);
   assert.equal(accepted.status, 202, accepted.text);
+  // Operator Retry submits work, but cannot spend the subscriber's next retry
+  // before its durable deadline. Advance only this isolated Worker's clock.
+  const beforeRecovery = fixture.webhookRequests.length;
+  assert.equal((await fixture.api(`/api/app/deliveries?incidentUpdateId=${update.id}`)).body.deliveries[0].outcome, "queued");
+  assert.equal(fixture.webhookRequests.length, beforeRecovery, "the retry request does not bypass exponential eligibility");
+  const eligibleAt = Date.now() + 120_000;
+  assert.equal((await fixture.raw("/test/clock", { method: "PUT", body: JSON.stringify({ now: eligibleAt }) })).status, 204);
+  const redelivery = await (await fixture.runtime.getWorker()).queue("lamp-follow-ups-jobs", [{ id: "synthetic-lamp-follow-up-recovery", timestamp: new Date(), attempts: 2, body: { type: "delivery-dispatch", eventId: update.id } }]);
+  assert.equal(redelivery.outcome, "ok");
   await eventuallyFollowUp(async () => (await api(endpoint)).body.followUps,
     rows => !rows.some(row => row.id === dispatch.id), "the real healthy Queue consumer completes dispatch and removes its follow-up");
   const delivered = await api("/api/app/deliveries?channel=webhook&limit=100");

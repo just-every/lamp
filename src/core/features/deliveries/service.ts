@@ -17,7 +17,7 @@ import type { DeliveryRepository, DeliveryLogChannel, DeliveryRow, DispatchableD
 import { statuspageWebhookBody } from "./statuspage-webhook";
 import { defaultPageStatusRollup, type PageStatusRollupPolicy } from "../public-snapshot/policies";
 
-const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 20 * 60_000, 20 * 60_000];
+import { RETRY_DELAYS_MS } from "./retry-policy";
 const RESEND_IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DELIVERY_CLAIM_MS = 5 * 60 * 1000;
 const PROVIDER_CALLBACK_CLAIM_MS = 5 * 60 * 1000;
@@ -29,7 +29,7 @@ export interface DeliveriesService {
   export(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit?: number): Promise<SubscriptionMailRow[]>;
   dispatchDue(origin: string, limit?: number): Promise<void>;
-  dispatchEvent(eventId: string, origin: string): Promise<void>;
+  dispatchEvent(eventId: string, origin: string): Promise<string | null>;
   dispatchDelivery(deliveryId: string, origin: string): Promise<void>;
   handleProviderEvent(input: { id: string; providerMessageId: string | null; type: "delivered" | "bounced" | "complained"; hardBounce?: boolean }): Promise<void>;
   queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }): Promise<void>;
@@ -180,8 +180,8 @@ export function createDeliveriesService(
       }
       return;
     }
-    // The queued outcome remains until retry; the durable outbox runner owns
-    // the actual re-enqueue timing after this method returns an error.
+    // The persisted attempt establishes the next eligible instant. Every
+    // dispatch door checks it inside the delivery claim before sending.
     await repository.markOutcome(delivery.id, "queued", null, timestamp);
   }
 
@@ -362,6 +362,9 @@ export function createDeliveriesService(
           if (!payload.eventId) throw new Error("Outbox job has no notification event ID.");
           await this.dispatchEvent(payload.eventId, origin);
         } catch (error) {
+          // Recipient attempts own delivery retries. dispatchEvent has already
+          // rescheduled their earliest deadline, including inline and Queue work.
+          if (job.kind === "delivery-dispatch" && error && typeof error === "object" && "retryAt" in error) continue;
           const attempts = job.attempts + 1;
           const failoverAt=pendingMailFailover(error),plannedAt=Date.parse(retryAt(attempts));
           await repository.retryOutbox(job.id, { attempts, availableAt: new Date(failoverAt===null?plannedAt:Math.min(plannedAt,failoverAt)).toISOString(), error: error instanceof Error ? error.message : "Notification dispatch failed.", now: nowIso(), failed: attempts > RETRY_DELAYS_MS.length && failoverAt===null });
@@ -372,14 +375,18 @@ export function createDeliveriesService(
       }
     },
     async dispatchEvent(eventId, origin) {
-      if (options.effectsPaused) return;
+      if (options.effectsPaused) return null;
       let firstFailure: unknown = null;
       for (const deliveryId of await repository.listQueuedDeliveryIdsForEvent(eventId)) {
         try { await this.dispatchDelivery(deliveryId, origin); }
         catch (error) { firstFailure ??= error; }
       }
-      if (firstFailure) throw firstFailure;
-      await repository.completeOutboxForEvent(eventId, nowIso());
+      const retryAt = await repository.rescheduleOutboxForEvent(eventId, nowIso());
+      if (firstFailure) {
+        if (firstFailure instanceof Error) Object.assign(firstFailure, { retryAt });
+        throw firstFailure;
+      }
+      return retryAt;
     },
     async dispatchDelivery(deliveryId, origin) {
       if (options.effectsPaused) return;

@@ -1,4 +1,9 @@
 import worker from "./follow-ups-worker";
+import { lampServerExtensions } from "../../../src/ext/index.server";
+import type { NotificationFailedEvent } from "../../../src/core/features/deliveries/events";
+
+const deliveryFailures: NotificationFailedEvent[] = [];
+Object.assign(lampServerExtensions.events, { "notification.failed.v1": [(event: NotificationFailedEvent) => { deliveryFailures.push(event); }] });
 
 const RealDate = Date;
 let clock: number | null = null;
@@ -12,6 +17,7 @@ export { SnapshotCache } from "./follow-ups-worker";
 export default {
   ...worker,
   async fetch(request: Request, env: Parameters<typeof worker.fetch>[1], context: ExecutionContext) {
+    if (new URL(request.url).pathname === "/test/delivery-failures" && request.method === "GET") return Response.json(deliveryFailures);
     if (new URL(request.url).pathname === "/test/clock" && request.method === "PUT") {
       const input = await request.json<{ now: number }>();
       if (!Number.isFinite(input.now) || input.now < (clock ?? RealDate.now())) return new Response("Clock must advance", { status: 400 });

@@ -78,11 +78,13 @@ export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindin
       continue;
     }
     try {
-      await runtime.services.deliveries.dispatchEvent(message.body.eventId, await notificationOrigin(bindings));
+      const retryAt = await runtime.services.deliveries.dispatchEvent(message.body.eventId, await notificationOrigin(bindings));
       await runtime.services.social.dispatchPending();
-      message.ack();
+      if (retryAt) message.retry({ delaySeconds: Math.max(1, Math.ceil((Date.parse(retryAt) - Date.now()) / 1000)) });
+      else message.ack();
     } catch (cause) {
-      message.retry();
+      const retryAt = cause && typeof cause === "object" && "retryAt" in cause && typeof cause.retryAt === "string" ? cause.retryAt : null;
+      message.retry(retryAt ? { delaySeconds: Math.max(1, Math.ceil((Date.parse(retryAt) - Date.now()) / 1000)) } : undefined);
       throw cause;
     }
   }

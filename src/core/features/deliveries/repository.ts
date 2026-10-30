@@ -1,3 +1,4 @@
+import { RETRY_DELAYS_MS } from "./retry-policy";
 import { incidentResolutionAcceptanceStatements, incidentResolutionReceiptStatements } from "../subscribers/incident-lifecycle.repository";
 import { incidentDispatchAllowedSql, incidentFinalDeliverySql } from "./subscriber-eligibility";
 import type { ComponentState } from "../../shared/domain";
@@ -100,7 +101,7 @@ export interface DeliveryRepository {
   listOutbox(limit: number, now: string): Promise<Array<typeof notificationOutbox.$inferSelect>>;
   claimOutbox(id: string, now: string, reclaimBefore: string): Promise<boolean>;
   completeOutbox(id: string, now: string): Promise<void>;
-  completeOutboxForEvent(eventId: string, now: string): Promise<void>;
+  rescheduleOutboxForEvent(eventId: string, now: string): Promise<string | null>;
   retryOutbox(id: string, input: { attempts: number; availableAt: string; error: string; now: string; failed: boolean }): Promise<void>;
   enqueueOperatorAlert(input: { id: string; eventId: string; payloadJson: string; now: string }): Promise<void>;
   listActiveOperatorEmails(): Promise<string[]>;
@@ -151,11 +152,28 @@ export function createDeliveryRepository(binding: D1Database, mailReceipts?: { p
   function deliveryAuthority(deliveryId: string) {
     return binding.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM notification_delivery_records WHERE id=?) THEN 1 ELSE json('Unknown delivery.') END").bind(deliveryId);
   }
+  // Attempts, rather than the dispatch door or an in-memory timer, own retry
+  // eligibility. Use this same expression in the atomic claim and Cron wakeup.
+  function retryDeadlineSql(alias: string) {
+    const delay = `CASE a.attempt_number ${RETRY_DELAYS_MS.map((value, index) => `WHEN ${index + 1} THEN ${value}`).join(" ")} ELSE ${RETRY_DELAYS_MS.at(-1)} END`;
+    const ordinary = `COALESCE((SELECT strftime('%Y-%m-%dT%H:%M:%fZ',a.attempted_at,'+' || ((${delay}) / 1000.0) || ' seconds')
+      FROM notification_attempt_records a WHERE a.delivery_id=${alias}.id ORDER BY a.attempt_number DESC LIMIT 1),${alias}.queued_at)`;
+    // Safe mail failover keeps its own five-minute deadline. It never advances
+    // another recipient's retry, and ambiguous submissions do not enable it.
+    return `min(${ordinary},COALESCE((SELECT strftime('%Y-%m-%dT%H:%M:%fZ',r.first_retryable_failure_at,'+300 seconds')
+      FROM mail_provider_routes r JOIN mail_provider_settings s ON s.id='default' AND s.secondary_provider=r.secondary_provider
+      WHERE r.notification_delivery_id=${alias}.id AND r.state='ready' AND r.ambiguous_failure=0
+        AND r.selected_provider=r.primary_provider AND r.first_retryable_failure_at IS NOT NULL),${ordinary}))`;
+  }
+  const unacceptedQueued = `d.outcome='queued' AND NOT EXISTS (SELECT 1 FROM notification_attempt_records a
+    WHERE a.delivery_id=d.id AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL))`;
+
   function claimStatements(deliveryId: string, now: string, reclaimBefore: string) {
     return updateStatements(`SET dispatch_locked_at = ? WHERE id = ? AND outcome = 'queued'
       AND (dispatch_locked_at IS NULL OR dispatch_locked_at < ?)
+      AND ${retryDeadlineSql("d")} <= ?
       AND NOT EXISTS (SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id
-        AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL))`, [now,deliveryId,reclaimBefore]);
+        AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL))`, [now,deliveryId,reclaimBefore,now]);
   }
 
   function pendingEventsStatement(providerMessageId: string) {
@@ -322,14 +340,27 @@ export function createDeliveryRepository(binding: D1Database, mailReceipts?: { p
       return result.meta.changes === 1;
     },
     async completeOutbox(id, now) { await database.update(notificationOutbox).set({ completedAt: now, lockedAt: null, updatedAt: now }).where(eq(notificationOutbox.id, id)); },
-    async completeOutboxForEvent(eventId, now) {
-      await binding.prepare(`UPDATE notification_outbox SET completed_at = ?, locked_at = NULL, updated_at = ?
-        WHERE kind = 'delivery-dispatch' AND aggregate_id = ? AND completed_at IS NULL
-          AND NOT EXISTS (SELECT 1 FROM notification_delivery_records d
-            WHERE d.notification_event_id = ? AND d.outcome = 'queued'
-              AND NOT EXISTS (SELECT 1 FROM notification_attempt_records a
-                WHERE a.delivery_id = d.id AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL)))`)
-        .bind(now, now, eventId, eventId).run();
+    async rescheduleOutboxForEvent(eventId, now) {
+      const next = `SELECT min(${retryDeadlineSql("d")}) FROM notification_delivery_records d
+        WHERE d.notification_event_id=? AND ${unacceptedQueued}`;
+      const [, stored] = await binding.batch<{ availableAt: string; completedAt: string | null }>([
+        binding.prepare(`UPDATE notification_outbox SET available_at=COALESCE((${next}),available_at),
+          completed_at=CASE WHEN EXISTS(SELECT 1 FROM notification_delivery_records d
+            WHERE d.notification_event_id=? AND ${unacceptedQueued}) THEN NULL ELSE ? END,
+          locked_at=NULL,
+          attempts=max(attempts,COALESCE((SELECT max(a.attempt_number) FROM notification_attempt_records a
+            JOIN notification_delivery_records d ON d.id=a.delivery_id WHERE d.notification_event_id=?),0)),
+          last_error=COALESCE((SELECT a.error FROM notification_attempt_records a JOIN notification_delivery_records d ON d.id=a.delivery_id
+            WHERE d.notification_event_id=? ORDER BY a.attempted_at DESC,a.attempt_number DESC LIMIT 1),last_error),
+          updated_at=max(updated_at,COALESCE((SELECT max(a.attempted_at) FROM notification_attempt_records a
+            JOIN notification_delivery_records d ON d.id=a.delivery_id WHERE d.notification_event_id=?),?))
+          WHERE kind='delivery-dispatch' AND aggregate_id=? AND completed_at IS NULL AND failed_at IS NULL`)
+          .bind(eventId,eventId,now,eventId,eventId,eventId,now,eventId),
+        binding.prepare(`SELECT available_at AS availableAt,completed_at AS completedAt FROM notification_outbox
+          WHERE kind='delivery-dispatch' AND aggregate_id=? AND failed_at IS NULL`).bind(eventId),
+      ]);
+      const job = stored.results[0];
+      return job && !job.completedAt ? job.availableAt : null;
     },
     async retryOutbox(id, input) { await database.update(notificationOutbox).set({ attempts: input.attempts, availableAt: input.availableAt, lastError: input.error, failedAt: input.failed ? input.now : null, lockedAt: null, updatedAt: input.now }).where(eq(notificationOutbox.id, id)); },
     async enqueueOperatorAlert(input) {

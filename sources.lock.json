@@ -3336,7 +3336,7 @@
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "e54cb824581c22f2173f2ac2150095be344fcfb67769a43454d9b06f12b83e53",
+      "sha256": "cd88df2ab7e702d50710955814d4357edaf1c4def63b479e463991107d135700",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -3344,7 +3344,7 @@
       "executable": false
     },
     "src/core/app/worker-lifecycle.ts": {
-      "sha256": "06552799cc6e9bc20248661ed02d0587b8b39f395329c00722ae34dc6afca1ba",
+      "sha256": "c8fa965d90ac04422e7020d97b66a7ff45abef85e3ebc4f28a11be8a523e6294",
       "executable": false
     },
     "src/core/features/ai/customer-text.ts": {
@@ -3728,7 +3728,11 @@
       "executable": false
     },
     "src/core/features/deliveries/repository.ts": {
-      "sha256": "413d13e7eac90389f6ab35203ef105eaa9d31e9122f8ae67d3e361eb3e2c78ab",
+      "sha256": "2042f032eb4ba275626fad0e4818cd88f03af2500d1edac42356149d456e0fc1",
+      "executable": false
+    },
+    "src/core/features/deliveries/retry-policy.ts": {
+      "sha256": "795548640fd785e7cdc014aff2bb82762fe8279dae6aa4bafa786194f3bd9832",
       "executable": false
     },
     "src/core/features/deliveries/routes.ts": {
@@ -3744,7 +3748,7 @@
       "executable": false
     },
     "src/core/features/deliveries/service.ts": {
-      "sha256": "59597a5a283ea7f88c0dd86b1bbe1bc0a7b097c214f4f48c704ccf38acd6792d",
+      "sha256": "1248e0c4793d225ab8cb1ffe021ea2f67918f16824e38b94a5848fbbd50a26b3",
       "executable": false
     },
     "src/core/features/deliveries/ses-events.ts": {
@@ -6652,7 +6656,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "035d96cd89c21676b76c6da4ebe66f182ae60efc5aa42a796231756380fa1c79",
+      "sha256": "9fe30f64971960b6904bcf9fa7ceac7fec2f0b53545daaf53bc26f9a1d7857a0",
       "executable": false
     },
     "tests/e2e/draft-version-helper.mjs": {
@@ -6680,7 +6684,7 @@
       "executable": false
     },
     "tests/e2e/helpers/automation-clock-worker.ts": {
-      "sha256": "64c460eea587efde9d63df4e6028ef9d5e1464f44928a41aff1bbc378a4d5439",
+      "sha256": "66149720dcb712847347abc8e849a6ff70cbb0646d6d559e5a81e5c33bbbd911",
       "executable": false
     },
     "tests/e2e/helpers/automation-flap-flow.mjs": {
@@ -6723,8 +6727,12 @@
       "sha256": "2ecc7c71c692e3653b7731656112a9d70657856d9a60d3dd0bf510fcfb091e63",
       "executable": false
     },
+    "tests/e2e/helpers/delivery-retry-flow.mjs": {
+      "sha256": "44fe265f02ba7ce3ecb7da48d128c378a112d0d872d9a28a56634ffef6e9705b",
+      "executable": false
+    },
     "tests/e2e/helpers/follow-ups-flow.mjs": {
-      "sha256": "6b0989c28b3de5f752ac77047d31a08d5a43b4f2144d631dd1a308dc06618884",
+      "sha256": "8ffda35da005d832f42428fe0f9eaa90d8c23e8dce10e364072e47127a67e3da",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-import.mjs": {
@@ -6736,7 +6744,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-queue-flow.mjs": {
-      "sha256": "19d4d18362d1a6eb8d9546729f28302a71c478105a745cdba4a903a368ebbde5",
+      "sha256": "e80f8aac2da4502906e79c83d02a5808c4e093123445685090b427d387ef412a",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-runtime.mjs": {
@@ -6808,7 +6816,7 @@
       "executable": false
     },
     "tests/e2e/helpers/mail-failover-flow.mjs": {
-      "sha256": "dd169d597eb57dca640ac7208e8c53e32afa900d24ffc7298c12ec27bc2e2151",
+      "sha256": "a93241dc4ae393b4d14b705467d795bc05136482613981431efdc9b728e2f08d",
       "executable": false
     },
     "tests/e2e/helpers/mail-provider-fixtures.mjs": {

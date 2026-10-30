@@ -11,7 +11,7 @@ const hour = 3_600_000;
 /** AUTO-003 public-door journey composed into the existing reminder case.
  * No SQL seeds or mutations create an obligation or its failure state. */
 export async function followUpsFlow() {
-  const fixture = await openFollowUpsRuntime();
+  const fixture = await openFollowUpsRuntime({ workerEntry: "tests/e2e/helpers/automation-clock-worker.ts" });
   const { api, post, request } = fixture;
   try {
     assert.equal((await fixture.raw(endpoint)).status, 401, "follow-ups require an operator session");

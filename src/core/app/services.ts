@@ -136,6 +136,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     return brandEmail(email, { branding: settings.emailBranding, pageName: settings.pageName, fromAddress: settings.mailFromAddress, origin: publicPageOrigin(authOrigin(bindings), bindings.LAMP_PAGE_HOST), hasLogo: Boolean(settings.logoKey) });
   }, afterPublished: async (update) => {
     const results = await Promise.allSettled([
+      // Inline publication shares the durable retry eligibility and outbox
+      // wakeup used by Cron and Queue; it cannot spend an early retry.
       notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
       channels.dispatchPending(),
       social.dispatchPending(),
