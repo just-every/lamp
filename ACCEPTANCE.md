@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 20 | 169 | 49 | 238 |
+| Core | 21 | 168 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 20 | 169 | 54 | 243 |
+| Full target | 21 | 168 | 54 | 243 |
 
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -366,7 +366,7 @@ Core · published · **partial**
 
 #### UPTIME-004 — Corrections
 
-Core · published · **partial** · Cites BASE-AUDIT-001
+Core · published · **done** · Cites BASE-AUDIT-001
 
 **Requirement.** An operator corrects a closed history interval with an attributable reason while retaining original facts.
 
@@ -376,8 +376,8 @@ Core · published · **partial** · Cites BASE-AUDIT-001
 3. Every affected uptime figure is recomputed within sixty seconds.
 4. The audit records operator, interval and reason.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** Old cited evidence asserts The corrected state is retained; The stored correction retains the exact interval start; The stored correction retains the exact interval end; The reason is retained. Unasserted: Every affected figure is observed within sixty seconds.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/uptime-correction-journey.mjs` (uptimeCorrectionJourney): native corrected state, exact closed interval and reason; empty-reason and unauthenticated refusal without history changes; one superseding fact with all original values retained; one measured sixty-second deadline per correction for all four warmed public layouts, their daily minutes and the overall uptime figure, native component collection, component uptime badge and both affected monthly and quarterly JSON, CSV and PDF reports; searchable and exported operator audit plus persisted interval and reason. The controlled Worker clock isolates a two-hour outage across a month and quarter boundary.
+**Gap.** None.
 
 #### UPTIME-005 — Stated method
 

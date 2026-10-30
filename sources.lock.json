@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ea059ac459f3a972f4639cf6f766cf4c7289f1169492a5484f1e89c49ebcf197",
+      "sha256": "285cca4fb3b90100dd604fbab0e1cede8168463bd02ec24b689a4faef7b692b0",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "03bda51f1fa1d674aa642873d83b6e30a8142465f5c0b60317336648a17d1ab2",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "a9500d370bfd0814f3ee6d878aef03c5e2a686a652c88ef7d6a4b39560ac6a2b",
+      "sha256": "2a873fe6aea8eac1290ea7f3d20a2768b44169e1b3988504f2c9c8907291a75f",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -6955,6 +6955,10 @@
       "sha256": "81d83619ac188fb27bf559dfb8ea80fde702536bfdf8ac9c214004ccc75cbab2",
       "executable": false
     },
+    "tests/e2e/helpers/uptime-correction-journey.mjs": {
+      "sha256": "e23747e0dade3eb22a154b1c181e2aad3401b3ef294730e640f142d9148789e4",
+      "executable": false
+    },
     "tests/e2e/helpers/uptime-pairing-flow.mjs": {
       "sha256": "ca1a28b1261750ea2c362638e0c3ba2a1211a9f1ece32e42ab63e158fd3cef51",
       "executable": false
@@ -6996,7 +7000,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "49102125e0c69ac4d25767bec46a23ea4f9121664ff118ca287cc9156b24fb09",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
