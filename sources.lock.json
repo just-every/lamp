@@ -4392,7 +4392,7 @@
       "executable": false
     },
     "src/core/features/agent-door/incidents.ts": {
-      "sha256": "23be4794b4539afd68c295f4960199bb9875f24fb956391e1ab5e499d6e2d159",
+      "sha256": "338bfbac95cbd0365e7722a16fba0d9780d2a7ab4782c9bc47e81f60a05dfbdb",
       "executable": false
     },
     "src/core/features/agent-door/index.server.ts": {
@@ -7616,7 +7616,7 @@
       "executable": false
     },
     "tests/agent-door/journey.mjs": {
-      "sha256": "7433cd24819e4b262ea2ef44a950e0a13580e3eee1d360ac8e39a0824f4c0f5a",
+      "sha256": "63c4adcc72006a5d24444622b693327f3772c8366349014b7c7e19140679854a",
       "executable": false
     },
     "tests/agent-door/owner.mjs": {

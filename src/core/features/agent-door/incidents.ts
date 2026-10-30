@@ -18,7 +18,7 @@ const nativeIncident = { type: 'object', required: ['id', 'title', 'lifecycle', 
 } };
 const draftVersion = { type: 'string', pattern: '^(?:[0-9A-HJKMNP-TV-Z]{26}|-):[0-9]+$' };
 const results: Record<string, Record<string, unknown>> = {
-  'configuration.save': { settings: { type: 'object', required: ['pageName', 'hostname', 'timezone'] } },
+  'configuration.save': { settings: { type: 'object', required: ['pageName', 'tagline', 'accentColor', 'timezone', 'hostname', 'footerCreditEnabled'], properties: { pageName: text, tagline: { type: 'string' }, accentColor: { type: 'string' }, timezone: text, hostname: text, footerCreditEnabled: { type: 'boolean' } }, additionalProperties: false } },
   'incidents.list': { incidents: { type: 'array', items: nativeIncident } },
   'incidents.get': { incident: nativeIncident, draftVersion },
   'incidents.create': { id: text, incident: nativeIncident, draftVersion },
@@ -98,9 +98,14 @@ export function incidentTools(bindings: AppBindings, services: AppServices): Too
       classify: async (_args, ctx) => { await guard(ctx, 'PUT', '/page-settings'); return publication; },
       run: async (args, ctx) => {
         await guard(ctx, 'PUT', '/page-settings');
-        const input = parse(pageSettingsSchema, args);
+        // This tool does not edit owner AI instructions. Discard the form
+        // schema's default so the native update preserves an existing value.
+        const { aiToneInstructions: _instructions, ...input } = parse(pageSettingsSchema, args);
         await services.pageSettings.ensureInitial(input);
-        return { result: { settings: await services.pageSettings.update(input) } };
+        const saved = await services.pageSettings.update(input);
+        if (!saved) throw new ToolRefusal('not_found');
+        const { pageName, tagline, accentColor, timezone, hostname, footerCreditEnabled } = saved;
+        return { result: { settings: { pageName, tagline, accentColor, timezone, hostname, footerCreditEnabled } } };
       },
     }),
     tool('witness', true, ['standard'], ['BASE-AGENT-005', 'BASE-AGENT-012'], { type: 'object', properties: {}, additionalProperties: false }, {
