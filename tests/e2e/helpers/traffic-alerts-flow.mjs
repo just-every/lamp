@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openTrafficAlertsRuntime } from './traffic-alerts-runtime.mjs';
-import { trafficResolutionFlow } from './traffic-resolution-flow.mjs';
+import { trafficResolutionFlow, trafficResolutionRecords } from './traffic-resolution-flow.mjs';
 import { operatorHydrated } from './operator-hydrated.mjs';
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
@@ -128,7 +128,7 @@ export async function trafficAlertsFlow(t) {
     const incident = incidentResult.body.incident;
     const resolvedImpact = 'Synthetic traffic requests are back to normal.';
     const saveDraft = async lifecycle => {
-      const result = await api(`/api/app/incidents/${incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle, affectedAudience: 'Synthetic readers', customerImpact: lifecycle === 'Resolved' ? resolvedImpact : 'Requests are delayed.', whatStillWorks: 'The status page remains readable.', details: '', nextUpdateAt: lifecycle === 'Resolved' ? null : new Date(target + DAY).toISOString() }) });
+      const result = await api(`/api/app/incidents/${incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle, affectedAudience: 'Synthetic readers', customerImpact: lifecycle === 'Resolved' ? resolvedImpact : 'Requests are delayed.', whatStillWorks: 'The status page remains readable.', details: 'Synthetic Lamp traffic evidence is checked before customer resolution.', nextUpdateAt: lifecycle === 'Resolved' ? null : new Date(target + DAY).toISOString() }) });
       assert.equal(result.status, 200, result.text);
     };
     await saveDraft('Investigating');
@@ -145,9 +145,15 @@ export async function trafficAlertsFlow(t) {
     assert.equal(traffic?.state, 'firing', 'the inherited recovery door reads elevated traffic as failing evidence');
     assert.equal(traffic.evidenceAt, new Date(suppressed).toISOString());
     await saveDraft('Resolved');
+    const beforeImmediate = await trafficResolutionRecords(fixture, incident.id);
+    assert.equal(beforeImmediate.incidents.length, 1);
+    assert.equal(beforeImmediate.drafts.length, 1);
+    assert.equal(beforeImmediate.updates.length, 1);
+    assert.equal(beforeImmediate.drafts[0].customer_impact, resolvedImpact);
     const refused = await post(`/api/app/incidents/${incident.id}/publish`, { channels: [] });
     assert.equal(refused.status, 409, refused.text);
     assert.equal((await api(`/api/app/incidents/${incident.id}`)).body.incident.lifecycle, 'Investigating');
+    assert.deepEqual(await trafficResolutionRecords(fixture, incident.id), beforeImmediate, 'immediate refusal preserves every incident, draft, update, note and audit field');
 
     const listed = await bucket.list({ prefix: 'traffic/counts/' });
     assert.ok(listed.objects.length >= 8);
