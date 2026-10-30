@@ -136,6 +136,10 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal(corrected.nextUpdateAt, committedTime, 'publication keeps the saved commitment');
     assert.equal(corrected.correctsUpdateId, monitoring.id);
     const correctedView = await j.read(incident.id);
+    const savedCorrection = correctedView.updates.find(row => row.id === corrected.id);
+    assert.equal(savedCorrection.correctsUpdateId, monitoring.id, 'the independently read publication identifies the original update');
+    assert.equal(savedCorrection.customerImpact, correctedRecovery.customerImpact);
+    assert.equal(savedCorrection.details, correctedRecovery.details);
     assert.deepEqual(correctedView.updates.find(row => row.id === first.id), first);
     assert.deepEqual(correctedView.updates.find(row => row.id === monitoring.id), monitoring);
     assert.deepEqual((await storedUpdates()).filter(row => row.id !== corrected.id), originalRows, 'a correction adds a publication without rewriting any original field');

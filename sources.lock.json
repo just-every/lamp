@@ -7040,7 +7040,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "945b7ba3893de15b63e15cd350fcb257c07049f6602a2e7e83d567b7233e6bc2",
+      "sha256": "498c26453c3ba9539d3ada7a5ef4df35d297da05ee2cf55e4e681f98de94870f",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {
