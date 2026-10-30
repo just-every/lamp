@@ -3120,6 +3120,8 @@ Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c288
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
+Supplementary PAGE-014 evidence from `cloud/sd-lamp-c-f46` is retained on `cloud/sd-lamp-c-f46-land-9da9242b77` (30 October 2026). `tests/e2e/public-contract.test.mjs` asserts the exact populated refresh field set, thirty-second polling, in-place live-region identity and configured time zone, and an unchanged script-disabled document and generation instant across a different publication and more than two refresh intervals. Its `tests/e2e/helpers/public-capacity-journey.mjs` helper compares actual refresh-response byte lengths at one and 200 components while retaining the same public story. Browser proof captures scripted and script-disabled screens at 1440 and 390. The newer main Status, Evidence and Gap judgment for PAGE-014 below remains partial; these additional assertions do not replace that judgment.
+
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 11 | 96 | 0 | 107 |
