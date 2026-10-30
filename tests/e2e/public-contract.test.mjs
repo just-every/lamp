@@ -8,8 +8,112 @@ import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
 import { assertVisibleTime } from '../helpers/public-meaning.mjs';
 import { publicCapacityJourney } from './helpers/public-capacity-journey.mjs';
 
+async function componentHistoryJourney() {
+  const j = await openStatusJourney({ workerEntry: 'tests/e2e/helpers/automation-clock-worker.ts' });
+  try {
+    const operatorId = (await j.json('/api/app/session')).operator.id;
+    let clock = Date.now() + 60_000;
+    const advance = async () => {
+      clock += 60_000;
+      assert.equal((await j.raw(j.appOrigin + '/test/clock', { method: 'PUT', body: JSON.stringify({ now: clock }) })).status, 204);
+      return new Date(clock).toISOString();
+    };
+    const createdAt = await advance();
+    const component = await j.component('Synthetic Lamp attributed history');
+    const historyPath = `/api/app/components/${component.id}/history`;
+    const ordered = rows => [...rows].sort((a, b) => a.id.localeCompare(b.id));
+    const history = async () => ordered((await j.json(historyPath)).history);
+    let previous = [];
+    const appended = async expected => {
+      const current = await history();
+      const previousIds = new Set(previous.map(row => row.id));
+      assert.deepEqual(current.filter(row => previousIds.has(row.id)), previous, 'a later transition preserves every earlier history value');
+      const added = current.filter(row => !previousIds.has(row.id));
+      assert.equal(added.length, 1, 'one public-state transition appends exactly one fact');
+      const { id, ...fact } = added[0];
+      assert.ok(id);
+      assert.deepEqual(fact, expected);
+      previous = current;
+      return id;
+    };
+    await appended({ previousState: 'Operational', newState: 'Operational', causeType: 'standing-claim', causeId: null, operatorId, changedAt: createdAt, createdAt });
+
+    const standingAt = await advance();
+    await j.json(`/api/app/components/${component.id}/standing-claim`, 'PUT', { state: 'Degraded performance' });
+    await appended({ previousState: 'Operational', newState: 'Degraded performance', causeType: 'standing-claim', causeId: null, operatorId, changedAt: standingAt, createdAt: standingAt });
+    const incident = await j.incident('Synthetic Lamp distinct history incident', [component]);
+    await j.save(incident.id);
+    assert.deepEqual(await history(), previous, 'a private incident and draft do not change public-state history');
+    const incidentAt = await advance();
+    await j.publish(incident.id);
+    await appended({ previousState: 'Degraded performance', newState: 'Major outage', causeType: 'incident', causeId: incident.id, operatorId, changedAt: incidentAt, createdAt: incidentAt });
+    const resolvedAt = await advance();
+    await j.save(incident.id, { lifecycle: 'Resolved', nextUpdateAt: null });
+    await j.publish(incident.id);
+    await appended({ previousState: 'Major outage', newState: 'Degraded performance', causeType: 'incident', causeId: incident.id, operatorId, changedAt: resolvedAt, createdAt: resolvedAt });
+    const recoveryAt = await advance();
+    await j.json(`/api/app/components/${component.id}/standing-claim`, 'PUT', { state: 'Operational' });
+    await appended({ previousState: 'Degraded performance', newState: 'Operational', causeType: 'standing-claim', causeId: null, operatorId, changedAt: recoveryAt, createdAt: recoveryAt });
+
+    // Read every stored column as well as the operator's history view. Stable
+    // ordering makes any changed value, deletion or extra fact observable.
+    const storedHistory = async () => (await j.db.prepare('SELECT * FROM component_state_history WHERE component_id = ? ORDER BY id').bind(component.id).all()).results;
+    const storedCorrections = async () => (await j.db.prepare('SELECT * FROM component_state_corrections WHERE component_id = ? ORDER BY id').bind(component.id).all()).results;
+    const originalRows = await storedHistory();
+    const originalBytes = JSON.stringify(originalRows);
+    const originalView = await j.json(historyPath);
+    const originalCorrections = await storedCorrections();
+    const correctionAt = await advance();
+    const correction = { state: 'Degraded performance', startsAt: incidentAt, endsAt: resolvedAt, reason: 'Synthetic Lamp reviewed request logs replace this closed outage interval' };
+    const correctionPath = `/api/app/components/${component.id}/history-corrections`;
+    const viewerAddress = ['synthetic-lamp-history-viewer', 'example.test'].join('@');
+    await j.json('/api/app/operators/invite', 'POST', { email: viewerAddress, displayName: 'Synthetic Lamp history viewer' }, 202);
+    await j.signIn(viewerAddress);
+    const viewerId = (await j.json('/api/app/session')).operator.id;
+    await j.signIn();
+    await j.json(`/api/app/operators/${viewerId}/role`, 'POST', { role: 'viewer' });
+    await j.signIn(viewerAddress, { fresh: true });
+    await j.json(correctionPath, 'POST', correction, 403);
+    await j.signIn();
+    const anonymous = await j.raw(j.appOrigin + correctionPath, { method: 'POST', headers: { Origin: j.appOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(correction) });
+    assert.equal(anonymous.status, 401, 'an unauthenticated correction cannot append history');
+    await j.json(correctionPath, 'POST', { ...correction, reason: '' }, 400);
+    await j.json(correctionPath, 'POST', { ...correction, endsAt: new Date(clock + 60_000).toISOString() }, 400);
+    assert.deepEqual(await j.json(historyPath), originalView, 'refused corrections leave the entire history view unchanged');
+    assert.equal(JSON.stringify(await storedHistory()), originalBytes, 'refused corrections preserve all stored history bytes');
+    assert.deepEqual(await storedCorrections(), originalCorrections);
+
+    await j.json(correctionPath, 'POST', correction, 204);
+    const historyId = await appended({ previousState: 'Major outage', newState: correction.state, causeType: 'correction', causeId: null, operatorId, changedAt: incidentAt, createdAt: correctionAt });
+    const afterRows = await storedHistory();
+    const originalIds = new Set(originalRows.map(row => row.id));
+    assert.equal(JSON.stringify(afterRows.filter(row => originalIds.has(row.id))), originalBytes, 'a correction preserves every original stored row byte for byte');
+    assert.deepEqual(afterRows.filter(row => !originalIds.has(row.id)), [{
+      id: historyId, component_id: component.id, previous_state: 'Major outage', new_state: 'Degraded performance',
+      cause_type: 'correction', cause_id: null, operator_id: operatorId, supersedes_history_id: null,
+      changed_at: incidentAt, created_at: correctionAt, updated_at: correctionAt,
+    }], 'only the expected superseding history fact is added');
+    const correctedView = await j.json(historyPath);
+    assert.equal(correctedView.corrections.length, originalView.corrections.length + 1);
+    const correctionFact = correctedView.corrections.find(row => row.historyId === historyId);
+    assert.ok(correctionFact);
+    assert.deepEqual(correctionFact, { id: correctionFact.id, historyId, ...correction, operatorId, createdAt: correctionAt });
+    assert.deepEqual(await storedCorrections(), [{
+      id: correctionFact.id, component_id: component.id, history_id: historyId, state: correction.state,
+      starts_at: incidentAt, ends_at: resolvedAt, reason: correction.reason, operator_id: operatorId,
+      created_at: correctionAt, updated_at: correctionAt,
+    }]);
+    const audit = await j.db.prepare("SELECT * FROM audit_entries WHERE entity_type = 'component-state-history' AND entity_id = ? AND action = 'corrected'").bind(historyId).all();
+    assert.equal(audit.results.length, 1);
+    assert.equal(audit.results[0].operator_id, operatorId);
+    assert.equal(audit.results[0].reason, correction.reason);
+    assert.deepEqual(JSON.parse(audit.results[0].payload_json), { componentId: component.id, ...correction });
+  } finally { await j.close(); }
+}
+
 // One catalogue-to-customer journey: no renderer or uptime helper is imported.
 test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAGE-010 PAGE-011 PAGE-012 PAGE-013 PAGE-014 PAGE-016 PAGE-017 PAGE-018 PAGE-019 PAGE-020 COMP-001 COMP-002 COMP-003 COMP-004 COMP-005 COMP-007 COMP-009 COMP-010 UPTIME-001 UPTIME-002 UPTIME-003 UPTIME-004 UPTIME-005 UPTIME-006 MOVE-009 — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story', async () => {
+  await componentHistoryJourney();
   const j = await openStatusJourney({ pageHost: 'localhost' });
   let browser;
   try {
@@ -145,7 +249,7 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     await j.json(`/api/app/components/${main.id}/history-corrections`, 'POST', { ...correction, reason: '' }, 400);
     await j.json(`/api/app/components/${main.id}/history-corrections`, 'POST', correction, 204);
     const history = await j.json(`/api/app/components/${main.id}/history`);
-    for (const row of originalHistory) assert.ok(history.history.some(entry => entry.id === row.id));
+    for (const row of originalHistory) assert.deepEqual(history.history.find(entry => entry.id === row.id), row);
     assert.ok(history.corrections.some(row => row.reason === correction.reason));
     const month = startsAt.slice(0, 7);
     const report = await j.json(`/api/app/availability-report?component=${main.id}&month=${month}&format=json`);
