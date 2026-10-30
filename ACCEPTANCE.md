@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 20 | 169 | 49 | 238 |
+| Core | 21 | 168 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 20 | 169 | 54 | 243 |
+| Full target | 21 | 168 | 54 | 243 |
 
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -78,7 +78,7 @@ Core · published · **done** · Cites BASE-PUBLIC-001
 
 #### PAGE-004 — Overall status
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** The overall state is a single label at the top of the page, computed by the owner-replaceable rollup policy.
 
@@ -87,8 +87,8 @@ Core · published · **partial**
 2. The result appears as one labeled state at the top of the page.
 3. With all visible components Operational and no unresolved incident, the label is operational.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The supplied rollup selects the most severe visible component state.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): competing native standing claims prove every adjacent COMP-001 severity comparison in both catalogue orders through the native public status API and the single top-of-page label; an internal Major outage stays excluded, including when all visible components recover to Operational without an unresolved incident.
+**Gap.** None.
 
 #### PAGE-005 — Snapshot read path
 
