@@ -13,16 +13,22 @@ const signingSecret = "synthetic-lamp-webhook-1".repeat(4);
  * returns 204 only after field-by-field acceptance of the actual wire bytes. */
 export async function statuspageWebhookFlow() {
   await webhookFormatBrowserFlow();
-  const accepted = [], lampAccepted = [], receiverErrors = [];
+  const accepted = [], lampAccepted = [], slackAccepted = [], receiverErrors = [];
+  const slackDestination = "https://hooks.slack.com/services/synthetic-lamp-4/synthetic-lamp-5/synthetic-lamp-6";
   const contact = "synthetic-lamp-statuspage-contact@example.test";
   let fixture;
   const webhookReceiver = async record => {
     try {
       const value = JSON.parse(record.rawBody);
-      if (typeof value.event === "string") {
+      if (typeof value.event === "string" || Array.isArray(value.blocks)) {
         const timestamp = record.headers["webhook-timestamp"], deliveryId = record.headers["webhook-id"];
         const expected = createHmac("sha256", signingSecret).update(`${deliveryId}.${timestamp}.${record.rawBody}`).digest("base64url");
-        assert.ok(record.headers["webhook-signature"].split(/\s+/).includes(`v1=${expected}`), "Lamp component and incident carriers authenticate the complete wire bytes");
+        assert.ok(record.headers["webhook-signature"].split(/\s+/).includes(`v1=${expected}`), "Lamp and Slack webhook carriers authenticate the complete wire bytes");
+        if (Array.isArray(value.blocks)) {
+          assert.ok(!slackAccepted.some(previous => previous.deliveryId === deliveryId));
+          slackAccepted.push({ body: value, deliveryId });
+          return new Response("ok");
+        }
         assert.equal(value.deliveryId, deliveryId, "the signed Lamp envelope names its own native delivery");
         assert.ok(!lampAccepted.some(previous => previous.deliveryId === deliveryId));
         lampAccepted.push({ body: value, deliveryId });
@@ -63,7 +69,13 @@ export async function statuspageWebhookFlow() {
       return new Response("Statuspage receiver refused the delivery", { status: 400 });
     }
   };
-  fixture = await openSubscriberManagementFixture({ webhookReceiver });
+  fixture = await openSubscriberManagementFixture({
+    webhookReceiver,
+    providerEdge: async request => {
+      if (request.url !== slackDestination) return;
+      return webhookReceiver({ rawBody: await request.text(), headers: Object.fromEntries(request.headers) });
+    },
+  });
   fixture.recoverWebhook();
   try {
     const { api, post, raw } = fixture;
@@ -122,7 +134,7 @@ export async function statuspageWebhookFlow() {
     preferences.append("eventKind", "incidents"); preferences.append("eventKind", "maintenance");
     assert.equal((await raw(manageUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(manageUrl).origin }, body: preferences.toString() })).status, 200);
     await statuspageWebhookMaintenance({ fixture, component, accepted, receiverErrors });
-    await componentNotificationFlow({ fixture, component, subscriber: added.body.subscriber, manageUrl, accepted, lampAccepted, receiverErrors });
+    await componentNotificationFlow({ fixture, component, subscriber: added.body.subscriber, manageUrl, accepted, lampAccepted, slackAccepted, slackDestination, receiverErrors });
     const unsubscribe = accepted[0].body.meta.unsubscribe;
     const stopped = await raw(unsubscribe, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(unsubscribe).origin }, body: "List-Unsubscribe=One-Click" });
     assert.equal(stopped.status, 200, await stopped.clone().text());

@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
 import { UPDATE_LINK_FIELDS } from "./update-component-flow.mjs";
+import { assertLinkedSlackText } from "./update-link-evidence.mjs";
 
 /** Extend the existing real Statuspage receiver journey, never fabricate bodies. */
-export async function componentNotificationFlow({ fixture, component, subscriber, manageUrl, accepted, lampAccepted, receiverErrors }) {
+export async function componentNotificationFlow({ fixture, component, subscriber, manageUrl, accepted, lampAccepted, slackAccepted, slackDestination, receiverErrors }) {
   const { api, post, raw } = fixture;
   const choose = async kinds => {
     const body = new URLSearchParams({ componentId: component.id, webhookFormat: "statuspage", preferencesPresent: "1" });
@@ -21,6 +22,8 @@ export async function componentNotificationFlow({ fixture, component, subscriber
   assert.ok((await fixture.list()).find(row => row.id === lampAdded.body.subscriber.id).preferences.eventKinds.includes("components"), "webhook subscriptions select component changes by default");
   const lampManageUrl = fixture.messagesFor(lampContact)[0].text.match(/https?:\/\/\S+\/manage\/\S+/)?.[0];
   assert.ok(lampManageUrl);
+  const slackAdded = await post("/api/app/subscribers/webhook", { destination: slackDestination, contactEmail: lampContact, componentIds: [component.id], eventKinds: ["incidents"] });
+  assert.equal(slackAdded.status, 201, slackAdded.text);
   const componentBodies = () => accepted.filter(record => record.body.component_update);
   const lampComponentBodies = () => lampAccepted.filter(record => record.body.event === "component.changed");
   const flush = async (expected, expectedLamp) => {
@@ -136,12 +139,27 @@ export async function componentNotificationFlow({ fixture, component, subscriber
       assert.equal(update.lifecycle, submitted.lifecycle, "Lamp preserves the submitted lifecycle");
       assert.equal(update.nextUpdateAt, submitted.nextUpdateAt, "Lamp preserves the submitted next-update commitment, including resolution's null");
       assert.equal(update.publishedAt, response.body.update.publishedAt);
+      const slackDelivery = deliveries.find(row => row.subscriberId === slackAdded.body.subscriber.id);
+      assert.ok(slackDelivery, "the Slack incoming-webhook subscriber has this publication's delivery");
+      const slack = slackAccepted.find(record => record.deliveryId === slackDelivery.id);
+      assert.ok(slack, "the Slack receiver verified this publication's exact signed body");
+      assertLinkedSlackText(slack.body.text, "Slack incoming webhook");
+      const elements = slack.body.blocks.flatMap(block => block.elements.flatMap(section => section.elements));
+      for (const field of Object.keys(UPDATE_LINK_FIELDS)) {
+        assert.ok(elements.map(element => element.text).join("").includes(submitted[field]), `Slack rich text reassembles the original ${field}`);
+      }
+      assert.ok(elements.some(element => element.type === "link"), "bare HTTPS URLs are rich-text links");
+      for (const link of elements.filter(element => element.type === "link")) {
+        assert.equal(link.text, link.url, "every Slack link displays its own URL");
+        assert.match(link.url, /^https:\/\//, "only HTTPS URLs become Slack links");
+      }
     }
     return response.body.update;
   };
   await publish("Identified", true); await flush(3, 2);
   await publish("Monitoring", true); await flush(3, 2);
   await publish("Resolved", true); await flush(4, 2);
+  assert.equal((await api(`/api/app/subscribers/${slackAdded.body.subscriber.id}`, { method: "DELETE" })).status, 204);
   assert.equal(componentBodies()[2].body.component_update.old_status, "operational");
   assert.equal(componentBodies()[2].body.component_update.new_status, "partial_outage");
   assert.equal(componentBodies()[2].body.component_update.claimant_kind, "incident");
