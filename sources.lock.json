@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5537375b50aa2331c49cf1821a7cce409d0b7dfb64aa10c9b10da8fb66bf4109",
+      "sha256": "5bd8e38d2fe35f026381242607232c860e8bc663fc57f900d9ddc9dd829d2c3c",
       "executable": false
     },
     "DEMO.md": {
@@ -6991,6 +6991,10 @@
       "sha256": "81d83619ac188fb27bf559dfb8ea80fde702536bfdf8ac9c214004ccc75cbab2",
       "executable": false
     },
+    "tests/e2e/helpers/uptime-correction-journey.mjs": {
+      "sha256": "e23747e0dade3eb22a154b1c181e2aad3401b3ef294730e640f142d9148789e4",
+      "executable": false
+    },
     "tests/e2e/helpers/uptime-pairing-flow.mjs": {
       "sha256": "ca1a28b1261750ea2c362638e0c3ba2a1211a9f1ece32e42ab63e158fd3cef51",
       "executable": false
@@ -7032,7 +7036,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "49102125e0c69ac4d25767bec46a23ea4f9121664ff118ca287cc9156b24fb09",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
