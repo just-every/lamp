@@ -4,7 +4,7 @@ import { openFollowUpsRuntime, eventuallyFollowUp, pageOrigin } from "./follow-u
 /** HIST-003 and AUTO-004: the real report and scheduled doors share a controlled
  * clock, with fake Resend, Slack and Teams edges. No report obligation, reminder,
  * outbox or delivery record is manufactured. */
-export async function reportRemindersFlow() {
+export async function reportRemindersFlow(t) {
   const posts = [];
   const slack = "https://hooks.slack.com/services/synthetic-lamp-11/synthetic-lamp-12/synthetic-lamp-13";
   const teams = "https://synthetic-lamp-11.logic.azure.com/workflows/synthetic-lamp-12/triggers/manual/paths/invoke?sig=synthetic-lamp-13";
@@ -127,6 +127,7 @@ export async function reportRemindersFlow() {
     await assertReportState(false);
     await advanceClock(resolvedAt + 7 * DAY);
     await assertReportState(true);
+    t.diagnostic(`HIST-003: both severe incidents are absent at ${new Date(resolvedAt + 7 * DAY - 1).toISOString()} and owing at ${dueAt}; native Overview changes from upcoming to overdue at that same instant.`);
     await tick(resolvedAt + 7 * DAY);
     await assertReminders(1);
     const partialMail = () => fixture.messages.filter(message => message.subject === `Lamp report follow-up: ${partial.reference}`);
@@ -157,6 +158,7 @@ export async function reportRemindersFlow() {
     assert.equal(partialMail().length, 1, "published report stays silent in later weeks");
     assert.ok(!(await api("/api/app/reports/owing")).body.incidentIds.includes(incident.id));
     await assertExcluded([incident, partial]);
+    t.diagnostic("HIST-003: published and reasoned-waiver exclusions remain absent from native owing and Overview reads after twenty-one days; weekly reminders stay stopped.");
     const entries = (await api("/api/app/audit-log?action=report.waived&limit=100")).body.entries.filter(row => row.entityId === incident.id);
     assert.equal(entries.length, 1);
     assert.equal(entries[0].actorId, owner.id);

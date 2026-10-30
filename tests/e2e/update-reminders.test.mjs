@@ -76,4 +76,4 @@ test('INCIDENT-010 INCIDENT-011 NOTIFY-006 NOTIFY-016 AGENT-002 — a communicat
 
 test('AUTO-003 — operator follows real scheduled, delivery and import obligations through failures, reasoned dismissal and recovery', followUpsFlow);
 test('HIST-006 — independent public readership produces private traffic alerts and recoverable owner actions', async t => trafficAlertsFlow(t));
-test('AUTO-004 HIST-003 — a resolved incident needs a reviewed report and weekly reminders stop on publication or reasoned waiver', reportRemindersFlow);
+test('AUTO-004 HIST-003 — both severe incidents become report-due at seven days and reviewed publication or reasoned waiver stops weekly reminders', reportRemindersFlow);

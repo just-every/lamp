@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ea059ac459f3a972f4639cf6f766cf4c7289f1169492a5484f1e89c49ebcf197",
+      "sha256": "511b7185494e2539a526120df69cd632f57e4df3e8eb88ea8a696608b9f0ee9b",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "559f2097923662cff59e6ab50b890b2600f6ff346294e84e843fc69e275780ee",
       "executable": false
     },
     "DEMO.md": {
@@ -6848,7 +6848,7 @@
       "executable": false
     },
     "tests/e2e/helpers/report-reminders-flow.mjs": {
-      "sha256": "12a3555bf550de95d3ef5becd2f018227fe8d399a1e5d765beab6e901e1e788c",
+      "sha256": "4127816af28d6fd37c2d09a90658a3c55ec57e46d331caaea582c65e808785b7",
       "executable": false
     },
     "tests/e2e/helpers/self-serve-chat-flow.mjs": {
@@ -7064,7 +7064,7 @@
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
-      "sha256": "9520c65cc67e19d10ecf2565fa6790631b7f2f9c73942aa8b792bf146301227d",
+      "sha256": "ef48c5c1ae0b5c69f40571f213257cf054ad474b538b4407ec1e99f9e28ef950",
       "executable": false
     },
     "tests/e2e/website-onboarding.test.mjs": {
