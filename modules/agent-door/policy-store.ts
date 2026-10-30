@@ -1,6 +1,6 @@
 import { verifyJws } from './credentials.ts'
 import { offers } from './capabilities.mjs'
-import { answered, completeness, document_sha256, validateDocument, DocumentInvalid } from './policy/document.ts'
+import { answered, canonical, completeness, document_sha256, validateDocument, DocumentInvalid } from './policy/document.ts'
 import { CATALOGUE, classIds } from './policy/catalogue.ts'
 import { error, json } from './errors.ts'
 import type { PolicyState, Runtime } from './types.ts'
@@ -60,8 +60,14 @@ export async function adoptPolicy(rt: Runtime, request: Request): Promise<Respon
     const revision = typeof value.revision_signature === 'string' ? await verifyJws(value.revision_signature, 'rer-agent-policy-revision+jwt', trust.publicKeys) : null
     if (!revision || revision.business !== value.business || revision.revision !== value.revision || value.revision === null || revision.document_sha256 !== await document_sha256(validateDocument(value.document))) return error('policy_revision_invalid')
   } else if (value.revision_signature !== null) return error('policy_revision_invalid')
-  const result = await db.prepare(`INSERT INTO agent_door_state(id,envelope) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET envelope=excluded.envelope WHERE agent_door_state.envelope IS NULL OR json_extract(agent_door_state.envelope,'$.seq')<? OR (json_extract(agent_door_state.envelope,'$.seq')=? AND json_extract(agent_door_state.envelope,'$.iat')<?)`)
-    .bind(JSON.stringify(value), value.seq, value.seq, value.iat).run()
+  const stored = await db.prepare('SELECT envelope FROM agent_door_state WHERE id=1').first<{ envelope: string | null }>()
+  const previous = stored?.envelope ? JSON.parse(stored.envelope) as Record<string, unknown> : null
+  const authority = (envelope: Record<string, unknown>) => Object.fromEntries(Object.entries(envelope).filter(([key]) => key !== 'iat' && key !== 'exp'))
+  if (previous && previous.seq === value.seq && canonical(authority(previous)) !== canonical(authority(value))) return error('policy_stale', 409)
+  // The equal-sequence comparison and update must refer to the same stored
+  // envelope, even if another adoption wins while signatures are verified.
+  const result = await db.prepare(`INSERT INTO agent_door_state(id,envelope) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET envelope=excluded.envelope WHERE agent_door_state.envelope IS NULL OR json_extract(agent_door_state.envelope,'$.seq')<? OR (json_extract(agent_door_state.envelope,'$.seq')=? AND json_extract(agent_door_state.envelope,'$.iat')<? AND agent_door_state.envelope=?)`)
+    .bind(JSON.stringify(value), value.seq, value.seq, value.iat, stored?.envelope ?? null).run()
   if (!result.meta.changes) return error('policy_stale', 409)
   if (value.revoked) {
     const revoked = value.revoked as { agents: string[]; consents: string[] }

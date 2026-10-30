@@ -94,7 +94,9 @@ otherwise blocked, approval, review, autonomous is the order of strictness.
 
 Signed policy adoption verifies the existing owner-claim issuer, app audience,
 installation subject, ring and revision signature. A greater sequence replaces
-the envelope; equal sequence with later issue time refreshes it. The closed
+the envelope; equal sequence with later issue time may change only `iat`/`exp`,
+retaining all authority and the exact revision signature. Before requests the
+verifier renews an envelope with less than 60 seconds left, keeping its 300-second lifetime. The closed
 answer is `{"adopted":{"seq":n,"revision":r},"door":{"classes":[{"class":"standard","tools":["seed.area.verb"]}]}}`,
 where `revision` can be null. Resources also contribute declared classes. A
 Business rule with `max_per_day` must name a `seed`; unscoped daily limits are

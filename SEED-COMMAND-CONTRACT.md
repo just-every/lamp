@@ -534,7 +534,7 @@ including its message. SC-01/SC-02 and the `export` package alias stay unchanged
 
 Answer `/health` with `deploymentHealth(env)` from `foundation/runtime/deployment-health.ts` (`src/base/deployment-health.ts`): `{ok: true, deployment: {sourceSha, fingerprint, versionId}}` from the `RER_DEPLOY_SOURCE`, `RER_DEPLOY_FINGERPRINT` and `RER_VERSION` bindings the deploy kit sets. Spread it into a body that carries other fields (`{status: 'ok', ...deploymentHealth(env)}`) and run any readiness check first. Declare `RER_DEPLOY_SOURCE?: string`, `RER_DEPLOY_FINGERPRINT?: string` and `RER_VERSION?: { id: string }` in the bindings type too. `rer deploy` compares these three values with what it just deployed and exits 1 when they differ.
 
-The owner deployment declaration may set top-level `"productDirectory": ".rer/deploy/product"` for a product staged by the build or deploy hook. It must name a normalized checkout-relative subdirectory: no absolute path, backslash, empty, `.` or `..` segment. The directory must exist after the build or hook, with no symlink on its path. rer reads this field and passes `--product` only to the kit's packaging commands (`local-plan`, `deploy` and `health`). A public dry run runs the build lifecycle instead of the custom upload hook. A hook that invokes the kit itself still supplies `--product` on its own invocation; the wrapper reads the declaration for its own steps. Omitting the field keeps packaging at the checkout root. State, root ownership, secret changes and removal keep their existing locations and behavior; dry run needs no credentials and never reads target secrets.
+The owner deployment declaration may set top-level `"productDirectory": ".rer/deploy/product"` for a product staged by the build or deploy hook. It must name a normalized checkout-relative subdirectory: no absolute path, backslash, empty, `.` or `..` segment. The directory must exist after the build or hook, with no symlink on its path. rer reads this field and passes `--product` only to the kit's packaging commands (`local-plan`, `deploy` and `health`). A public dry run passes `options.dryRun` to the seed deploy hook for offline preflight; without a custom hook, the owner deployer runs the build lifecycle. Both paths return `dryRun: true`, `deployed: false` and `providerChecked: false` while listing missing real-deploy inputs. Hooks must keep this preflight offline; the wrapper validates legacy-hook artifacts with the local plan without contacting Cloudflare. A hook that invokes the kit itself still supplies `--product` on its own invocation; the wrapper reads the declaration for its own steps. Omitting the field keeps packaging at the checkout root. State, root ownership, secret changes and removal keep their existing locations and behavior; dry run needs no credentials and never reads target secrets.
 
 For an optional canonical public origin, declare `"publicOriginSetting": "PUBLIC_ORIGIN"` beside `originVar` (`AUTH_ORIGIN` or `APP_ORIGIN`) in `deploy.json`. `rer deploy` reads `PUBLIC_ORIGIN` from the adapter's saved settings; the process environment overrides saved settings and `--env-file` wins over both. The value must be `https://host[:port]`, with no credentials, path (including a trailing `/`), query, fragment, whitespace or backslashes; it is normalized to `URL.origin`. When omitted, the origin remains workers.dev. This changes only `originVar`: readiness, health checks, the deployment target, recorded resource names and IDs, and the owner claim retain the kit's workers.dev origin and identity.
 
@@ -637,6 +637,16 @@ Assisted, then Managed when `paths.product` is a listing and `managed.open` is
 not `false`, then the do-it-yourself walkthrough, which explains deployment
 using the actual declared resources and inputs; it does not store deployment
 credentials.
+
+`RunData.leadLine` is an optional plain string for the product's owner-facing
+lead. Base escapes it as text, uses it as the composed homepage heading and
+repeats it below the `/run` heading. The hero leads with what the product does
+for its owner; "free" and open-source are a short footnote or secondary line,
+never the hero line. Custom homepages may read the same field. When it is
+absent, both shared pages keep their existing HTML byte-for-byte. Existing
+seeds can `rer refresh-base` without adding the field or consenting to a new
+edition migration; the earlier `run-data-paths` and `run-data-pricing`
+migrations still apply when crossing their introductions.
 
 Base's shared `/run` chooser reads `RunData.paths`: `product` is the app listing
 id or `null` while the seed has no listing; optional `requirementsExtra` adds

@@ -30,7 +30,7 @@ export async function callTool(rt: Runtime, name: string, input: unknown, princi
   try {
     const optional = name === `${rt.options.seed}.events.list` ? 'events' : name === 'resources/read' ? 'resources' : null
     if (optional && !offers(rt.options.capabilities, optional)) return refuse('capability_not_declared', { capability: optional })
-    const tool = resourceTool ?? rt.tools.find(tool => tool.name === name)
+    const tool = resourceTool ?? rt.tools.find(tool => tool.name === name && (door !== 'mcp' || tool.exposure !== 'invoke'))
     if (!tool) { status = 400; return refuse('tool_not_found') }
     if (tool.authority === 'none') row.authority = 'none'
     const raw = input && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : null
@@ -53,15 +53,10 @@ export async function callTool(rt: Runtime, name: string, input: unknown, princi
     const agent = await rt.options.db.prepare('SELECT revoked,sponsor FROM agent_door_agents WHERE id=?').bind(principal.agent.id).first<{ revoked: number; sponsor: string }>()
     if (revoked(state, principal) || agent?.revoked || agent && agent.sponsor !== principal.person.id) { status = 401; return refuse('unauthenticated') }
     const { idempotency_key: _key, expected_revision: expected, ...args } = declared
-    if (tool.continuationItem && (!raw || !validateSchema(tool.inputSchema, declared))) return refuse('invalid_arguments')
-    const item = await continuationItem(tool, args, context(rt, principal, door, [], approvers), operationId)
-    principal = { ...principal, continuationItemId: item }
-    if (item !== undefined) row.continuation_item_id = item
-    claimKey = key === null ? null : operationId === undefined ? key : operationKey(operationId, name, key, item)
-    const ctx = context(rt, principal, door, [], approvers)
     const validInput = raw && validateSchema(tool.inputSchema, declared)
     const refusal = policyRefusal(rt, state, tool.classes)
     if (refusal) {
+      const ctx = context(rt, principal, door, [], approvers)
       const disposition = { agents_paused: 'paused', policy_unset: 'unset', policy_unavailable: 'unavailable' }[refusal.code] ?? 'none'
       let classes: Awaited<ReturnType<typeof classify>> = []
       if (validInput) try {
@@ -75,6 +70,12 @@ export async function callTool(rt: Runtime, name: string, input: unknown, princi
       result.decision = { id: row.id, disposition, revision: state.revision, classes: classes.map(item => ({ ...item, rule: null, do: disposition })) }
       return refuse(refusal.code, refusal.fields)
     }
+    if (tool.continuationItem && (!raw || !validateSchema(tool.inputSchema, declared))) return refuse('invalid_arguments')
+    const item = await continuationItem(tool, args, context(rt, principal, door, [], approvers), operationId)
+    principal = { ...principal, continuationItemId: item }
+    if (item !== undefined) row.continuation_item_id = item
+    claimKey = key === null ? null : operationId === undefined ? key : operationKey(operationId, name, key, item)
+    const ctx = context(rt, principal, door, [], approvers)
     if (!tool.readOnly && !key) return refuse('idempotency_key_required')
     if (tool.widens === false && row.ignored_arguments.length) return refuse('invalid_arguments')
     if (tool.authority === 'none' && row.ignored_arguments.length) return refuse('undeclared_arguments')

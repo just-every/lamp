@@ -34,7 +34,7 @@ export function createAgentDoor(options: AgentDoorOptions): AgentDoor {
   return {
     async handle(request) {
       const path = new URL(request.url).pathname
-      if (['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'].includes(path)) return json({ resource: `${options.origin}/mcp`, authorization_servers: options.trust ? [options.trust.issuer] : [], scopes_supported: [...new Set([...rt.tools.map(tool => tool.scope), ...(offers(options.capabilities, 'resources') ? options.resources?.flatMap(resource => resource.scope ? [resource.scope] : []) ?? [] : [])])].sort(), bearer_methods_supported: ['header'] })
+      if (['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'].includes(path)) return json({ resource: `${options.origin}/mcp`, authorization_servers: options.trust ? [options.trust.issuer] : [], scopes_supported: [...new Set([...rt.tools.filter(tool => tool.exposure !== 'invoke').map(tool => tool.scope), ...(offers(options.capabilities, 'resources') ? options.resources?.flatMap(resource => resource.scope ? [resource.scope] : []) ?? [] : [])])].sort(), bearer_methods_supported: ['header'] })
       if (path === '/api/rer/agent-policy') {
         const response = await adoptPolicy(rt, request)
         if (response.ok) {

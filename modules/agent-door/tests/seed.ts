@@ -2,7 +2,7 @@ import { createAgentDoor, defineTool, operatorAuthPeople, ToolRefusal } from '..
 import type { ToolDefinition, ToolContext } from '../index.ts'
 import { sponsorTools } from './sponsor-tools.ts'
 import { mutationTools } from './mutation-tools.ts'
-import { peopleTools } from '../../../default-seed/src/agent-door/people-tools.ts'
+import { peopleTools, personResource } from '../../../default-seed/src/agent-door/people-tools.ts'
 import { createBusinessSettings } from '../../business-settings/index.ts'
 import { createOperatorAuth, createAuthHandler } from '../../operator-auth/index.mjs'
 
@@ -27,14 +27,14 @@ export default {
     const snapshot = (ctx: ToolContext) => ({ operationId: ctx.operationId, idempotencyKey: ctx.idempotencyKey, consent: ctx.consent,
       scopes: ctx.scopes, person: { id: ctx.person.id }, agent: ctx.agent, clientId: ctx.clientId, approvers: ctx.approvers })
     const queueTools: ToolDefinition[] = [
-      defineTool({ name: 'synthetic.queue.prepare', title: 'Queue native work', description: 'Prepare one native queued effect.', scope: 'records:write', readOnly: false,
+      defineTool({ name: 'synthetic.queue.prepare', title: 'Queue native work', description: 'Prepare one native queued effect.', scope: config.queueContext?.scope ?? 'records:write', exposure: config.queueContext?.exposure, readOnly: false,
         inputSchema: object({ id: text, additional: { type: 'array', items: text } }, ['id']), outputSchema: object({ id: text, operationId: text }), classes: ['standard'], clauses: ['BASE-AGENT-002'], summary: args => ({ target: { id: String(args.id) } }),
         classify: () => [{ class: 'standard', facts: { measure: 1 } }],
         async run(args, ctx) {
           for (const id of [args.id, ...(args.additional as string[] ?? [])]) await env.DB.prepare('INSERT INTO test_jobs(id,saved) VALUES(?,?)').bind(id, JSON.stringify(snapshot(ctx))).run()
           return { result: { id: args.id, operationId: ctx.operationId } }
         } }),
-      defineTool({ name: 'synthetic.queue.execute', title: 'Execute queued work', description: 'Execute the native saved queue item.', scope: 'records:write', readOnly: false,
+      defineTool({ name: 'synthetic.queue.execute', title: 'Execute queued work', description: 'Execute the native saved queue item.', scope: 'records:write', exposure: config.queueContext?.exposure, readOnly: false,
         inputSchema: object({ id: text, value: text }, ['id']), outputSchema: object({ id: text, operationId: text }), classes: ['standard'], clauses: ['BASE-AGENT-002'], summary: args => ({ target: { id: String(args.id) } }),
         async continuationItem(args) {
           const job = await env.DB.prepare('SELECT id,saved FROM test_jobs WHERE id=?').bind(args.id).first<{ id: string; saved: string }>()
@@ -109,7 +109,7 @@ export default {
       currentScopes: async principal => { const grant = await env.DB.prepare('SELECT scopes FROM test_grants WHERE agent=?').bind(principal.agent.id).first<{ scopes: string }>(); return grant ? JSON.parse(grant.scopes) : principal.scopes },
       tools: config.nativePeople ? tools.filter(tool => tool.name === 'base.people.create') : config.toolNames ? config.toolNames.map((name: string) => ({ ...tools[0], name })) : tools, limits: config.limits, people: operatorAuthPeople({ db: env.DB, allowList, session: request => auth.getSession(request) }),
       localCredentials: async request => request.headers.get('authorization') === `Bearer ${env.LOCAL_TOKEN}` ? { sponsor: { id: (await env.DB.prepare('SELECT claim_id FROM oa_bootstrap WHERE singleton=1').first<{claim_id:string}>())!.claim_id }, agent: { id: 'synthetic-base-local', name: 'Synthetic Local' }, scopes: ['records:read','records:write','events:read'] } : null,
-      resources: [{ uriTemplate: 'synthetic://record/{id}', name: 'Record', scope: config.resourceScope, classes: ['sensitive'], classify: () => [{ class: 'sensitive', facts: { measure: 1, kind: 'tax' } }], read: async (uri, ctx) => { await env.DB.prepare("INSERT INTO test_contexts(kind) VALUES('read')").run(); const row = await read(uri.split('/').pop()!); return row && row.exposure !== 'hidden' && (!row.exposure.startsWith('service:') || ctx.scopes.includes(row.exposure) && ctx.clientId === row.exposure) ? { json: row, untrusted: true } : null } }],
+      resources: config.nativePeople ? [personResource] : [{ uriTemplate: 'synthetic://record/{id}', name: 'Record', scope: config.resourceScope, classes: ['sensitive'], classify: () => [{ class: 'sensitive', facts: { measure: 1, kind: 'tax' } }], read: async (uri, ctx) => { await env.DB.prepare("INSERT INTO test_contexts(kind) VALUES('read')").run(); const row = await read(uri.split('/').pop()!); return row && row.exposure !== 'hidden' && (!row.exposure.startsWith('service:') || ctx.scopes.includes(row.exposure) && ctx.clientId === row.exposure) ? { json: row, untrusted: true } : null } }],
       onEvent: async event => { await env.DB.prepare('INSERT INTO test_callbacks(id,event) VALUES(?,?)').bind(event.id, JSON.stringify(event)).run() },
     })
     if (path === '/__queue') {

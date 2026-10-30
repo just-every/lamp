@@ -137,23 +137,26 @@ function generatedFiles(text) {
   if (!rows.length) claims.push('No homepage claims are mapped yet.')
   else {
     claims.push('A product claim is done when every clause behind it is done, missing when every one is missing, and partial otherwise. Explicit source-bound non-product facts are unassessed; their historical status is history, not current proof.')
-    const hasSection = rows.some(row => row.header.some(cell => /^Section$/i.test(plainText(cell))))
+    const hasSection = rows.some(row => row.header.some(cell => /^(Section|Screen)$/i.test(plainText(cell))))
+    const hasBacking = rows.some(row => row.header.some(cell => claimHeader(cell) === 'Backing'))
     const hasNonProduct = provenance?.claims.some(row => row.nonProduct)
-    const header = ['#', ...(hasSection ? ['Section'] : []), 'Claim', 'Clauses', ...(hasNonProduct ? ['Basis'] : []), ...(provenance ? ['Historical status'] : []), 'Status']
+    const header = ['#', ...(hasSection ? ['Section'] : []), 'Claim', 'Clauses', ...(hasBacking ? ['Backing'] : []), ...(hasNonProduct ? ['Basis'] : []), ...(provenance ? ['Historical status'] : []), 'Status']
     const table = [`| ${header.join(' | ')} |`, `| ${header.map(() => '---').join(' | ')} |`], counts = { done: 0, partial: 0, missing: 0, unassessed: 0 }
     for (const [index, row] of rows.entries()) {
       const value = label => claimValue(row, label)
       const source = provenance?.claims[index]
+      const location = hasSection ? [value('Section|Screen')] : []
+      const backing = hasBacking ? [value('Backing')] : []
       if (source?.nonProduct) {
         counts.unassessed++
-        table.push(`| ${[value('#'), ...(hasSection ? [value('Section')] : []), value('Claim'), '', `Non-product: ${source.nonProduct}`, source.status || 'Not recorded', 'unassessed'].map(tableCell).join(' | ')} |`)
+        table.push(`| ${[value('#'), ...location, value('Claim'), '', ...backing, `Non-product: ${source.nonProduct}`, source.status || 'Not recorded', 'unassessed'].map(tableCell).join(' | ')} |`)
         continue
       }
       const ids = idsIn(value('Clauses?')), linked = ids.map(id => clauses.find(clause => clause.id === id))
       if (!ids.length || linked.some(clause => !clause)) throw Error(`CONTRACT.md:${row.line}: Homepage claim needs existing clause ids.`)
       const state = linked.every(clause => clause.status === 'done') ? 'done' : linked.every(clause => clause.status === 'missing') ? 'missing' : 'partial'
       counts[state]++
-      table.push(`| ${[value('#') || String(index + 1), ...(hasSection ? [value('Section')] : []), value('Claim'), linked.map(clause => `\`${clause.id}\` ${clause.status}`).join('; '), ...(hasNonProduct ? ['Product'] : []), ...(provenance ? [source?.status || 'Not recorded'] : []), state].map(tableCell).join(' | ')} |`)
+      table.push(`| ${[value('#') || String(index + 1), ...location, value('Claim'), linked.map(clause => `\`${clause.id}\` ${clause.status}`).join('; '), ...backing, ...(hasNonProduct ? ['Product'] : []), ...(provenance ? [source?.status || 'Not recorded'] : []), state].map(tableCell).join(' | ')} |`)
     }
     claims.push(table.join('\n'), `Claims: ${rows.length}; ${counts.done} done, ${counts.partial} partial, ${counts.missing} missing.${hasNonProduct ? ` Non-product: ${counts.unassessed} unassessed.` : ''}`)
     if (provenance) claims.push(`Historical claim source: \`${provenance.old}\`. Exact source files, lines, text and historical statuses are retained in CONTRACT.md's contract-claim-source record.`)
@@ -318,15 +321,20 @@ function requirementAndAcceptance(body, oldAcceptance, clause) {
   return { text: result.join('\n\n'), history }
 }
 // Only spellings observed in the launch seeds' immutable homepage tables.
-const claimHeaders = new Set(['claim', 'claims', 'claim on the page', 'what the page claims', 'claim text'])
+const claimHeaders = new Set(['claim', 'claims', 'claim on the page', 'what the page claims', 'claim text', 'capability claimed'])
 function claimHeader(cell) {
   const value = plainText(cell).toLowerCase()
   if (claimHeaders.has(value)) return 'Claim'
   if (['clause', 'clauses', 'clause(s)', 'clause id(s)'].includes(value)) return 'Clauses'
   if (value === 'claim #') return '#'
+  if (value === 'code and target contract backing' || value === 'backing') return 'Backing'
   return plainText(cell)
 }
-const claimValue = (row, label) => row.cells[row.header.findIndex(cell => new RegExp(`^${label}$`, 'i').test(claimHeader(cell)))] ?? ''
+const claimValue = (row, label) => row.cells[row.header.findIndex(cell => new RegExp(`^(?:${label})$`, 'i').test(claimHeader(cell)))] ?? ''
+// Backing mixes explicit clause links with code and caveats. Only the links
+// supply clauses; retain the complete cell separately as historical provenance.
+const claimReferences = row => row.header.some(cell => claimHeader(cell) === 'Clauses')
+  ? claimValue(row, 'Clauses') : idsIn(claimValue(row, 'Backing').replace(/\.(?=\s|$)/g, '')).join(', ')
 const claimRows = text => homepageClaims(text).flatMap(table => table.rows.map(row => ({ ...row, header: table.header })))
 function originalClaims(old) {
   const candidates = Object.entries(old.files).filter(([name, text]) => name === 'CONTRACT.md' || /(?:^|\/)CLAIMS\.md$/.test(name) && !text.startsWith('<!-- Generated from CONTRACT.md by contract-docs.')).map(([name, text]) => ({ name, tables: homepageClaims(text) }))
@@ -337,7 +345,7 @@ function originalClaims(old) {
 function nonProductBasis(source, basis, ids, label) {
   // These are explicit classifications, never a fallback for an unresolved ID.
   const allowed = {
-    'license/public-repository ownership': /^["“]?(?:100% free, open source alternative to [^"”\n]+|100% free and open source\. MIT licensed\.|MIT licen[cs](?:e|ed)\.?)["”]?$/i,
+    'license/public-repository ownership': /^["“]?(?:100% free, open source alternative to [^"”\n]+|100% free and open source(?:\. MIT licensed\.)?|MIT licen[cs](?:e|ed)\.?)["”]?$/i,
     'launcher identity': /^(?:Terminal:\s*)?`npx -y @runeditrun\/rer dev [^`]+` starts [\w -]+\.?$/,
     'hosted-demo action': /^["“]Try the demo["”] opens the hosted demo\.?$/i,
     'boundary': /^Limits:\s*["“]No [^"”\n]+["”]\.?$/i,
@@ -351,7 +359,9 @@ function nonProductBasis(source, basis, ids, label) {
     throw Error(`${label}: non-product basis must explicitly describe a license/public-repository ownership, launcher identity, hosted-demo action or boundary with its required original references and no original product clause link; product promises need real clauses.`)
 }
 function sourceClaim(file, row, index) {
-  return { file, line: row.line, number: claimValue(row, '#') || String(index + 1), claim: claimValue(row, 'Claim'), status: claimValue(row, 'Status'), clauses: claimValue(row, 'Clauses?'), text: row.raw }
+  return { file, line: row.line, number: claimValue(row, '#') || String(index + 1), claim: claimValue(row, 'Claim'), status: claimValue(row, 'Status'), clauses: claimReferences(row),
+    ...(row.header.some(cell => /^Screen$/i.test(plainText(cell))) ? { screen: claimValue(row, 'Screen') } : {}),
+    ...(row.header.some(cell => claimHeader(cell) === 'Backing') ? { backing: claimValue(row, 'Backing') } : {}), text: row.raw }
 }
 function readClaimSource(text) {
   const records = [...text.matchAll(/<!-- contract-claim-source\s*\n([\s\S]*?)\n-->/g)]
@@ -379,6 +389,9 @@ function validateClaimSource(text, rows = claimRows(text), old) {
     if (!source || Object.entries(expected).some(([key, value]) => source[key] !== value)) throw Error(`${label}: source SHA/file/line/number/text/historical status must match the immutable original.`)
     const row = rows[index]
     if (claimValue(row, '#') !== source.number || claimValue(row, 'Claim') !== source.claim) throw Error(`${label}: current claim number/text must match the original.`)
+    if (source.screen !== undefined && claimValue(row, 'Section|Screen') !== source.screen ||
+        source.backing !== undefined && claimValue(row, 'Backing') !== source.backing)
+      throw Error(`${label}: current screen/backing provenance must match the original.`)
     const basis = claimValue(row, 'Basis')
     if (source.nonProduct !== undefined) {
       nonProductBasis(source, source.nonProduct, ids, label)
@@ -435,17 +448,18 @@ function contractClaims(old, ids, claimMapPath) {
     }
   }
   if (!rows.length) return 'No homepage claims are mapped yet.'
-  const hasSection = rows.some(row => row.header.some(label => /^section$/i.test(plainText(label))))
+  const hasSection = rows.some(row => row.header.some(label => /^(Section|Screen)$/i.test(plainText(label))))
+  const hasBacking = rows.some(row => row.header.some(label => claimHeader(label) === 'Backing'))
   const hasNonProduct = [...mapped.values()].some(entry => entry.nonProduct)
-  const header = ['#', ...(hasSection ? ['Section'] : []), 'Claim', 'Clauses', ...(hasNonProduct ? ['Basis'] : [])]
+  const header = ['#', ...(hasSection ? ['Section'] : []), 'Claim', 'Clauses', ...(hasBacking ? ['Backing'] : []), ...(hasNonProduct ? ['Basis'] : [])]
   const table = [`| ${header.join(' | ')} |`, `| ${header.map(() => '---').join(' | ')} |`], problems = []
   for (const [index, row] of rows.entries()) {
     const mapping = mapped.get(row.line), nonProduct = mapping?.nonProduct
-    const references = nonProduct ? '' : mapping?.clauses.join(', ') ?? value(row, 'Clauses?')
+    const references = nonProduct ? '' : mapping?.clauses.join(', ') ?? claimReferences(row)
     const linked = idsIn(references)
     if (!nonProduct && (!linked.length || linked.some(id => !ids.has(id))))
       problems.push(`${file}:${row.line}: Homepage claim ${JSON.stringify(value(row, 'Claim'))} needs existing product clause ids (found ${JSON.stringify(references)}). Supply --claim-map <file> with schema 1, old ${old.commit}, and claims entries {file, line, claim, clauses}; map only to the actual obligations, never invent a link.`)
-    table.push(`| ${[value(row, '#') || String(index + 1), ...(hasSection ? [value(row, 'Section')] : []), value(row, 'Claim'), references, ...(hasNonProduct ? [nonProduct ? `Non-product: ${nonProduct}` : 'Product'] : [])].map(tableCell).join(' | ')} |`)
+    table.push(`| ${[value(row, '#') || String(index + 1), ...(hasSection ? [value(row, 'Section|Screen')] : []), value(row, 'Claim'), references, ...(hasBacking ? [value(row, 'Backing')] : []), ...(hasNonProduct ? [nonProduct ? `Non-product: ${nonProduct}` : 'Product'] : [])].map(tableCell).join(' | ')} |`)
   }
   if (problems.length) throw Error(problems.join('\n'))
   if (hasNonProduct) table.unshift('Explicit non-product facts have current derived status unassessed. The source record retains historical statuses as history, not current proof.', '')

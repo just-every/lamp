@@ -147,3 +147,93 @@ test('approved native preparation preserves operation identity, key and named ap
   assert.equal(await saved(r, 'test_effects', delayed.id), null)
  } finally { await r.close() }
 })
+
+test('continuation admission refuses unavailable policy before schema or native item resolution', async t => {
+ const { createRequire } = await import('node:module')
+ const { fileURLToPath } = await import('node:url')
+ const require = createRequire(new URL('../../../default-seed/package.json', import.meta.url))
+ const { build } = require('esbuild')
+ // Exercise the existing seed with real D1 and owner sessions. Observe its native
+ // resolver reads without changing the tool, resolver or production pipeline.
+ const bundled = await build({ entryPoints: [fileURLToPath(new URL('./seed.ts', import.meta.url))], bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022', external: ['node:*'] })
+ const { default: seed } = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`)
+ const r = await runtime({ queueContext: true })
+ try {
+  let resolverReads = 0
+  const env = { ...await r.mf.getBindings(), DB: new Proxy(r.db, {
+   get(db, property) {
+    if (property === 'prepare') return (sql: string) => {
+     if (/^SELECT id,saved FROM test_jobs\b/.test(sql)) resolverReads++
+     return db.prepare(sql)
+    }
+    const value = Reflect.get(db, property)
+    return typeof value === 'function' ? value.bind(db) : value
+   },
+  }) }
+  const dispatch = async (path: string, body: object, headers: Record<string, string> = {}) => (await seed.fetch(new Request('http://localhost/__dispatch', {
+   method: 'POST', body: JSON.stringify({ url: `${r.c.origin}${path}`, method: 'POST', headers: { Origin: r.c.origin, 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }),
+  }), env)).json()
+  const mcp = async (args: object) => dispatch('/mcp', { jsonrpc: '2.0', id: crypto.randomUUID(), method: 'tools/call', params: { name: 'synthetic.queue.execute', arguments: args, _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': { elicitation: { url: {} } } } } }, {
+   Authorization: `Bearer ${await r.token()}`, 'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': 'tools/call', 'Mcp-Name': 'synthetic.queue.execute',
+  })
+  let admission: any, input = job()
+  const invoke = (args: object) => dispatch('/__embedded', { name: 'synthetic.queue.execute', args, ...(admission ? { agent: admission.agent, consent: admission.consent, scopes: admission.scopes } : { scopes: ['records:read', 'records:write', 'events:read'] }) }, { cookie: r.c.person.cookie })
+  const resume = (args: object) => dispatch('/__queue', { id: input.id, args }, { cookie: r.c.person.cookie })
+  const observations: { state: string; door: string; code: string; resolverReads: number }[] = []
+  const probe = async (state: string, expected: string, withOperation: boolean) => {
+   for (const args of [{ id: input.id, idempotency_key: input.idempotency_key }, { id: null, idempotency_key: input.idempotency_key }]) {
+    for (const [door, call] of [['mcp', mcp], ['invoke', invoke], ...(withOperation ? [['continuation', resume]] : [])] as [string, (args: object) => Promise<any>][]) {
+     const before = resolverReads, auditBefore = (await r.db.prepare('SELECT COUNT(*) AS n FROM agent_door_audit').first()).n
+     const reply = await call(args), code = door === 'mcp' ? errorCode(reply) : reply.code
+     observations.push({ state, door, code, resolverReads: resolverReads - before })
+     assert.equal((await r.db.prepare('SELECT COUNT(*) AS n FROM test_effects').first()).n, 0)
+     assert.equal((await r.db.prepare('SELECT COUNT(*) AS n FROM agent_door_audit').first()).n, auditBefore + 1, JSON.stringify({ door, reply }))
+     const row = JSON.parse((await r.db.prepare('SELECT row FROM agent_door_audit ORDER BY rowid DESC LIMIT 1').first()).row)
+     assert.equal(row.code, code); assert.equal(row.outcome, 'refused')
+     if (code === 'policy_unset') {
+      const fields = door === 'mcp' ? reply.result?._meta?.['com.runeditrun/error'] ?? reply.error?.data : reply.fields
+      assert.deepEqual(fields.unanswered, ['standard']); assert.ok(new URL(fields.setup_url).pathname)
+     }
+    }
+   }
+   t.diagnostic(`${state}: expected=${expected}; ${JSON.stringify(observations.filter(item => item.state === state))}`)
+  }
+  await probe('initial', 'policy_unset', false)
+  await r.adopt()
+  assert.ok(result(await r.tool('queue.prepare', input))?.operationId)
+  admission = await saved(r, 'test_jobs', input.id)
+  await r.adopt(null); await probe('removed', 'policy_unset', true)
+  await r.adopt(autonomousPolicy(), { paused: true }); await probe('paused', 'agents_paused', true)
+  await r.adopt(); await r.setNow(r.c.now + 301000)
+  // The bundled seed has its own clock; expire the signed envelope there too.
+  await dispatch('/__clock', { now: r.c.now })
+  await probe('expired', 'policy_unavailable', true)
+  await dispatch('/__clock', { now: Date.now() }); await r.setNow(Date.now()); await r.adopt()
+  assert.equal(errorCode(await mcp(input)), 'operation_mismatch')
+  assert.equal((await invoke(input)).code, 'operation_mismatch')
+  assert.equal(resolverReads, observations.reduce((sum, item) => sum + item.resolverReads, 0))
+  await r.db.prepare('UPDATE test_jobs SET saved=? WHERE id=?').bind(JSON.stringify({ ...admission, operationId: crypto.randomUUID() }), input.id).run()
+  const beforeMismatch = resolverReads
+  assert.equal((await dispatch('/__queue', { id: input.id, override: { operationId: admission.operationId } }, { cookie: r.c.person.cookie })).code, 'operation_mismatch'); assert.equal(resolverReads - beforeMismatch, 1)
+  await r.db.prepare('UPDATE test_jobs SET saved=? WHERE id=?').bind(JSON.stringify(admission), input.id).run()
+  await r.adopt(autonomousPolicy(), { paused: true, revoked: { agents: [], consents: [r.c.consent] } })
+  const beforeRevocation = resolverReads
+  assert.equal((await resume(input)).code, 'consent_revoked'); assert.equal(resolverReads, beforeRevocation)
+  await r.adopt(autonomousPolicy(), { paused: true })
+  await r.db.prepare('INSERT INTO test_grants(agent,scopes) VALUES(?,?)').bind(r.c.agentId, JSON.stringify(['records:read'])).run()
+  assert.equal((await resume(input)).code, 'insufficient_scope'); assert.equal(resolverReads, beforeRevocation)
+  await r.db.prepare('DELETE FROM test_grants WHERE agent=?').bind(r.c.agentId).run()
+  await r.adopt(autonomousPolicy(), { paused: true, revoked: { agents: [r.c.agentId], consents: [] } })
+  assert.equal((await resume(input)).code, 'unauthenticated'); assert.equal(resolverReads, beforeRevocation)
+  await r.adopt()
+  const beforeExecution = resolverReads, admitted = await resume(input)
+  assert.equal(admitted.outcome, 'done'); assert.equal(resolverReads - beforeExecution, 2, 'admission and the existing final native fence each resolve once')
+  assert.equal((await resume(input)).outcome, 'done')
+  assert.equal((await r.db.prepare('SELECT COUNT(*) AS n FROM test_effects').first()).n, 1)
+  const row = JSON.parse((await r.db.prepare('SELECT row FROM agent_door_audit ORDER BY rowid DESC LIMIT 1').first()).row)
+  assert.equal(row.continuation_item_id, input.id); assert.equal(row.operation_id, admission.operationId)
+  assert.equal(row.outcome, 'replayed')
+  assert.deepEqual(observations.map(item => ({ ...item, code: item.state === 'paused' ? 'agents_paused' : item.state === 'expired' ? 'policy_unavailable' : 'policy_unset', resolverReads: 0 })), observations)
+  t.diagnostic('policy refusals: zero resolver reads and effects, one audit row each; admitted continuation: one admission resolution, one final recheck, one native effect including replay.')
+ } finally { await r.close() }
+})

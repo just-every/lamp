@@ -42,7 +42,7 @@ export async function mcp(rt: Runtime, request: Request): Promise<Response> {
     if (answer.status === 403) return rpcError(rpc.id, -32000, 'Insufficient scope', 403, { code: 'insufficient_scope' }, challenge(rt, answer.scope))
     return rpcResult(rpc, toolResult({ ...answer.result, ...(offers(rt.options.capabilities, 'resources') ? {} : { resources: undefined }) }, request.headers.get('mcp-protocol-version')!, meta['io.modelcontextprotocol/clientCapabilities']))
   }
-  if (rpc.method === 'tools/list') return rpcResult(rpc, { ...cache, tools: policyRefusal(rt, state, []) ? [] : rt.tools.filter(tool => tool.classes.every(cls => answered(state.document, cls))).map(describeTool) })
+  if (rpc.method === 'tools/list') return rpcResult(rpc, { ...cache, tools: policyRefusal(rt, state, []) ? [] : rt.tools.filter(tool => tool.exposure !== 'invoke' && tool.classes.every(cls => answered(state.document, cls))).map(describeTool) })
   if (rpc.method === 'resources/templates/list') return rpcResult(rpc, { ...cache, resourceTemplates: !offers(rt.options.capabilities, 'resources') || policyRefusal(rt, state, ['standard']) ? [] : [...rt.options.resources ?? []].filter(resource => !resource.scope || principal.scopes.includes(resource.scope)).sort((a, b) => a.uriTemplate.localeCompare(b.uriTemplate)).map(({ read: _read, classify: _classify, classes: _classes, scope: _scope, ...resource }) => resource) })
   if (rpc.method === 'prompts/list') return rpcResult(rpc, { ...cache, prompts: !offers(rt.options.capabilities, 'prompts') || policyRefusal(rt, state, ['standard']) ? [] : [...rt.options.prompts ?? []].sort((a, b) => a.name.localeCompare(b.name)).map(({ messages: _messages, ...prompt }) => prompt) })
   if (rpc.method === 'resources/read') {

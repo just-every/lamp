@@ -17,8 +17,23 @@ function checkOutput(c, step, answer, phase) {
  const errors = schema === undefined ? ['missing outputSchema'] : schemaErrors(schema, answer.result?.structuredContent);
  c.add(`BASE-AGENT-002.2.${phase}.${step.id}`, errors.length === 0, `${step.tool} output does not validate: ${errors.slice(0, 8).join('; ')}.`);
 }
-async function checkResources(c, step, answer, phase, held) {
+function fixtureLink(c, template, uri) {
+ if (typeof uri !== 'string') return false;
+ try {
+  const parsed = new URL(uri), declared = new URL(template);
+  if (parsed.protocol !== declared.protocol || parsed.host !== declared.host || parsed.username || parsed.password) return false;
+  if (['http:', 'https:'].includes(parsed.protocol) && parsed.origin !== c.origin) return false;
+  const pattern = template.split(/\{[^}]+\}/).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/?#]+');
+  return new RegExp(`^${pattern}$`).test(uri);
+ } catch { return false; }
+}
+async function checkResources(c, step, answer, phase, held, outputs) {
  const links = answer.result?.content?.filter(item => item.type === 'resource_link') ?? [];
+ const fixture = offers(c.surface.capabilities, 'resources') && step.resource;
+ const expected = fixture && c.resolve(fixture.state, outputs);
+ const matching = fixture ? links.filter(link => fixtureLink(c, fixture.uriTemplate, link.uri)) : [];
+ if (fixture) c.add(`BASE-AGENT-003.4.links.${phase}.${step.id}`, matching.length > 0, `${step.tool} must return a resource_link matching its native fixture URI template.`);
+ let written = false, withheld = false;
  for (const [i, link] of links.entries()) {
   const read = await c.mcp('resources/read', { uri: link.uri }, step.client === undefined ? {} : { client: step.client });
   const classes = read.decision?.classes, needsApproval = held && classes?.some(item => item.class !== 'standard');
@@ -26,6 +41,13 @@ async function checkResources(c, step, answer, phase, held) {
   c.add(`BASE-AGENT-003.4.${phase}.${step.id}.${i}`, read.status === 200 && (needsApproval
    ? errorCode(read) === 'approval_required' && read.decision?.disposition === 'approval' && !read.result?.contents?.length
    : !read.message?.error && read.decision?.disposition === (held ? 'review' : 'autonomous') && Array.isArray(read.result?.contents) && read.result.contents.length > 0), `${step.tool} resource_link ${link.uri} must ${needsApproval ? 'withhold content pending approval' : 'read back under the current policy'}.`);
+  if (fixture && matching.includes(link)) {
+   withheld ||= needsApproval;
+   written ||= read.status === 200 && !read.message?.error && !errorCode(read) && read.result?.contents?.some(content => {
+    if (content.uri !== link.uri || typeof content.text !== 'string') return false;
+    try { return subset(JSON.parse(content.text), expected); } catch { return false; }
+   });
+  }
   if (needsApproval) {
    const pending = read.body?.error?.data?.approval;
    c.add(`BASE-AGENT-007.5.resource.${phase}.${step.id}.${i}`, pending?.id && typeof pending.url === 'string' && new URL(pending.url, c.origin).origin === c.origin && Number.isFinite(Date.parse(pending.expires_at)), `${link.uri} must expose a pending approval on the native person door.`);
@@ -35,6 +57,8 @@ async function checkResources(c, step, answer, phase, held) {
    }
   }
  }
+ // Approval-gated content must remain withheld; autonomous reads prove its state.
+ if (fixture && !withheld) c.add(`BASE-AGENT-003.4.state.${phase}.${step.id}`, written, `${step.tool} resource_link must read back the fixture's written state through this door's resources/read.`);
 }
 export async function runJourney(c, phase, { held = false, injections = false, replay = false } = {}) {
  const outputs = new Map(); let replayed = false;
@@ -84,7 +108,7 @@ export async function runJourney(c, phase, { held = false, injections = false, r
    if (answer.result?.isError || answer.result?.structuredContent === undefined) continue;
    outputs.set(step.id, answer.result.structuredContent);
    checkOutput(c, step, answer, phase);
-   await checkResources(c, step, answer, phase, held);
+   await checkResources(c, step, answer, phase, held, outputs);
    if (narrowing) {
     const witnessArgs = c.resolve(narrowing.witness.args, outputs);
     c.add(`BASE-AGENT-005.narrowing.${step.tool}.target`, narrowingTargets(declared).every(target => isDeepStrictEqual(witnessArgs[target], args[target])), `${step.tool} must witness every identifier of the same targeted subject.`);

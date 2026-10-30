@@ -16,7 +16,7 @@ test('Business subjects, sponsor approvals and Business refs retain their people
   const x = (await r.db.prepare("SELECT operator_id FROM bs_team WHERE business_id='synthetic-base-a'").first()).operator_id
   const b = (await r.db.prepare("SELECT operator_id FROM bs_team WHERE business_id='synthetic-base-b'").first()).operator_id
   await r.adopt()
-  const token = await r.token({sub:'synthetic-base-a',email,act:{sub:'synthetic-base-agent-a',name:'Synthetic Agent A'}})
+  let token = await r.token({sub:'synthetic-base-a',email,act:{sub:'synthetic-base-agent-a',name:'Synthetic Agent A'}})
   const tool = (name: string, args: any) => r.tool(name,args,{token})
   const write = (value: string) => ({id:'synthetic-base-record',value,idempotency_key:crypto.randomUUID()})
   assert.equal((await tool('records.write',write('synthetic-base-1'))).result.isError,false)
@@ -26,6 +26,9 @@ test('Business subjects, sponsor approvals and Business refs retain their people
   const held = await tool('records.erase',input), approval = held.result._meta['com.runeditrun/approval']
   await r.db.prepare('UPDATE oa_operators SET email=? WHERE id=?').bind('synthetic-base-x-new@example.com',x).run()
   await r.db.prepare('UPDATE oa_operators SET email=? WHERE id=?').bind(email,b).run()
+  // The old address's token is refused, though another person now holds that address; a current one still acts as x.
+  assert.equal((await tool('records.write',write('synthetic-base-stale'))).status,401)
+  token = await r.token({sub:'synthetic-base-a',email:'synthetic-base-x-new@example.com',act:{sub:'synthetic-base-agent-a',name:'Synthetic Agent A'}})
   const person = async (cookie: string, path: string, body?: any) => {
    const response = body === undefined ? await r.fetch(path,{headers:{cookie}}) : await r.post(path,body,{cookie})
    return {status:response.status,body:await response.json()}

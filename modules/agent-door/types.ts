@@ -51,6 +51,8 @@ export interface UndoContext {
 }
 export interface ToolDefinition {
   name: string; title: string; description: string; scope: string; readOnly: boolean
+  /** Only invoke may call this tool; omitted keeps MCP discovery and calls. */
+  exposure?: 'invoke'
   inputSchema: JsonSchemaObject; outputSchema: JsonSchema; classes: ClassId[]; clauses: string[]
   /** Always enforce current native authority. On completed replay, use the
    * recorded effect facts instead of requiring consumed preparation state. */
