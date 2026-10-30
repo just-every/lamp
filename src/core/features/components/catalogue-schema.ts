@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { ulidSchema } from "../../shared/ids";
-import { componentSchema, componentGroupSchema } from "../../shared/schemas";
+import { componentSchema, componentGroupSchema, componentNoteSchema } from "../../shared/schemas";
 
 export const catalogueComponentSchema = componentSchema.extend({
+  note: componentNoteSchema,
   id: ulidSchema,
   onlyShowIfDegraded: z.boolean().default(false),
   uptimeStartDate: z.iso.date().nullable().default(null),

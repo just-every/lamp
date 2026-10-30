@@ -3632,7 +3632,7 @@
       "executable": false
     },
     "src/core/features/components/catalogue-schema.ts": {
-      "sha256": "545ece16ca79316b47d6442b97847691b680b1d329cd6af5315a9db3a2db780b",
+      "sha256": "41edeabc9356b5c0435b4dcf0403de18efde7c17df36ab245771d1b7b2d6e3b6",
       "executable": false
     },
     "src/core/features/components/catalogue-service.ts": {
@@ -5752,7 +5752,7 @@
       "executable": false
     },
     "src/core/shared/schemas.ts": {
-      "sha256": "84f030a383ab7c9186733cd637b3ae7a457e436957123e0a0eef08c2ef51f9fc",
+      "sha256": "229a0476723cf26e13d8636c98319e97039b21ef082ddd62828f9d2d167ae667",
       "executable": false
     },
     "src/core/shared/statuspage-mapping.ts": {
@@ -7032,7 +7032,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "42a59be1721b39a4e3e6a2e086597ad5f99fcd79a94819ef947105dba915b6cd",
+      "sha256": "a6e0eca9ccfc91aab708631dc399601582065a4fc17a1ce9872edf8e55a138a1",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
