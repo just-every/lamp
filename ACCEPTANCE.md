@@ -2198,7 +2198,7 @@ Core · target · **partial** · From UPDATE-013
 4. Teams cards use the direct URL as link text with punctuation outside.
 5. Other schemes and markup stay escaped literal text in Slack and Teams.
 
-**Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs`
+**Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs`  Repair proposal: `tests/e2e/channels-and-presets.test.mjs` (Private channels deliver the selected publication once with literal text and punctuated links) independently asserts literal HTTP-scheme text and escaped HTML in the received Adaptive Card. The inherited partial judgment remains pending re-adjudication.
 **Gap.** Old cited evidence asserts Email text retains affected-audience wording; Email text retains customer-impact wording with its bare URL; Email text retains what-still-works wording with its bare URLs; Email text retains details wording with its bare URLs. Unasserted: Teams independently asserts literal HTTP-scheme text; Teams independently asserts retained escaped HTML markup.
 
 #### UPDATE-017 — Safe link webhook formats
