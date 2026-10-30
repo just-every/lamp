@@ -129,6 +129,7 @@ export async function subscriberComponentsFlow() {
       assert.equal(draft.status, 200, draft.text);
       const response = await post(`/api/app/incidents/${incident.id}/publish`, { channels: ["email", "webhook"] });
       assert.equal(response.status, 200, response.text);
+      assert.equal(response.body.update.customerImpact, wording, "publication retains the independently submitted wording used to distinguish latest-update catch-up");
       await drain();
       return response.body.update;
     };
