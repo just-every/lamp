@@ -7648,7 +7648,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "3b460813178664103259d4395ee385f342ffbb4ebc3379e53936d9176782fc11",
+      "sha256": "40e94757c35cd7923896f75064bd4f8054edf555d0a2a5f50067712d4d276055",
       "executable": false
     },
     "tests/agent-door/provider-edge.mjs": {
@@ -7668,7 +7668,7 @@
       "executable": false
     },
     "tests/agent-door/specialist.mjs": {
-      "sha256": "1a030bc091644377222d3b2111338ddf682e49743fc720b7735bfef1afc05461",
+      "sha256": "276c90174636b61acfcd0a044c0865028ad343186c77ae014f9c3906f620c81d",
       "executable": false
     },
     "tests/auth-adoption/adapter.ts": {

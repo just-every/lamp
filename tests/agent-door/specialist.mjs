@@ -22,19 +22,20 @@ export default async function specialist(context) {
     name: 'Specialist API', description: '', internal: false, displayOrder: 0, note: '' });
   const token = `synthetic-lamp-${randomUUID()}`;
   const { source } = await person('/api/app/intake/sources', {
-    name: 'Specialist monitor', componentId: component.id, credentialKind: 'bearer-token',
+    name: 'Specialist monitor', preset: 'datadog', componentId: component.id, credentialKind: 'bearer-token',
     bearerToken: token, deduplicationPath: 'id', titlePath: 'title', statePath: 'state', recoveredValue: 'resolved',
   });
   assert.notEqual(new URL(source.endpointUrl).origin, origin, 'Intake uses the declared public host');
   const intake = await request(source.endpointUrl, { method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ id: randomUUID(), title: 'Specialist API delay', state: 'firing' }),
+    body: JSON.stringify({ alert_id: randomUUID(), alert_title: 'Specialist API delay', alert_transition: 'Triggered' }),
   });
   assert.equal(intake.status, 202, 'Native intake accepts the incident on the public host');
   const accepted = await intake.json();
   assert.ok(accepted.incidentId, 'Accepted intake retains a native incident');
   const id = accepted.incidentId;
   const incident = await call('lamp.incidents.get', { id });
+  assert.ok(incident.incident.components.some(row => row.componentId === component.id), 'Native monitor mapping attaches the affected component');
   await call('lamp.incidents.note', { id, body: 'PRIVATE-SPECIALIST-NOTE: monitor evidence is not approval.' });
   const saved = await call('lamp.incidents.draft', { id, draftVersion: incident.draftVersion, update: {
     lifecycle: 'Investigating', affectedAudience: 'Customers using the API',
