@@ -85,7 +85,52 @@ test('THEME-001 PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survi
     assert.equal((await read('/?storage=down')).status, 503, 'a fresh installation never invents an all-clear');
     const generation = await rebuild({ generation: 1 }); assert.equal(generation.failure, null);
     const paths = ['/', '/feed.atom', '/widget.js', '/api/public/status', '/badge.svg', '/badge.json'];
-    for (const path of paths) { const response = await read(path); assert.equal(response.status, 200); await response.arrayBuffer(); }
+    const artifactKeys = ['page.html', 'feed.atom', 'widget.js', 'status.json', 'badge.svg', 'badge.json'];
+    const blobReads = async () => (await read('/test/blob-reads')).json();
+    const beforeCold = await blobReads();
+    const coldBodies = new Map();
+    const validators = new Map();
+    for (const [index, path] of paths.entries()) {
+      const key = `snapshots/${generation.pointer.version}/${artifactKeys[index]}`;
+      assert.equal(beforeCold.getBytes[key] ?? 0, 0, `${path} starts with an unread generation artifact`);
+      const response = await read(path);
+      assert.equal(response.status, 200, path);
+      assert.equal(response.headers.get('x-lamp-snapshot-state'), null, `${path} is healthy with a repository that throws on access`);
+      assert.equal(response.headers.get('x-lamp-snapshot-version'), generation.pointer.version, path);
+      assert.equal(response.headers.get('x-lamp-snapshot-generated-at'), generation.pointer.generatedAt, path);
+      coldBodies.set(path, Buffer.from(await response.arrayBuffer()));
+      validators.set(path, response.headers.get('etag'));
+      assert.ok(validators.get(path), `${path} supplies a validator`);
+      assert.equal((await blobReads()).getBytes[key], 1, `${path} reads its immutable artifact once when cold`);
+    }
+    const afterCold = await blobReads();
+    assert.equal(afterCold.getText['snapshots/current.json'] - (beforeCold.getText['snapshots/current.json'] ?? 0), paths.length, 'every cold read validates the current pointer');
+    assert.equal(afterCold.getText['snapshots/stale.json'] - (beforeCold.getText['snapshots/stale.json'] ?? 0), paths.length, 'every cold read checks snapshot freshness');
+    for (let round = 0; round < 3; round++) {
+      for (const path of paths) {
+        const response = await read(path);
+        assert.equal(response.status, 200, path);
+        assert.equal(response.headers.get('x-lamp-snapshot-state'), null, path);
+        assert.equal(response.headers.get('x-lamp-snapshot-version'), generation.pointer.version, path);
+        assert.equal(response.headers.get('x-lamp-snapshot-generated-at'), generation.pointer.generatedAt, path);
+        assert.equal(response.headers.get('etag'), validators.get(path), path);
+        assert.deepEqual(Buffer.from(await response.arrayBuffer()), coldBodies.get(path), `${path} reuses identical generation bytes`);
+      }
+      const afterWarm = await blobReads();
+      assert.deepEqual(afterWarm.getBytes, afterCold.getBytes, 'warm public reads fetch no additional object bytes');
+      assert.equal(afterWarm.getText['snapshots/current.json'] - afterCold.getText['snapshots/current.json'], paths.length * (round + 1), 'every warm read still validates the current pointer');
+      assert.equal(afterWarm.getText['snapshots/stale.json'] - afterCold.getText['snapshots/stale.json'], paths.length * (round + 1), 'every warm read still checks snapshot freshness');
+    }
+    const beforeConditional = await blobReads();
+    for (const path of paths) {
+      const response = await read(path, { headers: { 'If-None-Match': validators.get(path) } });
+      assert.equal(response.status, 304, path);
+      assert.equal(response.headers.get('x-lamp-snapshot-version'), generation.pointer.version, path);
+      assert.equal((await response.arrayBuffer()).byteLength, 0, path);
+    }
+    const afterConditional = await blobReads();
+    assert.deepEqual(afterConditional.getBytes, afterCold.getBytes, 'conditional warm reads also reuse cached artifact bytes');
+    assert.equal(afterConditional.getText['snapshots/current.json'] - beforeConditional.getText['snapshots/current.json'], paths.length, 'conditional responses validate the pointer before accepting old bytes');
     const failed = await rebuild({ generation: 2, replicaFailure: 'always' });
     assert.ok(failed.failure); assert.equal(failed.completed, false);
     for (const path of paths) {
@@ -110,7 +155,16 @@ test('THEME-001 PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survi
     }
     assert.equal((await read('/health?storage=down')).status, 503);
     const restored = await rebuild({ generation: 3 }); assert.equal(restored.failure, null); assert.equal(restored.completed, true);
-    for (const path of paths) { const response = await read(path); assert.equal(response.status, 200); assert.equal(response.headers.get('x-lamp-snapshot-state'), null); }
+    assert.notEqual(restored.pointer.version, generation.pointer.version);
+    for (const [index, path] of paths.entries()) {
+      const response = await read(path, { headers: { 'If-None-Match': validators.get(path) } });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('x-lamp-snapshot-state'), null);
+      assert.equal(response.headers.get('x-lamp-snapshot-version'), restored.pointer.version, 'the new current generation replaces warmed bytes');
+      assert.equal(response.headers.get('x-lamp-snapshot-generated-at'), restored.pointer.generatedAt);
+      await response.arrayBuffer();
+      assert.equal((await blobReads()).getBytes[`snapshots/${restored.pointer.version}/${artifactKeys[index]}`], 1, `${path} reads the new generation artifact once`);
+    }
   } finally {
     await j?.close(); await runtime?.dispose(); clearTimeout(alarmTimer);
     monitor?.closeAllConnections(); if (monitor) await new Promise(resolve => monitor.close(resolve));
