@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ea059ac459f3a972f4639cf6f766cf4c7289f1169492a5484f1e89c49ebcf197",
+      "sha256": "21fecf9327fd50a06f93a83ce3ec3dd5cfed4355fb6bd06e776c2f06a8e2354d",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "b12f1a7c501035432216991ad4ae41bc4bdc3754aef401638a3dc6f56405d81f",
       "executable": false
     },
     "DEMO.md": {
@@ -6540,7 +6540,7 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "7b894420f3dfb20d22049bc94ec671dbde4c3f292880483f050d72e369ce03c3",
+      "sha256": "9bf4c5aec89710e76b58765f3f62c75d5c8d6b920dafcc17fc8db4407c30c457",
       "executable": false
     },
     "tests/auth-adoption/role-portability.mjs": {
@@ -6832,7 +6832,7 @@
       "executable": false
     },
     "tests/e2e/helpers/pagerduty-flow.mjs": {
-      "sha256": "8a18179c889cd10d563d0125234774394631826655a2f9d9a144db2ea47569aa",
+      "sha256": "1998bcfea7bc9fe5d9ecd77adcc43fb382604fd61ce95fd85ca310df55a94f84",
       "executable": false
     },
     "tests/e2e/helpers/phone-desk-flow.mjs": {
