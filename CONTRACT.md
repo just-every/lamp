@@ -3116,15 +3116,15 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. MAINT-002 is rechecked on this candidate's committed tree; earlier clause judgments remain inherited.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3217,7 +3217,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `UPDATE-016` | Safe links in mail and chat | target | partial | `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs` | Old cited evidence asserts Email text retains affected-audience wording; Email text retains customer-impact wording with its bare URL; Email text retains what-still-works wording with its bare URLs; Email text retains details wording with its bare URLs. Unasserted: Teams independently asserts literal HTTP-scheme text; Teams independently asserts retained escaped HTML markup. |
 | `UPDATE-017` | Safe link webhook formats | target | partial | `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/publishing-browser.test.mjs` | Old cited evidence asserts Slack fields reassemble; Slack link text equals URL; only HTTPS links; Slack-webhook text retains period punctuation outside its URL. Unasserted: Lamp fields byte-for-byte. |
 | `MAINT-001` | Distinct from incidents | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: independent SCH sequence; legacy reference unchanged; SCH sequence survives restart. Unasserted in old cited evidence: window and attachments retained; separate incident/maintenance display; deleted and failed SCH reference never reused. |
-| `MAINT-002` | Automatic transitions | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: scheduled event starts; scheduled event completes. Unasserted in old cited evidence: 240-second start bound; 240-second completion bound. |
+| `MAINT-002` | Automatic transitions | published | done | `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history): a future native window remains Scheduled immediately before start, is In progress at start plus 240 seconds, remains In progress immediately before end and is Completed at end plus 240 seconds. The Worker Date clock and native Cron event advance together; native readback and the public permalink show the transitions, each has exactly one system-authored notice, and repeated ticks preserve the record and notices. |  |
 | `MAINT-003` | Component states | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: Under maintenance during window; claim released on completion; no claim before start. Unasserted in old cited evidence: operator claim survives; incident claim survives; aggregate reconciles throughout. |
 | `MAINT-004` | Overrun | published | done | `tests/e2e/publishing-contract.test.mjs` (owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history): root and permalink have no overrun before fifteen minutes, retain the original end beside the later warning, clear it on extension and completion, and preserve the start while updating the end. |  |
 | `MAINT-005` | Reminders | published | partial | `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts A scheduled maintenance notice record exists; A twenty-four-hour reminder notice record exists. Unasserted: The scheduling notice reaches subscribers; The twenty-four-hour reminder reaches subscribers; start subscriber notification; completion subscriber notification. |
