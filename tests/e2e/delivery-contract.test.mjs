@@ -2,6 +2,7 @@ import { incidentSubscriptionApiFlow } from './helpers/incident-subscription-api
 import { incidentFollowFlow } from './helpers/incident-follow-flow.mjs';
 import { test } from 'node:test';
 import { createServer } from 'vite';
+import { subscriberDirectoryFlow } from './helpers/subscriber-directory-flow.mjs';
 import { subscriberAddFlow } from './helpers/subscriber-add-flow.mjs';
 import { subscriberPreferencesFlow } from './helpers/subscriber-preferences-flow.mjs';
 import { subscriberCsvFlow } from './helpers/subscriber-csv-flow.mjs';
@@ -15,6 +16,7 @@ import { mailSettingsBrowserFlow } from './helpers/mail-settings-browser-flow.mj
 // delivery-service method is used as a substitute for a user action.
 test('SUB-019 SUB-001 SUB-002 SUB-003 SUB-004 SUB-005 SUB-006 SUB-007 SUB-008 SUB-009 SUB-010 SUB-011 SUB-012 SUB-013 SUB-016 SUB-017 SUB-018 SUB-020 PAGE-013 HIST-007 TEAM-003 TEAM-004 UPDATE-008 — Subscriber consent, selected publication, channel delivery, export and erasure', { timeout: 600_000 }, async () => {
   await subscriberAddFlow();
+  await subscriberDirectoryFlow();
   await subscriberPreferencesFlow();
   await subscriberCsvFlow();
   await statuspageWebhookFlow();
