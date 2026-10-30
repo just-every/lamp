@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
 
 import type { IconName } from "../../../app/client/ui/icon";
@@ -21,11 +21,11 @@ const DESTINATIONS = SETTINGS_MENU.flatMap<{ id: SettingsDestination; label: str
 const TABS = new Set<string>(DESTINATIONS.filter(destination => destination.id !== "move-in").map(destination => destination.id));
 
 // Older links still land: anchors from the single long page and the tabs the rail replaced.
-const ALIASES: Record<string, SettingsTab> = { "public-address": "page", "sender-check": "notifications", channels: "tools", alerts: "tools", data: "export", "audit-log": "audit" };
+const ALIASES = new Map<string, SettingsTab>([["public-address", "page"], ["sender-check", "notifications"], ["channels", "tools"], ["alerts", "tools"], ["data", "export"], ["audit-log", "audit"]]);
 
 export function settingsTabFromHash(hash: string): SettingsTab {
   const key = hash.replace(/^#/, "");
-  return TABS.has(key) ? key as SettingsTab : ALIASES[key] ?? "page";
+  return TABS.has(key) ? key as SettingsTab : ALIASES.get(key) ?? "page";
 }
 
 /** The destination an /app address shows, or null outside Settings. Cutover is reached from Move in, so it marks Move in. */
@@ -52,10 +52,14 @@ export function useSettingsDestination() {
   return settingsDestination(pathname, useHydrated() ? hash : "");
 }
 
-/** The open pane lives in the URL hash, so every pane has a link and Back works. */
+/** The open pane lives in the URL hash, so every pane has a link and Back works. While a link out of Settings loads its
+ * screen, the address has already moved on; the pane on show stays until that screen replaces it. */
 export function useSettingsTab(): SettingsTab {
-  const hash = useRouterState({ select: state => state.location.hash });
-  return settingsTabFromHash(useHydrated() ? hash : "");
+  const { pathname, hash } = useRouterState({ select: state => ({ pathname: state.location.pathname, hash: state.location.hash }), structuralSharing: true });
+  const hydrated = useHydrated();
+  const shown = useRef<SettingsTab>("page");
+  if (pathname.replace(/\/$/, "") === "/app/settings") shown.current = settingsTabFromHash(hydrated ? hash : "");
+  return shown.current;
 }
 
 /** Moving to another pane is leaving this one: the rail, the phone sheet, Back and Forward all wait for the same check a

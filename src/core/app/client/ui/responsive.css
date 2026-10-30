@@ -65,7 +65,7 @@
 
 /* Phone operators need the same reachable controls as the desktop desk. */
 @media (max-width: 620px) {
-  .operator-shell :is(button, select, summary, .operator-nav-link, .back-link, .text-link, .checkbox-label) { min-height: 44px; }
+  .operator-shell :is(button, select, summary, .operator-nav-link, .back-link, .text-link, .checkbox-label, .view-switch a) { min-height: 44px; }
   .operator-shell :is(.icon-button, .copy-button) { min-width: 44px; }
   .operator-shell :is(.back-link, .text-link) { align-items: center; }
   .operator-shell .checkbox-label { padding-block: 10px; }

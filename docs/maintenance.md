@@ -30,7 +30,7 @@ minutes, ordinary visits to the public page or the operator app (at most every
 notices. Once the trigger runs, it does this work every minute. Both paths
 share the same claims, so no subscriber gets the same notice twice.
 
-Open **Deliveries** to check the window's `SCH-` reference, title and notice
+Open **Subscribers → Delivery log** to check the window's `SCH-` reference, title and notice
 kind, such as scheduled, reminder, started or completed. The CSV export includes
 these maintenance details and the provider-accepted timestamp too. **Accepted
 by SendGrid** or **Accepted by Resend** and that timestamp mean the provider

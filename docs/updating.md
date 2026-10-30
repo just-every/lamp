@@ -27,7 +27,7 @@ deployed it, with Node 22 or later on your PATH (see
 node scripts/export.mjs --remote --environment production --env-file "$HOME/.config/lamp/production.env" --out "$HOME/lamp-backups/before-update-$(date +%Y%m%d-%H%M)"
 ```
 
-Also download **Settings → Export page data** in the app. Then update the source
+Also download your page data from **Settings → Export and restore** in the app. Then update the source
 (`git pull --ff-only`, or check out the release you chose), stop any local
 development server with `rer dev --stop` or production preview with
 `rer preview --stop`, and from the updated source run:

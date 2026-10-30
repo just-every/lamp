@@ -140,7 +140,7 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
         <div className="operator-rail-footer">
           <a href={`${publicOrigin}/`} className="operator-page-link" target="_blank" rel="noopener">View your page <Icon name="external" width={15} height={15} /></a>
           <div className="operator-account">
-            <span className="operator-initial" aria-hidden="true">{operator.displayName.trim().charAt(0).toUpperCase()}</span>
+            <span className="operator-initial" aria-hidden="true">{Array.from(operator.displayName.trim())[0]?.toUpperCase()}</span>
             <span className="operator-name">{operator.displayName}</span>
             <form action="/api/app/session/signout" method="post" onSubmit={event => { event.preventDefault(); void signOut(); }}><button type="submit" className="operator-signout" disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button></form>
           </div>
