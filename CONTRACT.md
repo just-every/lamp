@@ -3118,6 +3118,8 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
 
+MAINT-002 retains current-main’s partial judgment and recorded gaps. The replay of `acbc1ef` adds native Cron assertions in `tests/e2e/publishing-contract.test.mjs` for future-window start and completion deadlines, public permalink transitions, system-authored notices and repeated-tick idempotency. These assertions supplement the evidence without changing the inherited judgment.
+
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded gaps. The replay of `cc385f264c61cec1aacb67c2aa57b3e42bc32e97` adds assertions in `tests/e2e/publishing-contract.test.mjs` for the saved public commitment instant and configured-zone text, original historical publication instants on permanent and monthly-history pages, original component-history transitions and silent historical corrections. The original monthly-history title assertion remains. These additional assertions do not change the newer clause judgments.
