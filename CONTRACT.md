@@ -3116,15 +3116,15 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. COMP-002 and COMP-004 are rechecked at commit `487ce5031b0a85326f1692b94a87fee6883546f0` (30 October 2026); PAGE-004 retains main’s partial judgment while the candidate’s rollup assertions are preserved.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 13 | 94 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 22 | 167 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3162,9 +3162,9 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `I18N-003` | Subscriber language choice and reporting | target | missing |  | Subscriber language selection, management, reporting and language-aware CSV preview are absent. |
 | `I18N-002` | Translated updates | target | missing |  | Not built. |
 | `COMP-001` | States and their order | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational. |
-| `COMP-002` | Grouping and order | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded. |
+| `COMP-002` | Grouping and order | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): native creation and editing refuse multiple groups; catalogue preview and apply refuse multiple groups and duplicate identities without changing saved records; native and reviewed reassignment retain one saved identity and one public placement; reordered groups and components render in their saved order. |  |
 | `COMP-003` | Append-only state history | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present. |
-| `COMP-004` | State note | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty. |
+| `COMP-004` | State note | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): direct creation omits note and returns an empty note, independently read back through the native list; a 250-character note including boundary spaces is saved and rendered exactly beside its state; 251-character creation and editing are refused without changing the catalogue, and omitted edit or replacement notes remain refused. |  |
 | `COMP-005` | Internal components | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Internal components are absent from every uptime figure; An internal severe claim leaves the public overall state unchanged. |
 | `COMP-006` | Component state is claimed, not set | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: In-progress maintenance contributes its chosen claim; No claims gives Operational; Incident resolution recomputes public state within ten seconds; Maintenance completion recomputes public state within ten seconds; Component attachment recomputes public state within ten seconds; Component detachment recomputes public state within ten seconds; Setting a standing claim recomputes public state within ten seconds; Clearing a standing claim recomputes public state within ten seconds. |
 | `COMP-007` | Deletion | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Component and uptime disappearance is observed on the public page within ten seconds; Published maintenance history retains the deleted name. |

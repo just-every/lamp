@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ea059ac459f3a972f4639cf6f766cf4c7289f1169492a5484f1e89c49ebcf197",
+      "sha256": "0dcf3011439bbddca1f322378a9c35e5c872d5353a5de88af27dc022c39e86e9",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "d86da00c4229394a1a6038dae036c89b7b03b5f98a342004bd52527ba636b6f2",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "a9500d370bfd0814f3ee6d878aef03c5e2a686a652c88ef7d6a4b39560ac6a2b",
+      "sha256": "0e8cfac094b09a0c8086dac8eb7bab6540b5aa953fb972724603ef942b53ff44",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -3608,7 +3608,7 @@
       "executable": false
     },
     "src/core/features/components/catalogue-schema.ts": {
-      "sha256": "545ece16ca79316b47d6442b97847691b680b1d329cd6af5315a9db3a2db780b",
+      "sha256": "41edeabc9356b5c0435b4dcf0403de18efde7c17df36ab245771d1b7b2d6e3b6",
       "executable": false
     },
     "src/core/features/components/catalogue-service.ts": {
@@ -5724,7 +5724,7 @@
       "executable": false
     },
     "src/core/shared/schemas.ts": {
-      "sha256": "84f030a383ab7c9186733cd637b3ae7a457e436957123e0a0eef08c2ef51f9fc",
+      "sha256": "229a0476723cf26e13d8636c98319e97039b21ef082ddd62828f9d2d167ae667",
       "executable": false
     },
     "src/core/shared/statuspage-mapping.ts": {
@@ -6996,7 +6996,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "937133882c8c9470e5c6700fa753679ec67ef282a4b36754c2e19bf6f9ac7ca7",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {

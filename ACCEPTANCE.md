@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 20 | 169 | 49 | 238 |
+| Core | 22 | 167 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 20 | 169 | 54 | 243 |
+| Full target | 22 | 167 | 54 | 243 |
 
-Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. COMP-002 and COMP-004 are rechecked at commit `487ce5031b0a85326f1692b94a87fee6883546f0` (30 October 2026); PAGE-004 retains main’s partial judgment while the candidate’s rollup assertions are preserved. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -246,7 +246,7 @@ Core · published · **partial**
 
 #### COMP-002 — Grouping and order
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Operators organize public components into ordered groups.
 
@@ -254,8 +254,8 @@ Core · published · **partial**
 1. A component belongs to at most one group.
 2. Operators set group order and order within each group, and public rendering preserves both orders.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): native creation and editing refuse multiple groups; catalogue preview and apply refuse multiple groups and duplicate identities without changing saved records; native and reviewed reassignment retain one saved identity and one public placement; reordered groups and components render in their saved order.
+**Gap.** None.
 
 #### COMP-003 — Append-only state history
 
@@ -272,7 +272,7 @@ Core · published · **partial**
 
 #### COMP-004 — State note
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** A bounded plain-text note accompanies a component’s public state.
 
@@ -280,8 +280,8 @@ Core · published · **partial**
 1. A new component note is empty by default.
 2. A note of up to 250 characters appears beside that component’s state exactly as entered; a longer note is refused.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty.
+**Evidence.** `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): direct creation omits note and returns an empty note, independently read back through the native list; a 250-character note including boundary spaces is saved and rendered exactly beside its state; 251-character creation and editing are refused without changing the catalogue, and omitted edit or replacement notes remain refused.
+**Gap.** None.
 
 #### COMP-005 — Internal components
 
