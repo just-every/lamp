@@ -13,6 +13,7 @@ import { channelsBrowserFlow } from "./helpers/channels-browser-flow.mjs";
 import { presetRecoveryFlow } from "./helpers/preset-recovery-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
+import { openFollowUpsRuntime, eventuallyFollowUp } from "./helpers/follow-ups-runtime.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { pagerDutyFlow } from "./helpers/pagerduty-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
@@ -80,6 +81,126 @@ async function openFixtureDatabase(directory) {
 }
 async function component(name) { return (await post("/api/app/components", { groupId: null, name, description: "", internal: false, displayOrder: 0, note: "" })).body.component; }
 async function settle() { for (let round = 0; round < 40; round += 1) { await new Promise((resolve) => setTimeout(resolve, 250)); if (sql("SELECT count(*) AS n FROM channel_posts p LEFT JOIN integration_deliveries x ON x.id = p.id WHERE x.state IS NULL OR x.state IN ('queued','sending')")[0].n === 0) return; } }
+
+/** Isolated migrated Worker: real publication/storage/delivery, with only the
+ * provider HTTP edges replaced. A temporary SQL trigger interrupts the second
+ * chat insert, after the update and first post have entered the D1 batch. */
+async function channelPublicationFlow(t) {
+  const requests = [];
+  const fixture = await openFollowUpsRuntime({ providerEdge: async request => {
+    if (![SLACK_A, SLACK_B, new URL(TEAMS).href].includes(request.url)) return;
+    assert.equal(request.method, "POST");
+    requests.push({ url: request.url, body: await request.text() });
+    return new URL(request.url).hostname === "hooks.slack.com" ? new Response("ok") : new Response(null, { status: 202 });
+  } });
+  const { api, post, db } = fixture;
+  const rows = async query => (await db.prepare(query).all()).results;
+  const updates = () => rows("SELECT * FROM incident_updates ORDER BY id");
+  const posts = () => rows("SELECT * FROM delivery_channel_posts ORDER BY id");
+  const tick = async () => assert.equal((await (await fixture.runtime.getWorker()).scheduled({ cron: "* * * * *", scheduledTime: Date.now() })).outcome, "ok");
+  const readIncident = async id => {
+    const result = await api(`/api/app/incidents/${id}`);
+    assert.equal(result.status, 200, result.text);
+    return result.body.incident;
+  };
+  const save = async (id, details) => {
+    const result = await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify({ lifecycle: "Investigating", affectedAudience: "Payment customers", customerImpact: "Card payments are delayed", whatStillWorks: "Existing subscriptions", details, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() }) });
+    assert.equal(result.status, 200, result.text);
+  };
+  const accepted = async expected => {
+    await tick();
+    await eventuallyFollowUp(() => rows("SELECT id, state FROM integration_deliveries WHERE namespace='lamp-channels' ORDER BY id"), entries => entries.length === expected && entries.every(row => row.state === "accepted"), "every committed chat post has its provider acceptance");
+    assert.equal(requests.length, expected, "each accepted post has exactly one receiver request");
+  };
+  try {
+    const targets = [];
+    for (const name of ["Synthetic Lamp payments", "Synthetic Lamp unrelated search"]) {
+      const made = await post("/api/app/components", { groupId: null, name, description: "", internal: false, displayOrder: 0, note: "" });
+      assert.equal(made.status, 201, made.text);
+      targets.push(made.body.component);
+    }
+    const destinations = [];
+    for (const input of [
+      { kind: "slack", name: "Synthetic Lamp payments", url: SLACK_A, componentIds: [targets[0].id] },
+      { kind: "teams", name: "Synthetic Lamp all components", url: TEAMS, componentIds: [] },
+      { kind: "slack", name: "Synthetic Lamp search only", url: SLACK_B, componentIds: [targets[1].id] },
+    ]) {
+      const made = await post("/api/app/channels", input);
+      assert.equal(made.status, 201, made.text);
+      destinations.push(made.body.channel);
+    }
+    const made = await post("/api/app/incidents", { title: "Synthetic Lamp atomic channel publication", components: [{ componentId: targets[0].id, state: "Partially unavailable", relationship: "Primary" }] });
+    assert.equal(made.status, 201, made.text);
+    const id = made.body.incident.id;
+    const path = `/api/app/incidents/${id}/publish`;
+    // A real earlier publication makes both complete inventory comparisons nonempty.
+    await save(id, "Synthetic Lamp original publication");
+    const first = await post(path, { channels: ["chat"] });
+    assert.equal(first.status, 200, first.text);
+    await accepted(2);
+
+    await save(id, "Synthetic Lamp interrupted publication");
+    const reviewed = await readIncident(id);
+    const original = { method: "POST", body: JSON.stringify({ channels: ["chat"] }), headers: { "If-Match": `${reviewed.draft.id}:${reviewed.updates.length}` } };
+    const beforeUpdates = await updates(), beforePosts = await posts(), beforeRequests = [...requests];
+    assert.equal(beforeUpdates.length, 1);
+    assert.equal(beforePosts.length, 2);
+    await db.prepare(`CREATE TRIGGER synthetic_channel_publication_fault BEFORE INSERT ON channel_posts
+      WHEN NEW.incident_update_id = '${reviewed.draft.id}' AND EXISTS (SELECT 1 FROM channel_posts WHERE incident_update_id = NEW.incident_update_id)
+      BEGIN SELECT RAISE(ABORT, 'Synthetic Lamp channel publication interruption'); END`).run();
+    try {
+      const refused = await api(path, original);
+      assert.equal(refused.status, 409, refused.text);
+      assert.match(refused.body.error, /Synthetic Lamp channel publication interruption/);
+      await tick();
+      assert.deepEqual(await updates(), beforeUpdates, "a post failure rolls back the complete update inventory");
+      assert.deepEqual(await posts(), beforePosts, "a post failure rolls back the complete post inventory, including the earlier insert");
+      const unchanged = await readIncident(id);
+      assert.deepEqual(unchanged.updates, reviewed.updates, "the operator sees no partial publication");
+      assert.deepEqual(unchanged.draft, reviewed.draft, "the same saved draft remains available to retry");
+      assert.deepEqual(requests, beforeRequests, "the failed transaction reaches no receiver, including on a scheduled pass");
+    } finally { await db.prepare("DROP TRIGGER synthetic_channel_publication_fault").run(); }
+
+    const published = await api(path, original);
+    assert.equal(published.status, 200, published.text);
+    assert.equal(published.body.update.id, reviewed.draft.id);
+    const committedPosts = await posts();
+    assert.deepEqual(committedPosts.filter(row => row.incident_update_id !== reviewed.draft.id), beforePosts, "publication preserves all earlier post identities");
+    assert.deepEqual(committedPosts.filter(row => row.incident_update_id === reviewed.draft.id).map(row => row.destination_id).sort(), destinations.slice(0, 2).map(row => row.id).sort(), "exactly the selected-component Slack and all-visible Teams destinations commit with this update");
+    const committedUpdates = await updates();
+    assert.deepEqual(committedUpdates.filter(row => row.id !== reviewed.draft.id), beforeUpdates);
+    assert.equal(committedUpdates.length, beforeUpdates.length + 1);
+    assert.equal((await readIncident(id)).updates.find(row => row.id === reviewed.draft.id).details, reviewed.draft.details);
+    await accepted(4);
+    assert.deepEqual([SLACK_A, new URL(TEAMS).href, SLACK_B].map(url => requests.filter(row => row.url === url).length), [2, 2, 0], "the unrelated destination remains silent");
+    t.diagnostic("PROBE NOTIFY-012 atomic commit: POST /api/app/incidents/:id/publish with chat and a second-post storage fault -> 409; complete inventories stay at 1 update/2 posts, unchanged draft and receivers; retry commits exactly 1 update/2 following posts.");
+
+    const committedRequests = [...requests];
+    // Bypass automatic draft-version refresh: these are the original bytes and revision.
+    const replayed = await api(path, original);
+    assert.equal(replayed.status, 409, replayed.text);
+    await tick(); await tick();
+    assert.deepEqual(await updates(), committedUpdates, "the original publication request cannot create another update");
+    assert.deepEqual(await posts(), committedPosts, "request replay and repeated delivery preserve every post identity");
+    assert.deepEqual(requests, committedRequests, "request replay and repeated delivery send no duplicate receiver request");
+    t.diagnostic("PROBE NOTIFY-012 original request replay: POST the captured body and If-Match revision, then two scheduled passes -> 409; all 2 update/4 post identities and 4 receiver requests unchanged.");
+
+    await save(id, "Synthetic Lamp distinct backdated publication");
+    const retroDraft = (await readIncident(id)).draft;
+    const retroactive = await post(path, { channels: ["chat"], publishedAt: first.body.update.publishedAt });
+    assert.equal(retroactive.status, 200, retroactive.text);
+    assert.equal(retroactive.body.update.id, retroDraft.id);
+    assert.notEqual(retroDraft.id, published.body.update.id);
+    assert.equal(retroactive.body.update.isRetroactive, true);
+    assert.equal(retroactive.body.update.details, retroDraft.details);
+    assert.equal((await readIncident(id)).updates.length, committedUpdates.length + 1);
+    assert.deepEqual((await updates()).filter(row => row.id !== retroDraft.id), committedUpdates);
+    await tick(); await tick();
+    assert.deepEqual(await posts(), committedPosts, "a persisted backdated update with chat selected creates no post");
+    assert.deepEqual(requests, committedRequests, "the backdated publication and later delivery passes reach no chat receiver");
+    t.diagnostic("PROBE NOTIFY-012 retroactive silence: POST a distinct saved draft with chat selected and the earlier publication timestamp -> 200, isRetroactive=true, 3 updates; complete 4-post inventory and 4 receiver requests unchanged.");
+  } finally { await fixture.close(); }
+}
 
 before(async () => {
   receiver = createServer((request, response) => {
@@ -261,7 +382,7 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
   await socialBrowserFlow({ origin, devLink: async () => `${origin}/__dev/key#${new URLSearchParams({ 'rer-dev': devKey, as: 'owner' })}`, diagnostic: text => t.diagnostic(text) });
   await runtime.stop();
-  try { await selfServeChatFlow(t); await socialPostsFlow(t); } finally { await runtime.start(); }
+  try { await channelPublicationFlow(t); await selfServeChatFlow(t); await socialPostsFlow(t); } finally { await runtime.start(); }
 });
 
 
