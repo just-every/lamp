@@ -3124,9 +3124,9 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3207,7 +3207,7 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 | `UPDATE-004` | Preview | published | partial | `tests/e2e/public-contract.test.mjs` | Asserted: public preview customer impact; email preview customer impact. Unasserted in old cited evidence: composer displays the public preview; composer displays the email preview. |
 | `UPDATE-005` | Drafts | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts page excludes populated draft; Atom excludes populated draft; widget excludes populated draft; two-second save. Unasserted: Reload independently asserts unchanged audience; Reload independently asserts unchanged impact; Reload independently asserts unchanged what-still-works; Reload independently asserts unchanged lifecycle; After publication the next draft’s other wording fields are independently asserted empty; lifecycle prompts; stale tab cannot revive publication; stale tab cannot overwrite newer draft; draft write requires acknowledged version; template requires acknowledged version; schedule requires acknowledged version; publication requires acknowledged version; fresh draft not falsely saved; Publish requires acknowledged complete draft; attempted write identified; later workflow changes retained. |
 | `UPDATE-006` | Scheduled publish | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts After its scheduled trigger the specific incident permalink contains the scheduled draft’s unique wording; public privacy before time. Unasserted: 240-second bound; no early notification; review hold stays draft; operator notice for held schedule. |
-| `UPDATE-007` | Review | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: part of the existing workflow. Unasserted in old cited evidence: unreviewed publication refused; reviewer recorded; review time recorded; review-disabled publication succeeds. |
+| `UPDATE-007` | Review | published | done | Points 1–3: `tests/e2e/publishing-contract.test.mjs` — reviewed incident from private template to immutable updates, recovery, report and audited deletion. Private portability and erasure: `tests/e2e/page-data.test.mjs` — Page data restores verified consent and holds unverified addresses until confirmation. | |
 | `UPDATE-008` | Atomic publication and recipients | published | partial | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: update once; recipients once; no failed recipient. Unasserted in old cited evidence: narrowing preserves delivery; unsubscribe suppresses delivery; failed update not public; retry to success; dispatch does not block. |
 | `UPDATE-009` | Templates | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: lifecycle retained; details retained; no publication; not public. Unasserted in old cited evidence: other fields retained; components and claims retained; composer and staged choices. |
 | `UPDATE-010` | Audience-specific updates | target | missing |  | Not built. |

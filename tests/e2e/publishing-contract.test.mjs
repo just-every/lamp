@@ -62,17 +62,38 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
       const body = await j.publicText(path);
       assert.ok(!body.includes(incident.title) && !body.includes('PRIVATE investigation note'));
     }
-    await j.json(`${endpoint}/draft/review`, 'POST', {}, 409);
-    await j.publish(incident.id, {}, 409);
+    const beforeReviewRefusal = await j.read(incident.id);
+    const selfReview = await j.json(`${endpoint}/draft/review`, 'POST', {}, 409);
+    assert.equal(selfReview.error, 'A different operator must review a saved draft.');
+    const unreviewed = await j.publish(incident.id, {}, 409);
+    assert.equal(unreviewed.error, 'This update requires review by another operator.');
+    const afterReviewRefusal = await j.read(incident.id);
+    assert.deepEqual(afterReviewRefusal.draft, beforeReviewRefusal.draft);
+    assert.deepEqual(afterReviewRefusal.updates, beforeReviewRefusal.updates);
     const preview = await j.json(`${endpoint}/draft/preview`, 'POST', { ...wording, nextUpdateAt: privateDraft.nextUpdateAt });
     assert.ok(JSON.stringify(preview.preview).includes(wording.customerImpact));
+    const reviewStarted = Date.now();
     await review(incident.id);
+    const reviewFinished = Date.now();
+    const reviewerId = (await j.json('/api/app/operators')).operators.find(row => row.email === reviewer).id;
+    assert.notEqual(reviewerId, privateDraft.authorOperatorId);
+    const reviewedDraft = (await j.read(incident.id)).draft;
+    assert.equal(reviewedDraft.reviewedByOperatorId, reviewerId);
+    assert.ok(Date.parse(reviewedDraft.reviewedAt) >= reviewStarted && Date.parse(reviewedDraft.reviewedAt) <= reviewFinished, 'review time is bounded by the review request');
+    await owner();
     const subscriber = 'reviewed-publication-reader@example.test';
     const subscription = await j.raw(new URL('/subscribe', j.publicOrigin).href, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ email: subscriber, componentId: component.id }) });
     assert.equal(subscription.status, 202);
     const confirmation = await eventually(() => j.messages.find(mail => mail.to.includes(subscriber)), Boolean, 'subscriber confirmation mail');
     assert.equal((await j.raw(confirmation.text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/)[0])).status, 200);
     const first = (await j.publish(incident.id, { channels: ['email'] })).update;
+    assert.equal(first.reviewedByOperatorId, reviewerId);
+    assert.equal(first.reviewedAt, reviewedDraft.reviewedAt);
+    assert.notEqual(first.authorOperatorId, reviewerId, 'publication keeps the reviewer independently of the publisher');
+    const committedReview = await j.read(incident.id);
+    assert.equal(committedReview.draft, null);
+    assert.equal(committedReview.updates.find(row => row.id === first.id).reviewedByOperatorId, reviewerId);
+    assert.equal(committedReview.updates.find(row => row.id === first.id).reviewedAt, reviewedDraft.reviewedAt);
     await j.tick(Date.now());
     const reached = await eventually(() => j.json(`${endpoint}/reach?updateId=${first.id}`), body => body.updates[0].channels.some(row => row.channel === 'email' && row.providerAccepted === 1), 'the frozen publication reaches its committed subscriber');
     assert.equal(reached.updates[0].channels.find(row => row.channel === 'email').committed, 1);
@@ -86,6 +107,13 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
       assert.ok(!body.includes('PRIVATE investigation note') && !body.includes(hidden.name), path);
     }
     const firstBody = await j.publicText(`/incidents/${incident.reference}`);
+    for (const path of ['/', `/incidents/${incident.reference}`, '/feed.atom', '/widget.js', '/api/public/status', '/api/public/v1/incidents', '/api/v2/incidents.json']) {
+      const body = await j.publicText(path);
+      assert.ok(!body.includes(reviewerId) && !body.includes(reviewer), `${path}: reviewer identity stays private`);
+      assert.doesNotMatch(body, /reviewedByOperatorId|reviewedAt|reviewed_by_operator_id|reviewed_at/, `${path}: no review metadata in public projections`);
+    }
+    assert.ok(!customerMail.text.includes(reviewerId) && !customerMail.text.includes(reviewer));
+    assert.doesNotMatch(JSON.stringify(preview.preview), /reviewedByOperatorId|reviewedAt/);
     assertLinkedUpdateHtml(firstBody, 'public incident');
     assertLinkedUpdateHtml(await j.publicText('/'), 'public root');
     assertLinkedFeed(await j.publicText('/feed.atom'), 'public Atom');
@@ -239,6 +267,24 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const audit = await j.json('/api/app/audit-log?limit=100');
     assert.ok(audit.entries.some(row => row.entityId === incident.id && row.reason === 'Duplicate incident replaced after review'));
   } finally { await j.close(); }
+  const optional = await openStatusJourney();
+  try {
+    const component = await optional.component('Synthetic Lamp optional review');
+    const incident = await optional.incident('Synthetic Lamp direct publication', [component]);
+    await optional.save(incident.id, { details: 'Synthetic Lamp publication without a review.' });
+    const draft = (await optional.read(incident.id)).draft;
+    assert.equal(draft.reviewedByOperatorId, null);
+    assert.equal(draft.reviewedAt, null);
+    const update = (await optional.publish(incident.id)).update;
+    assert.equal(update.id, draft.id);
+    assert.equal(update.reviewedByOperatorId, null);
+    assert.equal(update.reviewedAt, null);
+    const committed = await optional.read(incident.id);
+    assert.equal(committed.draft, null);
+    assert.equal(committed.updates.length, 1);
+    assert.deepEqual(committed.updates[0], update);
+    await optional.visible(`/incidents/${incident.reference}`, draft.details);
+  } finally { await optional.close(); }
 });
 
 test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history', async () => {

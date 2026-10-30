@@ -845,7 +845,8 @@
       "was": "Review: *Policy: `update.review.v1`; default: no review is required. When review is required, a publish request for an update its author wrote is rejected with 409 until an operator other than the author marks it reviewed; the reviewer and the time are recorded on the update.*",
       "now": "Review: **Requirement.** The owner chooses whether a second operator reviews updates. **Acceptance.** 1. Under required review, an author’s unreviewed update is refused until a different operator reviews it. 2. The update records reviewer and review time. 3. When review is not required the review policy does not hold publication.",
       "migrationIds": [
-        "0004_publishing_contract.sql"
+        "0004_publishing_contract.sql",
+        "0075_update_review.sql"
       ]
     },
     "UPDATE-008": {
@@ -975,6 +976,10 @@
     {
       "id": "0074_alert_rule_guards.sql",
       "buyerSteps": "Apply after 0073. Adds per-rule firing delay and recovery hold, durable scheduled windows and attributed Undo receipts. Rules default to a two-minute firing delay and five-minute recovery hold; existing active claims are retained. Review these values in Settings before relying on immediate automation. Undo releases only its automatic claim and retains earlier public updates, component history and internal attribution. No account or credential is required."
+    },
+    {
+      "id": "0075_update_review.sql",
+      "buyerSteps": "Apply after 0074 before starting the updated Worker. Newly published incident updates retain the saved reviewer identity and review time as private attribution. Earlier updates retain null review evidence; no review is inferred. Existing owner review policy, public content and notification behavior are unchanged. No account or credential is required."
     }
   ],
   "breaking": false,
