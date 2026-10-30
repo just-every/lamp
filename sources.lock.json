@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6472f80cf6018bc27c11e43349211e04b51e2badc555c6d199e129d86e59119b",
+      "sha256": "25ad7ecce2f035b9ff333826b81f6acec683b4ba8df3be7c4c1fdeaf6b4777fd",
       "executable": false
     },
     "DEMO.md": {
@@ -3632,7 +3632,7 @@
       "executable": false
     },
     "src/core/features/components/catalogue-schema.ts": {
-      "sha256": "545ece16ca79316b47d6442b97847691b680b1d329cd6af5315a9db3a2db780b",
+      "sha256": "41edeabc9356b5c0435b4dcf0403de18efde7c17df36ab245771d1b7b2d6e3b6",
       "executable": false
     },
     "src/core/features/components/catalogue-service.ts": {
@@ -5752,7 +5752,7 @@
       "executable": false
     },
     "src/core/shared/schemas.ts": {
-      "sha256": "84f030a383ab7c9186733cd637b3ae7a457e436957123e0a0eef08c2ef51f9fc",
+      "sha256": "229a0476723cf26e13d8636c98319e97039b21ef082ddd62828f9d2d167ae667",
       "executable": false
     },
     "src/core/shared/statuspage-mapping.ts": {
@@ -7032,7 +7032,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "937133882c8c9470e5c6700fa753679ec67ef282a4b36754c2e19bf6f9ac7ca7",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
