@@ -1367,8 +1367,8 @@ Core · published · **partial**
 **Acceptance.**
 1. Seven days after an incident that claimed Partially unavailable or Major outage resolves without a report, the operator app marks it as owing a report.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Old cited evidence asserts A representative Major-outage incident is listed as report-due after eight days; The severity rule is represented by another Major-outage report-due case. Unasserted: The operator report-due listing is asserted at the seven-day boundary.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs`; additional landing evidence: `tests/e2e/update-reminders.test.mjs`, loading `tests/e2e/helpers/report-reminders-flow.mjs` and `tests/e2e/helpers/automation-clock-worker.ts`, asserts both severe incident states absent one millisecond before seven days and present exactly at seven days, matching Overview obligations, and exclusion after reviewed publication or reasoned waiver.
+**Gap.** Old cited evidence asserts A representative Major-outage incident is listed as report-due after eight days; The severity rule is represented by another Major-outage report-due case. Unasserted: The operator report-due listing is asserted at the seven-day boundary. The newer main partial judgment is retained pending clause review of this additional proof.
 
 #### HIST-004 — Export contents
 
