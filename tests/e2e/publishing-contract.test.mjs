@@ -244,7 +244,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
 });
 
 test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history', async () => {
-  const j = await openStatusJourney();
+  const j = await openStatusJourney({ workerEntry: 'tests/e2e/helpers/automation-clock-worker.ts' });
   try {
     const component = await j.component('Scheduled database service');
     await assertEmptyCalendar(j);
@@ -340,6 +340,61 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     const automatic = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Automatic maintenance', startsAt: new Date(now - 7200000).toISOString(), endsAt: new Date(now - 3600000).toISOString(), autoComplete: true }, 201)).maintenance;
     await j.tick(Date.now()); await j.tick(Date.now());
     assert.equal((await j.json('/api/app/maintenance')).maintenance.find(row => row.id === automatic.id).state, 'Completed');
+
+    // A future window proves both deadlines without backdating the record or
+    // asking an operator to start or complete it. Move Date as well as Cron's
+    // event time so the real maintenance scheduler observes each boundary.
+    const boundedStart = Date.now() + 10 * 60000;
+    const boundedEnd = boundedStart + 20 * 60000;
+    const bounded = (await j.json('/api/app/maintenance', 'POST', {
+      ...input, title: 'Future automatic database maintenance',
+      startsAt: new Date(boundedStart).toISOString(), endsAt: new Date(boundedEnd).toISOString(), autoComplete: true,
+    }, 201)).maintenance;
+    const readBounded = async () => (await j.json('/api/app/maintenance')).maintenance.find(row => row.id === bounded.id);
+    const advanceAndTick = async at => {
+      assert.equal((await j.raw('/test/clock', { method: 'PUT', body: JSON.stringify({ now: at }) })).status, 204);
+      await j.tick(at);
+    };
+    await advanceAndTick(boundedStart - 1);
+    const beforeStart = await readBounded();
+    assert.equal(beforeStart.state, 'Scheduled', 'automatic maintenance cannot start before its window');
+    assert.equal(beforeStart.completedAt, null);
+    assert.deepEqual(beforeStart.notices.filter(row => ['started', 'completed'].includes(row.kind)), []);
+    await j.visible(`/maintenance/${bounded.reference}`, 'Scheduled');
+
+    const startDeadline = boundedStart + 240000;
+    await advanceAndTick(startDeadline);
+    const started = await readBounded();
+    assert.equal(started.state, 'In progress', 'automatic start meets the 240-second deadline');
+    const startedNotices = started.notices.filter(row => row.kind === 'started');
+    assert.equal(startedNotices.length, 1);
+    assert.equal(startedNotices[0].authorOperatorId, null);
+    assert.equal(startedNotices[0].publishedAt, new Date(startDeadline).toISOString());
+    assert.equal(started.notices.filter(row => row.kind === 'completed').length, 0);
+    await j.visible(`/maintenance/${bounded.reference}`, 'In progress');
+    await j.tick(startDeadline);
+    assert.deepEqual(await readBounded(), started, 'a repeated start tick adds no notice or transition');
+
+    await advanceAndTick(boundedEnd - 1);
+    const beforeEnd = await readBounded();
+    assert.equal(beforeEnd.state, 'In progress', 'automatic completion cannot precede the window end');
+    assert.equal(beforeEnd.completedAt, null);
+    assert.deepEqual(beforeEnd.notices, started.notices);
+
+    const completionDeadline = boundedEnd + 240000;
+    await advanceAndTick(completionDeadline);
+    const finished = await readBounded();
+    assert.equal(finished.state, 'Completed', 'automatic completion meets the 240-second deadline');
+    assert.equal(finished.completedAt, new Date(completionDeadline).toISOString());
+    assert.deepEqual(finished.notices.filter(row => row.kind === 'started'), startedNotices);
+    const completedNotices = finished.notices.filter(row => row.kind === 'completed');
+    assert.equal(completedNotices.length, 1);
+    assert.equal(completedNotices[0].authorOperatorId, null);
+    assert.equal(completedNotices[0].publishedAt, new Date(completionDeadline).toISOString());
+    await j.visible(`/maintenance/${bounded.reference}`, 'Completed');
+    await j.tick(completionDeadline);
+    await advanceAndTick(completionDeadline + 60000);
+    assert.deepEqual(await readBounded(), finished, 'repeated completion ticks retain exactly one notice for each transition');
   } finally { await j.close(); }
 });
 
