@@ -16,8 +16,22 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     const hidden = await j.component('PRIVATE internal service', { internal: true });
     const source = (await j.json('/api/app/intake/sources', 'POST', {
       name: 'Customer API alerts', credentialKind: 'hmac-sha256', signingSecret: 'synthetic-lamp-source-secret',
-      deduplicationPath: '$.alert.id', titlePath: '$.alert.title', statePath: '$.alert.state', recoveredValue: 'recovered', componentId: component.id,
+      deduplicationPath: '$.monitor.identity.key', titlePath: '$.monitor.presentation.summary', statePath: '$.monitor.health.phase', recoveredValue: 'service-restored', componentId: component.id,
     }, 201)).source;
+    const savedSource = (await j.json('/api/app/intake/sources')).sources.find(row => row.id === source.id);
+    assert.ok(savedSource);
+    assert.equal(savedSource.deduplicationPath, '$.monitor.identity.key');
+    assert.equal(savedSource.titlePath, '$.monitor.presentation.summary');
+    assert.equal(savedSource.statePath, '$.monitor.health.phase');
+    assert.equal(savedSource.recoveredValue, 'service-restored');
+    const receipt = async receiptId => {
+      const rows = (await j.json(`/api/app/intake/receipts?receipt=${receiptId}`)).receipts;
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].id, receiptId);
+      assert.equal(rows[0].sourceId, source.id);
+      assert.equal(rows[0].sourceName, 'Customer API alerts');
+      return rows[0];
+    };
     const endpoint = new URL(`/api/intake/${source.id}`, j.publicOrigin).href;
     const signedAlert = payload => {
       const body = JSON.stringify(payload), at = new Date().toISOString();
@@ -28,7 +42,10 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     };
     const alert = payload => j.raw(endpoint, signedAlert(payload));
     assert.equal((await j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
-    const payload = { alert: { id: 'checkout-outage', title: 'PRIVATE monitor wording', state: 'firing' } };
+    const payload = {
+      alert: { id: 'unmapped-key', title: 'PRIVATE unmapped title', state: 'recovered' },
+      monitor: { identity: { key: 'checkout-outage' }, presentation: { summary: 'PRIVATE monitor wording' }, health: { phase: 'service-unhealthy' } },
+    };
     const originalRequest = signedAlert(payload);
     const accepted = await j.raw(endpoint, originalRequest); assert.equal(accepted.status, 202);
     const original = await accepted.json(), id = original.incidentId;
@@ -38,6 +55,12 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
       const rows = await j.db.batch(tables.map(table => j.db.prepare(`SELECT * FROM ${table} ORDER BY id`)));
       return Object.fromEntries(tables.map((table, index) => [table, rows[index].results]));
     };
+    assert.equal((await j.read(id)).title, 'PRIVATE monitor wording');
+    const firing = await receipt(original.receiptId);
+    assert.equal(firing.deduplicationKey, 'checkout-outage');
+    assert.equal(firing.incidentId, id);
+    assert.equal(firing.state, 'firing');
+    assert.equal(firing.error, null);
     const beforeReplay = await inventory();
     assert.deepEqual(beforeReplay.incidents.map(row => row.id), [id]);
     assert.deepEqual(beforeReplay.incident_drafts.map(row => row.incident_id), [id]);
@@ -49,7 +72,7 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.equal(replayed.incidentId, id); assert.equal(replayed.receiptId, original.receiptId);
     assert.equal(replayed.replayed, true);
     assert.deepEqual(await inventory(), beforeReplay, 'accepted replay leaves every incident, draft and alert receipt unchanged');
-    const changed = await alert({ alert: { ...payload.alert, title: 'PRIVATE changed monitor wording' } });
+    const changed = await alert({ ...payload, monitor: { ...payload.monitor, presentation: { summary: 'PRIVATE changed monitor wording' } } });
     assert.equal(changed.status, 202);
     const distinct = await changed.json();
     assert.equal(distinct.incidentId, id); assert.notEqual(distinct.receiptId, original.receiptId);
@@ -58,7 +81,13 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.deepEqual(afterDistinct.incidents, beforeReplay.incidents);
     assert.deepEqual(afterDistinct.incident_drafts, beforeReplay.incident_drafts);
     assert.deepEqual(afterDistinct.alert_receipts.map(row => row.id).sort(), [original.receiptId, distinct.receiptId].sort());
-    assert.equal((await alert({ alert: { title: 'Missing deduplication key', state: 'firing' } })).status, 400);
+    const missingKey = await alert({ ...payload, monitor: { ...payload.monitor, identity: {} } });
+    assert.equal(missingKey.status, 400);
+    const invalid = await receipt((await missingKey.json()).receiptId);
+    assert.equal(invalid.state, 'invalid');
+    assert.equal(invalid.deduplicationKey, null);
+    assert.equal(invalid.incidentId, null);
+    assert.equal(invalid.error, 'The configured deduplication path did not produce a string.');
     await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: component.id, state: 'Major outage', relationship: 'Primary' }, 201);
     await j.json(`/api/app/incidents/${id}/internal-notes`, 'POST', { body: 'PRIVATE responder investigation' }, 201);
     await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: hidden.id, state: 'Major outage', relationship: 'Dependent' }, 201);
@@ -69,7 +98,7 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.ok(!JSON.stringify(privateBrief).includes(hidden.name));
     assert.ok(!JSON.stringify(privateBrief).includes('PRIVATE responder investigation'));
     assert.equal((await j.read(id)).updates.length, 0);
-    for (const path of ['/', '/history', '/feed.atom', '/widget.js']) assert.ok(!(await j.publicText(path)).includes(payload.alert.title));
+    for (const path of ['/', '/history', '/feed.atom', '/widget.js']) assert.ok(!(await j.publicText(path)).includes(payload.monitor.presentation.summary));
     await j.save(id, { affectedAudience: 'Checkout customers', customerImpact: 'Some checkout requests fail.' });
     const before = await j.read(id);
     answer = () => Response.json({ choices: [{ message: { content: JSON.stringify({
@@ -89,7 +118,15 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.deepEqual((await j.read(id)).updates, before.updates);
     await j.publish(id);
     await j.visible(`/incidents/${before.reference}`, 'Some checkout requests fail.');
-    assert.equal((await alert({ alert: { ...payload.alert, state: 'recovered' } })).status, 202);
+    const recovered = await alert({ ...payload, monitor: { ...payload.monitor, health: { phase: 'service-restored' } } });
+    assert.equal(recovered.status, 202);
+    const recoveredResult = await recovered.json();
+    assert.equal(recoveredResult.incidentId, id);
+    const recoveredReceipt = await receipt(recoveredResult.receiptId);
+    assert.equal(recoveredReceipt.deduplicationKey, 'checkout-outage');
+    assert.equal(recoveredReceipt.incidentId, id);
+    assert.equal(recoveredReceipt.state, 'recovered');
+    assert.equal(recoveredReceipt.error, null);
     const recovery = (await j.json(`/api/app/incidents/${id}/recovery-check`)).recovery;
     assert.equal(recovery.passed, false);
     assert.ok(recovery.items.some(row => row.state === 'holding'));
