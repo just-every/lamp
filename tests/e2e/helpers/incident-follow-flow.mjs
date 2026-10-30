@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { openIncidentFollowFixture } from "./incident-follow-fixture.mjs";
 import { incidentFollowLifecycleFlow } from "./incident-follow-lifecycle-flow.mjs";
 import { seedSubscriberLimitFixture } from "./subscriber-limits-flow.mjs";
+import { subscriberIdentityInventory } from "./subscriber-management-fixture.mjs";
 
 const DAY = 86_400_000;
 
@@ -28,6 +29,7 @@ export async function incidentFollowFlow() {
     assert.equal((await post(`/api/app/incidents/${hiddenIncident.id}/publish`, { channels: [] })).status, 200);
     assert.equal((await raw(`${fixture.origin}/incidents/${hiddenIncident.reference}`)).status, 404, "internal-only incidents have no public permalink");
     await publish(incident, "Synthetic Lamp INC-7 initial update.");
+    await publish(other, "Synthetic Lamp INC-8 initial update.");
     const publicResponse = await raw(`${fixture.origin}/incidents/${incident.reference}`);
     const publicHtml = await publicResponse.text();
     assert.equal(publicResponse.status, 200);
@@ -44,22 +46,61 @@ export async function incidentFollowFlow() {
     const initialCapacity = (await api("/api/app/subscribers?limit=1")).body.capacity;
     assert.ok(initialCapacity.some(row => row.channel === "all" && row.count === 1), "a real pending incident opt-in consumes one all-channel slot");
     assert.ok(initialCapacity.some(row => row.channel === "email" && row.count === 1), "the pending incident opt-in also consumes one email slot");
+    const original = (await list()).find(row => row.destination === email);
+    assert.equal(original.state, "pending");
+    const pageSubscribe = async () => {
+      const response = await raw(`${fixture.origin}/subscribe`, { method: "POST", headers: { Origin: fixture.origin, Accept: "text/html", "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ email }).toString() });
+      return { status: response.status, text: await response.text() };
+    };
+    const pageAccepted = await pageSubscribe();
+    assert.equal(pageAccepted.status, 202, pageAccepted.text);
+    const otherAccepted = await subscribe(other.id, { email });
+    assert.equal(otherAccepted.status, 202, otherAccepted.text);
+    const scoped = (await list()).filter(row => row.destination === email);
+    const pageSubscriber = scoped.find(row => !row.incident);
+    const otherSubscriber = scoped.find(row => row.incident?.id === other.id);
+    assert.ok(pageSubscriber && otherSubscriber, "the same address independently follows the page and another incident");
+    const pendingInventory = await subscriberIdentityInventory(fixture);
+    assert.deepEqual(pendingInventory, [
+      { id: original.id, channel: "email", destination: email, incidentId: incident.id },
+      { id: pageSubscriber.id, channel: "email", destination: email, incidentId: null },
+      { id: otherSubscriber.id, channel: "email", destination: email, incidentId: other.id },
+    ].sort((left, right) => left.id.localeCompare(right.id)), "all three scopes have distinct identities in the complete paginated inventory");
+    assert.deepEqual(await pageSubscribe(), pageAccepted);
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "a page repeat preserves both incident identities and its original page identity");
+    const otherRepeat = await subscribe(other.id, { email });
+    assert.equal(otherRepeat.status, otherAccepted.status);
+    assert.equal(otherRepeat.text, otherAccepted.text);
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "a second-incident repeat preserves every independent scope");
     const pendingRepeat = await subscribe(incident.id, { email });
     assert.equal(pendingRepeat.status, 202);
     assert.equal(pendingRepeat.text, accepted.text, "new and pending subscriptions receive the same no-enumeration answer");
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "a pending incident repeat creates no identity and retains every independent scope");
     assert.equal(messagesFor(email).length, 1, "a repeated pending POST reserves no second confirmation in 24 hours");
     const confirmationUrl = messagesFor(email)[0].text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/)[0];
     assert.equal((await raw(confirmationUrl)).status, 200);
     const subscriber = (await list()).find(row => row.destination === email);
     assert.equal(subscriber.state, "active");
+    assert.equal(subscriber.id, original.id, "confirmation activates the original incident identity");
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory);
     assert.equal((await scope(subscriber.id)).incident_id, incident.id);
     assert.equal((await scope(subscriber.id)).include_report, 0);
     const activeRepeat = await subscribe(incident.id, { email });
     assert.equal(activeRepeat.status, 202);
     assert.equal(activeRepeat.text, accepted.text, "an active address receives the same no-enumeration answer");
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "an active incident repeat creates no identity and retains every independent scope");
     const reminders = messagesFor(email).filter(message => message.subject === "You are already subscribed to Synthetic Lamp follow-ups");
     assert.equal(reminders.length, 1, "an active incident follower receives one private already-subscribed email");
     assert.match(reminders[0].text, /^You are already subscribed to Synthetic Lamp follow-ups\. Manage this subscription: https:\/\/status\.example\.test\/manage\/\S+$/, "the SUB-012 email carries its management link and nothing else");
+    const repeatedActive = await subscribe(incident.id, { email });
+    assert.equal(repeatedActive.status, accepted.status);
+    assert.equal(repeatedActive.text, accepted.text);
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory);
+    assert.equal(messagesFor(email).length, 2, "incident repeats send only the original confirmation and one management email");
+    for (const independent of [pageSubscriber, otherSubscriber]) {
+      assert.equal((await api(`/api/app/subscribers/${independent.id}`, { method: "DELETE" })).status, 204);
+    }
+    assert.equal((await list()).find(row => row.id === original.id).state, "active", "removing independent scopes preserves the original active incident subscription");
     const operatorRows = await api(`/api/app/incidents/${incident.id}/subscribers`);
     assert.equal(operatorRows.status, 200, operatorRows.text);
     assert.ok(operatorRows.body.subscribers.some(row => row.id === subscriber.id && row.destination === email), "the incident's operator view lists its follower");
