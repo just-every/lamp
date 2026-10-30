@@ -10,6 +10,7 @@ import { smsSubscriberFlow } from './helpers/sms-subscriber-flow.mjs';
 import { statuspageWebhookFlow } from './helpers/statuspage-webhook-flow.mjs';
 import { mailFailoverFlow } from './helpers/mail-failover-flow.mjs';
 import { mailSettingsBrowserFlow } from './helpers/mail-settings-browser-flow.mjs';
+import { webhookAtMostOnceFlow } from './helpers/webhook-at-most-once-flow.mjs';
 
 // Consent, publication, delivery and erasure are exercised through the ordinary
 // operator/public HTTP doors and captured provider transports. No repository or
@@ -21,6 +22,7 @@ test('SUB-019 SUB-001 SUB-002 SUB-003 SUB-004 SUB-005 SUB-006 SUB-007 SUB-008 SU
   await subscriberCsvFlow();
   await statuspageWebhookFlow();
   await smsSubscriberFlow();
+  await webhookAtMostOnceFlow();
 });
 
 test('NOTIFY-013 NOTIFY-002 NOTIFY-003 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Owner-selected provider fallback preserves frozen notifications and reconciles delivery receipts', { timeout: 300_000 }, async t => {
