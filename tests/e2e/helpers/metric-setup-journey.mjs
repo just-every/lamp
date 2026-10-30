@@ -26,13 +26,13 @@ export async function metricSetupJourney({ api, post, component, origin, cookie 
     const panelOf = dialog => dialog.getByRole("region", { name: "Public performance metrics", exact: true });
     async function openComponent() {
       await page.goto(`${origin}/app/components`); await operatorHydrated(page);
-      await page.locator("article.component-row").filter({ has: page.getByText(target.name, { exact: true }) }).getByRole("button", { name: "Edit component", exact: true }).click();
+      await page.locator(".component-row").filter({ has: page.getByText(target.name, { exact: true }) }).getByRole("button", { name: target.name }).click();
       const dialog = page.getByRole("dialog", { name: target.name, exact: true });
       await panelOf(dialog).getByRole("button", { name: "Add metric", exact: true }).waitFor();
       return dialog;
     }
     async function closeComponent(dialog) {
-      await dialog.getByRole("button", { name: "Close component panel", exact: true }).click();
+      await dialog.getByRole("button", { name: "Close panel", exact: true }).click();
       await dialog.waitFor({ state: "hidden" });
     }
     const feeds = [

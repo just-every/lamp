@@ -95,8 +95,11 @@ test("MAINT-009 PAGE-020 — operator schedules, reschedules and publishes maint
     await page.reload(); await operatorHydrated(page);
     await scheduledRow.getByRole('button', { name: 'Start maintenance', exact: true }).waitFor();
     await page.goto(`${origin}/app/components`);
-    await page.locator(".component-row").filter({ hasText: "Configured-zone service" }).getByRole("button", { name: "Status history", exact: true }).click();
-    const drawer = page.getByRole("dialog");
+    await operatorHydrated(page);
+    await page.locator(".component-row").filter({ hasText: "Configured-zone service" }).getByRole("button", { name: "Configured-zone service" }).click();
+    const drawer = page.getByRole("dialog", { name: "Configured-zone service", exact: true });
+    await drawer.getByRole("button", { name: "History", exact: true }).click();
+    await drawer.getByText("Correct a past period", { exact: true }).click();
     assert.match(await drawer.innerText(), /Australia\/Brisbane/);
     await drawer.getByLabel("Starts at", { exact: true }).fill("2020-07-15T09:00");
     await drawer.getByLabel("Ends at", { exact: true }).fill("2020-07-15T10:00");

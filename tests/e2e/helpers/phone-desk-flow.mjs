@@ -83,11 +83,12 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     await page.goto(`${appUrl}/app/components`);
     await operatorHydrated(page);
     const row = page.locator('.component-row').filter({ hasText: component.name });
-    await row.getByRole('button', { name: 'Set status', exact: true }).click();
-    await page.getByRole('dialog').waitFor();
+    await row.getByRole('button', { name: component.name }).click();
+    const drawer = page.getByRole('dialog', { name: component.name, exact: true });
+    await drawer.getByRole('button', { name: 'Status', exact: true }).click();
     await inspect('claim');
-    await page.getByLabel('Service status').selectOption('Degraded performance');
-    await page.getByRole('button', { name: 'Save status', exact: true }).click();
+    await drawer.getByLabel('Service status').selectOption('Degraded performance');
+    await drawer.getByRole('button', { name: 'Save status', exact: true }).click();
     await row.getByText('Degraded performance', { exact: true }).waitFor();
     await inspect('components');
     await page.goto(`${appUrl}/app/maintenance`);
