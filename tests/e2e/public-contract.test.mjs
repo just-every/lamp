@@ -146,6 +146,14 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.ok((await page.locator('#status-live').innerText()).includes('Major outage'));
     // Later widget and accessibility checks use ordinary browser timers.
     await page.clock.resume();
+    if (process.env.LAMP_SCREENSHOTS) {
+      await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-scripted-refresh.png` });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).publicState, 'Major outage');
     assert.ok(firstStatus.generatedAt);
     const permalink = await j.publicText(`/incidents/${incident.reference}`);
@@ -251,8 +259,6 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
       for (const width of [1440, 390]) {
         await plain.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
         await plain.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-script-disabled-refresh.png` });
-        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-scripted-refresh.png` });
       }
     }
     await plain.locator('input[name=email]').fill('public-reader@example.test');
