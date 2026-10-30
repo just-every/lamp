@@ -54,6 +54,15 @@
       "environment": "SESSION_SECRET"
     },
     {
+      "binding": "INSTALLATION_KEY",
+      "environment": "INSTALLATION_KEY"
+    },
+    {
+      "binding": "INSTALLATION_KEY_PREVIOUS",
+      "environment": "INSTALLATION_KEY_PREVIOUS",
+      "optional": true
+    },
+    {
       "binding": "MAIL_PROVIDER_API_KEY",
       "environment": "MAIL_PROVIDER_API_KEY"
     },
@@ -100,6 +109,11 @@
     {
       "binding": "TWILIO_MESSAGING_SERVICE",
       "environment": "TWILIO_MESSAGING_SERVICE"
+    },
+    {
+      "binding": "RER_BUSINESS_TRUST",
+      "environment": "RER_BUSINESS_TRUST",
+      "optional": true
     }
   ],
   "crons": [

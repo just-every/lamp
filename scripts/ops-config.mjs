@@ -14,6 +14,12 @@ function required(env, name) {
   return value;
 }
 
+function installationKey(value, name) {
+  if (!value) return undefined;
+  if (!/^[a-f0-9]{64}$/.test(value)) throw new Error(`${name} must be 64 lowercase hexadecimal characters.`);
+  return value;
+}
+
 function authProviders(value) {
   if (!value) return undefined;
   try { if (!Array.isArray(JSON.parse(value))) throw new Error(); }
@@ -191,6 +197,8 @@ export function deploymentConfig(env = process.env, environment = "production", 
     mailFromAddress,
     setupOperatorEmail,
     sessionSecret: secret(required(env,"SESSION_SECRET"),"SESSION_SECRET"),
+    installationKey: installationKey(env.INSTALLATION_KEY, 'INSTALLATION_KEY'),
+    previousInstallationKey: installationKey(env.INSTALLATION_KEY_PREVIOUS, 'INSTALLATION_KEY_PREVIOUS'),
     setupToken: claimsOwner ? secret(required(env,"SETUP_TOKEN"),"SETUP_TOKEN") : optionalSecret(optional(env.SETUP_TOKEN),"SETUP_TOKEN"),
     setupOperatorDisplayName,
     mailProviderApiKey,

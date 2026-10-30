@@ -52,6 +52,8 @@ import { registerRerCutoverStatus } from '../features/statuspage-import/rer-cuto
 import { registerSocialRoutes } from "../features/social/routes";
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
+import { lampAgentDoor } from '../features/agent-door/index.server';
+import { lampBusinessSettings } from '../features/agent-door/business';
 
 export type { AppBindings } from "./types";
 
@@ -59,6 +61,22 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   const app = new Hono<AppEnv>();
   const authorizedReads = new WeakMap<Request, OperatorReadSession>();
   const services = createAppServices(bindings, createSnapshotBlobStore(bindings), execution);
+  let agentDoor: ReturnType<typeof lampAgentDoor> | undefined;
+  let businessSettings: ReturnType<typeof lampBusinessSettings> | undefined;
+  app.use('*', async (context, next) => {
+    const path = context.req.path;
+    if (path === '/mcp' || path === '/agents' || path.startsWith('/agents/') || path === '/api/rer/agent-policy' || path === '/.well-known/oauth-protected-resource' || path === '/.well-known/oauth-protected-resource/mcp') {
+      agentDoor ??= lampAgentDoor(bindings, services);
+      const response = await agentDoor.handle(context.req.raw);
+      if (response) return response;
+    }
+    if (['/api/rer/business-settings', '/rer-business-logo', '/rer-business.css'].includes(path)) {
+      businessSettings ??= lampBusinessSettings(bindings, services);
+      const response = await businessSettings.handle(context.req.raw);
+      if (response) return response;
+    }
+    return next();
+  });
   const healthService = createHealthService(createHealthRepository(bindings.DB), createDependencyProber(bindings.SNAPSHOTS, createQueueDispatcher(bindings.JOBS)), async () => {
     if (await services.publicSnapshots.hasCurrentSnapshot()) return true;
     if (!await createSetupRepository(bindings.DB).pageConfigured()) return false;

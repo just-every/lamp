@@ -24,6 +24,8 @@ const pagePathPrefixes = ["/subscribe/", "/history/", "/incidents/", "/maintenan
 // snapshot's. `/setup/state` and `/brand/` serve the Lobby, the app host's home page.
 const appExactPaths = new Set(["/setup/status", "/setup/state", "/setup", "/health", "/signin", "/lamp", "/docs", "/app", "/api/app", "/api/rer/cutover-status", "/rer-theme.css", "/api/chat/slack", "/api/chat/teams"]);
 const appPathPrefixes = ["/auth/", "/docs/", "/.well-known/rer-", "/app/", "/app-assets/", "/brand/", "/api/app/", "/api/v1/", "/v1/pages/", "/api/rer/import/", "/api/operator/import/", "/_serverFn/"];
+for (const path of ['/mcp', '/agents', '/api/rer/agent-policy', '/api/rer/business-settings', '/rer-business-logo', '/rer-business.css', '/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) appExactPaths.add(path);
+appPathPrefixes.push('/agents/');
 // Vite and TanStack Start request these modules only from `vite dev`. They are
 // never enabled by the emitted Worker, which continues to expose only the
 // declared app paths above. `/package.json` is the module the landing page reads
