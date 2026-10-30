@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
+import { parse } from 'parse5';
 
 export const recordedSlackExchange=JSON.parse(readFileSync(new URL('../fixtures/slack-subscriptions/oauth-exchange.json',import.meta.url),'utf8'));
 export const recordedSlackEvents=JSON.parse(readFileSync(new URL('../fixtures/slack-subscriptions/events.json',import.meta.url),'utf8'));
@@ -10,14 +11,30 @@ export const RECORDED_SLACK_TEAM=recordedSlackOAuth.team.id;
 
 /** Public subscription form, visitor-approved OAuth continuation and callback.
  * Only the enclosing fixture's recorded Slack HTTP exchange is substituted. */
-export async function prepareSlackSubscription({componentId,publicOrigin,sql,onManage}) {
+export async function prepareSlackSubscription({componentId,componentIds=[componentId],excludedComponentId,publicOrigin,sql,onManage}) {
   const page = await fetch(publicOrigin);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /<form[^>]+action="\/subscribe\/slack"/);
+  function* elements(node) {
+    yield node;
+    for (const child of node.childNodes ?? []) yield* elements(child);
+  }
+  const attribute = (node, name) => node.attrs?.find(attr => attr.name === name)?.value;
+  const nodes = [...elements(parse(await page.text()))];
+  const form = nodes.find(node => node.tagName === 'form' && attribute(node, 'action') === '/subscribe/slack');
+  assert.ok(form, 'the public page offers the Slack subscription form');
+  assert.equal(attribute(form, 'method'), 'post');
+  const controls = [...elements(form)];
+  const submit = controls.find(node => node.tagName === 'button' && attribute(node, 'type') === 'submit');
+  assert.ok(submit, 'the Slack form has a submit control');
+  assert.equal([...elements(submit)].filter(node => node.nodeName === '#text').map(node => node.value).join('').trim(), 'Get updates in Slack');
+  const choices = controls.filter(node => node.tagName === 'input' && attribute(node, 'name') === 'componentId');
+  for (const id of [...componentIds, ...(excludedComponentId ? [excludedComponentId] : [])]) {
+    assert.ok(choices.some(node => attribute(node, 'value') === id), 'selected and unrelated visible components are offered by the Slack form');
+  }
   assert.equal(page.headers.get('set-cookie'), null, 'the public subscription page stores no visitor cookie');
-  const start = await fetch(`${publicOrigin}/subscribe/slack`, {
+  const start = await fetch(new URL(attribute(form, 'action'), publicOrigin), {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'CF-Connecting-IP': '192.0.2.14' },
-    body: new URLSearchParams({ componentId }),
+    body: new URLSearchParams(componentIds.map(id => ['componentId', id])),
   });
   assert.equal(start.status, 200);
   assert.equal(start.headers.get('set-cookie'), null, 'the public Slack door stores no visitor cookie');
@@ -35,8 +52,14 @@ export async function prepareSlackSubscription({componentId,publicOrigin,sql,onM
   const management = (await confirmed.text()).match(/href="(\/manage\/[^"]+)"/);
   assert.ok(management, 'the channel visitor receives a management link after authorization');
   if (onManage) await onManage(new URL(management[1], publicOrigin).href);
-  const row=(await sql("SELECT s.id,s.channel,s.state,s.destination,d.sealed_url,t.slack_team_id FROM subscriber_directory s JOIN subscriber_chat_destinations t ON t.subscriber_id=s.id JOIN delivery_channel_destinations d ON d.id=s.id WHERE s.channel='slack'"))[0];
+  const row=(await sql("SELECT s.id,s.channel,s.state,s.destination,s.selection_mode,d.sealed_url,t.slack_team_id,t.slack_channel_id,t.name FROM subscriber_directory s JOIN subscriber_chat_destinations t ON t.subscriber_id=s.id JOIN delivery_channel_destinations d ON d.id=s.id WHERE s.channel='slack'"))[0];
   assert.equal(row.channel,'slack');assert.equal(row.state,'active');assert.equal(row.slack_team_id,RECORDED_SLACK_TEAM);
+  assert.equal(row.slack_channel_id,recordedSlackOAuth.incoming_webhook.channel_id);
+  assert.equal(row.name,recordedSlackOAuth.incoming_webhook.channel);
+  assert.ok(row.sealed_url, 'the active subscriber has an encrypted webhook');
+  assert.equal(row.selection_mode,'selected');
+  const selected = await sql(`SELECT component_id FROM subscriber_components WHERE subscriber_id='${row.id}' ORDER BY component_id`);
+  assert.deepEqual(selected.map(component => component.component_id), [...componentIds].sort(), 'the OAuth callback persists exactly the visitor-selected component identities, excluding unrelated visible components');
   assert.doesNotMatch(JSON.stringify(row),/synthetic-lamp-3/,'webhook is only stored encrypted');
   return row.id;
 }
