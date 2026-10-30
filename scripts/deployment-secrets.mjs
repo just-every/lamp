@@ -31,10 +31,11 @@ export function ignoredOidcSecretNotice(config, kept) {
 
 /** The signing secrets this upload leaves as they are on a Worker that holds them. */
 export function keptSecrets(held, replace = []) {
-  return signingSecrets.filter(name => held.includes(name) && !replace.includes(name));
+  return [...signingSecrets, 'INSTALLATION_KEY'].filter(name => held.includes(name) && !replace.includes(name));
 }
 
 export async function withDeploymentSecrets(config, kept, action) {
+  if (!config.installationKey && !kept.includes('INSTALLATION_KEY')) throw new Error('INSTALLATION_KEY is required for a new deployment. Use rer deploy so the installer generates and retains its private custody.');
   const directory = await mkdtemp(join(tmpdir(), 'lamp-deploy-secrets-'));
   const file = join(directory, 'secrets.json');
   const values = {
@@ -44,6 +45,8 @@ export async function withDeploymentSecrets(config, kept, action) {
     MAIL_PROVIDER_API_KEY: config.mailProviderApiKey ?? "",
     MAIL_API_KEY: config.mailApiKey ?? "",
     SESSION_SECRET: config.sessionSecret,
+    ...(config.installationKey ? { INSTALLATION_KEY: config.installationKey } : {}),
+    ...(config.previousInstallationKey ? { INSTALLATION_KEY_PREVIOUS: config.previousInstallationKey } : {}),
     SETUP_TOKEN: config.setupToken,
     AUTH_PROVIDERS:config.authProviders??"",
     // Absent, it is left out rather than blanked: Wrangler keeps what the Worker holds.

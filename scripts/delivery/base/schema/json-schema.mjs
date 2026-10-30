@@ -23,8 +23,8 @@ function isDeepStrictEqual(left, right) {
 const SUPPORTED = new Set([
   '$schema', '$id', '$ref', '$defs', 'title', 'description',
   'type', 'enum', 'const', 'required', 'properties', 'additionalProperties',
-  'propertyNames', 'items', 'minItems', 'minLength', 'pattern', 'format',
-  'allOf', 'if', 'then', 'uniqueItems'
+  'propertyNames', 'items', 'minItems', 'maxItems', 'minLength', 'pattern', 'format',
+  'allOf', 'if', 'then', 'not', 'uniqueItems'
 ]);
 
 // The supported keywords whose value holds subschemas, and how they hold them:
@@ -37,7 +37,8 @@ const SUBSCHEMAS = {
   items: 'schema',
   allOf: 'list',
   if: 'schema',
-  then: 'schema'
+  then: 'schema',
+  not: 'schema'
 };
 
 const SUPPORTED_FORMATS = new Set(['date']);
@@ -138,6 +139,9 @@ export function validate(schema, data, { root = schema, path = '$', label = '' }
   if (Object.hasOwn(schema, 'const') && data !== schema.const) {
     fail(`expected ${JSON.stringify(schema.const)}`);
   }
+  if (schema.not && validate(schema.not, data, { root, path }).length === 0) {
+    fail('must not match excluded schema');
+  }
 
   if (actual === 'string') {
     if (schema.minLength !== undefined && data.length < schema.minLength) fail(`must not be empty`);
@@ -180,6 +184,9 @@ export function validate(schema, data, { root = schema, path = '$', label = '' }
     }
     if (schema.minItems !== undefined && data.length < schema.minItems) {
       fail(`needs at least ${schema.minItems} item(s)`);
+    }
+    if (schema.maxItems !== undefined && data.length > schema.maxItems) {
+      fail(`needs at most ${schema.maxItems} item(s)`);
     }
     if (schema.items) {
       data.forEach((item, index) => {

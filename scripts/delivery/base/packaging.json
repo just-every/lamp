@@ -87,7 +87,8 @@
         "SETUP_TOKEN",
         "SESSION_SECRET",
         "SUBSCRIBER_TOKEN_SECRET",
-        "WEBHOOK_SIGNING_SECRET"
+        "WEBHOOK_SIGNING_SECRET",
+        "INSTALLATION_KEY"
       ],
       "optionalSecretNames": [
         "RESEND_WEBHOOK_SECRET",
@@ -100,7 +101,8 @@
         "TWILIO_ACCOUNT_SID",
         "TWILIO_AUTH_TOKEN",
         "TWILIO_FROM_NUMBER",
-        "TWILIO_MESSAGING_SERVICE"
+        "TWILIO_MESSAGING_SERVICE",
+        "INSTALLATION_KEY_PREVIOUS"
       ],
       "migrationPrefix": "core-",
       "recovery": "Retain source and database backup before migration. Preserve applied migration history. Restore into fresh installation resources and verify owner workflows before switching traffic.",
