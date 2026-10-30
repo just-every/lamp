@@ -3116,6 +3116,8 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
+Judged from the code and tests at commit `a7d2e0d6e2abc162e799685fba4c46956742c45b` (30 October 2026); DRAFT-004 is rechecked on the landing candidate, whose brief and journey bytes are unchanged. Earlier clause judgments and their provenance below are retained.
+
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
@@ -3124,9 +3126,9 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3305,7 +3307,7 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 | `AUTO-004` | Post-incident report follow-up | target | partial | `src/core/features/reports/repository.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/routes.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/release/upgrade.test.mjs`, `tests/e2e/helpers/follow-ups-flow.mjs`, `tests/e2e/helpers/report-reminders-flow.mjs` | Old cited evidence asserts Owner email recipient; Operator channel count; Repeated day-seven tick has the expected exact email count; Repeated day-seven tick has the expected exact Slack/Teams counts. Unasserted: Waiver audit timestamp read back; Live publication starts reminders on previously historical import. |
 | `DRAFT-001` | Suggested update | published | partial | `tests/e2e/incident-brief.test.mjs` | Old cited evidence asserts Known references retained; Unknown and question references removed; Suggestion result has no lifecycle field; Suggestion result has no next-update field. Unasserted: Nonempty fields filled and empty results preserved; Every field editable; Unsourced text visibly marked; Sources beside fields open brief. |
 | `DRAFT-002` | Inputs | published | partial | `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs` | The exact brief and exclusion of populated internal notes/components are asserted. The configured tone instructions are not read back from the provider request in the old Evidence set. |
-| `DRAFT-004` | Incident brief | published | partial | `tests/e2e/incident-brief.test.mjs` | Old cited evidence asserts Alert count; Alert source record.; Alert time; The brief lists exactly the attached public component names. Unasserted: No-component question; Building brief sends no model request; Collapsed page matches model input. |
+| `DRAFT-004` | Incident brief | published | done | Acceptance 1–5: `tests/e2e/incident-brief.test.mjs` (authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails): complete accepted-alert, publication and public-component facts, all computed questions including native detachment, stable references and model-free reads with provider-request counts. Acceptance 6: `tests/e2e/publishing-browser.test.mjs` (compiled visual edits and the operator publication journey): collapsed Assistant input opened through the operator page equals the captured successful provider user message; opening makes no provider request. |  |
 | `DRAFT-003` | Absent or failing provider | published | partial | `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The old Evidence asserts no-provider suppression, visible failure, timeout error before 21 seconds and ordinary publication after both failures. It does not assert the exact 20-second bound or every other publication path. Agent-policy parity remains a new SURFACE obligation; these product-source statuses are not promoted. |
 | `TEAM-001` | Equal operators | published | done | `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials); `tests/e2e/publishing-browser.test.mjs` (TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves server-enforced access under TEAM-004. |  |
 | `TEAM-002` | Management | published | partial | `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs` | Old cited evidence asserts Native operator-removal route durably deactivates the identity; Native operator-removal route anonymizes the email; Another owner cannot revoke setup owner; Self-removal succeeds. Unasserted: Settings invitation outcome; Settings removal is completed through the browser; Other owner cannot delete setup owner while still active. |
