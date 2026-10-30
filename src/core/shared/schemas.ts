@@ -37,6 +37,8 @@ export const pageSettingsSchema = z.object({
   wordingFriendlyLength: z.number().int().min(1).max(500).optional(),
 }).strict();
 
+export const componentNoteSchema = z.string().max(250);
+
 export const componentSchema = z.object({
   groupId: z.string().nullable(),
   name: nonEmptyText(120),
@@ -46,7 +48,7 @@ export const componentSchema = z.object({
   onlyShowIfDegraded: z.boolean().optional(),
   uptimeStartDate: z.iso.date().nullable().optional(),
   displayOrder: z.number().int().min(0),
-  note: optionalText(250),
+  note: componentNoteSchema.default(""),
 }).strict();
 
 export const componentCreateSchema = componentSchema.extend({
@@ -60,7 +62,7 @@ export const componentGroupSchema = z.object({
 
 // Ordinary edits omit ordering; only an explicit order changes it. Creation still
 // requires a selected starting position.
-export const componentUpdateSchema = componentSchema.partial({ displayOrder: true });
+export const componentUpdateSchema = componentSchema.extend({ note: componentNoteSchema }).partial({ displayOrder: true });
 export const componentGroupUpdateSchema = componentGroupSchema.partial({ displayOrder: true });
 
 export const componentHistoryCorrectionSchema = z.object({
