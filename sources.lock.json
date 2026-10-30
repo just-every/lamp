@@ -6644,7 +6644,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "faa026c6237bb9fdff8479f31798a7131c73c4bcb87d47eb10b100ce1af61dbb",
+      "sha256": "8d5e534e540df77fdc4dda7bd528a1c04c9d52b3514e182150716ca27ddf91ec",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -6869,6 +6869,10 @@
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {
       "sha256": "a408259db40f8b6b456386b7f80495ea556a592deb04d338272248f3d01c0593",
+      "executable": false
+    },
+    "tests/e2e/helpers/preset-recovery-flow.mjs": {
+      "sha256": "e0127bec2092b6709f33d190c112a3d4f97b0f045435029ad531098fcaa4b342",
       "executable": false
     },
     "tests/e2e/helpers/public-capacity-journey.mjs": {
