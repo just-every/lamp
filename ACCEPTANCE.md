@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `edda67606ef96b9c072d4b3ea632709de17dbae5` (30 October 2026); MAINT-003 is rechecked on the exact landing candidate identified by its branch Verify, and earlier clause judgments are retained from commit `3dc898cb600137dab8979f671f0fbefb46d3419b`. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -716,7 +716,7 @@ Core · published · **partial**
 
 #### MAINT-003 — Component states
 
-Core · published · **partial**
+Core · published · **done**
 
 **Requirement.** Maintenance temporarily contributes claims without discarding others.
 
@@ -725,8 +725,8 @@ Core · published · **partial**
 2. It contributes no claim before starting or after completion.
 3. COMP-006 applies throughout, retaining preexisting operator and incident claims after the window.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: Under maintenance during window; claim released on completion; no claim before start. Unasserted in old cited evidence: operator claim survives; incident claim survives; aggregate reconciles throughout.
+**Evidence.** `tests/e2e/publishing-contract.test.mjs` (MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history). Acceptance 1: every attachment retains an Under maintenance claim, active during In progress. Acceptance 2: no active maintenance claim before start or after completion; the unclaimed control returns to Operational. Acceptance 3: exact preexisting standing and published incident claim records survive scheduling, start, overrun, extension and completion unchanged; independent operator and public component reads retain Degraded performance and Major outage alongside the control's literal state, and the public overall state remains Major outage.
+**Gap.** None.
 
 #### MAINT-004 — Overrun
 

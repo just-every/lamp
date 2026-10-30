@@ -178,6 +178,7 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     const incident = await j.incident('Database replication unavailable', [incidentComponent]);
     await j.save(incident.id);
     await j.publish(incident.id);
+    const publishedIncident = await j.read(incident.id);
     const standingClaims = async () => (await j.db.prepare('SELECT * FROM component_standing_claims ORDER BY component_id, id').all()).results;
     const incidentClaims = async () => (await j.db.prepare('SELECT * FROM incident_components ORDER BY component_id, id').all()).results;
     const retainedStanding = await standingClaims();
@@ -206,7 +207,9 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
       assert.equal((await list()).state, phase);
       assert.deepEqual(await standingClaims(), retainedStanding, `${phase}: the exact standing claim survives`);
       assert.deepEqual(await incidentClaims(), retainedIncident, `${phase}: the exact published incident claim survives`);
-      assert.equal((await j.read(incident.id)).lifecycle, 'Identified');
+      const currentIncident = await j.read(incident.id);
+      assert.equal(currentIncident.lifecycle, 'Identified');
+      assert.deepEqual(currentIncident.components, publishedIncident.components, `${phase}: native incident attachments are unchanged`);
       assert.deepEqual(await attachments(), retainedAttachments, `${phase}: every maintenance attachment is retained`);
       const activeClaims = (await j.db.prepare(`SELECT attached.* FROM maintenance_components AS attached
         JOIN maintenance AS window ON window.id = attached.maintenance_id
