@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { parse } from 'parse5';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
 import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
@@ -97,7 +98,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.ok(!(await j.publicText(`/incidents/${incident.reference}`)).includes('overdue'));
 
     await saveReviewed(incident.id, { lifecycle: 'Resolved', customerImpact: 'Payment processing has recovered.', nextUpdateAt: null });
-    await j.publish(incident.id);
+    const resolution = (await j.publish(incident.id)).update;
     const resolved = await j.read(incident.id);
     assert.equal(resolved.lifecycle, 'Resolved');
     assert.equal(typeof resolved.resolvedAt, 'string');
@@ -118,8 +119,31 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.ok(!(await j.json('/api/app/reports/owing')).incidentIds.includes(incident.id));
 
     await saveReviewed(incident.id, { lifecycle: 'Investigating', customerImpact: 'Payments need another investigation.' });
-    await j.publish(incident.id);
-    assert.equal((await j.read(incident.id)).lifecycle, 'Investigating');
+    const reopening = (await j.publish(incident.id)).update;
+    const reopened = await j.read(incident.id);
+    assert.equal(reopened.lifecycle, 'Investigating');
+    assert.deepEqual(reopened.updates.find(row => row.id === resolution.id), resolution);
+    assert.deepEqual(reopened.updates.find(row => row.id === reopening.id), reopening);
+    assert.notEqual(reopening.id, resolution.id);
+    assert.notEqual(reopening.publishedAt, resolution.publishedAt);
+    const reopenedTimeline = await j.visible(`/incidents/${incident.reference}`, 'Payments need another investigation.');
+    const descendants = node => [node, ...(node.childNodes ?? []).flatMap(descendants)];
+    const text = node => descendants(node).filter(child => child.nodeName === '#text').map(child => child.value).join('');
+    const attribute = (node, name) => node.attrs?.find(attr => attr.name === name)?.value;
+    const articles = descendants(parse(reopenedTimeline)).filter(node => node.tagName === 'article' && attribute(node, 'class')?.split(' ').includes('update'));
+    for (const [update, lifecycle, customerImpact] of [
+      [resolution, 'Resolved', 'Payment processing has recovered.'],
+      [reopening, 'Investigating', 'Payments need another investigation.'],
+    ]) {
+      const matching = articles.filter(article => descendants(article).some(node => node.tagName === 'dd' && text(node) === customerImpact));
+      assert.equal(matching.length, 1, `${lifecycle} wording remains in its own public update article after reopening`);
+      const header = descendants(matching[0]).find(node => attribute(node, 'class') === 'update-head');
+      assert.ok(header, `${lifecycle} has its public publication header`);
+      assert.equal(text(header.childNodes.find(node => node.tagName === 'strong')), lifecycle);
+      const published = descendants(header).filter(node => node.tagName === 'time');
+      assert.equal(published.length, 1, `${lifecycle} has one associated publication time`);
+      assert.equal(attribute(published[0], 'datetime'), update.publishedAt, `${lifecycle} retains its exact publication instant`);
+    }
     await saveReviewed(incident.id, { lifecycle: 'Resolved', nextUpdateAt: null });
     await owner();
     const scheduleAt = Date.now() + 10000;
