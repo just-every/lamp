@@ -6611,6 +6611,10 @@
       "sha256": "fd34447e287da392d0db63fc2f3adc494b62f5963bafebb313a805e3f6ba1912",
       "executable": false
     },
+    "tests/chat-desk/settings-browser-flow.mjs": {
+      "sha256": "3f9658802adaf24b51fe8a661c250dd1580eb5a514d9ce28926c70eaa974047b",
+      "executable": false
+    },
     "tests/contract.mjs": {
       "sha256": "31424811e59c04bbbf9f16a2698557c1bdbca6104d4c12d816751ea81436f47e",
       "executable": false
