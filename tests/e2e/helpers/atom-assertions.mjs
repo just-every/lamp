@@ -67,7 +67,8 @@ assert any(link.get('rel') == 'self' and link.get('type') == 'application/atom+x
 entries = []
 for entry in root.findall(ns + 'entry'):
     entry_id = iri(text(entry, 'id'))
-    assert has_author or authors(entry), 'entry requires its own author or a feed author'
+    entry_author = authors(entry)
+    assert has_author or entry_author, 'entry requires its own author or a feed author'
     entry_links = links(entry)
     alternate = [link for link in entry_links if link.get('rel', 'alternate') == 'alternate']
     assert len(alternate) == 1 and alternate[0].get('type') == 'text/html', 'one HTML permanent link'

@@ -34,7 +34,7 @@ export async function atomHistoryFlow() {
     const candidates = maintenance.notices.filter(row => row.kind === kind && row.publishedAt === clock);
     assert.equal(candidates.length, 1, `the native response committed one ${kind} notice at the chosen instant`);
     const saved = candidates[0];
-    retain({ recordId: maintenance.id, atomId: `${feedId}:event:maintenance-notice-${saved.id}`, publishedAt: clock,
+    retain({ recordId: maintenance.id, noticeId: saved.id, kind, atomId: `${feedId}:event:maintenance-notice-${saved.id}`, publishedAt: clock,
       href: `${j.publicOrigin}/maintenance/${maintenance.reference}`, title: `${maintenance.reference}: ${maintenance.title} — ${kind}`, wording: maintenance.customerImpact });
     return saved;
   };
@@ -129,6 +129,14 @@ export async function atomHistoryFlow() {
     await schedule('Synthetic Lamp private window', [internal]);
     const draftOnly = await j.incident('Synthetic Lamp unpublished incident', [component]);
     await j.save(draftOnly.id, { details: 'Unpublished wording never reaches Atom.', nextUpdateAt: null });
+    const nativeMaintenance = (await j.json('/api/app/maintenance')).maintenance;
+    for (const event of events.filter(row => row.noticeId)) {
+      const record = nativeMaintenance.find(row => row.id === event.recordId);
+      const persisted = record.notices.filter(row => row.id === event.noticeId);
+      assert.equal(persisted.length, 1, 'independent native readback retains exactly one committed notice');
+      assert.equal(persisted[0].kind, event.kind);
+      assert.equal(persisted[0].publishedAt, event.publishedAt, 'the persisted notice retains its original publication instant');
+    }
     expected = events.filter(event => event.publishedAt.startsWith('2032-'));
     const settled = await readFeed(expected);
     assert.doesNotMatch(settled.xml, /Internal wording|Unpublished wording|private window|private incident/);
