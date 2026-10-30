@@ -124,8 +124,13 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   const teamsChannel = teamsCreated.body.channel;
   const otherCreated = await post("/api/app/channels", { kind: "slack", name: "#other", url: SLACK_B, componentIds: [(await component("Search")).id] });
   assert.equal(otherCreated.status, 201, otherCreated.text);
-  const refused = await post("/api/app/channels", { kind: "slack", name: "#bad", url: "https://example.com/services/a/b/c", componentIds: [] });
-  assert.equal(refused.status, 400);
+  const refusals = [];
+  for (const kind of ["slack", "teams"]) {
+    const refused = await post("/api/app/channels", { kind, name: "#bad", url: "https://example.com/services/a/b/c", componentIds: [] });
+    assert.equal(refused.status, 400, `${kind} refuses a nonprovider host`);
+    refusals.push(refused);
+  }
+  assert.equal(received.length, 0, "saving or refusing a destination sends no webhook request");
   const listed = await api("/api/app/channels");
   const destinations = sql("SELECT * FROM channel_destinations");
   const credentials = [SLACK_A, SLACK_B, TEAMS, new URL(TEAMS).href, ...[SLACK_A, SLACK_B].map(url => new URL(url).pathname), "synthetic-lamp-3", "synthetic-lamp-6", "synthetic-lamp-8"];
@@ -161,7 +166,7 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
     }
     assert.doesNotMatch(response.text, /"(?:sealedUrl|sealed_url)"\s*:/, `${door} omits sealed destination fields`);
   }
-  for (const [door, response] of [["Slack create", created], ["Teams create", teamsCreated], ["other create", otherCreated], ["list", listed], ["host refusal", refused]]) assertCredentialsHidden(response, door);
+  for (const [door, response] of [["Slack create", created], ["Teams create", teamsCreated], ["other create", otherCreated], ["list", listed], ...refusals.map(response => ["host refusal", response])]) assertCredentialsHidden(response, door);
   for (const secret of credentials) {
     assert.ok(!listed.text.includes(secret), "listed channels hide webhook credentials");
     assert.ok(!JSON.stringify(destinations).includes(secret), "only ciphertext is stored");
@@ -246,7 +251,7 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
     assert.equal(afterRemoval.status, 404, afterRemoval.text);
     assertCredentialsHidden(afterRemoval, "test after removal");
   }
-  for (const secret of credentials) assert.ok(!runtime.output.includes(secret), "channel operations never log webhook credentials");
+  for (const secret of [...credentials, ...destinations.map(row => row.sealed_url)]) assert.ok(!runtime.output.includes(secret), "channel operations never log webhook credentials or ciphertext");
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
   await socialBrowserFlow({ origin, devLink: async () => `${origin}/__dev/key#${new URLSearchParams({ 'rer-dev': devKey, as: 'owner' })}`, diagnostic: text => t.diagnostic(text) });
   await runtime.stop();
