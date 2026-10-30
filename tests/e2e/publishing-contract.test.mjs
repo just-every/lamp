@@ -4,6 +4,7 @@ import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
 import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
 import { assertEmptyCalendar, validateMaintenanceCalendar } from './helpers/calendar-assertions.mjs';
+import { reportPublicationFlow } from './helpers/report-publication-flow.mjs';
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
   const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' } });
@@ -166,6 +167,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const audit = await j.json('/api/app/audit-log?limit=100');
     assert.ok(audit.entries.some(row => row.entityId === incident.id && row.reason === 'Duplicate incident replaced after review'));
   } finally { await j.close(); }
+  await reportPublicationFlow();
 });
 
 test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAINT-009 MAINT-013 — owner schedules, announces, starts, extends and completes maintenance without losing window or calendar history', async () => {
