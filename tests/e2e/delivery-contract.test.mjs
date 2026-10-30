@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { createServer } from 'vite';
 import { subscriberAddFlow } from './helpers/subscriber-add-flow.mjs';
 import { subscriberPreferencesFlow } from './helpers/subscriber-preferences-flow.mjs';
+import { subscriberComponentsFlow } from './helpers/subscriber-components-flow.mjs';
 import { subscriberCsvFlow } from './helpers/subscriber-csv-flow.mjs';
 import { smsSubscriberFlow } from './helpers/sms-subscriber-flow.mjs';
 import { statuspageWebhookFlow } from './helpers/statuspage-webhook-flow.mjs';
@@ -16,6 +17,7 @@ import { mailSettingsBrowserFlow } from './helpers/mail-settings-browser-flow.mj
 test('SUB-019 SUB-001 SUB-002 SUB-003 SUB-004 SUB-005 SUB-006 SUB-007 SUB-008 SUB-009 SUB-010 SUB-011 SUB-012 SUB-013 SUB-016 SUB-017 SUB-018 SUB-020 PAGE-013 HIST-007 TEAM-003 TEAM-004 UPDATE-008 — Subscriber consent, selected publication, channel delivery, export and erasure', { timeout: 600_000 }, async () => {
   await subscriberAddFlow();
   await subscriberPreferencesFlow();
+  await subscriberComponentsFlow();
   await subscriberCsvFlow();
   await statuspageWebhookFlow();
   await smsSubscriberFlow();
