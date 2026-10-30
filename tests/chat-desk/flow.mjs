@@ -16,57 +16,69 @@ function token(audience, { invalid = false, stale = false } = {}) {
   return `${body}.${(invalid ? randomBytes(256) : sign('RSA-SHA256', Buffer.from(body), keyPair.privateKey)).toString('base64url')}`;
 }
 async function response(response) { return { status: response.status, body: await response.json() }; }
+export { jwk as chatSigningKey };
+
+// Shared real signing and wire payloads for native and Settings browser proof.
+export function chatTransports(getRuntime) {
+  const slack = async (action, options = {}) => {
+    const r = getRuntime();
+    const payload = structuredClone(slackFixture); payload.user.id = options.unlinked ? 'synthetic-lamp-99' : payload.user.id;
+    if (options.identity) { payload.team.id = options.identity.tenant; payload.user.id = options.identity.subject; }
+    payload.actions[0].value = JSON.stringify(action);
+    if (options.card) {
+      const button = options.card.blocks.flatMap(block => block.elements ?? []).find(element => element.text?.text === options.control);
+      assert.ok(button, `Slack card exposes ${options.control}`);
+      payload.actions = [structuredClone(button)];
+      payload.state = { values: Object.fromEntries(options.card.blocks.filter(block => block.type === 'input').map(block => {
+        const input = block.element, value = options.values?.[block.block_id] ?? input.initial_value ?? input.initial_option?.value ?? '';
+        let selected;
+        if (input.type === 'multi_static_select') {
+          selected = { selected_options: value.map(id => { const option = input.options.find(option => option.value === id); assert.ok(option, `Slack offers ${id}`); return option; }) };
+        } else if (input.type === 'static_select') {
+          const option = input.options.find(option => option.value === value); assert.ok(option, `Slack offers ${value}`); selected = { selected_option: option };
+        } else selected = { value };
+        return [block.block_id, { [input.action_id]: selected }];
+      })) };
+    }
+    if (options.badResponse) payload.response_url = 'https://untrusted.example.test/response';
+    const raw = options.code || options.compose ? new URLSearchParams({ command: '/lamp', team_id: payload.team.id, user_id: payload.user.id, text: options.compose ? 'incident' : `link ${options.code}` }).toString() : new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
+    const timestamp = String(Math.floor(Date.now() / 1000) - (options.stale ? 301 : 0));
+    const signature = `v0=${createHmac('sha256', r.signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex')}`;
+    return response(await r.worker.dispatchFetch((r.origin ?? origin) + '/api/chat/slack', { method: 'POST', body: options.tampered ? `${raw}&changed=1` : raw, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': options.invalid ? `v0=${'0'.repeat(64)}` : signature } }));
+  };
+  const teams = async (action, options = {}) => {
+    const r = getRuntime();
+    const body = structuredClone(teamsFixture);
+    if (options.unlinked) body.from.aadObjectId = 'synthetic-lamp-99';
+    if (options.identity) { body.channelData.tenant.id = options.identity.tenant; body.from.aadObjectId = options.identity.subject; }
+    if (options.code) { body.type = 'message'; body.text = `link ${options.code}`; delete body.name; delete body.value; }
+    else if (options.compose) { body.name = 'composeExtension/fetchTask'; body.value = { commandId: 'incident' }; }
+    else if (options.card) {
+      const control = options.card.actions.find(control => control.title === options.control);
+      assert.ok(control, `Teams card exposes ${options.control}`);
+      const values = Object.fromEntries(options.card.body.filter(input => input.type.startsWith('Input.')).map(input => {
+        const value = options.values?.[input.id] ?? input.value ?? '';
+        if (input.choices && value) for (const choice of String(value).split(',')) assert.ok(input.choices.some(option => option.value === choice), `Teams offers ${choice}`);
+        return [input.id, value];
+      }));
+      if (control.type === 'Action.Submit') {
+        body.name = 'composeExtension/submitAction';
+        body.value = { commandId: 'incident', parameters: Object.entries({ ...control.data, ...values }).map(([name, value]) => ({ name, value })) };
+      } else body.value.action = { ...structuredClone(control), data: { ...control.data, ...(control.associatedInputs === 'none' ? {} : values) } };
+    }
+    else if (options.extension) { body.name = 'composeExtension/submitAction'; body.value = { commandId: 'incident', parameters: Object.entries(action).filter(([name]) => name !== 'action').map(([name, value]) => ({ name, value })) }; }
+    else body.value.action.data = action;
+    return response(await r.worker.dispatchFetch((r.origin ?? origin) + '/api/chat/teams', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token(options.wrongAudience ? 'synthetic-lamp-incorrect' : r.appId, options)}` } }));
+  };
+  return { slack, teams };
+}
+
 export async function chatDeskNativeFlow(t) {
   let r;
   try {
     r = await runtime(t, [jwk]);
     assert.equal((await r.worker.dispatchFetch(origin + '/api/app/chat-links')).status, 401, 'chat-link management requires an operator session');
-    const slack = async (action, options = {}) => {
-      const payload = structuredClone(slackFixture); payload.user.id = options.unlinked ? 'synthetic-lamp-99' : payload.user.id;
-      payload.actions[0].value = JSON.stringify(action);
-      if (options.card) {
-        const button = options.card.blocks.flatMap(block => block.elements ?? []).find(element => element.text?.text === options.control);
-        assert.ok(button, `Slack card exposes ${options.control}`);
-        payload.actions = [structuredClone(button)];
-        payload.state = { values: Object.fromEntries(options.card.blocks.filter(block => block.type === 'input').map(block => {
-          const input = block.element, value = options.values?.[block.block_id] ?? input.initial_value ?? input.initial_option?.value ?? '';
-          let selected;
-          if (input.type === 'multi_static_select') {
-            selected = { selected_options: value.map(id => { const option = input.options.find(option => option.value === id); assert.ok(option, `Slack offers ${id}`); return option; }) };
-          } else if (input.type === 'static_select') {
-            const option = input.options.find(option => option.value === value); assert.ok(option, `Slack offers ${value}`); selected = { selected_option: option };
-          } else selected = { value };
-          return [block.block_id, { [input.action_id]: selected }];
-        })) };
-      }
-      if (options.badResponse) payload.response_url = 'https://untrusted.example.test/response';
-      const raw = options.code || options.compose ? new URLSearchParams({ command: '/lamp', team_id: payload.team.id, user_id: payload.user.id, text: options.compose ? 'incident' : `link ${options.code}` }).toString() : new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
-      const timestamp = String(Math.floor(Date.now() / 1000) - (options.stale ? 301 : 0));
-      const signature = `v0=${createHmac('sha256', r.signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex')}`;
-      return response(await r.worker.dispatchFetch(origin + '/api/chat/slack', { method: 'POST', body: options.tampered ? `${raw}&changed=1` : raw, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': options.invalid ? `v0=${'0'.repeat(64)}` : signature } }));
-    };
-    const teams = async (action, options = {}) => {
-      const body = structuredClone(teamsFixture);
-      if (options.unlinked) body.from.aadObjectId = 'synthetic-lamp-99';
-      if (options.code) { body.type = 'message'; body.text = `link ${options.code}`; delete body.name; delete body.value; }
-      else if (options.compose) { body.name = 'composeExtension/fetchTask'; body.value = { commandId: 'incident' }; }
-      else if (options.card) {
-        const control = options.card.actions.find(control => control.title === options.control);
-        assert.ok(control, `Teams card exposes ${options.control}`);
-        const values = Object.fromEntries(options.card.body.filter(input => input.type.startsWith('Input.')).map(input => {
-          const value = options.values?.[input.id] ?? input.value ?? '';
-          if (input.choices && value) for (const choice of String(value).split(',')) assert.ok(input.choices.some(option => option.value === choice), `Teams offers ${choice}`);
-          return [input.id, value];
-        }));
-        if (control.type === 'Action.Submit') {
-          body.name = 'composeExtension/submitAction';
-          body.value = { commandId: 'incident', parameters: Object.entries({ ...control.data, ...values }).map(([name, value]) => ({ name, value })) };
-        } else body.value.action = { ...structuredClone(control), data: { ...control.data, ...(control.associatedInputs === 'none' ? {} : values) } };
-      }
-      else if (options.extension) { body.name = 'composeExtension/submitAction'; body.value = { commandId: 'incident', parameters: Object.entries(action).filter(([name]) => name !== 'action').map(([name, value]) => ({ name, value })) }; }
-      else body.value.action.data = action;
-      return response(await r.worker.dispatchFetch(origin + '/api/chat/teams', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token(options.wrongAudience ? 'synthetic-lamp-incorrect' : r.appId, options)}` } }));
-    };
+    const { slack, teams } = chatTransports(() => r);
     const componentIds = [];
     for (const n of [1, 2, 3]) {
       const created = await r.call('/api/app/components', { groupId: null, name: `synthetic-lamp-${n}`, description: '', internal: false, displayOrder: n, note: '' });
