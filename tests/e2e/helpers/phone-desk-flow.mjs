@@ -39,7 +39,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     const { incidentId } = await intake.json();
     const before = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
     assert.equal(before.updates.length, 0, 'accepted evidence stays private until the operator publishes');
-    await page.goto(`${appUrl}/app/alerts`);
+    await page.goto(`${appUrl}/app/settings#tools`);
     await operatorHydrated(page);
     await inspect('alerts');
     await page.locator(`a[href="/app/incidents/${incidentId}"]`).click();

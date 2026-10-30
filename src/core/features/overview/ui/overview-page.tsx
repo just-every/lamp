@@ -1,4 +1,3 @@
-import { CommunicationPerformance } from "../../communication-performance/ui/communication-performance";
 import { Link } from "@tanstack/react-router";
 
 import { LiveStrip } from "./live-strip";
@@ -73,7 +72,6 @@ export function OverviewPage() {
       </article>
     </section>
     <FollowUps />
-    <CommunicationPerformance />
     <ClientExtensionSlot id="overview.dashboard.after.v1" context={{}} />
   </div>;
 }

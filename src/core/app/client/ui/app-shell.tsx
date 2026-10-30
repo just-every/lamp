@@ -3,11 +3,12 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import type { StoredOperator } from "../../../features/operators/repository";
+import { SETTINGS_MENU, settingsLabel, useSettingsDestination, type SettingsDestination } from "../../../features/page-settings/ui/settings-tabs";
 import { ApiError, appApi, useAppData, AppDataContext } from "./api";
 import type { OperatorSessionView } from "../../loaders";
 import type { EditorConfig } from "../../../../editor/editor-widget";
 import { PageTimezoneContext } from "./timezone";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 import { badge } from "../../../../site/lamp/badge";
 import { ClientExtensionProvider } from "../extensions";
 import { FormError } from "./states";
@@ -15,25 +16,53 @@ import { useVisitSnapshot } from "./visit-snapshot";
 import { mayLeave } from "./leave-guard";
 
 type NavigationItem = {
-  to: "/app" | "/app/page" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/deliveries" | "/app/alerts" | "/app/settings";
+  to: "/app" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/settings";
   label: string;
-  icon: Parameters<typeof Icon>[0]["name"];
+  icon: IconName;
 };
 
+// The daily jobs. Configuration lives under Settings, which takes this rail over (SettingsMenu).
 const navigation: NavigationItem[] = [
   { to: "/app", label: "Overview", icon: "overview" },
-  { to: "/app/page", label: "Your page", icon: "page" },
   { to: "/app/incidents", label: "Incidents", icon: "incident" },
   { to: "/app/components", label: "Components", icon: "components" },
   { to: "/app/maintenance", label: "Maintenance", icon: "maintenance" },
   { to: "/app/subscribers", label: "Subscribers", icon: "subscribers" },
-  { to: "/app/deliveries", label: "Deliveries", icon: "deliveries" },
-  { to: "/app/alerts", label: "Alerts", icon: "warning" },
   { to: "/app/settings", label: "Settings", icon: "settings" },
 ];
 
 function Brand() {
   return <Link className="app-brand" to="/app" aria-label="Lamp overview"><img className="app-brand-mark" src={badge} alt="" width="28" height="28" /><span data-rer-name>Lamp</span></Link>;
+}
+
+function DailyMenu({ onNavigate }: { onNavigate: () => void }) {
+  return <nav aria-label="Workspace sections" className="operator-navigation">
+    {navigation.map((item) => (
+      <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }} className="operator-nav-link" activeProps={{ className: "operator-nav-link is-active" }} onClick={onNavigate}>
+        <Icon name={item.icon} width={20} height={20} />
+        <span>{item.label}</span>
+      </Link>
+    ))}
+  </nav>;
+}
+
+/** On any Settings address the same rail lists Settings' destinations; the one shown is its highlight. */
+function SettingsMenu({ current, onNavigate }: { current: SettingsDestination; onNavigate: () => void }) {
+  return <nav aria-label="Settings sections" className="operator-navigation settings-menu">
+    <Link to="/app" activeOptions={{ exact: true }} className="settings-menu-back" onClick={onNavigate}><Icon name="back" width={18} height={18} /><span>Overview</span></Link>
+    <p className="settings-menu-title">Settings</p>
+    {SETTINGS_MENU.map(({ topic, destinations }) => <div key={topic} className="settings-menu-topic" role="group" aria-labelledby={`settings-topic-${destinations[0].id}`}>
+      <p id={`settings-topic-${destinations[0].id}`}>{topic}</p>
+      {destinations.map((destination) => {
+        const link = { className: `operator-nav-link${destination.id === current ? " is-active" : ""}`, "aria-current": destination.id === current ? "page" as const : undefined, onClick: onNavigate };
+        const label = <><Icon name={destination.icon} width={18} height={18} /><span>{destination.label}</span></>;
+        // The router marks a link current by its path alone; the pane, aliases included, decides here.
+        return destination.id === "move-in"
+          ? <Link key={destination.id} to="/app/move-in" activeOptions={{ exact: true }} {...link}>{label}</Link>
+          : <Link key={destination.id} to="/app/settings" hash={destination.id} activeOptions={{ includeHash: true }} {...link}>{label}</Link>;
+      })}
+    </div>)}
+  </nav>;
 }
 
 export function OperatorShell({ initialSession }: { initialSession: OperatorSessionView }) {
@@ -52,9 +81,10 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
   }, [pageSettingsRequest.refresh]);
   const operator = sessionRequest.data?.operator ?? initialSession.operator;
   const location = useRouterState({ select: (state) => state.location.href });
-  const movingIn = location.split(/[?#]/)[0] === "/app/move-in";
+  const settings = useSettingsDestination();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   useEffect(() => setMenuOpen(false), [location]);
@@ -89,35 +119,40 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
     }
   }
 
-  const account = <div className="operator-account"><div className="operator-identity"><span>{operator.displayName}</span><small>{operator.email}</small></div><form action="/api/app/session/signout" method="post" onSubmit={event => { event.preventDefault(); void signOut(); }}><button type="submit" className="button button-secondary header-signout" disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button></form></div>;
+  // On a phone the pill above a Settings pane opens the menu sheet at the top, on the destination shown.
+  function openSettingsMenu() {
+    setMenuOpen(true);
+    window.scrollTo({ top: 0 });
+    requestAnimationFrame(() => panel.current?.querySelector<HTMLElement>('[aria-current="page"]')?.focus());
+  }
+
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <PageTimezoneContext.Provider value={pageSettingsRequest.data?.settings.timezone ?? initialSession.timezone}>
     <ClientExtensionProvider operatorId={operator.id}>
     <EditorLauncher authorized={operator.isSetupOperator && !sessionRequest.error} initialConfig={initialSession.data["/api/app/editor-config"]?.error ? undefined : initialSession.data["/api/app/editor-config"]?.data as EditorConfig | undefined} />
     <div className="operator-shell" data-hydrated={hydrated || undefined}>
-      <aside className="operator-rail" aria-label="Operator navigation">
+      <aside className={`operator-rail${settings ? " is-settings" : ""}`} aria-label="Operator navigation">
         <div className="operator-brand-row"><Brand /><button ref={menuButton} type="button" className="button button-secondary operator-menu-button" aria-expanded={menuOpen} aria-controls="operator-navigation-panel" onClick={() => setMenuOpen(open => !open)}>Menu</button></div>
-        <div id="operator-navigation-panel" className={`operator-navigation-panel${menuOpen ? " is-open" : ""}`} onKeyDown={event => { if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); } }}>
-        <nav aria-label="Workspace sections" className="operator-navigation">
-          {navigation.map((item) => (
-            <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }} className={`operator-nav-link${item.to === "/app/settings" && movingIn ? " is-active" : ""}`} aria-current={item.to === "/app/settings" && movingIn ? "page" : undefined} activeProps={{ className: "operator-nav-link is-active" }} onClick={() => setMenuOpen(false)}>
-              <Icon name={item.icon} width={20} height={20} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
+        <div ref={panel} id="operator-navigation-panel" className={`operator-navigation-panel${menuOpen ? " is-open" : ""}`} onKeyDown={event => { if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); } }}>
+        {settings ? <SettingsMenu current={settings} onNavigate={closeMenu} /> : <DailyMenu onNavigate={closeMenu} />}
         <div className="operator-rail-footer">
           <a href={`${publicOrigin}/`} className="operator-page-link" target="_blank" rel="noopener">View your page <Icon name="external" width={15} height={15} /></a>
+          <div className="operator-account">
+            <span className="operator-initial" aria-hidden="true">{operator.displayName.trim().charAt(0).toUpperCase()}</span>
+            <span className="operator-name">{operator.displayName}</span>
+            <form action="/api/app/session/signout" method="post" onSubmit={event => { event.preventDefault(); void signOut(); }}><button type="submit" className="operator-signout" disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button></form>
+          </div>
         </div>
         </div>
       </aside>
       <div className="operator-workspace">
-        <header className={`operator-header${menuOpen ? " is-menu-open" : ""}`}>
-          <p><span className="header-live-dot" />Your status page</p>
-          {account}
-        </header>
-        <main className="operator-main">{signOutError && <FormError>{signOutError}</FormError>}<Outlet /></main>
+        <main className="operator-main">
+          {signOutError && <FormError>{signOutError}</FormError>}
+          {settings && <button type="button" className="settings-pill" aria-expanded={menuOpen} aria-controls="operator-navigation-panel" onClick={openSettingsMenu}><Icon name="settings" width={18} height={18} />Settings: {settingsLabel(settings)}<Icon name="chevron" width={16} height={16} /></button>}
+          <Outlet />
+        </main>
       </div>
     </div>
     </ClientExtensionProvider>

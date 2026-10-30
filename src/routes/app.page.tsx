@@ -1,6 +1,6 @@
-import { withVisualEdits } from '../editor/VisualEditBoundary';
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { YourPage } from "../core/features/overview/ui/your-page";
-
-export const Route = createFileRoute("/app/page")({ component: withVisualEdits(YourPage) });
+// Your page is the top of Settings › Page now (L19). Old links land there for one release.
+export const Route = createFileRoute("/app/page")({
+  beforeLoad: () => { throw redirect({ to: "/app/settings", hash: "page" }); },
+});

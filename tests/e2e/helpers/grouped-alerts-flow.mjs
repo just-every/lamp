@@ -104,7 +104,7 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
+      await page.goto(`${origin}/app/settings#tools`); await operatorHydrated(page);
       await page.getByRole('button', { name: 'Grafana', exact: true }).click();
       const editor = page.locator('section.tool-form');
       await editor.getByLabel('Component 1', { exact: true }).selectOption(targets[0].id);

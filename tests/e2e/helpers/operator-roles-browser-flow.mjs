@@ -32,6 +32,8 @@ export async function operatorRolesBrowserFlow({ page, appUrl, appFetch, actor }
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       await page.goto(`${appUrl}/app/settings`);
       await operatorHydrated(page);
+      // On a phone the Settings menu is a sheet, opened from the pill above the pane.
+      if (width === 390) await page.getByRole('button', { name: 'Settings: Page', exact: true }).click();
       await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Operators', exact: true }).click();
       await expect(selector).toBeEnabled();
       const savedResponse = page.waitForResponse(response => {
