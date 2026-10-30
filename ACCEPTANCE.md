@@ -293,7 +293,7 @@ Core · published · **partial**
 1. An internal component is absent from the page, Atom feed, widget and every uptime figure.
 2. It never contributes to overall status.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs` Additional candidate evidence (replayed without changing the current judgment): `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): a formerly public component has a Major outage and populated uptime before being marked internal; every paginated public component and uptime record, uptime badge, page, Atom feed and widget excludes its identity and note, its retained component resources return 404, and the root, status JSON and overall badges remain Operational while its private claim stays Major outage.
 **Gap.** The cited evidence asserts the other audited outcomes; unasserted: Internal components are absent from every uptime figure; An internal severe claim leaves the public overall state unchanged.
 
 #### COMP-006 — Component state is claimed, not set
@@ -320,7 +320,7 @@ Core · published · **partial**
 1. The component, its state history and every associated uptime figure disappear from the public page within ten seconds.
 2. Published incident and maintenance updates keep the deleted component’s name.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs` Additional candidate evidence (replayed without changing the current judgment): `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): after prewarming a component with downtime history and every component resource, successful native deletion removes its public catalogue, state history and uptime in a fresh healthy generation within one measured ten-second deadline; the incident permalink and published maintenance retain its captured name, and the complete maintenance notice inventory is unchanged.
 **Gap.** The cited evidence asserts the other audited outcomes; unasserted: Component and uptime disappearance is observed on the public page within ten seconds; Published maintenance history retains the deleted name.
 
 ### Uptime
