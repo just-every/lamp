@@ -7004,7 +7004,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "cde1f024f476d32e8c97b1dd26780f7cb34c89bb9ea860e93b921d7cb72f754c",
+      "sha256": "ec8427421a03271add5ac3148132dd688520f4c7e21d2e143575eaddc8202d21",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {

@@ -1,9 +1,31 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { parse } from 'parse5';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
 import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
 import { assertEmptyCalendar, validateMaintenanceCalendar } from './helpers/calendar-assertions.mjs';
+
+function descendants(node) {
+  return (node.childNodes ?? []).flatMap(child => [child, ...descendants(child)]);
+}
+function nodeText(node) {
+  return node.nodeName === '#text' ? node.value : (node.childNodes ?? []).map(nodeText).join('');
+}
+function publicUpdate(html, details) {
+  const updates = descendants(parse(html)).filter(node => node.tagName === 'article'
+    && node.attrs.some(attr => attr.name === 'class' && attr.value.split(' ').includes('update'))
+    && nodeText(node).includes(details));
+  assert.equal(updates.length, 1, `one public update contains ${details}`);
+  return updates[0];
+}
+// Brisbane has a fixed ten-hour offset. Compute the expected calendar date
+// independently of Lamp's formatter, including a possible UTC date rollover.
+function brisbaneTime(instant) {
+  const local = new Date(Date.parse(instant) + 10 * 3600_000);
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][local.getUTCMonth()];
+  return `${month} ${local.getUTCDate()}, ${local.getUTCFullYear()}, ${local.toISOString().slice(11, 16)} UTC+10:00`;
+}
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
   const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' } });
@@ -15,6 +37,9 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   };
   const saveReviewed = async (id, patch) => { await owner(); await j.save(id, patch); await review(id); };
   try {
+    const savedSettings = (await j.json('/api/app/page-settings')).settings;
+    const settings = Object.fromEntries(['pageName', 'tagline', 'accentColor', 'timezone', 'hostname', 'mailFromAddress', 'template', 'footerCreditEnabled', 'widgetAllowedOrigins'].map(key => [key, savedSettings[key]]));
+    await j.json('/api/app/page-settings', 'PUT', { ...settings, timezone: 'Australia/Brisbane' });
     assert.equal((await j.raw('/api/app/components')).status, 401);
     assert.equal((await j.raw(new URL('/api/app/components', j.publicOrigin).href)).status, 404);
     await j.json('/api/app/operators/invite', 'POST', { email: reviewer, displayName: 'Incident reviewer' }, 202);
@@ -86,15 +111,31 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
 
     await owner();
     await j.save(incident.id, { lifecycle: 'Monitoring', details: 'Corrected recovery wording.', nextUpdateAt: new Date(Date.now() - 60000).toISOString() });
+    const committedTime = (await j.read(incident.id)).draft.nextUpdateAt;
+    assert.ok(committedTime, 'the saved draft has a next-update commitment');
     await j.json(`${endpoint}/draft/correction`, 'POST', { updateId: monitoring.id });
     await review(incident.id);
     const corrected = (await j.publish(incident.id)).update;
+    assert.equal(corrected.nextUpdateAt, committedTime, 'publication keeps the saved commitment');
     assert.equal(corrected.correctsUpdateId, monitoring.id);
     const correctedView = await j.read(incident.id);
     assert.deepEqual(correctedView.updates.find(row => row.id === first.id), first);
     assert.deepEqual(correctedView.updates.find(row => row.id === monitoring.id), monitoring);
     assert.equal(correctedView.overdue, true);
     assert.ok(!(await j.publicText(`/incidents/${incident.reference}`)).includes('overdue'));
+    for (const path of ['/', `/incidents/${incident.reference}`]) {
+      const html = await j.visible(path, corrected.details);
+      const update = publicUpdate(html, corrected.details);
+      const fields = descendants(update).filter(node => node.tagName === 'div'
+        && node.childNodes.some(child => child.tagName === 'dt' && nodeText(child) === 'Next update by'));
+      assert.equal(fields.length, 1, `${path}: the overdue update retains its labeled commitment`);
+      const value = fields[0].childNodes.find(node => node.tagName === 'dd');
+      const times = descendants(value).filter(node => node.tagName === 'time');
+      assert.equal(times.length, 1, `${path}: the commitment has one semantic timestamp`);
+      assert.equal(times[0].attrs.find(attr => attr.name === 'datetime')?.value, committedTime, `${path}: the committed instant is unchanged`);
+      assert.equal(nodeText(value), brisbaneTime(committedTime), `${path}: the commitment stays in the configured zone`);
+      assert.doesNotMatch(nodeText(parse(html)), /overdue/i, `${path}: no public overdue label`);
+    }
 
     await saveReviewed(incident.id, { lifecycle: 'Resolved', customerImpact: 'Payment processing has recovered.', nextUpdateAt: null });
     await j.publish(incident.id);
