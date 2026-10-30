@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
+import { UPDATE_LINK_FIELDS } from "./update-component-flow.mjs";
+import { assertLinkedSlackText } from "./update-link-evidence.mjs";
 
 /** Extend the existing real Statuspage receiver journey, never fabricate bodies. */
-export async function componentNotificationFlow({ fixture, component, subscriber, manageUrl, accepted, lampAccepted, receiverErrors }) {
+export async function componentNotificationFlow({ fixture, component, subscriber, manageUrl, accepted, lampAccepted, slackAccepted, slackDestination, receiverErrors }) {
   const { api, post, raw } = fixture;
   const choose = async kinds => {
     const body = new URLSearchParams({ componentId: component.id, webhookFormat: "statuspage", preferencesPresent: "1" });
@@ -20,6 +22,8 @@ export async function componentNotificationFlow({ fixture, component, subscriber
   assert.ok((await fixture.list()).find(row => row.id === lampAdded.body.subscriber.id).preferences.eventKinds.includes("components"), "webhook subscriptions select component changes by default");
   const lampManageUrl = fixture.messagesFor(lampContact)[0].text.match(/https?:\/\/\S+\/manage\/\S+/)?.[0];
   assert.ok(lampManageUrl);
+  const slackAdded = await post("/api/app/subscribers/webhook", { destination: slackDestination, contactEmail: lampContact, componentIds: [component.id], eventKinds: ["incidents"] });
+  assert.equal(slackAdded.status, 201, slackAdded.text);
   const componentBodies = () => accepted.filter(record => record.body.component_update);
   const lampComponentBodies = () => lampAccepted.filter(record => record.body.event === "component.changed");
   const flush = async (expected, expectedLamp) => {
@@ -102,22 +106,60 @@ export async function componentNotificationFlow({ fixture, component, subscriber
   const created = await post("/api/app/incidents", { title: "Synthetic Lamp component-only incident", components: [{ componentId: component.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(created.status, 201, created.text);
   let incident = created.body.incident;
-  const publish = async lifecycle => {
-    const draft = await api(`/api/app/incidents/${incident.id}/draft`, { method: "PUT", body: JSON.stringify({ lifecycle, affectedAudience: "Synthetic customers", customerImpact: "See https://help.example.com/kb/123.", whatStillWorks: "", details: "Synthetic operator update", nextUpdateAt: lifecycle === "Resolved" ? null : new Date(Date.now() + 3_600_000).toISOString() }) });
+  const publish = async (lifecycle, expectLampUpdate = false) => {
+    const submitted = {
+      ...(expectLampUpdate
+        ? Object.fromEntries(Object.entries(UPDATE_LINK_FIELDS).map(([field, text]) => [field, `${incident.reference} ${lifecycle}: ${text}`]))
+        : { affectedAudience: "Synthetic customers", customerImpact: "See https://help.example.com/kb/123.", whatStillWorks: "", details: "Synthetic operator update" }),
+      lifecycle,
+      nextUpdateAt: lifecycle === "Resolved" ? null : new Date(Date.now() + 3_600_000).toISOString(),
+    };
+    const draft = await api(`/api/app/incidents/${incident.id}/draft`, { method: "PUT", body: JSON.stringify(submitted) });
     assert.equal(draft.status, 200, draft.text);
     const response = await post(`/api/app/incidents/${incident.id}/publish`, { channels: ["webhook"], ...(lifecycle === "Resolved" ? { overrideReason: "Synthetic operator verified recovery" } : {}) });
     assert.equal(response.status, 200, response.text);
-    await eventuallySubscriber(async () => {
+    const deliveries = await eventuallySubscriber(async () => {
       if (receiverErrors[0]) throw receiverErrors[0];
       const deliveries = await api(`/api/app/deliveries?incidentUpdateId=${response.body.update.id}&limit=100`);
       assert.equal(deliveries.status, 200, deliveries.text);
       return deliveries.body.deliveries;
     }, rows => rows.every(row => row.outcome === "delivered"), "the incident's own after-publication dispatcher finishes before component dispatch is requested");
+    if (expectLampUpdate) {
+      const delivery = deliveries.find(row => row.subscriberId === lampAdded.body.subscriber.id);
+      assert.ok(delivery, "the selected Lamp subscriber has a delivery for this publication");
+      const received = lampAccepted.find(record => record.deliveryId === delivery.id);
+      assert.ok(received, "the signed receiver accepted this publication's own delivery");
+      assert.equal(received.body.event, "incident.update.published");
+      assert.equal(received.body.incident.reference, incident.reference);
+      const update = received.body.updates.find(row => row.id === response.body.update.id);
+      assert.ok(update, "the received update has the committed publication identity");
+      for (const field of Object.keys(UPDATE_LINK_FIELDS)) {
+        assert.equal(update[field], submitted[field], `Lamp ${field} preserves the submitted wording and bare URLs byte for byte`);
+      }
+      assert.equal(update.lifecycle, submitted.lifecycle, "Lamp preserves the submitted lifecycle");
+      assert.equal(update.nextUpdateAt, submitted.nextUpdateAt, "Lamp preserves the submitted next-update commitment, including resolution's null");
+      assert.equal(update.publishedAt, response.body.update.publishedAt);
+      const slackDelivery = deliveries.find(row => row.subscriberId === slackAdded.body.subscriber.id);
+      assert.ok(slackDelivery, "the Slack incoming-webhook subscriber has this publication's delivery");
+      const slack = slackAccepted.find(record => record.deliveryId === slackDelivery.id);
+      assert.ok(slack, "the Slack receiver verified this publication's exact signed body");
+      assertLinkedSlackText(slack.body.text, "Slack incoming webhook");
+      const elements = slack.body.blocks.flatMap(block => block.elements.flatMap(section => section.elements));
+      for (const field of Object.keys(UPDATE_LINK_FIELDS)) {
+        assert.ok(elements.map(element => element.text).join("").includes(submitted[field]), `Slack rich text reassembles the original ${field}`);
+      }
+      assert.ok(elements.some(element => element.type === "link"), "bare HTTPS URLs are rich-text links");
+      for (const link of elements.filter(element => element.type === "link")) {
+        assert.equal(link.text, link.url, "every Slack link displays its own URL");
+        assert.match(link.url, /^https:\/\//, "only HTTPS URLs become Slack links");
+      }
+    }
     return response.body.update;
   };
-  await publish("Identified"); await flush(3, 2);
-  await publish("Monitoring"); await flush(3, 2);
-  await publish("Resolved"); await flush(4, 2);
+  await publish("Identified", true); await flush(3, 2);
+  await publish("Monitoring", true); await flush(3, 2);
+  await publish("Resolved", true); await flush(4, 2);
+  assert.equal((await api(`/api/app/subscribers/${slackAdded.body.subscriber.id}`, { method: "DELETE" })).status, 204);
   assert.equal(componentBodies()[2].body.component_update.old_status, "operational");
   assert.equal(componentBodies()[2].body.component_update.new_status, "partial_outage");
   assert.equal(componentBodies()[2].body.component_update.claimant_kind, "incident");
