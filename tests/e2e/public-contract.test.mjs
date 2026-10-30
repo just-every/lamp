@@ -119,6 +119,10 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.equal(defaultNote.note, '');
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === defaultNote.id).note, '');
     const exactNote = ` ${'n'.repeat(248)} `;
+    const populatedNote = (await j.json('/api/app/components', 'POST', { ...noteInput, name: 'synthetic-lamp-populated-note', note: exactNote }, 201)).component;
+    assert.equal(populatedNote.note, exactNote);
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === populatedNote.id).note, exactNote);
+    await j.json(`/api/app/components/${populatedNote.id}`, 'DELETE', undefined, 204);
     const noted = (await j.json(`/api/app/components/${defaultNote.id}`, 'PUT', { ...noteInput, note: exactNote })).component;
     assert.equal(noted.note, exactNote);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === defaultNote.id).note, exactNote);
