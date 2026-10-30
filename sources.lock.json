@@ -6883,6 +6883,10 @@
       "sha256": "452ca8e9dedf12e38001153104e50ac5749bc67eaee3ff78cb95ac9c7a37ff60",
       "executable": false
     },
+    "tests/e2e/helpers/short-history-flow.mjs": {
+      "sha256": "2800d59b816db869453fa5742ed9f5274db96ab3bbe3d5b71554d1c6e94995b8",
+      "executable": false
+    },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
       "sha256": "2b81e25d9e688a30430d314d3394f074a5861bd442c38008760eccfaafd8d020",
       "executable": false
@@ -7032,7 +7036,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "b1fbe8532e7904ac9cf15dd6dc546a8a955ce0e93ba2a2aa80e61452892bfa2c",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
