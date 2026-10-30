@@ -958,6 +958,9 @@
         "initializer": "tests/agent-door/owner.mjs"
       }
     ],
-    "journey": "tests/agent-door/journey.mjs"
+    "journey": "tests/agent-door/journey.mjs",
+    "publicHosts": [
+      "LAMP_PAGE_HOST"
+    ]
   }
 }

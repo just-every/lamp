@@ -20,6 +20,7 @@ export type * from './types.ts'
 export type { ClassId, ClassFacts } from './policy/catalogue.ts'
 
 export function createAgentDoor(options: AgentDoorOptions): AgentDoor {
+  if (options.companyPolicy !== undefined && (!options.companyPolicy || typeof options.companyPolicy.decide !== 'function')) throw new TypeError('Invalid company policy hook')
   capabilitySet(options.capabilities)
   options = { ...options, ...(options.capabilities === undefined ? {} : { capabilities: [...options.capabilities] }) }
   if (options.capabilities !== undefined) {

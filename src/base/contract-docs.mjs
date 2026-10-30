@@ -5,6 +5,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { parseContract, clauseIdSource, plainText } from './seed-contract.mjs'
 import { contractProseFindings, printProseFindings } from './contract-prose.mjs'
+import { anchorPath, createAnchor, readAnchor } from './contract-anchor.mjs'
 
 const marker = '<!-- Generated from CONTRACT.md by contract-docs. Edit CONTRACT.md, then regenerate. -->'
 const idPattern = new RegExp(`^${clauseIdSource}$`)
@@ -53,6 +54,12 @@ function snapshot(reference) {
   if (contract !== undefined) files['CONTRACT.md'] = contract
   if (!files['CONTRACT.md']) throw Error(`${reference} has no CONTRACT.md.`)
   return { commit, files }
+}
+function anchoredSnapshot(commit) {
+  const recorded = readAnchor(commit)
+  if (recorded) return recorded
+  try { return snapshot(commit) }
+  catch (error) { throw Error(`${anchorPath}: contract_anchor_missing: original ${commit} is unavailable; record it with anchor --old <ref> in a checkout with history. ${error.message}`) }
 }
 function summaryRange(text) {
   const lines = linesOf(text), start = lines.findIndex(line => cells(line).join('|') === 'Clauses|Done|Partial|Missing|Total')
@@ -169,7 +176,7 @@ function generate(check = false) {
   const coverage = read(covMapPath)
   if (coverage !== undefined) {
     let original
-    try { original = snapshot(JSON.parse(coverage).old?.commit) }
+    try { original = anchoredSnapshot(JSON.parse(coverage).old?.commit) }
     catch (error) { throw Error(`${covMapPath}: original SHA is unavailable: ${error.message}`) }
     validateOriginalClaims(original)
   }
@@ -380,7 +387,7 @@ function validateClaimSource(text, rows = claimRows(text), old) {
   }
   if (old && record.old !== old.commit) throw Error('CONTRACT.md: contract-claim-source old SHA differs from the coverage original.')
   let original
-  try { original = old ?? snapshot(record.old) } catch (error) { throw Error(`CONTRACT.md: contract-claim-source old ${record.old}: ${error.message}`) }
+  try { original = old ?? anchoredSnapshot(record.old) } catch (error) { throw Error(`CONTRACT.md: contract-claim-source old ${record.old}: ${error.message}`) }
   const selected = originalClaims(original), ids = new Set(parseContract(original.files['CONTRACT.md']).clauses.map(clause => clause.id))
   validateOriginalClaims(original, rows)
   if (record.claims.length !== selected.rows.length) throw Error('CONTRACT.md: contract-claim-source must retain every original claim once.')
@@ -928,12 +935,12 @@ function checkProse() {
   const text = read('CONTRACT.md');
   if (text === undefined) throw Error('CONTRACT.md does not exist.');
   const coverage = read(covMapPath) === undefined ? undefined : covReadMap();
-  const sources = coverage ? covScope(snapshot(coverage.old?.commit)) : [];
+  const sources = coverage ? covScope(anchoredSnapshot(coverage.old?.commit)) : [];
   const findings = contractProseFindings({ text, clauses: parseContract(withoutSummary(text)).clauses, coverage, sources, generatedStatement: covGeneratedStatement });
   if (printProseFindings(findings)) process.exitCode = 1;
 }
 
-const usage = 'Usage: contract-docs.mjs write|check|check-prose|id-map --old <ref>|coverage init|check --old <ref>|coverage rebase --from <ref> --onto <ref>|convert --old <ref> [--old-acceptance <ref>] [--claim-map <file>]';
+const usage = 'Usage: contract-docs.mjs write|check|check-prose|anchor --old <ref>|id-map --old <ref>|coverage init|check --old <ref>|coverage rebase --from <ref> --onto <ref>|convert --old <ref> [--old-acceptance <ref>] [--claim-map <file>]';
 function main(args) {
   const [command, ...rest] = args
   const option = (name, description = 'Git reference') => {
@@ -946,6 +953,15 @@ function main(args) {
   else if (command === 'check' && !rest.length) { checkProse(); generate(true) }
   else if (command === 'check-prose' && !rest.length) checkProse()
   else if (command === '--help' && !rest.length) console.log(usage)
+  else if (command === 'anchor') {
+    const old = snapshot(option('--old'))
+    const expected = read(covMapPath) === undefined ? undefined : covReadMap().old?.commit
+    if (expected !== undefined && old.commit !== expected) throw Error(`${anchorPath}: contract_anchor_invalid: --old must match COVERAGE.json old.commit ${expected}.`)
+    const provenance = readClaimSource(read('CONTRACT.md') ?? '')
+    if (provenance && old.commit !== provenance.old) throw Error(`${anchorPath}: contract_anchor_invalid: --old must match contract-claim-source old ${provenance.old}.`)
+    put(anchorPath, json(createAnchor(old.commit)))
+    console.log(`Recorded ${anchorPath} for ${old.commit}.`)
+  }
   else if (command === 'id-map') idMap(snapshot(option('--old')))
   else if (command === 'coverage' && rest[0] === 'init') coverageInit(snapshot(option('--old')))
   else if (command === 'coverage' && rest[0] === 'check') coverageCheck(snapshot(option('--old')))

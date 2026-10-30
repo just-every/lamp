@@ -382,6 +382,12 @@ status source. Follow the RER contract standard below. The full authoring and
 copy-provenance guide lives beside the parser at `src/base/CONTRACT-DOCS.md`
 (the Base file `foundation/runtime/CONTRACT-DOCS.md`).
 
+For snapshots and shallow checkouts, first commit a portable historical proof
+with `node src/base/contract-docs.mjs anchor --old FULL_ORIGINAL_SHA` from a
+checkout containing that original. Generation verifies `docs/contract/ANCHOR.json`
+against the pinned commit and its tree/blob identities. Missing history without
+a record and invalid records refuse; full-history checkouts need no record.
+
 - **Sections.** After `# <Seed> target product contract` and one introductory
   paragraph, use these exact second-level headings in order: Product target;
   How to read this contract; Door rules; Shared duties (Base); Published

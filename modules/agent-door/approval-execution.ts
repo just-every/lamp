@@ -6,6 +6,8 @@ import { appendEvents } from './events.ts'
 import { matchingRefs, preparedBy } from './people.ts'
 import { acquireDecision, releaseDecision, startExecution } from './counting.ts'
 import { decide } from './policy/decide.ts'
+import { companyDecision, restrictDecision } from './company-policy.ts'
+import { ToolRefusal } from './errors.ts'
 import { canonical } from './policy/document.ts'
 import { policyRefusal, policyState } from './policy-store.ts'
 import { savedTool } from './resource-tool.ts'
@@ -51,11 +53,13 @@ export async function executeApproval(rt: Runtime, id: string, saved: SavedAppro
         locked = await acquireDecision(rt, row.id)
         if (!locked) throw new Error('decision_busy')
         const sums = await usage(rt, state.document!, principal)
-        const fresh = decide({ document: state.document, revision: state.revision, call: { seed: rt.options.seed, specialist: principal.agent.specialist ?? null, agent: principal.agent.id, classes }, usageToday: usageToday(sums) })
-        evidence = { document: state.document!, usage: sums, classes, result: fresh.result, rules: fresh.classes }
-        result.decision = { id: saved.decision_id, disposition: fresh.result, revision: state.revision, classes: fresh.classes.map(item => ({ ...item, facts: classes.find(value => value.class === item.class)!.facts })) }
+        let fresh = decide({ document: state.document, revision: state.revision, call: { seed: rt.options.seed, specialist: principal.agent.specialist ?? null, agent: principal.agent.id, classes }, usageToday: usageToday(sums) })
+        const company = fresh.result === 'blocked' || fresh.result === 'unset' ? undefined : await companyDecision(rt, saved.tool, saved.args, classes, target, fresh, ctx)
+        fresh = restrictDecision(fresh, company)
+        evidence = { document: state.document!, usage: sums, classes, result: fresh.result, rules: fresh.classes, ...(company ? { company_policy: company } : {}) }
+        result.decision = { ...(company ? { company_policy: company } : {}), id: saved.decision_id, disposition: fresh.result, revision: state.revision, classes: fresh.classes.map(item => ({ ...item, facts: classes.find(value => value.class === item.class)!.facts })) }
         recordDecision(row, result.decision)
-        if (!sameFacts(saved.classes, classes) || await digest(await summary(tool, saved.args, ctx, target)) !== saved.summary_sha256 || canonical(fresh.classes) !== canonical(saved.evidence.rules)) throw new Error('approval_evidence_changed')
+        if (!sameFacts(saved.classes, classes) || await digest({ ...await summary(tool, saved.args, ctx, target), ...(company ? { company_policy: company } : {}) }) !== saved.summary_sha256 || canonical(fresh.classes) !== canonical(saved.evidence.rules) || canonical(company ?? null) !== canonical(saved.evidence.company_policy ?? null) || fresh.result !== 'approval') throw new Error('approval_evidence_changed')
         row.approval = { id, by }
         if (!await startExecution(rt, row, principal, classes, state, evidence)) throw new Error(principal.consent && (await policyState(rt)).revoked.consents.includes(principal.consent) ? 'consent_revoked' : 'decision_busy')
         await releaseDecision(rt, row.id); locked = false
@@ -64,7 +68,7 @@ export async function executeApproval(rt: Runtime, id: string, saved: SavedAppro
       }
     }
   } catch (cause) {
-    result = { ...result, outcome: 'refused', code: cause instanceof Error && ['decision_busy', 'approval_evidence_changed', 'consent_revoked'].includes(cause.message) ? cause.message : 'execution_failed' }
+    result = { ...result, outcome: 'refused', code: rt.options.companyPolicy && cause instanceof ToolRefusal && ['company_policy_invalid', 'company_policy_unavailable'].includes(cause.code) ? cause.code : cause instanceof Error && ['decision_busy', 'approval_evidence_changed', 'consent_revoked'].includes(cause.message) ? cause.message : 'execution_failed' }
   } finally { if (locked) await releaseDecision(rt, row.id) }
   if (result.outcome === 'done') result.receipt = { id: crypto.randomUUID(), decision_id: saved.decision_id, approval_id: id, prepared_by: preparedBy(saved.principal), approved_by: by }
   result.execution_id = row.id

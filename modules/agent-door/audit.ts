@@ -1,11 +1,14 @@
+import { restrictDecision } from './company-policy.ts'
+import { canonical } from './policy/document.ts'
 import { decide, scopeMatches } from './policy/decide.ts'
 import type { Rule, PolicyDocument } from './policy/document.ts'
 import type { ClassId } from './policy/catalogue.ts'
-import type { ClassAndFacts, DecisionMeta, NativeTarget, Principal, Runtime } from './types.ts'
+import type { ClassAndFacts, CompanyPolicyDecision, DecisionMeta, NativeTarget, Principal, Runtime } from './types.ts'
 import { preparedBy } from './people.ts'
 
 export interface AuditRow {
   authority?: 'none'
+  company_policy?: CompanyPolicyDecision
   sequence?: number; id: string; at: string; door: 'mcp' | 'embedded'; agent: Principal['agent']; sponsor: { id: string; name: string }; label: string
   operation_id: string; scopes: string[]; client_id: string | null
   continuation_item_id?: string
@@ -15,7 +18,7 @@ export interface AuditRow {
   idempotency_key: string | null; trace: string | null; ignored_arguments: string[]; replay_of: string | null
   classification_refusal?: string
 }
-export interface Evidence { document: PolicyDocument; usage: Record<string, number>; classes: ClassAndFacts[]; result: string; rules: unknown }
+export interface Evidence { company_policy?: CompanyPolicyDecision; document: PolicyDocument; usage: Record<string, number>; classes: ClassAndFacts[]; result: string; rules: unknown }
 export function newAudit(rt: Runtime, principal: Principal, tool: string, door: AuditRow['door'], trace: unknown): AuditRow {
   const id = crypto.randomUUID()
   return { id, operation_id: principal.operationId ?? id, scopes: [...principal.scopes], client_id: principal.clientId ?? null, at: new Date(rt.now()).toISOString(), door, agent: { ...principal.agent, specialist: principal.agent.specialist ?? null }, sponsor: { id: principal.person.id, name: principal.person.name }, label: preparedBy(principal).label,
@@ -24,6 +27,7 @@ export function newAudit(rt: Runtime, principal: Principal, tool: string, door: 
     trace: typeof trace === 'string' ? trace.slice(0, 512) : null, ignored_arguments: [], replay_of: null }
 }
 export function recordDecision(row: AuditRow, decision: DecisionMeta) {
+  if (decision.company_policy) row.company_policy = decision.company_policy
   row.revision = decision.revision; row.decision = decision.disposition
   row.classes = decision.classes.map(item => ({ class: item.class as ClassId, facts: item.facts as ClassAndFacts['facts'] }))
   row.rules = decision.classes.map(({ class: cls, rule, do: action }) => ({ class: cls, rule, do: action }))
@@ -77,7 +81,8 @@ export async function auditPage(rt: Runtime, url: URL) {
     if (record.evidence) {
       const evidence: Evidence = JSON.parse(record.evidence)
       const result = decide({ document: evidence.document, revision: row.revision, call: { seed: rt.options.seed, specialist: row.agent.specialist ?? null, agent: row.agent.id, classes: evidence.classes }, usageToday: usageToday(evidence.usage) })
-      if (result.result !== row.decision || result.result !== evidence.result || JSON.stringify(result.classes) !== JSON.stringify(evidence.rules) || JSON.stringify(result.classes) !== JSON.stringify(row.rules)) differs++
+      const effective = restrictDecision(result, evidence.company_policy)
+      if (canonical(row.company_policy ?? null) !== canonical(evidence.company_policy ?? null) || effective.result !== row.decision || effective.result !== evidence.result || JSON.stringify(result.classes) !== JSON.stringify(evidence.rules) || JSON.stringify(result.classes) !== JSON.stringify(row.rules)) differs++
     }
     if (row.approval) {
       const item = await rt.options.db.prepare('SELECT approvals FROM agent_door_approvals WHERE id=?').bind(row.approval.id).first<{ approvals: string }>()

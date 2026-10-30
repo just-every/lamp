@@ -6,6 +6,61 @@ Keep the edition's existing interface and authorization decisions authoritative.
 
 A review-disposition call that completes must retain its linked review; a native refusal must audit `refused` with the returned code, open no review, and preserve any bracketing native witness.
 
+## Declare a native company-policy decision
+
+A seed may pass `companyPolicy: { decide }` to `createAgentDoor`. Omit it to keep
+existing behavior. This read-only server hook narrows the existing class-policy
+decision; it supplies no default dispositions and cannot bypass incomplete
+policy, Pause, scopes, native authority, proof, revocation or idempotency.
+HappyToHelp's computed action classes, Lamp AUTO-001's component/source rules,
+and Slate NOTIF-001's person-needed decisions use the same boundary.
+
+```ts
+companyPolicy: {
+  async decide({ tool, args, classes, target, policy }, ctx) {
+    return nativePolicyDecision(tool, args, classes, target, policy, ctx)
+  }
+}
+```
+
+The input contains the tool name, declared action arguments (without the door's
+idempotency/revision fields), server-computed classes/facts, resolved native
+target and the existing class-policy decision. Inputs and the identity context
+are immutable snapshots. Resolve current native rules with the sponsor and
+agent in `ctx`; caller flags and record text cannot supply policy authority.
+The hook must perform no effects. Return exactly one audit-safe answer:
+
+- `{ decision: 'allow', rule, revision }` retains the existing disposition.
+- `{ decision: 'hold', rule, revision, approvers, wait }` requires the existing
+  exact-revision approval flow. `approvers` uses the existing `sponsor`,
+  `role:owner`, `role:editor` or `person:<id>` references; `wait` uses the existing
+  fixed ISO duration range (one hour through thirty days). Existing policy
+  approvers remain required and the shorter wait wins.
+- `{ decision: 'deny', rule, revision }` refuses with `company_policy_denied`.
+
+`rule` and `revision` are nonempty, bounded, non-secret strings identifying the
+native rule and its revision. Unknown or malformed answers refuse with
+`company_policy_invalid`; a thrown hook refuses with
+`company_policy_unavailable`. No hook error text is returned or audited.
+Class policy that is unset or blocked stops the call before this hook.
+
+MCP, integration aliases and embedded calls share this evaluation before
+execution, including completed retries. Held calls return the existing
+`input_required` (or legacy `approval_required`), pending handle and signed-in
+approval URL. Approval execution evaluates again: changed native policy
+answers, facts, targets or summaries refuse `approval_evidence_changed` and
+require a new request. A previous approval cannot satisfy a newly held rule or
+revision. Rejected and expired holds retain the existing typed refusals.
+
+The result's decision and the existing audit row carry `company_policy` with
+the exact validated answer alongside the class-policy revision/rules. Pending
+approval summaries bind that answer into their existing summary hash; saved
+audit evidence retains it for replay comparison. The normal audit endpoint
+checks the combined disposition against both saved decisions. Rule identifiers
+must be redacted for the permitted audit audience; do not return private record
+content or credentials. This hook adds no routes, tables or policy engine and
+makes no claim that an adopting seed has satisfied BASE-AGENT-007.
+
 ## Copy committed runtime source
 
 Choose an immutable full Base commit containing the module. A released or
@@ -473,7 +528,7 @@ a contained seed module default-exporting an async function receiving
 `{mode, path, token}` with the signed credential when signed mode is declared;
 `token` is the private per-run setup token. Use `request(absoluteURL, init)` to
 drive the seed's real project/password, owner and member-linking lifecycle.
-It permits only the fresh hosted origin. Return the native final 303 `Response`
+It permits the fresh hosted origin and explicitly declared public hosts below. Return the native final 303 `Response`
 with its session cookies; then the runner posts the signed Business settings
 document and runs the journey. Never create an owner with direct SQL, substitute
 an auth adapter, or add a verification-only production route. Initializer code
@@ -634,6 +689,12 @@ submission and five minutes of age. `after` is an optional millisecond timestamp
 Capture exists only in verifier memory and is cleared when the run closes.
 There is no HTTP outbox, application binding or production reader.
 
+Each additional `verification.sponsors` initializer receives the same `mail.read`
+interface and limits, scoped only to its own declared synthetic email. Capture
+starts before Business roster delivery so the initializer can consume its native
+invitation. It cannot select or read the owner's or another principal's mailbox.
+The owner and journey readers retain their owner-mailbox scope.
+
 Drive the native email request through `request`, read the captured code or
 link, and submit it to the seed's real confirmation handler. Preserve native
 one-use, expiry, session and step-up checks. Never print the message or proof.
@@ -650,6 +711,23 @@ credential is passed to the module. The standard phases still run, and a failed
 native journey fails verification. Errors are redacted to a fixed diagnostic.
 Keep these modules in test tooling outside the production dependency graph.
 
+For a seed with another public hostname, declare its deployment variable in
+`agent-surface.json`, for example:
+
+```json
+{"verification":{"publicHosts":["STATUS_HOST"]}}
+```
+
+The deployment declaration selected by the command adapter must contain that
+variable in `vars`, for example `"STATUS_HOST":"status.rer-hosted-check.invalid"`.
+Each value must be a canonical lowercase hostname without a scheme, port, path
+or wildcard. Duplicate variable names and missing or malformed values refuse
+before installation. Hosts are admitted only by this explicit list; other
+deployment variables do not grant admission. With no list, only the original
+host is admitted. The supplied `request` keeps the admitted HTTPS URL and Host
+when forwarding to the same disposable production Worker. It never contacts
+the public network or grants the host access to the outbound provider adapter.
+
 The same journey module may export async `beforeStep` and `afterStep` functions.
 They run around each completed mandatory journey step in both `autonomous` and
 `held` phases, and around autonomous preparation in `blocked:<class>` phases.
@@ -663,33 +741,100 @@ Hooks cannot skip mandatory steps or alter the runner's arguments and outputs.
 Failed hooks fail the current phase with the same redacted diagnostic. A step
 that fails or yields no structured output does not receive `afterStep`.
 
-## Disposable history context
+## Disposable native preparation
 
-Phase preparation and native `beforeStep`/`afterStep` hooks receive the
-same `database(binding)` state reader as the owner initializer, plus `now`
-(the current verifier time in Unix milliseconds). For example:
+Phase fixtures and native `beforeStep`/`afterStep` hooks receive
+`database(binding)`, `now` (verifier Unix milliseconds),
+`scheduled({scheduledTime})`, and `queues.hold()`/`queues.release()`.
+The database supports SELECT and single native-table UPDATE, INSERT INTO and
+DELETE FROM statements through `prepare(sql).bind(...).run()/all()/first()`.
+Create real records through the app's doors; use writes only to age their
+native history. For example, after obtaining `db` and a real delivery ID:
 
 ```js
-export default async function ({ database, now }) {
- const db = await database('DB');
- const prior = await db.prepare('SELECT id FROM native_records WHERE created_at < ?')
-  .bind(now - 86_400_000).first();
- return { values: { prior } };
-}
+await db.prepare('UPDATE native_deliveries SET completed_at=? WHERE id=?').bind(now - 7_200_000, deliveryId).run();
+await scheduled({ scheduledTime: now });
 ```
 
-This context exists only in disposable conformance tooling; `rer dev` and
-`rer demo` do not receive it. Preparation runs afresh for each policy phase.
-Database refusals fail that phase with
-`agent_fixtures_database_unavailable`, without logging values, records or SQL.
-The reader remains SELECT-only, including for every `agent_door_*` table.
+`scheduled` runs the app Worker's own scheduled handler and waits for its
+work, without overriding its runtime clock. A queue hold delays entry into
+the app's real queue handler; release it in `afterStep` after native approval
+and the tested dispatch. Phase preparation releases any preceding hold;
+installation disposal also releases waiting deliveries. This allows a due
+approved step without rewriting approved content or approval evidence.
 
-Backdated writes are pending: `cli/hosted-output.mjs` currently rejects all
-non-SELECT statements. Enabling native history requires a separate, explicit
-conformance-only write capability at that boundary, with protection against
-direct and trigger-mediated writes to agent-door tables. Native HTTP calls must
-retain their genuine protocol receipts. A history hook must not change the
-runtime clock.
+Every write uses a disposable D1 transaction guarded against INSERT, UPDATE
+and DELETE on **all** `agent_door_*` tables, including native triggers and
+cascades. Schema, transaction and multiple statements are refused. Refusals
+fail the phase with `agent_fixtures_database_unavailable`; values, records
+and SQL are never included in diagnostics. Each policy phase prepares fresh
+values. These powers exist only in conformance tooling; the owner initializer
+retains its SELECT-only handle, and production, `rer dev` and `rer demo` do
+not receive them. `timedLifecycle` and `queuedLifecycle` remain **unscoped**
+capability names; this preparation boundary does not add lifecycle coverage.
+
+## Isolated declared native history
+
+A seed that needs pre-service history may separately declare a test-only
+`verification.history` module. It runs just before the named mandatory journey
+steps, under both `autonomous` and `held`, before native hooks and effect witnesses:
+
+```json
+{"verification":{"history":{
+  "module":"tests/history.mjs",
+  "steps":["learning"],
+  "statements":{"observation":{
+    "binding":"DB",
+    "sql":"INSERT INTO native_history(id,observed_at,value) VALUES (?,?,?)"
+  }}
+}}}
+```
+
+The Worker-compatible module default-exports `{async fetch(request) {...}}`.
+Its JSON request contains detached `{phase,step,args,outputs,now}`; it receives
+no cookies, credentials, database client or application bindings. For example:
+
+```js
+export default { async fetch(request) {
+ const { phase, now } = await request.json();
+ return Response.json([{statement:'observation',
+  values:[phase, now - 7 * 86_400_000, 12]}]);
+} };
+```
+
+Use the seed's native calculation code to construct genuine dated source rows,
+including the native forecast's pre-service timestamps, inputs and digest.
+Do not invent protocol receipts or successful proposal results. Declare steps
+before their history-dependent reads so the normal native digest, proposal,
+authority, policy and audit paths still run. The verifier never changes time.
+The seed's regular phase/step hooks may use the native person door to decide a
+previous round's open proposal; history tooling has no HTTP/person authority.
+
+Only `checkAgentDoor` (used by `rer verify` and focused conformance) starts this
+module. Like the network edge it runs in isolated workerd: contained `.mjs`/`.js`
+relative helpers, no Node imports, filesystem, application bindings or external
+network. The entry must live under `tests/`. Production commands (`build`, `dev`,
+`preview`, `deploy`) and conformance refuse runtime imports of its test modules
+from production source, including literal re-exports, TS path aliases, symlinks and literal Worker URL dependencies.
+Keep computed imports and custom loaders out of the production dependency graph.
+Shared native calculation helpers may still be used by production.
+
+Output is an array of `{statement,values}`, at most 1,000 rows / 2 MiB per call.
+Statements are named in the declaration, never supplied by module output. The
+only allowed SQL is `INSERT INTO table(columns) VALUES (...)`, with positional
+`?` parameters or fixed simple string/integer literals. No UPDATE, DELETE,
+upsert, query, expression, schema qualifier, comment or DDL is accepted. The
+verifier applies them only to declared bindings in its fresh, nonpersistent
+Miniflare database; no provider or existing installation database is opened.
+`agent_door_*`, `oa_*` and SQLite tables, views, virtual tables and every table
+with a trigger are refused, including triggers that could indirectly forge
+agent-door evidence. Rows are batched per database. Keep declarations narrow to
+native history, never account, session, policy, approval, audit or receipt state.
+Invalid declarations, output and writes fail with `agent_history_invalid` and
+redact SQL, rows and values. Owner initialization retains its SELECT-only `database(binding)` handle.
+Both preparation APIs use the same guarded disposable host writer; the isolated
+history declaration retains the stricter insert-only, trigger-free rules above.
+No declaration means no fixture Worker, writes or extra conformance points.
 
 ## Native clients and fresh phase fixtures
 
@@ -699,8 +844,8 @@ consumed by a previous policy round. Its default async function receives
 `{phase, request, origin, email, cookie, mail, fixtures, tool}`. The request
 function is restricted to the disposable installation; use the native owner
 session to issue clients, then their real credentials to create native records
-and retained operation receipts. No signer, writable database or production
-fixture route is supplied.
+and retained operation receipts. No signer or production fixture route is supplied; native writes use the
+guarded disposable preparation boundary above.
 
 Return `{values, clients, sponsors}` (each member is optional). `values` is an object of named phase-local JSON
 values. `clients` maps names to `{token, clientId, agent:{id,name,specialist}}`
@@ -892,7 +1037,7 @@ unique stable `label` values and distinct canonical emails:
 These keys live under `verification`. The first principal inherits `owner` and
 runs all existing phases. Each later principal requires its own contained
 initializer and receives `{label,email,sub,displayName,claim,owner,request,
-origin,database,returnTo}`. Its fresh signed claim uses the same disposable
+origin,database,returnTo,mail,fixtures}`. Its fresh signed claim uses the same disposable
 installation ring; `owner` carries the first principal's native session for
 normal invitations. A signed Business settings roster binds each subject with
 its declared `admin` or `member` role (default `member`). Complete the seed's
