@@ -1,5 +1,3 @@
-.subscriber-reporting-disclosure > summary { cursor: pointer; color: var(--ink); font-weight: 500; min-height: 44px; align-content: center; }
-.subscriber-reporting-disclosure > .subscriber-reporting { margin-top: 16px; }
 .subscriber-reporting { display: grid; gap: 16px; min-width: 0; }
 .subscriber-reporting .card-heading { flex-wrap: wrap; gap: 12px; }
 .subscriber-reporting :is(p, h2, h3) { margin: 0; }

@@ -1,4 +1,4 @@
-/* The page as Lamp draws it (onboarding, Your page, Settings), the Overview's one-line live strip, and Your page. */
+/* The page as Lamp draws it (onboarding and Settings › Page), the Overview's one-line live strip, and the page's facts. */
 .page-preview { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); }
 .page-preview-frame { display: flex; align-items: center; gap: 6px; height: 28px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 0 12px; }
 .page-preview-frame > span { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--line-strong); }
@@ -53,8 +53,7 @@
 .live-address:hover, .live-link:hover { text-decoration-color: var(--ink); }
 .live-strip .live-problem { margin-top: 6px; color: var(--amber-ink); font-weight: 500; }
 
-/* Your page: Lamp's drawing of the page, what Lamp checked, and ways to try it. */
-.your-page-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Settings › Page: Lamp's drawing of the page, what Lamp checked, and ways to try it. */
 .your-page-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); align-items: start; gap: 20px; }
 .your-page-preview { background: var(--stage); padding: 28px; }
 .your-page-side { display: grid; gap: 20px; }
