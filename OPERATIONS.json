@@ -169,7 +169,8 @@
     "SUBSCRIBER_TOKEN_SECRET",
     "WEBHOOK_SIGNING_SECRET",
     "SETUP_TOKEN",
-    "SESSION_SECRET"
+    "SESSION_SECRET",
+    "INSTALLATION_KEY"
   ],
   "authentication": {
     "deployment": "Owner-controlled Cloudflare API token and account ID.",
@@ -233,7 +234,8 @@
     "SUBSCRIBER_TOKEN_SECRET": "Generate a private random subscriber signing value",
     "WEBHOOK_SIGNING_SECRET": "Generate a private random webhook signing value",
     "SETUP_TOKEN": "Generate a private random one-time setup value",
-    "SESSION_SECRET": "Generate and preserve a private random session signing value"
+    "SESSION_SECRET": "Generate and preserve a private random session signing value",
+    "INSTALLATION_KEY": "Generate and preserve a private random installation encryption value"
   },
   "seedContract": {
     "version": 1,

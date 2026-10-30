@@ -30,6 +30,16 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
   });
 
+  // Native first-run initialization uses the same owner/session/CSRF admission
+  // as later settings edits. Existing installations are never overwritten.
+  app.post("/api/app/page-settings", async (context) => {
+    const parsed = pageSettingsSchema.safeParse(await context.req.json().catch(() => null));
+    if (!parsed.success) return context.json({ code: "invalid_page_settings" }, 400);
+    if (await service.get()) return context.json({ code: "page_already_initialized" }, 409);
+    await service.ensureInitial(parsed.data);
+    return context.json({ settings: await service.get() }, 201);
+  });
+
   app.put("/api/app/page-settings", async (context) => {
     const parsed = pageSettingsSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid page settings.", issues: parsed.error.issues }, 400);

@@ -6,13 +6,15 @@ import type { LampJob } from "../platform/jobs";
 import { createOverviewRepository } from "../features/overview/repository";
 import { CRON_EVIDENCE_STEP } from "./request-work";
 import { expireHeldSorrySubscribers } from "../features/statuspage-import/sorry-release.repository";
+import { createAgentJobsRepository } from '../features/agent-door/jobs.repository';
 
 let localSnapshotBootstrapFinished = false;
 
 function isLampJob(value: unknown): value is LampJob {
   if (typeof value !== "object" || value === null) return false;
-  const candidate = value as { type?: unknown; eventId?: unknown };
-  return candidate.type === "health-probe" || (candidate.type === "delivery-dispatch" && typeof candidate.eventId === "string");
+  const candidate = value as { type?: unknown; eventId?: unknown; id?: unknown };
+  return candidate.type === "health-probe" || (candidate.type === "delivery-dispatch" && typeof candidate.eventId === "string")
+    || (candidate.type === 'agent-invocation' && typeof candidate.id === 'string');
 }
 
 export async function ensureDevelopmentSnapshot(runtime: ReturnType<typeof createApp>) {
@@ -78,6 +80,16 @@ export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindin
       continue;
     }
     try {
+      if (message.body.type === 'agent-invocation') {
+        const jobs = createAgentJobsRepository(bindings.DB), saved = await jobs.read(message.body.id);
+        if (!saved) throw new Error('Native agent invocation custody is missing.');
+        if (!saved.result) {
+          const { name, args, who } = saved.input;
+          await jobs.complete(message.body.id, await runtime.agentDoor.invoke(name, args, who));
+        }
+        message.ack();
+        continue;
+      }
       await runtime.services.deliveries.dispatchEvent(message.body.eventId, await notificationOrigin(bindings));
       await runtime.services.social.dispatchPending();
       message.ack();

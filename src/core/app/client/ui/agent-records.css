@@ -1,0 +1,25 @@
+/* Native records used for preparing and reviewing agent work keep touch-sized
+   controls at desktop and phone widths. The public page and navigation retain
+   their existing design. Labels remain the hit target for native checkboxes. */
+:is(.incident-page, .maintenance-workspace, .agent-deliveries-page, #audit-log) :is(button, select, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), summary) {
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+}
+.incident-page .choice-pill,
+:is(.incident-page, .maintenance-workspace) .checkbox-label {
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+}
+.incident-page .component-chip { min-height: 46px; }
+.settings-page a.text-link,
+#audit-log .form-actions a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+.settings-page label:has(input[type="checkbox"]) {
+  min-height: 44px;
+  min-width: 44px;
+}

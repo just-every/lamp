@@ -50,6 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -99,6 +100,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -151,6 +153,7 @@ jobs:
           LAMP_VERIFY_SHARD: ${{ matrix.shard }}
           LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
           LAMP_BASELINE_REPORT: ${{ runner.temp }}/lamp-verification/baseline-report.json
+          LAMP_AGENT_DOOR_REPORT: ${{ runner.temp }}/lamp-verification/agent-door-conformance.json
         run: |
           # rer verify adds Base's hosted-output and hydration checks after the
           # runtime shard has built and exercised the actual production Worker.

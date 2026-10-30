@@ -1,3 +1,5 @@
+import { agentAttributionStatements, agentQueuedOperationStatements } from '../../agent-door/provenance.repository';
+import { currentAgentActor } from '../../agent-door/actor';
 import { createUlid } from "../../../shared/ids";
 import { followUpsQueryFor } from "./query.repository";
 
@@ -11,6 +13,9 @@ export function createFollowUpRetryRepository(db: D1Database) {
       if (!followUpsQuery || !id.startsWith("notification-dispatch:")) return null;
       const reclaimBefore = new Date(Date.parse(now) - CLAIM_MS).toISOString();
       const auditId = createUlid();
+      const outboxId=id.slice('notification-dispatch:'.length);
+      const source=await db.prepare("SELECT aggregate_id AS eventId FROM notification_outbox WHERE id=? AND kind='delivery-dispatch'").bind(outboxId).first<{eventId:string}>();
+      const custody=currentAgentActor()&&source?agentQueuedOperationStatements(db,{kind:'publication',id:source.eventId,tool:'lamp.deliveries.dispatch',args:{event_id:source.eventId,idempotency_key:`publication/${source.eventId}`},at:now,guard:{sql:"EXISTS(SELECT 1 FROM audit_entries WHERE id=?) AND NOT EXISTS(SELECT 1 FROM lamp_agent_queued_operations WHERE kind='publication' AND id=?)",params:[auditId,source.eventId]}}):[];
       const [claimed] = await db.batch<DispatchRetryClaim>([
         db.prepare(`${followUpsQuery} UPDATE notification_outbox AS n SET locked_at=?,updated_at=?,failed_at=NULL
           WHERE n.kind='delivery-dispatch' AND n.completed_at IS NULL
@@ -27,6 +32,8 @@ export function createFollowUpRetryRepository(db: D1Database) {
         db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
           SELECT ?,'follow-up',?,'follow-up.retry-requested',?,json_object('occurrence',?),?,? WHERE changes()=1`)
           .bind(auditId,id,operatorId,occurrence,now,now),
+        ...agentAttributionStatements(db,{entityType:'follow-up',entityId:id,operatorId,at:now,guard:{sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[auditId]}}),
+        ...custody,
       ]);
       return claimed.results[0] ?? null;
     },

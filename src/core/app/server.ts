@@ -1,3 +1,4 @@
+import { createLampAgentDoor } from '../features/agent-door/index.server';
 import { registerAlertRuleRoutes } from "../features/intake/rule-routes";
 import { registerIncidentFollowSettingsRoutes } from "../features/subscribers/incident-follow-settings.routes";
 import { registerTrafficAlertRoutes } from "../features/traffic-alerts/routes";
@@ -55,7 +56,7 @@ import { registerPageExportRoutes } from "../features/page-export";
 
 export type { AppBindings } from "./types";
 
-export function createApp(bindings: AppBindings, execution?: MailExecution) {
+export function createApp(bindings: AppBindings, execution?: MailExecution, { deferAgentDoor = false } = {}) {
   const app = new Hono<AppEnv>();
   const authorizedReads = new WeakMap<Request, OperatorReadSession>();
   const services = createAppServices(bindings, createSnapshotBlobStore(bindings), execution);
@@ -126,5 +127,10 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
     try { return await app.fetch(request, bindings); }
     finally { authorizedReads.delete(request); }
   }
-  return { app, services, readOperator, health: healthService };
+  let agentDoor: ReturnType<typeof createLampAgentDoor> | undefined;
+  const getAgentDoor = () => agentDoor ??= createLampAgentDoor(services, bindings);
+  // Background and native work retain admission hooks before they can dispatch.
+  // Retained public reads need only their snapshot services, without D1 custody.
+  if (!deferAgentDoor) getAgentDoor();
+  return { app, services, readOperator, health: healthService, get agentDoor() { return getAgentDoor(); } };
 }
