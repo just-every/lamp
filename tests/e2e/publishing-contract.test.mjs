@@ -26,7 +26,9 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     }, 201)).template;
     const incident = await j.incident('Payment requests delayed', [component, hidden]);
     const endpoint = `/api/app/incidents/${incident.id}`;
+    const publishedUpdates = async () => (await j.db.prepare('SELECT * FROM incident_updates WHERE incident_id = ? ORDER BY published_at, created_at, id').bind(incident.id).all()).results;
     assert.equal(incident.lifecycle, 'Investigating');
+    assert.equal((await j.read(incident.id)).lifecycle, 'Investigating');
     assert.ok(incident.reference);
     await j.json(`${endpoint}/internal-notes`, 'POST', { body: 'PRIVATE investigation note' }, 201);
     await j.publish(incident.id, {}, 400);
@@ -70,8 +72,46 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     }
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Major outage');
 
-    await saveReviewed(incident.id, { lifecycle: 'Monitoring', customerImpact: 'Payments are recovering.', componentChanges: [{ componentId: component.id, state: 'Degraded performance' }] });
+    const identified = await j.read(incident.id);
+    assert.equal(first.lifecycle, 'Identified');
+    assert.equal(identified.lifecycle, 'Identified');
+    assert.deepEqual(identified.updates, [first]);
+    const identifiedUpdates = await publishedUpdates();
+    assert.equal(identifiedUpdates.length, 1);
+
+    await owner();
+    await j.save(incident.id, { lifecycle: 'Monitoring', customerImpact: 'Payments are recovering.', componentChanges: [{ componentId: component.id, state: 'Degraded performance' }] });
+    const savedMonitoring = await j.read(incident.id);
+    assert.equal(savedMonitoring.draft.lifecycle, 'Monitoring');
+    assert.equal(savedMonitoring.lifecycle, 'Identified');
+    assert.deepEqual(savedMonitoring.updates, identified.updates);
+    assert.deepEqual(await publishedUpdates(), identifiedUpdates);
+
+    for (const lifecycle of [['Identified', 'Monitoring'], 'Identified, Monitoring']) {
+      const refused = await j.json(`${endpoint}/draft`, 'PUT', { ...wording, lifecycle }, 400);
+      assert.equal(refused.error, 'Invalid incident draft.');
+      assert.deepEqual(await j.read(incident.id), savedMonitoring, 'multiple lifecycle choices leave the incident and saved draft unchanged');
+      assert.deepEqual(await publishedUpdates(), identifiedUpdates);
+    }
+
+    await review(incident.id);
+    const reviewedMonitoring = await j.read(incident.id);
+    assert.equal(reviewedMonitoring.draft.lifecycle, 'Monitoring');
+    assert.ok(reviewedMonitoring.draft.reviewedAt);
+    assert.equal(reviewedMonitoring.lifecycle, 'Identified');
+    assert.deepEqual(reviewedMonitoring.updates, identified.updates);
+    assert.deepEqual(await publishedUpdates(), identifiedUpdates);
     const monitoring = (await j.publish(incident.id)).update;
+    assert.equal(monitoring.lifecycle, 'Monitoring');
+    const publishedMonitoring = await j.read(incident.id);
+    assert.equal(publishedMonitoring.lifecycle, 'Monitoring');
+    assert.equal(publishedMonitoring.draft, null);
+    assert.deepEqual(publishedMonitoring.updates.find(row => row.id === monitoring.id), monitoring);
+    assert.deepEqual(publishedMonitoring.updates.find(row => row.id === first.id), first);
+    const monitoringUpdates = await publishedUpdates();
+    assert.equal(monitoringUpdates.length, identifiedUpdates.length + 1);
+    assert.deepEqual(monitoringUpdates.filter(row => row.id !== monitoring.id), identifiedUpdates);
+    assert.equal(monitoringUpdates.find(row => row.id === monitoring.id).lifecycle, 'Monitoring');
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Degraded performance');
     assert.equal((await j.read(incident.id)).impact, 'Major outage');
     const impact = (await j.json(`${endpoint}/impact`, 'PUT', { impactOverride: 'minor' })).impact;
@@ -97,9 +137,11 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.ok(!(await j.publicText(`/incidents/${incident.reference}`)).includes('overdue'));
 
     await saveReviewed(incident.id, { lifecycle: 'Resolved', customerImpact: 'Payment processing has recovered.', nextUpdateAt: null });
-    await j.publish(incident.id);
+    const resolution = (await j.publish(incident.id)).update;
+    assert.equal(resolution.lifecycle, 'Resolved');
     const resolved = await j.read(incident.id);
     assert.equal(resolved.lifecycle, 'Resolved');
+    assert.deepEqual(resolved.updates.find(row => row.id === resolution.id), resolution);
     assert.equal(typeof resolved.resolvedAt, 'string');
     assert.equal((await j.read(incident.id)).draft, null);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');

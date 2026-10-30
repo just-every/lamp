@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "aef72f713a4b77a773bb8de07ce5a15bb4c3e93dc60edb1915ace8b9d57111c9",
+      "sha256": "fc2bd082067c16270330624926e822d46f27dbef2bc36bb135bc7cff765c847b",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ecb0d9c6d331217753c6dca09d0e4e3942f0f8dc9cd66fc14ea2001699789654",
+      "sha256": "e901ccf9cdcc96468bda03eaf9bb99c1790f2172d3365ea4e5d13ae4b76e5337",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "e266409a77c8fb9f33b49e530dfa492f9c58547016c748496463889430c35a8f",
+      "sha256": "b1bfe4559bc124bf5d4d7dcde2f4d64a704daea463c592be2ea42b4b66c40596",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -7000,7 +7000,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "cde1f024f476d32e8c97b1dd26780f7cb34c89bb9ea860e93b921d7cb72f754c",
+      "sha256": "94daf09a8be2cb5765c9d094d8c24034ccfcbebaf179625b48b61d31d2558997",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {
