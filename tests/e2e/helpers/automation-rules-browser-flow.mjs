@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
-import { operatorHydrated } from "./operator-hydrated.mjs";
+import { openFresh, operatorHydrated } from "./operator-hydrated.mjs";
 
 /** AUTO-001 owner controls, persisted approval, public result and internal record.
  * Assertions use one desktop width. Optional evidence captures the same saved
@@ -30,7 +30,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     if (proof) await mkdir(proof, { recursive: true });
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error" && /hydrat|did not match|server rendered/i.test(message.text())) errors.push(message.text()); });
-    await page.goto(`${origin}/app/settings#tools`); await operatorHydrated(page);
+    await openFresh(page, `${origin}/app/settings#tools`);
     if (proof) await captureBoth("alert-entry", () => page.screenshot.bind(page));
     await page.getByRole("link", { name: "Manage alert rules in Settings", exact: true }).click();
     await operatorHydrated(page);
