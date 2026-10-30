@@ -46,7 +46,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
     // Allocate for this open after bundling, never across fixture lifetimes.
     const appPort = await reservePort({ label: "follow-ups Worker" });
     const appOrigin = `http://127.0.0.1:${appPort}`;
-    runtime = new Miniflare(convertV4MiniflareOptions({
+    const runtimeOptions = convertV4MiniflareOptions({
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
       port: appPort, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
       bindings: {
@@ -92,8 +92,9 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
         }
         throw new Error(`Unexpected follow-up fixture network edge: ${url.origin}${url.pathname}`);
       },
-    }));
-    const db = await runtime.getD1Database("DB");
+    });
+    runtime = new Miniflare(runtimeOptions);
+    let db = await runtime.getD1Database("DB");
     const execute = sql => db.batch(unstable_splitSqlQuery(sql).map(statement => db.prepare(statement)));
     for (const migration of (await readdir("migrations/core")).filter(name => name.endsWith(".sql")).sort()) await execute(await readFile(join("migrations/core", migration), "utf8"));
     // Installation identity/settings are fixture prerequisites. Every obligation
@@ -141,7 +142,13 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
     }
     await signIn();
     return {
-      runtime, db, execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests, signIn,
+      get runtime() { return runtime; }, get db() { return db; },
+      execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests, signIn,
+      async restart() {
+        await runtime.dispose();
+        runtime = new Miniflare(runtimeOptions);
+        db = await runtime.getD1Database("DB");
+      },
       recoverWebhook() { webhookOutage = false; },
       async close() { try { await runtime.dispose(); } finally { await rm(state, { recursive: true, force: true }); } },
     };

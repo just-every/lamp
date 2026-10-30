@@ -3122,11 +3122,13 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 
 INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded gaps. The replay of `cc385f264c61cec1aacb67c2aa57b3e42bc32e97` adds assertions in `tests/e2e/publishing-contract.test.mjs` for the saved public commitment instant and configured-zone text, original historical publication instants on permanent and monthly-history pages, original component-history transitions and silent historical corrections. The original monthly-history title assertion remains. These additional assertions do not change the newer clause judgments.
 
+INCIDENT-003 proof is from the code and registered journey at commit `4e3140f853a796ed562875e80d8cf5dd20203a76` (30 October 2026); the landing candidate retains those source and journey bytes. Every acceptance point is exercised through native creation, publication and public permalink doors. Other clause judgments remain inherited.
+
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3189,7 +3191,7 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 | `UPTIME-011` | Audience availability report sharing | target | partial | `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The original evidence does not assert this part’s complete outcome; unasserted: The selected audience receives the report on its private page; The shared numbers equal the component page’s figures. |
 | `INCIDENT-001` | Lifecycle | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: Investigating; Identified; Resolved; starts Investigating; published lifecycle. Unasserted in old cited evidence: Monitoring; exactly one lifecycle; no unpublished lifecycle change. |
 | `INCIDENT-002` | Impact | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: peak impact; resolved peak impact. Unasserted in old cited evidence: no-component impact absent; no-component publication refused. |
-| `INCIDENT-003` | Reference | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts numeric reference; The numeric-reference permalink returns that incident’s title; increasing sequence; legacy reference unchanged. Unasserted: manual and intake share sequence; public address unchanged. |
+| `INCIDENT-003` | Reference | published | done | `tests/e2e/publishing-contract.test.mjs` — “INCIDENT-003 — manual and authenticated intake share durable references and permanent public addresses through deletion, failed creation and restart”, with `tests/e2e/helpers/incident-references-flow.mjs`: numeric and legacy references, shared manual and intake sequence, retained canonical addresses, deletion and both failed creation doors across persisted restarts. | |
 | `INCIDENT-004` | Published updates are immutable | published | partial | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Asserted: original wording retained; correction identifies original; both updates retained. Unasserted in old cited evidence: published deletion refused; public publication order. |
 | `INCIDENT-005` | Reopening | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: reopened lifecycle; resolution retained; reopening retained. Unasserted in old cited evidence: both public. |
 | `INCIDENT-006` | Overdue update | published | partial | `tests/e2e/publishing-contract.test.mjs` | Asserted: operator overdue; no public overdue label. Unasserted in old cited evidence: public committed time. |
