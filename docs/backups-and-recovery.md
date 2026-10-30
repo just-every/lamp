@@ -11,7 +11,7 @@ Lamp gives you two kinds of copy:
 
 ## Export your page data from the app
 
-Sign in and open **Settings → Export page data → Download page data**. The file,
+Sign in and open **Settings → Export and restore → Download page data**. The file,
 `lamp-page-data-<date>.json`, holds:
 
 - page settings (name, tagline, color, time zone, footer credit, widget origins,

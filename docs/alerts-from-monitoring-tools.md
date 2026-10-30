@@ -1,6 +1,6 @@
 # Alerts from monitoring tools
 
-Open **Alerts** and choose a tool under **Connect a tool**: Uptime, PagerDuty,
+Open **Settings → Connected tools** and choose a tool under **Connect a tool**: Uptime, PagerDuty,
 Datadog, UptimeRobot, Better Stack, Pingdom, Alertmanager, Grafana, or
 **Another tool** for any tool that posts JSON. Only that tool's form opens. It
 asks only for what the tool needs, and Lamp makes the key the tool posts with.
@@ -20,7 +20,7 @@ been published; a published incident keeps its lifecycle.
 
 ## Owner-approved automatic changes
 
-Open **Settings → Alerts → Alert rules** to choose what one source may do to
+Open **Settings → Connected tools → Alert rules** to choose what one source may do to
 one component. **Draft** keeps alerts private. **Claim** changes only the
 component state and sends no subscriber update. **Claim and publish** uses a
 saved, operator-written incident template, its saved recovery wording and its
