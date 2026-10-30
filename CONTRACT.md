@@ -3309,10 +3309,9 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 9 | 98 | 0 | 107 |
+| Published | 10 | 97 | 0 | 107 |
 | Target and push further | 9 | 73 | 67 | 149 |
-| All | 18 | 171 | 67 | 256 |
-
+| All | 19 | 170 | 67 | 256 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3468,7 +3467,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `NOTIFY-024` | Provider sending-rate advice | target | missing | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | There is no provider-account sending-rate inquiry or entered-rate advice; the current 1,000-recipient local delivery qualification does not implement this capability. |
 | `INTAKE-001` | Authenticated requests | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The cited HMAC journey asserts signed admission and wrong-signature refusal. It does not assert the five-minute boundary, bearer admission, absent/stale credential cases or unchanged complete records after refusal; intake-byte and preset helpers carrying these assertions are outside this clause’s old Evidence set. |
 | `INTAKE-002` | Alerts never publish | published | partial | `tests/e2e/publishing-contract.test.mjs` | The cited journey asserts a private draft and page exclusion. It does not measure the 30-second create/update bound or compare all public surfaces. The class/policy wording carries no promotion. |
-| `INTAKE-003` | Deduplication | published | partial | `tests/e2e/publishing-contract.test.mjs` | Equal incident identifiers and accepted replay status are asserted. Complete incident, draft and alert-record inventories are not compared across replay, leaving the absence of all additional records unasserted. |
+| `INTAKE-003` | Deduplication | published | done | `tests/e2e/incident-brief.test.mjs` (INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002 DRAFT-003 DRAFT-004 AGENT-002 AGENT-004 — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails): distinct signed deliveries with one key retain the unresolved incident and draft, with separate receipts; an identical accepted signed request retains the original HTTP status, receipt and incident identities, and complete incident, draft and alert receipt inventories ordered by record identity remain unchanged. |  |
 | `INTAKE-004` | Recovery alerts | published | partial | `tests/e2e/publishing-contract.test.mjs` | Unchanged lifecycle and zero updates are asserted. Recovery timestamp readback and complete public-artifact equality are not asserted. |
 | `INTAKE-005` | Payload mapping | published | partial | `tests/e2e/public-contract.test.mjs`, `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Old cited evidence asserts Configured key path controls acceptance; Configured generic firing state is read back; Missing key returns 400; Visible rejected mapping reason. Unasserted: Configured title read back; Configured generic recovered state is read back. |
 | `INTAKE-006` | Monitor presets | published | partial | `tests/e2e/channels-and-presets.test.mjs` | All four mapped private drafts, token redaction, credential status refusals, invalid receipts and public-status exclusion are asserted. Complete record inventories after authentication refusal and every public representation after intake are not compared. |
