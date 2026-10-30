@@ -250,10 +250,71 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     await plain.locator('input[name=email]').fill('public-reader@example.test');
     await Promise.all([plain.waitForNavigation(), plain.locator('form[action="/subscribe"] button[type=submit]').click()]);
     await eventually(() => j.messages.find(message => message.to.includes('public-reader@example.test')), Boolean, 'plain form sends subscriber confirmation');
+    const maintenance = (await j.json('/api/app/maintenance', 'POST', {
+      title: 'Customer API capacity work', affectedAudience: 'Customers using the public API',
+      customerImpact: 'Requests may pause during the capacity work.', componentIds: [main.id],
+      startsAt: new Date(Date.now() + 3600000).toISOString(), endsAt: new Date(Date.now() + 7200000).toISOString(),
+      autoStart: false, autoComplete: false,
+    }, 201)).maintenance;
+    const maintenancePath = `/maintenance/${maintenance.reference}`;
+    const publishedMaintenance = await j.visible(maintenancePath, maintenance.customerImpact);
+    assert.ok(publishedMaintenance.includes(`Affects ${main.name}`));
+    const savedMaintenance = (await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id);
+    assert.ok(savedMaintenance.notices.some(row => row.kind === 'scheduled'));
     const beforeDelete = await j.publicText('/history'); assert.ok(beforeDelete.includes(main.name));
+    const warmedPage = await j.publicResponse('/');
+    const beforeVersion = warmedPage.headers.get('x-lamp-snapshot-version');
+    assert.ok(beforeVersion);
+    assert.match(await warmedPage.text(), /aria-label="[^"]*uptime record for Public API"/);
+    const componentPaths = ['feed.atom', 'feed.rss', 'badge.svg', 'uptime.svg'].map(resource => `/components/${publishedMain.slug}/${resource}`);
+    for (const path of componentPaths) {
+      const response = await j.publicResponse(path);
+      assert.equal(response.status, 200, `prewarm ${path}`);
+      await response.arrayBuffer();
+    }
+    await page.reload();
+    assert.ok((await page.locator('.component-health').innerText()).includes(main.name));
+    const beforeComponents = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
+    assert.deepEqual(beforeComponents.map(row => row.id), [main.id]);
+    assert.ok(beforeComponents[0].uptime.marks.some(mark => mark.downtimeMinutes > 0));
     await j.json(`/api/app/components/${main.id}`, 'DELETE', undefined, 204);
+    const deletedAt = performance.now(), deadline = deletedAt + 10000;
+    let removed;
+    do {
+      const root = await j.publicResponse('/');
+      const body = await root.text();
+      const components = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
+      const statuses = [];
+      for (const path of componentPaths) {
+        const response = await j.publicResponse(path);
+        statuses.push(response.status); await response.arrayBuffer();
+      }
+      if (root.status === 200 && root.headers.get('x-lamp-snapshot-state') !== 'stale'
+        && root.headers.get('x-lamp-snapshot-version') !== beforeVersion
+        && !body.includes('class="component-health"') && components.length === 0 && statuses.every(status => status === 404)) {
+        removed = { body, components, statuses }; break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    } while (performance.now() < deadline);
+    const disappearanceMs = performance.now() - deletedAt;
+    assert.ok(removed && disappearanceMs <= 10000, `all prewarmed public state and uptime disappear within ten seconds (${disappearanceMs.toFixed(1)} ms)`);
+    console.info(`COMP-007 public disappearance: ${disappearanceMs.toFixed(1)} ms`);
+    await page.reload();
+    assert.equal(await page.locator('.component-health, .uptime').count(), 0);
+    if (process.env.LAMP_SCREENSHOTS) {
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+        await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-deleted-component-history.png`, fullPage: true });
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    }
     const afterDelete = await j.visible('/history', incident.title);
     assert.ok(afterDelete.includes(main.name), 'published history retains the name of a deleted component');
+    assert.ok((await j.publicText(`/incidents/${incident.reference}`)).includes(`Affecting ${main.name}`));
+    const retainedMaintenance = await j.publicText(maintenancePath);
+    assert.ok(retainedMaintenance.includes(`Affects ${main.name}`), 'published maintenance retains the independently captured component name');
+    assert.ok(retainedMaintenance.includes(maintenance.customerImpact));
+    assert.deepEqual((await j.json('/api/app/maintenance')).maintenance.find(row => row.id === maintenance.id).notices, savedMaintenance.notices, 'deletion preserves every published maintenance update');
     const remaining = (await (await j.publicResponse('/api/public/v1/components')).json()).data;
     assert.ok(!remaining.some(row => row.id === main.id));
   } finally { await browser?.close(); await j.close(); }
