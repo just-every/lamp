@@ -309,6 +309,11 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
   await monitorSetupJourney({ api, component, origin, publicOrigin, cookie });
   await metricSetupJourney({ api, post, component, origin, cookie });
+  // Isolate this browser journey from accumulated development replay state.
+  // Restart only the transport; keep the database, owner session and
+  // source records that the automation assertions read back.
+  await runtime.stop();
+  await runtime.start();
   await automationRulesBrowserFlow({ origin, publicOrigin, cookie, component, api, post });
   await pagerDutyFlow({ runtime, t });
   await operationsAlertsFlow({ t });
