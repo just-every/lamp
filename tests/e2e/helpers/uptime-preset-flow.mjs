@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { intakeByteFlow } from './intake-byte-flow.mjs';
+import { intakeByteFlow, intakeInventory } from './intake-byte-flow.mjs';
 import { createHmac } from 'node:crypto';
 
 // run-uptime main: notification-content.ts, notification-context.ts and
@@ -14,7 +14,7 @@ async function send(source, payload, { timestamp = new Date().toISOString(), sig
   return { status: response.status, body: await response.json() };
 }
 
-export async function uptimePresetFlow({ api, post, component, publicOrigin }) {
+export async function uptimePresetFlow({ api, post, component, publicOrigin, sql }) {
   const targets = [await component('Checkout API (Uptime)'), await component('Payments worker (Uptime)')];
   const mappings = targets.map((row, index) => ({ monitorId: index ? 'payments' : 'checkout', componentId: row.id }));
   const input = { name: 'Production Uptime evidence', preset: 'uptime', credentialKind: 'hmac-sha256', signingSecret: secret, monitorMappings: mappings };
@@ -26,11 +26,17 @@ export async function uptimePresetFlow({ api, post, component, publicOrigin }) {
   assert.equal(source.credentialKind, 'hmac-sha256');
   assert.deepEqual(source.monitorMappings, mappings);
   assert.ok(!(await api('/api/app/intake/sources')).text.includes(secret));
-  await intakeByteFlow({ api, post, publicOrigin, source, payload: envelope('checkout', 'incident:exact-bytes'), secret });
+  await intakeByteFlow({ api, post, publicOrigin, source, payload: envelope('checkout', 'incident:exact-bytes'), secret, sql });
   const down = envelope('checkout', 'incident:checkout-first');
-  assert.equal((await send(source, down, { timestamp: new Date(Date.now() - 6 * 60000).toISOString() })).status, 401, 'INTAKE-008 replay outside five minutes');
-  assert.equal((await send(source, down, { signingSecret: 'wrong' })).status, 401);
-  assert.equal((await send(source, down, { signature: createHmac('sha256', secret).update(JSON.stringify(down)).digest('base64url') })).status, 401, 'signature covers timestamp and exact body');
+  for (const [label, credentials] of [
+    ['INTAKE-008 replay outside five minutes', { timestamp: new Date(Date.now() - 6 * 60000).toISOString() }],
+    ['wrong signing secret', { signingSecret: 'wrong' }],
+    ['signature covers timestamp and exact body', { signature: createHmac('sha256', secret).update(JSON.stringify(down)).digest('base64url') }],
+  ]) {
+    const before = await intakeInventory(sql);
+    assert.equal((await send(source, down, credentials)).status, 401, label);
+    assert.deepEqual(await intakeInventory(sql), before, `${label}: no persisted records change`);
+  }
   assert.equal((await send(source, { ...down, kind: 'recovery' })).status, 400, 'unconfirmed or inconsistent transitions refused');
   assert.equal((await send(source, envelope('unmapped', 'incident:unmapped'))).status, 400);
   const firing = await send(source, down);

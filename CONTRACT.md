@@ -3118,6 +3118,8 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
 
+INTAKE-001 proof is from the code and registered journey at commit 410e53189c064a5b5c7e5a7c16cffdc8105f77c6 (31 October 2026), replayed onto main 79eabb4c5c1c664bc374f48628a046eb7ff6601e; the replay keeps those helper and journey bytes. Other clause judgments remain inherited.
+
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
 INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded gaps. The replay of `cc385f264c61cec1aacb67c2aa57b3e42bc32e97` adds assertions in `tests/e2e/publishing-contract.test.mjs` for the saved public commitment instant and configured-zone text, original historical publication instants on permanent and monthly-history pages, original component-history transitions and silent historical corrections. The original monthly-history title assertion remains. These additional assertions do not change the newer clause judgments.
@@ -3126,9 +3128,9 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3282,7 +3284,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `NOTIFY-020` | Delivery at Statuspage Business and Enterprise scale | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Durable queued email delivery ships, with the 5-minute bound qualified only locally at 1,000 subscribers under a 10-per-second fake quota (seed.json → limits). There is no hosted run, no qualification above 1,000, no provider batch sending, and no check of the provider account's rate. |
 | `NOTIFY-023` | Dispatch throughput at subscriber scale | target | missing | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Current queued email dispatch is proven locally at 1,000 recipients. Parallel scale qualification at 150 acceptances per second and provider batch routes are absent. |
 | `NOTIFY-024` | Provider sending-rate advice | target | missing | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | There is no provider-account sending-rate inquiry or entered-rate advice; the current 1,000-recipient local delivery qualification does not implement this capability. |
-| `INTAKE-001` | Authenticated requests | published | partial | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | The cited HMAC journey asserts signed admission and wrong-signature refusal. It does not assert the five-minute boundary, bearer admission, absent/stale credential cases or unchanged complete records after refusal; intake-byte and preset helpers carrying these assertions are outside this clause’s old Evidence set. |
+| `INTAKE-001` | Authenticated requests | published | done | `tests/e2e/channels-and-presets.test.mjs` (Connect monitors, review private alert drafts, publish and recover with durable integration evidence), through `tests/e2e/helpers/intake-byte-flow.mjs` (intakeAuthenticationFlow and intakeByteFlow) and `tests/e2e/helpers/uptime-preset-flow.mjs` (uptimePresetFlow): exact received-byte HMAC authentication; distinct signed payloads admitted at both five-minute boundaries and refused one millisecond outside; configured bearer admission; absent, malformed, stale and non-matching credentials return 401 with complete populated incident, draft, update, receipt and audit inventories ordered by identity unchanged after every refusal. |  |
 | `INTAKE-002` | Alerts never publish | published | partial | `tests/e2e/publishing-contract.test.mjs` | The cited journey asserts a private draft and page exclusion. It does not measure the 30-second create/update bound or compare all public surfaces. The class/policy wording carries no promotion. |
 | `INTAKE-003` | Deduplication | published | done | `tests/e2e/incident-brief.test.mjs` (INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002 DRAFT-003 DRAFT-004 AGENT-002 AGENT-004 — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails): distinct signed deliveries with one key retain the unresolved incident and draft, with separate receipts; an identical accepted signed request retains the original HTTP status, receipt and incident identities, and complete incident, draft and alert receipt inventories ordered by record identity remain unchanged. |  |
 | `INTAKE-004` | Recovery alerts | published | partial | `tests/e2e/publishing-contract.test.mjs` | Unchanged lifecycle and zero updates are asserted. Recovery timestamp readback and complete public-artifact equality are not asserted. |
