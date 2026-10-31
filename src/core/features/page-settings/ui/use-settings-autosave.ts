@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
-import { leaveWhenSaved } from "../../../app/client/ui/leave-guard";
+import { leaveWhenSaved, type Move } from "../../../app/client/ui/leave-guard";
 import { pageSettingsSchema } from "../../../shared/schemas";
 import type { PageSettingsView } from "../service";
 import { toSettingsForm, type ConfirmedField, type SettingsForm } from "./settings-form";
@@ -163,11 +163,13 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
     q.target = { ...q.target, [field]: q.draft[field] }; enqueue(true);
   }
 
-  /** Whether the owner may leave Settings now. Leaving waits for pending edits to save; a refused save keeps them here. */
-  function leave() {
+  /** Whether the owner may leave Settings, or move to another pane of it, now. Leaving waits for pending edits to save; a
+   * refused save keeps them here. The question names Settings only when the owner is leaving it. */
+  function leave(move: Move) {
     const q = queue.current;
-    return leaveWhenSaved(q, () => { q.dueAt = 0; schedule(); }, "Some changes could not be saved. Leave Settings?",
-      () => unconfirmed(q) ? "Unconfirmed changes are not live. Leave Settings?" : null);
+    const pane = move === "pane";
+    return leaveWhenSaved(q, () => { q.dueAt = 0; schedule(); }, pane ? "Some changes could not be saved. Switch panes and leave them behind?" : "Some changes could not be saved. Leave Settings?",
+      () => unconfirmed(q) ? pane ? "Unconfirmed changes are not live. Switch panes and leave them behind?" : "Unconfirmed changes are not live. Leave Settings?" : null);
   }
 
   const pending = (field: ConfirmedField) => !same(settings?.[field], queue.current.target?.[field]);

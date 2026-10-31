@@ -60,6 +60,7 @@
 .receipt-card table { min-width: 680px; }
 .receipt-card th:nth-child(-n + 4) { width: 15%; }
 .receipt-card tbody tr:last-child td { border-bottom: 0; }
+.receipt-card tr.is-linked td { background: var(--card-tint); }
 
 @media (max-width: 620px) {
   .tool-row { grid-template-columns: auto minmax(0, 1fr); }
