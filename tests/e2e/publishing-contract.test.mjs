@@ -19,6 +19,17 @@ function publicUpdate(html, details) {
   assert.equal(updates.length, 1, `one public update contains ${details}`);
   return updates[0];
 }
+function maintenanceEntries(html, reference, className) {
+  return descendants(parse(html)).filter(node => node.tagName === 'article'
+    && node.attrs.some(attr => attr.name === 'class' && attr.value.split(' ').includes(className))
+    && descendants(node).some(child => child.tagName === 'a'
+      && child.attrs.some(attr => attr.name === 'href' && attr.value === `/maintenance/${reference}`)));
+}
+function maintenanceState(entry) {
+  const pill = descendants(entry).find(node => node.attrs?.some(attr => attr.name === 'class'
+    && attr.value.split(' ').includes('lifecycle-pill')));
+  return pill ? nodeText(pill).trim() : null;
+}
 // Brisbane has a fixed ten-hour offset. Compute the expected calendar date
 // independently of Lamp's formatter, including a possible UTC date rollover.
 function brisbaneTime(instant) {
@@ -325,10 +336,41 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');
     const feed = await j.visible('/feed.atom', input.customerImpact);
     assert.ok(feed.includes(maintenance.reference));
-    const cancelled = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Cancelled upgrade' }, 201)).maintenance;
-    await j.json(`/api/app/maintenance/${cancelled.id}/window`, 'PUT', { startsAt: new Date(now + 5 * 3600000).toISOString(), endsAt: new Date(now + 6 * 3600000).toISOString() });
+    const cancelled = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Synthetic Lamp cancelled capacity expansion', autoStart: false }, 201)).maintenance;
+    const control = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Synthetic Lamp unaffected index rebuild', autoStart: false }, 201)).maintenance;
+    const rescheduled = (await j.json(`/api/app/maintenance/${cancelled.id}/window`, 'PUT', { startsAt: new Date(now + 5 * 3600000).toISOString(), endsAt: new Date(now + 6 * 3600000).toISOString() })).maintenance;
+    const upcomingBefore = await eventually(() => j.publicText('/'), html => [cancelled, control].every(item => maintenanceEntries(html, item.reference, 'maintenance').length === 1), 'both distinctive windows reach the public upcoming listing');
+    for (const item of [rescheduled, control]) {
+      const [entry] = maintenanceEntries(upcomingBefore, item.reference, 'maintenance');
+      assert.ok(nodeText(entry).includes(item.title), 'the upcoming title belongs to its retained maintenance identity');
+      assert.equal(maintenanceState(entry), 'Scheduled');
+    }
+    assert.equal(maintenanceEntries(await j.publicText('/history'), cancelled.reference, 'history-item').length, 0, 'the scheduled window has not already entered history');
     await j.json(`/api/app/maintenance/${cancelled.id}/cancel`, 'POST', {});
+    const cancelledAt = performance.now(), deadline = cancelledAt + 10_000;
+    let historyEntry;
+    for (;;) {
+      const [upcoming, history] = await Promise.all([j.publicText('/'), j.publicText('/history')]);
+      assert.ok(performance.now() <= deadline, 'upcoming removal and labelled history settle within one ten-second cancellation deadline');
+      const remaining = maintenanceEntries(upcoming, cancelled.reference, 'maintenance');
+      const controls = maintenanceEntries(upcoming, control.reference, 'maintenance');
+      const retained = maintenanceEntries(history, cancelled.reference, 'history-item');
+      if (remaining.length === 0 && !nodeText(parse(upcoming)).includes(cancelled.title)
+        && controls.length === 1 && maintenanceState(controls[0]) === 'Scheduled'
+        && retained.length === 1 && maintenanceState(retained[0]) === 'Cancelled') {
+        assert.ok(nodeText(controls[0]).includes(control.title), 'cancellation leaves the unrelated upcoming window intact');
+        [historyEntry] = retained;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.min(50, Math.max(0, deadline - performance.now()))));
+    }
+    const cancellationSettledMs = Math.round(performance.now() - cancelledAt);
+    assert.ok(nodeText(historyEntry).includes(cancelled.title), 'public history retains the cancelled title under its original permalink');
+    assert.ok(nodeText(historyEntry).includes(component.name), 'public history retains the affected component');
+    const historyTimes = descendants(historyEntry).filter(node => node.tagName === 'time').map(node => node.attrs.find(attr => attr.name === 'datetime')?.value);
+    for (const instant of [rescheduled.startsAt, rescheduled.endsAt]) assert.ok(historyTimes.includes(instant), 'public history retains the rescheduled window');
     assert.equal((await j.json('/api/app/maintenance')).maintenance.find(row => row.id === cancelled.id).state, 'Cancelled');
+    console.log(`PROBE MAINT-006 acceptance-3: native cancel -> upcoming entry absent, control Scheduled, original history entry Cancelled in ${cancellationSettledMs} ms`);
     await eventually(readCalendar, value => value.events.some(event => event.getFirstPropertyValue('uid') === `lamp-maintenance-${cancelled.id}@lamp` && event.getFirstPropertyValue('status') === 'CANCELLED'), 'cancelled calendar event');
     const internal = await j.component('Internal database topology', { internal: true });
     const hidden = (await j.json('/api/app/maintenance', 'POST', { ...input, title: 'Internal-only upgrade', componentIds: [internal.id] }, 201)).maintenance;
