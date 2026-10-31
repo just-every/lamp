@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
+import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { FormError } from "../../../app/client/ui/states";
 
 type SmsPreferences = { countries: string[]; supportContact: string };
@@ -19,6 +20,8 @@ export function SmsSettings() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const settings = draft ?? resource.data?.settings;
+  // An unsaved draft holds a pane switch, a route change and signing out until the owner agrees to drop it.
+  useLeaveGuard(async () => !draft || window.confirm("SMS delivery changes have not been saved. Leave them behind?"), () => draft !== null);
   function edit(value: SmsPreferences) { setDraft(value); setSaved(false); }
   async function submit(event: FormEvent) {
     event.preventDefault();

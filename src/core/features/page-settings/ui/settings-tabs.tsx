@@ -68,7 +68,7 @@ export function usePaneLeaveGuard() {
   const { history } = useRouter();
   useEffect(() => history.block({
     blockerFn: async ({ currentLocation, nextLocation }) => currentLocation.pathname === "/app/settings" && nextLocation.pathname === "/app/settings"
-      && settingsTabFromHash(currentLocation.hash) !== settingsTabFromHash(nextLocation.hash) && !await mayLeave(),
+      && settingsTabFromHash(currentLocation.hash) !== settingsTabFromHash(nextLocation.hash) && !await mayLeave("pane"),
     enableBeforeUnload: false,
   }), [history]);
 }

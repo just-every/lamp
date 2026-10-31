@@ -14,19 +14,28 @@ set the next-update time as your communication commitment: 15 min, 30 min,
 1 hour or 2 hours fill the time field, or type a time. A resolved update has no
 next-update promise.
 
-**More options** holds the rest: the status a new incident starts with, what
-still works, details, the opening time of an earlier incident, which subscriber
-channels to notify, scheduling or backdating the update, Primary or Dependent
-relationships, templates, and **Save as private draft** for an incident you are
-not ready to publish. The note beside Publish says who it notifies.
+The **+** beside Publish (**Update options**) holds the rest, in captioned
+groups. On a new incident, **Status** sets the status it starts with. **Add to
+this update** adds what still works, details, the opening time of an earlier
+incident, and Primary or Dependent relationships. **Send** chooses which
+subscriber channels to notify and schedules or backdates the update.
+**Templates** has **Use a template**, which picks a saved template and fills the
+update from it, and **Save as a template**. **Draft** has **Save as private
+draft** for an incident you are not ready to publish, and on an existing
+incident **Mark draft reviewed** and **Publish as a correction…**. The note
+beside Publish says who it notifies. Editing a saved template is in
+**Settings › Templates**.
 
 Review the preview before publishing; **Page** and **Email** show both
 renderings. An unpublished draft stays private. A future scheduled update also
 stays private until its scheduled publication time. Each published update sets
 the incident lifecycle: Investigating, Identified, Monitoring or Resolved; on an
 open incident, choose it above the fields. Delivery figures appear once
-something was sent. Internal notes, review, corrections, the public impact and
-deletion are under **Private actions** at the end of the incident page.
+something was sent. Under the timeline, the incident panel lists named rows:
+**Brief**, **Reach** (once something was sent), **Notes** (internal), **Impact**
+(the public impact), the **Post-incident report** once resolved,
+**Communication owner** and **Incident subscribers**, then a quiet **Delete
+incident**. Each row shows one line and opens on its name.
 
 To reopen an incident resolved in error, publish an update that sets it to
 Investigating. The resolution and reopening updates both remain in history. You
@@ -38,7 +47,8 @@ retroactive updates.
 
 Each attached component is a chip under **Who's affected?** showing the state
 the next update will set; change it in the chip. Choose **+ Add component** to
-include another public component; set Primary or Dependent under More options.
+include another public component; set Primary or Dependent from **Relationship…**
+in the **+** (Update options).
 Internal components stay out of that picker.
 
 Saving keeps these choices private in the versioned draft. Preview shows the
