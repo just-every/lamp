@@ -169,20 +169,20 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.notEqual(reopening.id, resolution.id);
     assert.notEqual(reopening.publishedAt, resolution.publishedAt);
     const reopenedTimeline = await j.visible(`/incidents/${incident.reference}`, 'Payments need another investigation.');
-    const descendants = node => [node, ...(node.childNodes ?? []).flatMap(descendants)];
-    const text = node => descendants(node).filter(child => child.nodeName === '#text').map(child => child.value).join('');
+    const timelineDescendants = node => [node, ...(node.childNodes ?? []).flatMap(timelineDescendants)];
+    const text = node => timelineDescendants(node).filter(child => child.nodeName === '#text').map(child => child.value).join('');
     const attribute = (node, name) => node.attrs?.find(attr => attr.name === name)?.value;
-    const articles = descendants(parse(reopenedTimeline)).filter(node => node.tagName === 'article' && attribute(node, 'class')?.split(' ').includes('update'));
+    const articles = timelineDescendants(parse(reopenedTimeline)).filter(node => node.tagName === 'article' && attribute(node, 'class')?.split(' ').includes('update'));
     for (const [update, lifecycle, customerImpact] of [
       [resolution, 'Resolved', 'Payment processing has recovered.'],
       [reopening, 'Investigating', 'Payments need another investigation.'],
     ]) {
-      const matching = articles.filter(article => descendants(article).some(node => node.tagName === 'dd' && text(node) === customerImpact));
+      const matching = articles.filter(article => timelineDescendants(article).some(node => node.tagName === 'dd' && text(node) === customerImpact));
       assert.equal(matching.length, 1, `${lifecycle} wording remains in its own public update article after reopening`);
-      const header = descendants(matching[0]).find(node => attribute(node, 'class') === 'update-head');
+      const header = timelineDescendants(matching[0]).find(node => attribute(node, 'class') === 'update-head');
       assert.ok(header, `${lifecycle} has its public publication header`);
       assert.equal(text(header.childNodes.find(node => node.tagName === 'strong')), lifecycle);
-      const published = descendants(header).filter(node => node.tagName === 'time');
+      const published = timelineDescendants(header).filter(node => node.tagName === 'time');
       assert.equal(published.length, 1, `${lifecycle} has one associated publication time`);
       assert.equal(attribute(published[0], 'datetime'), update.publishedAt, `${lifecycle} retains its exact publication instant`);
     }
