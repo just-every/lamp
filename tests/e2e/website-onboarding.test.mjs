@@ -51,13 +51,34 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     runtime.env.LAMP_DEV_SITE_ORIGIN = `http://127.0.0.1:${site.address().port}`;
     await runtime.start(); await runtime.seedOperator();
     // A fresh owner: claimed, but first run not yet confirmed.
-    execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'"], { env: runtime.env, stdio: 'pipe' });
+    const freshOwner = () => execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'"], { env: runtime.env, stdio: 'pipe' });
+    freshOwner();
     browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] });
     const context = await browser.newContext({ timezoneId: 'America/New_York', viewport: { width: 1440, height: 1000 } });
     await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
     const entered = await signInAs({ origin, key: devKey });
     await context.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
     const cookie = entered.cookies.map(({ name, value }) => `${name}=${value}`).join('; ');
+    // A browser whose zone does not resolve (Chromium reports "Etc/Unknown", which Intl refuses) still opens Lamp, even after
+    // a refused try left that name stored as the page's: the page takes UTC, and the next browser's own zone replaces it.
+    {
+      const unknown = await browser.newContext({ timezoneId: 'Etc/Unknown' });
+      await unknown.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
+      await unknown.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
+      const { settings: before } = await (await nativeRequest('/api/app/page-settings', { cookie })).json();
+      const keys = ['theme', 'template', 'widgetAppearance', 'pageName', 'tagline', 'accentColor', 'hostname', 'footerCreditEnabled', 'widgetAllowedOrigins', 'mailFromAddress', 'emailBranding', 'aiToneInstructions', 'wordingBlockedTerms', 'wordingFriendlyLength'];
+      const storedUnknown = await nativeRequest('/api/app/page-settings', { method: 'PUT', cookie, json: { ...Object.fromEntries(keys.map(key => [key, before[key]])), timezone: 'Etc/Unknown' } });
+      assert.equal(storedUnknown.status, 503, 'the writable settings fixture reaches the refused rebuild');
+      assert.equal((await (await nativeRequest('/api/app/page-settings', { cookie })).json()).settings.timezone, 'Etc/Unknown', 'the refused rebuild leaves the invalid page zone stored before setup loads');
+      const lost = await unknown.newPage();
+      await lost.goto(`${origin}/app`); await lost.waitForURL('**/setup');
+      await lost.getByRole('button', { name: "Skip, I'll fill it in", exact: true }).click();
+      await lost.getByRole('button', { name: 'Open Lamp', exact: true }).click();
+      await lost.waitForURL('**/app', { timeout: 120_000 });
+      assert.equal((await (await nativeRequest('/api/app/page-settings', { cookie })).json()).settings.timezone, 'UTC', 'an unresolvable zone opens Lamp on UTC');
+      await unknown.close();
+      freshOwner();
+    }
     // The owner-facing read door refuses private destinations, including a
     // public website that redirects there, before fetching any private bytes.
     for (const website of ['http://127.0.0.1/private', 'http://169.254.169.254/private', 'https://redirect.example.com/']) {
@@ -103,7 +124,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.equal(await row('page name').innerText(), 'Acme Tracking Status');
     assert.equal(await row('tagline').innerText(), "Acme Tracking keeps your team's hours in one place.");
     assert.equal(await row('accent colour').innerText(), '#0F7B6C');
-    assert.match(await row('time zone').innerText(), /^America\/New_York/);
+    assert.equal(await page.locator('[data-found="time zone"]').count(), 0, 'setup does not ask for the time zone: the page takes the browser\'s');
     // Its real components replace the navigation's guesses, labelled with where they came from, in its own groups.
     assert.equal(await label('components').textContent(), 'Components (8 from status.acme-tracking.com)');
     const groups = async () => page.locator('[data-found="components"] .found-groups > div').evaluateAll(blocks => blocks.map(block => [block.querySelector('.found-group').textContent, [...block.querySelectorAll('li')].map(item => item.textContent)]));
