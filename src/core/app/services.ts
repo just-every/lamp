@@ -1,4 +1,5 @@
 import { createRuleGuardRepository } from "../features/intake/rule-guard.repository";
+import { createDependenciesService } from "../features/dependencies/service";
 import { createRuleWorkRepository } from "../features/intake/rule-work.repository";
 import { createAlertRuleRepository } from "../features/intake/rule-repository";
 import { createAlertRuleService } from "../features/intake/rule-service";
@@ -145,6 +146,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failure) throw failure.reason;
   } });
+  const dependencies = createDependenciesService(bindings.DB, components, incidents, publicSnapshots.rebuild, bindings.EFFECTS_PAUSED === "1");
   const briefs = createBriefService(createBriefRepository(bindings.DB));
   // INCIDENT-010 and NOTIFY-006: one operator email per committed time and kind, sent by the scheduled trigger.
   const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt, recipients, draftId }) => {
@@ -260,7 +262,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { alertRules, social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { dependencies, alertRules, social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

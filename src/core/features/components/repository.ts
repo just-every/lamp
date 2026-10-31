@@ -21,10 +21,10 @@ import type { ComponentState } from "../../shared/domain";
 import type { ComponentGroupUpdateInput, ComponentUpdateInput } from "../../shared/schemas";
 
 export type StoredComponent = typeof components.$inferSelect;
-export type CurrentComponentClaim = { componentId: string; state: ComponentState; causeType: "standing-claim" | "incident" | "maintenance" };
+export type CurrentComponentClaim = { componentId: string; state: ComponentState; causeType: "standing-claim" | "incident" | "maintenance" | "vendor" };
 export type StateClaimCause = { type: "standing-claim" | "incident" | "maintenance" | "correction"; id: string | null; operatorId: string | null };
 export type StoredComponentGroup = typeof componentGroups.$inferSelect;
-export type ComponentHistoryEntry = Pick<typeof componentStateHistory.$inferSelect, "id" | "previousState" | "newState" | "causeType" | "causeId" | "operatorId" | "changedAt" | "createdAt">;
+export type ComponentHistoryEntry = Pick<typeof componentStateHistory.$inferSelect, "id" | "previousState" | "newState" | "causeType" | "causeId" | "operatorId" | "changedAt" | "createdAt" | "sourceName" | "sourceUrl">;
 export type ComponentHistoryCorrection = Pick<typeof componentStateCorrections.$inferSelect, "id" | "historyId" | "state" | "startsAt" | "endsAt" | "reason" | "operatorId" | "createdAt">;
 export type ComponentClaimEvent = Pick<typeof componentClaimEvents.$inferSelect, "id" | "componentId" | "causeType" | "causeId" | "state" | "changedAt" | "createdAt">;
 export type ComponentClaimEventInput = typeof componentClaimEvents.$inferInsert;
@@ -89,6 +89,7 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       const result = await binding.prepare(`
         SELECT component_id AS componentId, state, 'standing-claim' AS causeType
         FROM component_standing_claims
+        UNION ALL SELECT component_id AS componentId,state,'vendor' AS causeType FROM vendor_dependencies WHERE state IS NOT NULL
         UNION ALL
         SELECT attached.component_id AS componentId, attached.state, 'incident' AS causeType
         FROM incident_components AS attached
@@ -155,7 +156,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
           .all(),
       ]);
 
-      return [...standing, ...incident, ...scheduledMaintenance].map((claim) => claim.state);
+      const vendor = await binding.prepare("SELECT state FROM vendor_dependencies WHERE component_id=? AND state IS NOT NULL").bind(componentId).all<{state:ComponentState}>();
+      return [...standing, ...incident, ...scheduledMaintenance, ...vendor.results].map((claim) => claim.state);
     },
     async listClaimEventsAt(componentId, instant) {
       const events = await binding.prepare(`
@@ -182,6 +184,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       return database
         .select({
           id: componentStateHistory.id,
+          sourceName: componentStateHistory.sourceName,
+          sourceUrl: componentStateHistory.sourceUrl,
           previousState: componentStateHistory.previousState,
           newState: componentStateHistory.newState,
           causeType: componentStateHistory.causeType,
@@ -290,6 +294,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       return database
         .select({
           id: componentStateHistory.id,
+          sourceName: componentStateHistory.sourceName,
+          sourceUrl: componentStateHistory.sourceUrl,
           previousState: componentStateHistory.previousState,
           newState: componentStateHistory.newState,
           causeType: componentStateHistory.causeType,

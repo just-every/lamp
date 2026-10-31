@@ -203,3 +203,7 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     assert.ok(!remaining.some(row => row.id === main.id));
   } finally { await browser?.close(); await j.close(); }
 });
+
+test('DEP-001 DEP-002 — scheduled vendor reports retain attribution and buyer control', { timeout: 180_000 }, async () => {
+  await (await import('./helpers/vendor-dependencies-flow.mjs')).vendorDependenciesFlow();
+});

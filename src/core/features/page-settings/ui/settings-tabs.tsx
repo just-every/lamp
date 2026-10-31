@@ -9,7 +9,7 @@ import { mayLeave } from "../../../app/client/ui/leave-guard";
 export const SETTINGS_MENU = [
   { topic: "Your page", destinations: [{ id: "page", label: "Page", icon: "page" }, { id: "look", label: "Look", icon: "brush" }] },
   { topic: "Sending", destinations: [{ id: "notifications", label: "Notifications", icon: "bell" }, { id: "writing", label: "Writing", icon: "pen" }, { id: "templates", label: "Templates", icon: "template" }] },
-  { topic: "Connections", destinations: [{ id: "tools", label: "Connected tools", icon: "link" }, { id: "embeds", label: "Embeds and feeds", icon: "code" }] },
+  { topic: "Connections", destinations: [{ id: "tools", label: "Connected tools", icon: "link" }, { id: "dependencies", label: "Dependencies", icon: "link" }, { id: "embeds", label: "Embeds and feeds", icon: "code" }] },
   { topic: "Team", destinations: [{ id: "operators", label: "Operators", icon: "person" }] },
   { topic: "Data", destinations: [{ id: "reports", label: "Reports", icon: "chart" }, { id: "move-in", label: "Move in", icon: "arrow-in" }, { id: "export", label: "Export and restore", icon: "refresh" }, { id: "audit", label: "Audit log", icon: "shield" }] },
 ] as const satisfies ReadonlyArray<{ topic: string; destinations: ReadonlyArray<{ id: string; label: string; icon: IconName }> }>;

@@ -30,12 +30,13 @@ export function createBriefRepository(binding: D1Database): BriefRepository {
         binding.prepare(`SELECT lifecycle, affected_audience <> '' AS hasAffectedAudience, customer_impact <> '' AS hasCustomerImpact, next_update_at AS nextUpdateAt FROM incident_drafts WHERE incident_id = ?`).bind(incidentId).first<{ lifecycle: IncidentLifecycle; hasAffectedAudience: number; hasCustomerImpact: number; nextUpdateAt: string | null }>(),
         binding.prepare(`SELECT ai_tone_instructions AS tone FROM page_settings WHERE id = 'default'`).first<{ tone: string | null }>(),
       ]);
+      const vendorEvidence = await binding.prepare(`SELECT source, state, source_state AS sourceState, summary, source_url AS sourceUrl, observed_at AS observedAt FROM vendor_evidence WHERE incident_id=? ORDER BY observed_at,id`).bind(incidentId).all<{source:string;state:ComponentState;sourceState:string;summary:string;sourceUrl:string;observedAt:string}>();
       return {
         incident,
         components: components.results.filter((component) => !component.internal).map(({ name, state, relationship }) => ({ name, state, relationship })),
         attachedComponents: components.results.length,
         updates: updates.results,
-        alerts: alerts.results,
+        alerts: [...alerts.results, ...vendorEvidence.results.map(row => ({source:row.source,preset:null,titlePath:"summary",state:row.state === "Operational" ? "recovered" as const : "firing" as const,receivedAt:row.observedAt,payloadJson:JSON.stringify({summary:row.summary,sourceState:row.sourceState,sourceUrl:row.sourceUrl})}))],
         draft: draft ? { lifecycle: draft.lifecycle, hasAffectedAudience: Boolean(draft.hasAffectedAudience), hasCustomerImpact: Boolean(draft.hasCustomerImpact), nextUpdateAt: draft.nextUpdateAt } : null,
         toneInstructions: settings?.tone ?? "",
       };

@@ -755,3 +755,46 @@ test('INCIDENT-001 AGENT-004 MOBILE-001 — 390-wide owner sign-in, alert review
 test('THEME-001 — owner publishes branded themes and layouts within the page budget', { timeout: 600_000 }, async t => {
   await themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, cookieName: sessionCookieName(appUrl), diagnostic: message => t.diagnostic(message) });
 });
+
+test('DEP-001 DEP-002 — owner configures upstream reports under Settings', { timeout: 300_000 }, async () => {
+  const buyer=(await api('/api/app/components','POST',{name:'synthetic-lamp-dependent-service',description:'',groupId:null,internal:false,displayOrder:0,note:''})).component;
+  const template=(await api('/api/app/incident-templates','POST',{name:'synthetic-lamp-upstream-template',lifecycle:'Investigating',affectedAudience:'synthetic-lamp-customers',customerImpact:'synthetic-lamp-review-impact',whatStillWorks:'synthetic-lamp-other-service',details:'synthetic-lamp-review-first',nextUpdateOffsetMinutes:60,components:[{componentId:buyer.id,state:'Major outage',relationship:'Dependent'}]})).template;
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto(appUrl+'/app/settings#dependencies');await operatorHydrated(page);
+  await page.getByRole('heading',{name:'Follow vendor status',exact:true}).waitFor();
+  await page.getByLabel('Vendor',{exact:true}).selectOption('aws');
+  await page.getByLabel('Vendor component name',{exact:true}).fill('synthetic-lamp-cloud-compute');
+  await page.getByRole('button',{name:'Follow vendor status',exact:true}).click();
+  const row=page.getByRole('article',{name:'synthetic-lamp-cloud-compute',exact:true});
+  await row.waitFor();
+  assert.equal(await row.getByLabel('Dependency behavior',{exact:true}).inputValue(),'show');
+  assert.ok((await row.innerText()).includes('Reported by AWS'));
+  assert.equal(await row.getByRole('link',{name:'AWS',exact:true}).getAttribute('href'),'https://status.aws.amazon.com/');
+  await row.getByText('State mapping',{exact:true}).click();
+  assert.ok((await row.innerText()).includes('Major outage'));
+  await row.getByLabel('Dependency behavior',{exact:true}).selectOption('draft');
+  await row.getByLabel('Upstream-provider template',{exact:true}).selectOption(template.id);
+  await row.getByLabel(buyer.name,{exact:true}).check();
+  await row.getByRole('button',{name:'Save dependency behavior',exact:true}).click();
+  await row.getByText('Dependency behavior saved.',{exact:true}).waitFor();
+  await page.reload();await operatorHydrated(page);await row.waitFor();
+  assert.equal(await row.getByLabel('Dependency behavior',{exact:true}).inputValue(),'draft');
+  assert.equal(await row.getByLabel('Upstream-provider template',{exact:true}).inputValue(),template.id);
+  assert.equal(await row.getByLabel(buyer.name,{exact:true}).isChecked(),true);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const fieldSizes=await row.locator('input,select,button,p').evaluateAll(elements=>elements.map(element=>parseFloat(getComputedStyle(element).fontSize)));
+  assert.ok(fieldSizes.every(size=>size>=13));
+  if(process.env.LAMP_DEP_SCREENSHOTS) {
+    await mkdir(process.env.LAMP_DEP_SCREENSHOTS,{recursive:true});
+    for(const width of [1440,390]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(process.env.LAMP_DEP_SCREENSHOTS,`settings-dependencies-${width}.png`),fullPage:true});}
+    await page.setViewportSize({width:1440,height:1000});
+  }
+  await row.getByLabel('Dependency behavior',{exact:true}).selectOption('rollup');
+  await row.getByRole('button',{name:'Save dependency behavior',exact:true}).click();
+  await row.getByText('Dependency behavior saved.',{exact:true}).waitFor();
+  const persisted=(await api('/api/app/dependencies')).dependencies.find(value=>value.name==='synthetic-lamp-cloud-compute');
+  assert.equal(persisted.mode,'rollup');
+  await row.getByRole('button',{name:'Stop following',exact:true}).click();
+  await row.waitFor({state:'detached'});
+  await page.setViewportSize({width:1440,height:1000});
+});
