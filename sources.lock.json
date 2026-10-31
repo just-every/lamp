@@ -2324,7 +2324,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "ac78739ed4d6077b93716902016252f2d9459cb75147627e546b00279b9bab66",
+      "sha256": "5daf00770b11e1fd65e299eb8396f749372df1cba0f1ee1256508b1028fd91af",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -7165,6 +7165,10 @@
     },
     "tests/e2e/teams-subscriptions-helper.mjs": {
       "sha256": "1ee3f077003bb63094dd34a8ea1fd0c095b4dffc121020a16be31bceaa3804b3",
+      "executable": false
+    },
+    "tests/e2e/unsaved-work-browser.test.mjs": {
+      "sha256": "4e783c97515087dde888e534a9880d024e663614dae959ca5a7226ad18ccf90b",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
