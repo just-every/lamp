@@ -6,18 +6,32 @@ import { useOperatorTime } from "../../../app/client/ui/states";
 import { REPORT_PROMPTS, reportReview, type ReportReview } from "../draft";
 
 type Report = { summary: string; timeline: string; cause: string; remediation: string; publishedAt: string | null };
+type ReportResource = { report: Report | null; review: ReportReview | null; waiver: { reason: string } | null };
 const emptyReport: Report = { summary: "", timeline: "", cause: "", remediation: "", publishedAt: null };
 
-export function ReportEditor({ incidentId }: { incidentId: string }) {
-  const formatOperatorTime = useOperatorTime();
+/** The incident's post-incident report as the server holds it; the panel row and the editor share one read. */
+export function useIncidentReport(incidentId: string) {
   const endpoint = `/api/app/incidents/${incidentId}/report`;
-  const { data, refresh, loading, error } = useAppData<{ report: Report | null; review: ReportReview | null; waiver: {reason:string}|null }>(endpoint);
+  return { endpoint, ...useAppData<ReportResource>(endpoint) };
+}
+
+/** The report row's one line: what the server holds, and what is still owed. */
+export function reportSummary(data: ReportResource | null, error: string | null, time: (iso: string | null) => string) {
+  if (!data) return error ? "Could not be read" : "Reading the report…";
+  if (data.report?.publishedAt) return `Published ${time(data.report.publishedAt)}`;
+  if (data.waiver) return data.report ? "Draft saved · reminder waived" : "Reminder waived";
+  return data.report ? "Draft saved, not published" : "Owed: draft it or waive the reminder";
+}
+
+export function ReportEditor({ incidentId, resource }: { incidentId: string; resource: ReturnType<typeof useIncidentReport> }) {
+  const formatOperatorTime = useOperatorTime();
+  const { endpoint, data, refresh, loading, error } = resource;
   const [report, setReport] = useState<Report>(emptyReport);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   useEffect(() => { if (data && !dirty) setReport(data.report ?? emptyReport); }, [data]);
-  if (report.publishedAt) return <section className="context-section"><h2>Post-incident report</h2><p>Published {formatOperatorTime(report.publishedAt)}.</p></section>;
+  if (report.publishedAt) return <div className="report-editor"><p>Published {formatOperatorTime(report.publishedAt)}.</p></div>;
   const review = reportReview(report);
   const busy = pending || loading || !data;
   const update = (field: keyof Omit<Report, "publishedAt">, value: string) => { setDirty(true); setReport((current) => ({ ...current, [field]: value })); };
@@ -43,9 +57,8 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
     catch (cause) { setMessage(cause instanceof Error ? cause.message : "Report could not be published."); }
     finally { setPending(false); }
   };
-  return <section className="context-section report-editor">
-    <ReportWaiver incidentId={incidentId} waiver={data?.waiver ?? null} onChanged={refresh} />
-    <h2>Post-incident report</h2><p>Publish one factual report when this incident is complete.</p>
+  return <div className="report-editor">
+    <p className="report-prompt">Publish one factual report when this incident is complete.</p>
     <Button type="button" variant="secondary" disabled={busy || Boolean(data?.report) || dirty} onClick={draft}>Draft report</Button>
     <p>{data?.report || dirty ? "Keep editing your report. Drafting never replaces existing work." : "Draft a private report from the incident's alerts and published updates."}</p>
     {data?.review?.limitations.map((limitation) => <p key={limitation}>{limitation}</p>)}
@@ -60,5 +73,6 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
     })}
     {message || error ? <p role="status">{message ?? error}</p> : null}
     <div className="form-actions"><Button type="button" variant="secondary" disabled={busy} onClick={save}>Save report</Button><Button type="button" disabled={busy || dirty || !data?.report} onClick={publish}>Publish report</Button></div>
-  </section>;
+    <ReportWaiver incidentId={incidentId} waiver={data?.waiver ?? null} onChanged={refresh} />
+  </div>;
 }

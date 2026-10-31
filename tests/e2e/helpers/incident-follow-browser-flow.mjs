@@ -120,6 +120,7 @@ export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pa
     assert.equal(savedFollower.incident.includeReport,false,"the visitor's report choice overrides the owner default");
     await operatorPage.goto(`${origin}/app/incidents/${incident.id}`);
     await operatorHydrated(operatorPage);
+    await operatorPage.getByRole("button", { name: "Incident subscribers", exact: true }).click();
     const incidentSection = operatorPage.locator('section[aria-labelledby="incident-subscribers-title"]');
     await incidentSection.getByText(email, { exact: true }).waitFor();
     await capture(operatorPage, "operator-incident", 'section[aria-labelledby="incident-subscribers-title"]');
