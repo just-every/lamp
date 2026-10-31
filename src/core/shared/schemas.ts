@@ -49,6 +49,10 @@ export const componentSchema = z.object({
   note: optionalText(250),
 }).strict();
 
+export const componentCreateSchema = componentSchema.extend({
+  note: componentSchema.shape.note.default(""),
+});
+
 export const componentGroupSchema = z.object({
   name: nonEmptyText(120),
   displayOrder: z.number().int().min(0),

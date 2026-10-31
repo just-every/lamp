@@ -7,6 +7,7 @@ import { MailDeliverySettings } from "./mail-delivery-settings";
 import { EmailBrandingSettings } from "./email-branding-settings";
 import { SmsSettings } from "./sms-settings";
 import { IncidentFollowSettings } from "./incident-follow-settings";
+import { MaintenanceAutomationCard } from "../../maintenance/ui/automation-default-card";
 
 export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficPhase }: {
   settings: SettingsForm; live: LiveStatus | null; identityEditable: boolean;
@@ -25,5 +26,6 @@ export function NotificationSettingsTab({ settings, live, identityEditable, upda
     <SmsSettings />
     <IncidentFollowSettings />
     <EmailBrandingSettings value={settings.emailBranding} onChange={(value, immediate) => update("emailBranding", value, immediate)} identityEditable={identityEditable} />
+    <MaintenanceAutomationCard />
   </>;
 }

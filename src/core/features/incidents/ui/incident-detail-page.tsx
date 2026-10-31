@@ -1,5 +1,4 @@
 import { RecoveryCheckPanel } from "./recovery-check";
-import { IncidentImpactCard } from "../../incident-impact/ui";
 import { TemplateControls } from "./template-controls";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -19,21 +18,22 @@ import { usePageTimezone } from "../../../app/client/ui/timezone";
 import { AiSuggestionButton } from "./incident-composer-tools";
 import { WordingFindings } from "./wording-findings";
 import { checkUpdateWording } from "../wording-checks";
-import { IncidentOperatorControls } from "./incident-operator-controls";
+import { CorrectionChoice, useDraftActions } from "./incident-operator-controls";
 import { SuggestionSources, type AppliedSuggestion, type SuggestedFieldName } from "./suggestion-sources";
 import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
 import { blankDraft, draftFromIncident, normalizeResolvedDraft } from "../draft";
 import { IncidentHeader } from "./incident-header";
 import { PreparedDraft } from "./prepared-draft";
-import { CommunicationOwnerControl } from "./communication-owner";
-import { IncidentExtras, IncidentTimeline } from "./incident-record";
+import { IncidentTimeline } from "./incident-record";
+import { IncidentPanel } from "./incident-panel";
 import { IncidentPreview } from "./incident-preview";
 import { StatusChoice } from "./status-choice";
 import { NextUpdateField } from "./next-update-field";
-import { ComponentRelationships, DraftComponentChips, useDraftRelationships } from "./affected-components";
-import { IncidentActions, MoreOptions, OptionalText } from "./incident-more-options";
-import { PublicationControls, publishHint, type Channel, type PublishTiming } from "./publish-options";
+import { ComponentRelationships, DraftComponentChips, relationshipSummary, useDraftRelationships } from "./affected-components";
+import { OptionalText } from "./optional-text";
+import { OptionPanel, UpdateOptions, type OptionGroup } from "./update-options";
+import { NotifyChannels, PublishTimingField, channelSummary, publishHint, publishTime, type Channel, type PublishTiming } from "./publish-options";
 
 type IncidentResponse = { wordingChecks?: { blockedTerms: string[]; friendlyLength: number }; incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean; previewError?: string | null; preview?: RenderedIncidentUpdate | null };
 type PreviewResponse = { preview: RenderedIncidentUpdate };
@@ -117,6 +117,10 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     setAppliedSuggestion((current) => current && field in current.fields ? { ...current, fields: Object.fromEntries(Object.entries(current.fields).filter(([name]) => name !== field)) } : current);
   };
   const relationships = useDraftRelationships(data?.incident ?? null, draft, changes => updateField("componentChanges", changes));
+  // What still works and Details join the fields once asked for from the +; a field with text always shows.
+  const [shownFields, setShownFields] = useState({ whatStillWorks: false, details: false });
+  const stillWorksId = useId(), detailsId = useId();
+  const draftActions = useDraftActions({ incidentId, captureUpdate, getDraftVersion: () => version.current, onChanged: refresh });
 
   // Establish the saved draft authority before controls can accept input.
   useLayoutEffect(() => {
@@ -301,7 +305,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       const response = await appApi<IncidentResponse>(`/api/app/incidents/${incident.id}`);
       if (!isCurrent()) return;
       if (!response.incident) throw new Error("The published incident could not be refreshed.");
-      setPublishedIncident(response.incident); setAppliedSuggestion(null); setOverrideReason("");
+      setPublishedIncident(response.incident); setAppliedSuggestion(null); setOverrideReason(""); setShownFields({ whatStillWorks: false, details: false });
       const next = draftFromIncident(response.incident);
       version.current = `${response.incident.draft?.id ?? "-"}:${response.incident.updates.length}`;
       pristineKey.current = JSON.stringify(next);
@@ -329,9 +333,30 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const saveLabel = visibleSaveState === "empty" ? "Not saved yet" : visibleSaveState === "saving" ? "Saving draft…" : visibleSaveState === "saved" ? "Draft saved" : "Draft save failed";
   const disabled = publishState === "publishing" || !draftSaved || !publishable || hasTimeError;
 
+  const chooseTiming = (mode: PublishTiming["mode"]) => { if (timing.mode !== mode) { setTiming({ mode, at: null }); setTimeErrors(current => ({ ...current, timing: null })); } };
+  const groups: OptionGroup[] = [
+    { caption: "Add to this update", entries: [
+      { key: "still-works", label: "What still works", glyph: "lines", target: stillWorksId, onSelect: () => setShownFields(current => ({ ...current, whatStillWorks: true })) },
+      { key: "details", label: "Details", glyph: "lines", target: detailsId, onSelect: () => setShownFields(current => ({ ...current, details: true })) },
+      ...(relationships.rows.length ? [{ key: "relationship", label: "Relationship…", glyph: "link" as const, value: relationshipSummary(relationships.rows), panel: "relationship" }] : []),
+    ] },
+    { caption: "Send", entries: [
+      { key: "notify", label: "Notify…", glyph: "send", value: channelSummary(channels), panel: "notify" },
+      { key: "schedule", label: "Schedule…", glyph: "calendar", value: timing.mode === "schedule" && timing.at ? publishTime(timing.at, timezone) : undefined, panel: "timing", onSelect: () => chooseTiming("schedule") },
+      { key: "backdate", label: "Backdate…", glyph: "clock", value: timing.mode === "backdate" && timing.at ? publishTime(timing.at, timezone) : undefined, panel: "timing", onSelect: () => chooseTiming("backdate") },
+    ] },
+    { caption: "Templates", entries: [
+      { key: "use-template", label: "Use a template", glyph: "template", panel: "template-use" },
+      { key: "save-template", label: "Save as a template", glyph: "template", panel: "template-save" },
+    ] },
+    { caption: "Draft", entries: [
+      { key: "review", label: "Mark draft reviewed", glyph: "check", onSelect: draftActions.review },
+      ...(incident.updates.length ? [{ key: "correction", label: "Publish as a correction…", glyph: "pen" as const, panel: "correction" }] : []),
+    ] },
+  ];
+
   return <div className="incident-page">
     <IncidentHeader incident={incident} />
-    <CommunicationOwnerControl key={incident.id} incidentId={incident.id} lifecycle={incident.lifecycle} owner={incident.owner} unowned={incident.unowned} captureVisit={captureVisit} onChanged={refresh} />
     <div className="incident-compose">
       <section className="composer-panel" aria-labelledby="composer-title" inert={publishState === "publishing"}>
         <div className="composer-heading"><h2 id="composer-title" className="eyebrow">{incident.updates.length ? "Update draft" : "First update"}</h2><p role="status" aria-live="polite" className={`autosave-status is-${visibleSaveState}`}>{saveLabel}</p></div>
@@ -339,7 +364,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         {publishMessage ? <p role="status" className={`publication-message is-${publishState}`}>{publishMessage}</p> : null}
         {saveError && <FormError>{saveError}</FormError>}
         {visibleSaveState === "error" && <Button type="button" variant="secondary" onClick={() => { failedKey.current = null; setSaveError(null); setSaveState("saving"); setDraftRevision((current) => current + 1); }}>Retry save</Button>}
-        <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
+        <AiSuggestionButton key={`suggestion-${updateGeneration.current}`} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
         <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
           <StatusChoice value={draft.lifecycle} onChange={changeLifecycle} />
           {/* A separate label keeps the field's name to its question; a wrapping label would also read the text. */}
@@ -351,30 +376,29 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
             <input aria-label="Who is affected" required placeholder="Which customers" value={draft.affectedAudience} maxLength={250} onChange={(event) => updateField("affectedAudience", event.target.value)} />
           </fieldset>
           {findings("affectedAudience")}
+          <OptionalText id={stillWorksId} label="What still works" value={draft.whatStillWorks} max={250} shown={shownFields.whatStillWorks} onChange={(value) => updateField("whatStillWorks", value)}>{findings("whatStillWorks")}</OptionalText>
+          <OptionalText id={detailsId} label="Details" value={draft.details} max={500} shown={shownFields.details} onChange={(value) => updateField("details", value)}>{findings("details")}</OptionalText>
           {draft.lifecycle === "Resolved" ? <p className="resolution-note" role="status">Resolving closes the incident. No next update.</p> : <NextUpdateField value={draft.nextUpdateAt} timezone={timezone} onChange={(value) => updateField("nextUpdateAt", value)} onError={(message) => setTimeErrors(current => ({ ...current, nextUpdate: message }))} />}
           <ClientExtensionSlot id="incident.composer.fields.after.v1" context={slotContext} />
         </form>
-        {draft.lifecycle === "Resolved" && <RecoveryCheckPanel key={recoveryRevision} incidentId={incident.id} overrideReason={overrideReason} onOverrideReason={setOverrideReason} />}
+        {draft.lifecycle === "Resolved" && <RecoveryCheckPanel key={`recovery-${recoveryRevision}`} incidentId={incident.id} overrideReason={overrideReason} onOverrideReason={setOverrideReason} />}
       </section>
       <div className="incident-side">
         <IncidentPreview preview={preview} error={previewError} />
         <IncidentTimeline incident={incident} />
       </div>
       <div className="composer-publish" inert={publishState === "publishing"}>
-        <MoreOptions footer={<><span className="publish-hint">{publishHint(channels, timing)}</span><Button type="button" disabled={disabled} onClick={timing.mode === "schedule" ? schedule : publish}>{publishState === "publishing" ? "Publishing…" : timing.mode === "schedule" ? "Schedule update" : timing.mode === "backdate" ? "Publish historical update" : "Publish update"}</Button></>}>
-          <OptionalText label="What still works" value={draft.whatStillWorks} max={250} onChange={(value) => updateField("whatStillWorks", value)}>{findings("whatStillWorks")}</OptionalText>
-          <OptionalText label="Details" value={draft.details} max={500} onChange={(value) => updateField("details", value)}>{findings("details")}</OptionalText>
-          <PublicationControls channels={channels} onChannels={next => { touchedSocialSelection.current = true; setChannels(next); }} timing={timing} timezone={timezone} error={timeErrors.timing} onTiming={setTiming} onError={(message) => setTimeErrors(current => ({ ...current, timing: message }))} />
-          <ComponentRelationships rows={relationships.rows} onChange={relationships.change} />
+        <UpdateOptions groups={groups}
+          footer={<><span className="publish-hint">{publishHint(channels, timing, timezone)}</span><Button type="button" disabled={disabled} onClick={timing.mode === "schedule" ? schedule : publish}>{publishState === "publishing" ? "Publishing…" : timing.mode === "schedule" ? "Schedule update" : timing.mode === "backdate" ? "Publish historical update" : "Publish update"}</Button></>}
+          message={<>{draftActions.message ? <p role="status" className="option-message">{draftActions.message}</p> : null}{draftActions.error ? <FormError>{draftActions.error}</FormError> : null}</>}>
+          <OptionPanel name="notify" title="Notify"><NotifyChannels channels={channels} onChange={next => { touchedSocialSelection.current = true; setChannels(next); }} /></OptionPanel>
+          <OptionPanel name="timing" title="When it publishes"><PublishTimingField timing={timing} timezone={timezone} error={timeErrors.timing} onChange={setTiming} onError={(message) => setTimeErrors(current => ({ ...current, timing: message }))} /></OptionPanel>
+          <OptionPanel name="relationship" title="Relationship"><ComponentRelationships rows={relationships.rows} onChange={relationships.change} /></OptionPanel>
           <TemplateControls key={updateGeneration.current} draft={draft} components={[...incident.components.flatMap(component => component.componentId ? [{ componentId: component.componentId, state: draft.componentChanges?.find(change => change.componentId === component.componentId)?.state ?? component.state, relationship: component.relationship }] : []), ...(draft.componentChanges ?? []).filter(change => !incident.components.some(component => component.componentId === change.componentId)).map(change => ({ ...change, relationship: change.relationship ?? "Primary" as const }))]} onApply={applyTemplate} captureUpdate={captureUpdate} />
-        </MoreOptions>
+          {incident.updates.length ? <OptionPanel name="correction" title="Publish as a correction"><CorrectionChoice updates={incident.updates} onCorrect={draftActions.correct} /></OptionPanel> : null}
+        </UpdateOptions>
       </div>
+      <IncidentPanel incident={incident} briefRevision={draftSaved ? `${incident.updates.length}:${draftKey}` : null} captureVisit={captureVisit} captureUpdate={captureUpdate} onChanged={refresh} onDeleted={() => void navigate({ to: "/app/incidents" })} />
     </div>
-    <IncidentExtras incident={incident} briefRevision={draftSaved ? `${incident.updates.length}:${draftKey}` : null}>
-      <IncidentActions>
-        <IncidentOperatorControls incident={incident} captureVisit={captureVisit} captureUpdate={captureUpdate} getDraftVersion={() => version.current} onChanged={refresh} onDeleted={() => void navigate({ to: "/app/incidents" })} />
-        <IncidentImpactCard incidentId={incident.id} />
-      </IncidentActions>
-    </IncidentExtras>
   </div>;
 }

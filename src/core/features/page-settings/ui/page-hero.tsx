@@ -1,12 +1,11 @@
 import type { LiveStatus } from "../../overview/live-status";
 import { Icon } from "../../../app/client/ui/icon";
 import { useRelativeTime } from "../../../app/client/ui/relative-time";
-import { PagePreview, type PreviewComponent } from "./page-preview";
 
 const isLocal = (origin: string) => ["localhost", "127.0.0.1", "[::1]"].includes(new URL(origin).hostname);
 
-/** Settings opens on the page itself: its mark, where it lives, that it is live, and a small preview. */
-export function PageHero({ live, pageName, accentColor, markSrc, components }: { live: LiveStatus | null; pageName: string; accentColor: string; markSrc: string; components: PreviewComponent[] }) {
+/** The page itself: its mark, where it lives and that it is live. Lamp's drawing of it sits above, in YourPageFacts. */
+export function PageHero({ live, markSrc }: { live: LiveStatus | null; markSrc: string }) {
   const relativeTime = useRelativeTime();
   const origin = live?.publicOrigin ?? null;
   const problem = live && [live.page, live.subscribe].find((check) => check && !check.ok)?.reason;
@@ -19,6 +18,5 @@ export function PageHero({ live, pageName, accentColor, markSrc, components }: {
       {origin && isLocal(origin) ? <p className="page-hero-note">This address works only on this computer. <a className="text-link" href="/docs/deploy">Deploy Lamp</a> to give customers a public one.</p> : null}
       <a className="text-link" href="/docs/domains">Use a custom domain</a>
     </div>
-    <div className="page-hero-preview" aria-hidden="true"><PagePreview pageName={pageName} accentColor={accentColor} markSrc={markSrc} components={components.slice(0, 3)} address={null} /></div>
   </section>;
 }

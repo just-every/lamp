@@ -1,6 +1,6 @@
-import { withVisualEdits } from '../editor/VisualEditBoundary';
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { AlertsPage } from "../core/features/intake/ui/alerts-page";
-
-export const Route = createFileRoute("/app/alerts")({ component: withVisualEdits(AlertsPage) });
+// Alerts is Settings › Connected tools now (L19). Old links land there for one release, keeping a linked receipt.
+export const Route = createFileRoute("/app/alerts")({
+  beforeLoad: ({ location }) => { throw redirect({ href: `/app/settings${location.searchStr}#tools` }); },
+});

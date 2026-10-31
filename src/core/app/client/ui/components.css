@@ -1,78 +1,92 @@
 .component-title-row { gap: 24px; }
-.component-title-actions, .component-group-actions, .component-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.component-title-actions { align-self: flex-end; }
-.component-groups { display: grid; gap: 20px; }
-/* Each group is a plate with a card-tint strip header. */
-.component-group-card { padding: 0; overflow: hidden; }
-.component-group-heading { align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 18px 24px; }
-.component-group-heading h2 { margin: 0 0 2px; }
-.component-group-heading .card-kicker { margin-bottom: 4px; }
-.component-group-heading p:not(.card-kicker) { margin: 0; color: var(--ink-3); font-size: 13px; }
-.component-group-actions { justify-content: flex-end; }
-.component-group-actions .button, .component-row-actions .button { min-height: 32px; padding: 6px 14px; font-size: 13px; }
-.component-row { display: grid; width: 100%; grid-template-columns: minmax(180px, 1fr) auto auto; align-items: center; gap: 16px; border-bottom: 1px solid var(--line); background: var(--card); padding: 16px 24px; text-align: left; }
+.component-title-actions { display: flex; align-self: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+/* Each group: a plain heading with its count over one white plate of rows. */
+.component-groups { display: grid; gap: 32px; }
+.component-group { display: grid; min-width: 0; gap: 12px; }
+.component-group-heading { display: flex; align-items: baseline; gap: 8px; margin: 0; color: var(--ink-2); font-size: 15px; font-weight: 600; line-height: 1.3; letter-spacing: 0; }
+.component-group-count { color: var(--ink-3); font-weight: 500; font-variant-numeric: tabular-nums; }
+.data-card.component-rows { margin: 0; padding: 0 12px; list-style: none; }
+.data-card.empty-component-group { margin: 0; color: var(--ink-2); padding: 24px; text-align: center; }
+
+/* A row is one button (name, one quiet line, the state pill, a chevron); an extension's actions sit beside it. The row
+   holds a tint while its drawer is open. */
+.component-row { display: flex; align-items: center; gap: 8px; min-width: 0; border-bottom: 1px solid var(--line); }
 .component-row:last-child { border-bottom: 0; }
-.component-row:hover { background: var(--card-tint); }
+.component-row-button { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px; min-width: 0; min-height: 44px; border: 0; border-radius: 0; background: none; color: var(--ink); padding: 16px 12px; text-align: left; cursor: pointer; }
+.component-row-button:hover, .component-row.is-open .component-row-button { background: var(--card-tint); }
 .component-row-summary { display: grid; min-width: 0; gap: 2px; }
-.component-row-summary strong { color: var(--ink); font-size: 15px; }
-.component-row-summary > small { overflow: hidden; color: var(--ink-3); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.component-row-metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--ink-3); font-size: 12px; }
-.component-row-metadata:not(:empty) { margin-top: 4px; }
-.empty-component-group { margin: 0; color: var(--ink-2); padding: 24px; text-align: center; }
+.component-row-summary strong { color: var(--ink); font-size: 15px; font-weight: 600; overflow-wrap: break-word; }
+.component-row-summary small { color: var(--ink-3); font-size: 13px; line-height: 1.45; overflow-wrap: break-word; }
+.component-row .state-pill { font-size: 13px; }
 
 /* Drawer contents. */
 .component-drawer { overflow-y: auto; }
 .drawer-copy { margin: 20px 0; color: var(--ink-2); font-size: 14px; line-height: 1.55; }
+/* T-1: the close button shows its name on hover and keyboard focus, never through a title attribute. */
+.drawer-close { position: relative; }
+.drawer-close::before, .drawer-close::after { position: absolute; z-index: 1; opacity: 0; pointer-events: none; }
+.drawer-close::before { content: ""; top: calc(100% + 5px); left: 50%; width: 8px; height: 8px; translate: -50% 0; rotate: 45deg; background: var(--ink); }
+.drawer-close::after { content: attr(aria-label); top: calc(100% + 8px); right: 0; border-radius: 6px; background: var(--ink); color: var(--on-ink); padding: 6px 10px; font-size: 13px; font-weight: 500; line-height: 1.3; white-space: nowrap; }
+.drawer-close:is(:hover, :focus-visible)::before, .drawer-close:is(:hover, :focus-visible)::after { opacity: 1; }
+
+/* The Details | Status | History switch, in the preview switch's style. */
+.component-part-switch { margin-top: 20px; }
+.component-part-switch button { min-height: 36px; padding: 6px 16px; font-size: 14px; }
+.component-part { margin-top: 24px; }
 .component-editor-form, .component-correction-form { display: grid; gap: 16px; }
 .component-editor-form .form-label, .component-correction-form .form-label { margin: 0; }
 .component-editor-form textarea, .component-correction-form textarea { min-height: 76px; }
 .component-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .65fr); gap: 12px; }
-.component-internal-toggle { flex-wrap: wrap; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px; }
-.component-internal-toggle > span { white-space: nowrap; }
-.component-internal-toggle small { display: block; flex: 1 1 180px; margin-top: 2px; color: var(--ink-3); font-size: 13px; font-weight: 400; line-height: 1.4; }
 .delete-confirmation { margin: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px; color: var(--ink-2); font-size: 13px; line-height: 1.45; }
-.component-history, .component-corrections { display: grid; gap: 8px; margin: 20px 0; }
-.component-history { max-height: 240px; overflow-y: auto; border-top: 1px solid var(--line); }
-.component-history article, .component-corrections article { display: grid; gap: 2px; border-bottom: 1px solid var(--line); padding: 10px 0; }
-.component-history small, .component-corrections small { color: var(--ink-3); font-size: 12px; }
-.component-corrections h3, .component-correction-form h3 { margin: 0; color: var(--ink); font-size: 15px; }
-.component-corrections p, .component-correction-form > p { margin: 0; color: var(--ink-3); font-size: 13px; }
-.component-correction-form { border-top: 1px solid var(--line); padding-top: 20px; }
 
-@media (max-width: 720px) {
+.component-public-state { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: baseline; gap: 16px; margin: 0; }
+.component-public-state dt { color: var(--ink-3); font-size: 13px; }
+.component-public-state dd { margin: 0; color: var(--ink); font-size: 14px; font-weight: 600; text-align: right; }
+.component-status-note { margin: 20px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.6; }
+
+.component-history-part { display: grid; gap: 24px; }
+.component-history { display: grid; max-height: 240px; overflow-y: auto; border-top: 1px solid var(--line); }
+.component-history > p { margin: 12px 0 0; color: var(--ink-2); font-size: 14px; }
+.component-history article, .component-corrections article { display: grid; gap: 2px; border-bottom: 1px solid var(--line); padding: 12px 0; }
+.component-history strong, .component-corrections strong { color: var(--ink); font-size: 15px; font-weight: 600; }
+.component-history small, .component-corrections small { color: var(--ink-3); font-size: 13px; }
+.component-corrections { display: grid; gap: 4px; }
+.component-corrections h3 { margin: 0; }
+.component-corrections p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.component-correction summary { width: fit-content; color: var(--ink); font-size: 14px; font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; cursor: pointer; }
+.component-correction summary:hover { text-decoration-color: var(--ink); }
+.component-correction-form { margin-top: 16px; }
+.component-correction-form > p { margin: 0; color: var(--ink-3); font-size: 13px; }
+
+@media (max-width: 620px) {
   .component-title-actions { align-self: stretch; width: 100%; }
-  .component-title-actions .button { flex: 1 1 145px; }
-  .component-group-heading, .component-group-actions { align-items: flex-start; }
-  .component-group-heading { flex-direction: column; }
-  .component-group-actions { justify-content: flex-start; }
-  .component-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .component-row-actions { grid-column: 1 / -1; }
-  .component-row-actions .button { flex: 1 1 135px; }
-}
-
-@media (max-width: 480px) {
-  .component-group-heading, .component-row { padding-inline: 16px; }
-  .component-row-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
-  .component-row-actions .button { width: 100%; }
+  .component-title-actions .button { flex: 1 1 140px; }
+  /* The state pill moves under the meta line, as on Lamp's other record rows. */
+  .component-row-button { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .component-row-button .state-pill { grid-column: 1; grid-row: 2; }
+  .component-row-button .row-chevron { grid-column: 2; grid-row: 1 / span 2; }
+  .component-part-switch button { min-height: 44px; }
   .component-editor-grid { grid-template-columns: 1fr; }
-  .component-drawer { width: 100%; padding: 20px 16px; }
 }
 
-/* The catalogue editor uses the same controls in a wider, scrollable sheet. */
+/* Edit all: the same controls in a wider, scrollable sheet. */
 .catalogue-drawer { width: min(100%, 1100px); }
 .catalogue-workspace { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .catalogue-workspace > *, .catalogue-workspace .form-label { min-width: 0; }
 .catalogue-workspace code { overflow-wrap: anywhere; }
 .catalogue-workspace .card-heading, .catalogue-workspace .drawer-actions { flex-wrap: wrap; }
 .catalogue-workspace input[type="file"] { max-width: 100%; }
+.catalogue-csv-format summary { width: fit-content; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; }
+.catalogue-csv-format p { margin: 12px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.55; }
 .catalogue-fields { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 24px; }
 .catalogue-fields > section { min-width: 0; }
 .catalogue-table-scroll { max-width: 100%; overflow-x: auto; }
 .catalogue-table { width: 100%; border-collapse: collapse; text-align: left; }
 .catalogue-table th, .catalogue-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.catalogue-table th { color: var(--ink-2); font-size: 12px; }
+.catalogue-table th { color: var(--ink-2); font-size: 13px; }
 .catalogue-table td { min-width: 145px; }
-.catalogue-table td > label { display: grid; gap: 5px; margin-bottom: 10px; font-size: 12px; }
+.catalogue-table td > label { display: grid; gap: 5px; margin-bottom: 10px; font-size: 13px; }
 .catalogue-table input:not([type="checkbox"]), .catalogue-table textarea, .catalogue-table select { width: 100%; min-width: 0; }
 .catalogue-table textarea { min-height: 76px; }
 .catalogue-table input[type="number"] { max-width: 90px; }

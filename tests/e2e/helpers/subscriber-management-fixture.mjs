@@ -32,6 +32,12 @@ export function subscriberCsvRows(text) {
 
 export const subscriberCsv = (headers, rows) => [headers, ...rows].map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\r\n") + "\r\n";
 
+export async function subscriberIdentityInventory(fixture) {
+  return (await fixture.list(1)).map(row => ({
+    id: row.id, channel: row.channel, destination: row.destination, incidentId: row.incident?.id ?? null,
+  })).sort((left, right) => left.id.localeCompare(right.id));
+}
+
 /** Reuse the proven real Worker/auth/provider boundary from AUTO-003. Tests may
  * read migrated storage to prove a dry run wrote nothing; all mutations use HTTP. */
 export async function openSubscriberManagementFixture({ webhookReceiver, pageHost, extraBindings, providerEdge, workerEntry } = {}) {
@@ -43,10 +49,10 @@ export async function openSubscriberManagementFixture({ webhookReceiver, pageHos
     assert.equal(response.status, 201, response.text);
     return response.body.component;
   };
-  const list = async () => {
+  const list = async (limit = 100) => {
     const rows = []; let offset = 0;
     for (;;) {
-      const response = await fixture.api(`/api/app/subscribers?limit=100&offset=${offset}`);
+      const response = await fixture.api(`/api/app/subscribers?limit=${limit}&offset=${offset}`);
       assert.equal(response.status, 200, response.text);
       rows.push(...response.body.subscribers);
       if (!response.body.hasMore) return rows;

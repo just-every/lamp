@@ -1,5 +1,3 @@
-.subscriber-reporting-disclosure > summary { cursor: pointer; color: var(--ink); font-weight: 500; min-height: 44px; align-content: center; }
-.subscriber-reporting-disclosure > .subscriber-reporting { margin-top: 16px; }
 .subscriber-reporting { display: grid; gap: 16px; min-width: 0; }
 .subscriber-reporting .card-heading { flex-wrap: wrap; gap: 12px; }
 .subscriber-reporting :is(p, h2, h3) { margin: 0; }
@@ -18,5 +16,5 @@
   .subscriber-reporting-stack :is(tbody, tr) { display: grid; }
   .subscriber-reporting-stack tr { padding: 12px 0; border-top: 1px solid var(--line); }
   .subscriber-reporting-stack td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 6px 0; border: 0; }
-  .subscriber-reporting-stack td::before { content: attr(data-label); color: var(--ink-3); font-size: 12px; }
+  .subscriber-reporting-stack td::before { content: attr(data-label); color: var(--ink-3); font-size: var(--text-small); }
 }

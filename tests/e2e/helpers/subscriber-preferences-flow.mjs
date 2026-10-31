@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
+import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin, subscriberIdentityInventory } from "./subscriber-management-fixture.mjs";
 
 /** SUB-016: preferences are chosen and changed through public doors; actual
  * publication and maintenance notices cross only the recorded provider edge. */
@@ -21,18 +21,36 @@ export async function subscriberPreferencesFlow() {
       for (const eventKind of eventKinds) form.append("eventKind", eventKind);
       if (minimumImpact) form.set("minimumImpact", minimumImpact);
       const response = await raw(`${pageOrigin}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: pageOrigin, Accept: "text/html" }, body: form.toString() });
-      assert.equal(response.status, 202, await response.text());
+      const text = await response.text();
+      assert.equal(response.status, 202, text);
+      return { status: response.status, text };
     };
     await subscribe(thresholdEmail, ["incidents"], "Partially unavailable");
     await fixture.confirm(thresholdEmail);
-    await subscribe(maintenanceEmail, ["incidents", "maintenance"]);
+    const accepted = await subscribe(maintenanceEmail, ["incidents", "maintenance"]);
+    const pendingInventory = await subscriberIdentityInventory(fixture);
+    const original = (await fixture.list()).find(row => row.destination === maintenanceEmail);
+    assert.equal(original.state, "pending");
+    assert.equal(pendingInventory.length, 2, "both independent page subscriptions are present");
+    assert.deepEqual(await subscribe(maintenanceEmail, ["incidents", "maintenance"]), accepted, "new and pending addresses receive the same status and complete body");
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "a pending page repeat preserves every subscription identity across all pages");
+    assert.equal(fixture.messagesFor(maintenanceEmail).length, 1, "a pending page repeat sends no second confirmation");
     await fixture.confirm(maintenanceEmail);
+    assert.equal((await fixture.list()).find(row => row.id === original.id).state, "active");
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "confirmation activates the original page identity");
     // An established reader receives the same public answer plus their own
     // management link. Editing it needs no operator cookie or session.
-    await subscribe(maintenanceEmail, ["incidents", "maintenance"]);
-    const managedMail = fixture.messagesFor(maintenanceEmail).find(message => /\/manage\//.test(message.text));
+    assert.deepEqual(await subscribe(maintenanceEmail, ["incidents", "maintenance"]), accepted, "new and active addresses receive the same status and complete body");
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "an active page repeat preserves every subscription identity across all pages");
+    const managedMails = fixture.messagesFor(maintenanceEmail).filter(message => message.subject === "You are already subscribed to Synthetic Lamp follow-ups");
+    assert.equal(managedMails.length, 1, "the active page subscriber receives exactly one management email");
+    const managedMail = managedMails[0];
     assert.ok(managedMail, "the real mail adapter carries a subscriber management link");
     const manageUrl = managedMail.text.match(/https?:\/\/\S+\/manage\/\S+/)[0];
+    assert.equal(managedMail.text, `You are already subscribed to Synthetic Lamp follow-ups. Manage this subscription: ${manageUrl}`, "the complete generic email contains only subscription management content");
+    assert.deepEqual(await subscribe(maintenanceEmail, ["incidents", "maintenance"]), accepted);
+    assert.deepEqual(await subscriberIdentityInventory(fixture), pendingInventory, "another active page repeat retains the original identities");
+    assert.equal(fixture.messagesFor(maintenanceEmail).length, 2, "repeated page submissions send only the original confirmation and one management email");
     const managed = await raw(manageUrl);
     assert.equal(managed.status, 200);
     assert.match(await managed.text(), /name="eventKind"/);
