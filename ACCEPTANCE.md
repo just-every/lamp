@@ -925,7 +925,7 @@ Core · published · **partial** · Cites BASE-DATA-003
 2. The view shows channel, pending/active/deactivated state, component selection, and deactivation reason and time.
 3. Deleting a subscriber erases its email address or endpoint.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`
+**Evidence.** `tests/e2e/delivery-contract.test.mjs`; `tests/e2e/helpers/subscriber-directory-flow.mjs`; it also asserts anonymous deletion refusal, retained-table erasure and revoked confirmation, management and unsubscribe authority after owner deletion for both channels.
 **Gap.** Old cited evidence asserts the expected 101st fixture subscriber appears on the second page; channel; deactivated state; the operator list preserves the exact selected component identifiers. Unasserted: the complete subscriber identity set reconciles across all pages; pending and active states visible in operator view.
 
 #### SUB-012 — No enumeration
