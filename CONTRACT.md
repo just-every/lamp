@@ -3118,7 +3118,7 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained.
 
-INTAKE-001 proof is from the code and registered journey at commit 410e53189c064a5b5c7e5a7c16cffdc8105f77c6 (31 October 2026), replayed onto main 3f38a01180bffd39e9b26e4135f5a190ab0b58f4; the replay keeps those helper and journey bytes. Other clause judgments remain inherited.
+INTAKE-001 proof is from the code and registered journey at commit 410e53189c064a5b5c7e5a7c16cffdc8105f77c6 (31 October 2026), replayed onto main 79eabb4c5c1c664bc374f48628a046eb7ff6601e; the replay keeps those helper and journey bytes. Other clause judgments remain inherited.
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 

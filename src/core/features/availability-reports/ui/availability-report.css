@@ -1,8 +1,8 @@
-.availability-report { min-width: 0; }
-.availability-report p { overflow-wrap: anywhere; }
-.availability-report-fields { display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0; }
-.availability-report-fields label { flex: 1 1 150px; min-width: 0; }
+.availability-report { display: grid; min-width: 0; gap: 16px; }
+.availability-report h3 { margin: 0; }
+.availability-report-fields { display: grid; gap: 16px; }
+.availability-report .form-label { min-width: 0; margin: 0; }
 .availability-report-fields input, .availability-report-fields select { width: 100%; min-width: 0; min-height: 44px; }
-.availability-report-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.availability-report-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .availability-report-actions button { min-height: 44px; }
-@media (max-width: 480px) { .availability-report-fields label { flex-basis: 100%; } .availability-report-actions button { flex: 1 1 100%; } }
+@media (max-width: 480px) { .availability-report-actions button { flex: 1 1 140px; } }
