@@ -8,6 +8,7 @@ import { Icon } from "../../../app/client/ui/icon";
 import { ListPagination } from "../../../app/client/ui/pagination";
 import { LoadingState, useOperatorTime } from "../../../app/client/ui/states";
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
+import { SubscribersViews } from "../../subscribers/ui/subscribers-views";
 
 type DeliveriesResponse = {
   deliveries: Awaited<ReturnType<DeliveriesService["list"]>>;
@@ -62,7 +63,8 @@ function SubscriptionMail({ rows, providerName }: { rows: DeliveriesResponse["su
   </section>;
 }
 
-export function DeliveriesPage() {
+/** Subscribers › Delivery log (`/app/subscribers?view=log`): what happened to each update and notice that was sent. */
+export function DeliveryLog() {
   const formatOperatorTime = useOperatorTime();
   const [channel, setChannel] = useState<DeliveryLogChannel | "">("");
   const [outcome, setOutcome] = useState<DeliveryOutcome | "">("");
@@ -83,8 +85,8 @@ export function DeliveriesPage() {
   function resetFilters(next: () => void) { next(); setOffset(0); }
   return <div className="page-stack">
     <section className="page-title-row">
-      <div><h1>Deliveries</h1><p>See what happened to your updates.</p></div>
-      <a className="quiet-link delivery-export" href={csvHref}>Export CSV <Icon name="external" width={15} height={15} /></a>
+      <div><h1>Subscribers</h1><p>See what happened to your updates.</p></div>
+      <div className="page-title-actions"><SubscribersViews /><a className="quiet-link delivery-export" href={csvHref}>Export CSV <Icon name="external" width={15} height={15} /></a></div>
     </section>
     {!data.mail.local && <section className="capability-note">
       <Icon name="warning" width={18} height={18} />

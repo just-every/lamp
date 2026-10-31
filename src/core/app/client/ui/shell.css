@@ -2,28 +2,38 @@
 .operator-shell .text-link::after { content: none; }
 .operator-brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .operator-brand-row .operator-menu-button { display: none; }
-.operator-navigation-panel { display: flex; flex: 1; flex-direction: column; }
+/* A window too short for the rail scrolls inside it; the inline padding keeps focus rings whole. */
+.operator-navigation-panel { display: flex; min-height: 0; flex: 1; flex-direction: column; overflow-y: auto; margin-inline: -6px; padding-inline: 6px; }
 .operator-rail { position: sticky; top: 0; display: flex; height: 100vh; flex-direction: column; background: var(--paper); padding: 24px 16px 22px; }
 /* The landing's lockup (mark.css): mark 18 beside "Lamp" in 600 at -0.035em. */
 .app-brand { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--ink); font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -.035em; }
 .app-brand-mark { display: block; flex: none; width: 28px; height: 28px; }
-.operator-navigation { display: grid; gap: 4px; margin-top: 32px; }
+.operator-navigation { display: grid; gap: 4px; margin: 32px 0 20px; }
 .operator-nav-link { display: flex; min-height: 44px; align-items: center; gap: 12px; border-radius: 10px; color: var(--ink-2); padding: 0 12px; font-size: 15px; font-weight: 500; transition: background-color .15s ease, color .15s ease; }
 .operator-nav-link svg { flex: none; }
 .operator-nav-link:hover { background: var(--stage); color: var(--ink); }
 .operator-nav-link.is-active { background: var(--stage); color: var(--ink); font-weight: 600; }
-.operator-rail-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 8px 0; color: var(--ink-3); font-size: 13px; }
+/* Settings takes the rail over: back to Overview, its title, then each topic's caption over its destinations. */
+.settings-menu { gap: 2px; margin-top: 20px; }
+.settings-menu-back { display: flex; min-height: 36px; align-items: center; gap: 12px; border-radius: 10px; color: var(--ink-2); padding: 0 12px; font-size: 15px; font-weight: 500; }
+.settings-menu-back:hover { background: var(--stage); color: var(--ink); }
+.settings-menu-title { margin: 8px 12px 0; color: var(--ink); font-size: 17px; font-weight: 600; line-height: 1.5; }
+.settings-menu-topic { display: grid; gap: 2px; }
+.settings-menu-topic > p { margin: 10px 12px 0; color: var(--ink-3); font-size: var(--text-small); font-weight: 600; line-height: 1.5; letter-spacing: .1em; text-transform: uppercase; }
+.settings-menu .operator-nav-link { min-height: 34px; gap: 10px; }
+.operator-rail-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 0 0 8px; color: var(--ink-3); font-size: 13px; }
 .operator-page-link, .quiet-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
 .operator-page-link:hover, .quiet-link:hover { text-decoration-color: var(--ink); }
-.operator-workspace { min-width: 0; border-left: 1px solid var(--line); }
-.operator-header { position: sticky; z-index: 10; top: 0; display: flex; height: 72px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); background: var(--header-glass); backdrop-filter: blur(18px); padding: 0 40px; }
-.operator-header p { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: 15px; font-weight: 500; }
-.header-live-dot { width: 8px; height: 8px; flex: none; border-radius: 100%; background: var(--ok); }
-.operator-account { display: flex; align-items: center; gap: 16px; }
-.operator-identity { display: grid; justify-items: end; line-height: 1.25; color: var(--ink); font-size: 14px; font-weight: 600; }
-.operator-identity small { color: var(--ink-3); font-size: 12px; font-weight: 400; }
-.header-signout { min-height: 40px; padding: 8px 18px; font-size: 14px; }
-.operator-main { width: min(100%, 1440px); margin: 0 auto; padding: 40px; }
+/* Who is signed in: an initial, the name and a quiet Sign out. */
+.operator-account { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.operator-initial { display: grid; width: 28px; height: 28px; flex: none; place-items: center; border-radius: 50%; background: var(--stage); color: var(--ink); font-size: 13px; font-weight: 600; }
+.operator-name { min-width: 0; flex: 1; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.operator-signout { min-height: 32px; flex: none; border: 0; border-radius: 8px; background: none; color: var(--ink-2); padding: 4px 6px; font-size: 14px; font-weight: 500; }
+.operator-signout:hover:not(:disabled) { background: var(--stage); color: var(--ink); }
+.operator-workspace { min-width: 0; border-left: 1px solid var(--line); background: var(--column); }
+.operator-main { width: min(100%, 1440px); margin: 0 auto; padding: 48px 40px 40px; }
+/* The phone's way into the Settings menu, above each pane (responsive.css shows it). */
+.settings-pill { display: none; }
 
 /* Sign-in: the lit pendant hangs on its cord from the top edge and its pool falls on the card. */
 .signin-page { position: relative; isolation: isolate; display: grid; min-height: 100vh; justify-items: center; align-content: start; overflow: clip; background: var(--paper); padding: 0 24px 48px; }

@@ -3,6 +3,8 @@
 Lamp can bring components, incident history, scheduled maintenance and eligible
 email subscribers into your page.
 
+After building the candidate, `pnpm sorry:receipt --capture /unchanged/capture --key-file /private/test.pem --out /new/output` verifies a public capture in a disposable test installation and signs its receipt; reviewed receipts live in `docs/receipts/` and their public keys belong only in the consumer's test trust store.
+
 ## Common workflow
 
 1. Sign in and open **Settings → Move in** (`/app/move-in`). Choose the matching
@@ -161,7 +163,7 @@ confirmed subscribers stay, with their reason shown. Aliases stay for surviving
 imported incidents or maintenance and are removed when the imported target is
 removed. Undo sends no mail.
 
-Moving from another Lamp page? Download **Settings → Export page data** there and
+Moving from another Lamp page? Download your page data from **Settings → Export and restore** there and
 restore the file on the new page; see [Backups and recovery](backups-and-recovery.md#export-your-page-data-from-the-app).
 
 Undo applies to one move-in job; it is not a full installation restore. To
@@ -568,7 +570,7 @@ remains outside Lamp's control.
 ## Business import door (opt-in)
 
 An installation with RER's owner-claim trust configured can enable **Allow
-Business imports** in Settings → Move in. It starts off; uploads and every other
+Business imports** in Settings → Export and restore. It starts off; uploads and every other
 `/api/rer/import/` route return 404 until enabled. When RER sets the app up for a
 Business plan, it also sets `RER_IMPORT_DOOR=on`, and the owner's first claim turns
 the door on (Lamp still claims its owner with the setup token there). The owner can

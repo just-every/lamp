@@ -20,7 +20,7 @@ export async function followUpsNotificationFlow({ fixture, component, createInci
   assert.ok(fixture.channelRequests.length > 0);
   assert.ok(Number.isFinite(Date.parse(channelEntry.dueAt)));
   assert.ok(channelEntry.stopCondition.trim());
-  assert.equal(channelEntry.link, "/app/deliveries");
+  assert.equal(channelEntry.link, "/app/subscribers?view=log");
   const removed = await fixture.api(`/api/app/channels/${channel.body.channel.id}`, { method: "DELETE" });
   assert.equal(removed.status, 200, removed.text);
   assert.ok(!(await fixture.api(endpoint)).body.followUps.some(row => row.id === channelEntry.id), "removing the failed channel resolves its obligation");

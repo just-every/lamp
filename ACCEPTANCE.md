@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 19 | 170 | 49 | 238 |
+| Core | 20 | 169 | 49 | 238 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 19 | 170 | 54 | 243 |
+| Full target | 20 | 169 | 54 | 243 |
 
-Judged from the code and tests at commit `3dc898cb600137dab8979f671f0fbefb46d3419b` (29 October 2026); SUB-007 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `d116690d2db42e82ef085086429887f2a1c28839` (30 October 2026); NOTIFY-011 is rechecked on the landing candidate, with earlier clause judgments retained. Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -347,7 +347,7 @@ Core · published · **partial**
 **Acceptance.**
 1. The supplied weights count Major outage and Partially unavailable as one downtime minute per minute, Degraded performance as one half, and Under maintenance as zero.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs`; `tests/e2e/helpers/public-capacity-journey.mjs`; existing Major outage boundary and one-minute rounding controls remain active.
 **Gap.** The cited evidence asserts the other audited outcomes; unasserted: The supplied policy’s Major outage weight is asserted; The supplied policy’s Partially unavailable weight is asserted.
 
 #### UPTIME-003 — Short history
@@ -608,7 +608,7 @@ Core · published · **partial**
 1. The composer shows the update as the public page renders it.
 2. The composer shows the update as the notification email renders it.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs`; `tests/e2e/publishing-browser.test`; explicit publication retains the Page preview fields and exact commitment on the public incident page. `tests/e2e/publishing-contract.test.mjs` (reviewed incident from private template to immutable updates, recovery, report and audited deletion): native preview wording remains asserted and the captured notification subject and complete customer message equal the preview before personal subscription links. Both journeys run in push Verify.
 **Gap.** Asserted: public preview customer impact; email preview customer impact. Unasserted in old cited evidence: composer displays the public preview; composer displays the email preview.
 
 #### UPDATE-005 — Drafts
@@ -808,7 +808,7 @@ Core · published · **partial** · Cites BASE-DATA-002
 **Acceptance.**
 1. An unconfirmed pending subscription and its address are deleted after 72 hours.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`; `tests/e2e/helpers/subscriber-expiry-flow.mjs` (subscriberExpiryFlow), loaded by the Subscriber consent journey in `tests/e2e/delivery-contract.test.mjs`: two public email subscriptions retain their pending rows and addresses immediately before each creation-plus-72-hour deadline, then native scheduled processing deletes each row and every persisted address copy exactly at its deadline. Operator inventory reconciles independently with D1; confirmed subscription fields remain unchanged; expired confirmation replay and repeated scheduled processing cannot restore an address. `tests/e2e/helpers/incident-follow-consent-flow.mjs` (incidentFollowConsentFlow), loaded by the Scoped incident subscriptions journey in the same test file, retains incident-scoped expiry. `tests/e2e/sorry-import.test.mjs` (Sorry move-in, Business approval, bounded catch-up, original archive, cutover and erasure remain one recoverable owner flow) retains imported-address custody erasure.
 **Gap.** Old cited evidence asserts a very old pending subscriber row is absent after expiry runs. Unasserted: expiry takes effect at the specified 72-hour boundary.
 
 #### SUB-004 — Component selection
@@ -1082,7 +1082,7 @@ Core · published · **partial** · Cites BASE-MAIL-001, BASE-OPS-004
 
 #### NOTIFY-011 — Slack and Teams channels
 
-Core · published · **partial** · Cites BASE-SECRET-001
+Core · published · **done** · Cites BASE-SECRET-001
 
 **Requirement.** Operators connect Slack and Microsoft Teams publication channels, selecting components; no selection follows all visible components. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md).
 
@@ -1091,8 +1091,8 @@ Core · published · **partial** · Cites BASE-SECRET-001
 2. The destination URL is stored encrypted and never returned or shown again after saving.
 3. Only each provider's documented webhook hosts are accepted.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs`
-**Gap.** Old cited evidence asserts the created Slack channel response reports the expected provider host; no URL in list; stored ciphertext; nonprovider host refused. Unasserted: the Slack destination and selected components are persisted; the Teams destination is persisted with all-visible component selection; saved component selections read back; no saved URL on other API responses.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loaded by push Verify’s delivery shard: acceptance 1 reconciles nonempty encrypted Slack and Teams destination rows, exact stored selections, independent native GET readbacks and exact receiver paths; acceptance 2 checks create, list, patch, successful and rejected test, removal and removed-channel responses for raw credentials and sealed ciphertext, plus plaintext-at-rest absence and log redaction; acceptance 3 retains nonprovider-host refusal without a saved destination. `tests/e2e/helpers/channels-browser-flow.mjs` (channelsBrowserFlow), loaded by that journey, checks reloaded Settings at 1440 and 390 with both saved selections, an empty webhook input, no credentials or ciphertext in the document and no overflow. Only synthetic provider edges are claimed.
+**Gap.** None.
 
 #### NOTIFY-012 — Channel posts
 
@@ -1140,7 +1140,7 @@ Core · published · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007
 
 #### INTAKE-003 — Deduplication
 
-Core · published · **partial** · Cites BASE-OPS-003
+Core · published · **done** · Cites BASE-OPS-003
 
 **Requirement.** Unresolved alert keys and redelivered requests retain one incident and one set of alert work.
 
@@ -1148,8 +1148,8 @@ Core · published · **partial** · Cites BASE-OPS-003
 1. Distinct deliveries with the same key attach to the same unresolved incident instead of creating another.
 2. Redelivery of an accepted request returns its original status and adds no incident, draft or alert record.
 
-**Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Equal incident identifiers and accepted replay status are asserted. Complete incident, draft and alert-record inventories are not compared across replay, leaving the absence of all additional records unasserted.
+**Evidence.** `tests/e2e/incident-brief.test.mjs` (INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002 DRAFT-003 DRAFT-004 AGENT-002 AGENT-004 — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails): distinct signed deliveries with one key retain the unresolved incident and draft, with separate receipts; an identical accepted signed request retains the original HTTP status, receipt and incident identities, and complete incident, draft and alert receipt inventories ordered by record identity remain unchanged.
+**Gap.** None.
 
 #### INTAKE-004 — Recovery alerts
 
@@ -2406,7 +2406,7 @@ Core · target · **partial** · Cites BASE-MAIL-001 · Register R-41
 4. App removal, revoked tokens and an archived-channel response each deactivate with that reason and prevent the next publication.
 5. A recorded provider-schema OAuth exchange creates the subscription and its recorded app-uninstalled event removes it.
 
-**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links, notifications shard), loading `tests/e2e/helpers/self-serve-chat-flow.mjs` (selfServeChatFlow) and `tests/e2e/slack-subscriptions-helper.mjs` (prepareSlackSubscription, removeSlackSubscription, verifySlackPublication). The recorded synthetic provider-edge request and response in `tests/fixtures/slack-subscriptions/oauth-exchange.json` are matched at the real Slack OAuth adapter: POST, client, code and callback path; the public Get updates in Slack control requests only incoming-webhook, selects components and completes cookie-free hashed-state installation at 1440/390. The active subscription receives the next eligible publish, and its webhook is stored encrypted in the existing subscriber-owned Slack kind from additive migration `migrations/core/0056_subscriber_channels_preferences.sql`. The signed app_uninstalled payload in `tests/fixtures/slack-subscriptions/events.json`, using its test signing secret, deactivates the subscription with that reason; selfServeChatFlow asserts the next publication skips it. verifySlackPublication asserts See <https://help.example.com/kb/123>. with punctuation outside the URL. The recorded tokens_revoked payload also deactivates and suppresses the next publish; a channel_is_archived edge reply deactivates with that reason and later publication skips it. Continuation and callback axe, overflow and script-error checks pass at both widths. `tests/e2e/update-reminders.test.mjs` (INCIDENT-010 — INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment) consumes the same OAuth reply and preserves the separation of public subscriptions from private operator alerts. These are recorded synthetic edge fixtures; no live Slack install or provider acceptance is claimed. Completion is a proposal pending ct judgment.
+**Evidence.** `tests/e2e/channels-and-presets.test.mjs` (SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links, notifications shard), loading `tests/e2e/helpers/self-serve-chat-flow.mjs` (selfServeChatFlow) and `tests/e2e/slack-subscriptions-helper.mjs` (prepareSlackSubscription, removeSlackSubscription, verifySlackPublication). The recorded synthetic provider-edge request and response in `tests/fixtures/slack-subscriptions/oauth-exchange.json` are matched at the real Slack OAuth adapter: POST, client, code and callback path; the public Get updates in Slack control requests only incoming-webhook, selects components and completes cookie-free hashed-state installation at 1440/390. The active subscription receives the next eligible publish, and its webhook is stored encrypted in the existing subscriber-owned Slack kind from additive migration `migrations/core/0056_subscriber_channels_preferences.sql`. The signed app_uninstalled payload in `tests/fixtures/slack-subscriptions/events.json`, using its test signing secret, deactivates the subscription with that reason; selfServeChatFlow asserts the next publication skips it. verifySlackPublication asserts See <https://help.example.com/kb/123>. with punctuation outside the URL. The recorded tokens_revoked payload also deactivates and suppresses the next publish; a channel_is_archived edge reply deactivates with that reason and later publication skips it. Continuation and callback axe, overflow and script-error checks pass at both widths. `tests/e2e/update-reminders.test.mjs` (INCIDENT-010 — INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment) consumes the same OAuth reply and preserves the separation of public subscriptions from private operator alerts. These are recorded synthetic edge fixtures; no live Slack install or provider acceptance is claimed. Completion is a proposal pending ct judgment.; no live Slack install or provider acceptance is claimed. Completion is a proposal pending ct judgment. Additional landing-candidate proof in the same selfServeChatFlow and prepareSlackSubscription helpers asserts the named public Get updates in Slack submit control, selected and unrelated visible component choices, exactly the two selected persisted component identities, the chosen Slack workspace/channel identity and name, selected mode, and a nonempty encrypted webhook. These assertions address the previously unasserted public-control and component-selection points; the inherited partial judgment remains pending ct review.
 **Gap.** Old cited evidence asserts minimal OAuth scope; active Slack state; sealed Slack URL. It does not assert: named public control; selected components persisted.
 
 #### SUB-015 — Self-serve Microsoft Teams subscriptions
@@ -2782,7 +2782,7 @@ Core · target · **partial** · From INTAKE-009 · Cites BASE-DATA-004, BASE-OP
 5. A failed note is visible against the linked source without blocking publication.
 6. The default note author is the source owner’s Lamp email and identifies a valid PagerDuty user.
 
-**Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/pagerduty-flow.mjs`, `scripts/installer/archive-policy.mjs`, `tests/auth-adoption/portability.test.mjs`
+**Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/pagerduty-flow.mjs`, `scripts/installer/archive-policy.mjs`, `tests/auth-adoption/portability.test.mjs`; replay sends none; an unconnected source publishes without a note; the distinct custom note author and REST key are absent from source responses and the persisted source row, which holds nonempty ciphertext; the captured From header retains the custom author; technical export strips both values and their ciphertext, and restore sends nothing before reconnecting; the fixed PagerDuty host receives credentials and a redirect is refused; a linked 403 receipt leaves publication intact
 **Gap.** Old cited evidence asserts PagerDuty note contains the public audience statement; PagerDuty note contains public customer impact; PagerDuty note contains public still-working text; PagerDuty note contains public details. Unasserted: Note-author sealed and redacted.
 
 #### INTAKE-010 — Prometheus Alertmanager and Grafana Alerting
@@ -3079,7 +3079,7 @@ Core · target · **partial** · From HIST-006 · Cites BASE-PUBLIC-001, BASE-OP
 
 #### HIST-009 — Traffic alert configuration
 
-Core · target · **done** · From HIST-006 · Cites BASE-INPUT-001, BASE-ACCESSIBILITY-001
+Core · target · **partial** · From HIST-006 · Cites BASE-INPUT-001, BASE-ACCESSIBILITY-001
 
 **Requirement.** The owner chooses the traffic multiple in Settings, with a default of three times the same-hour baseline. Invalid or unacknowledged edits never replace the saved setting.
 
@@ -3088,8 +3088,8 @@ Core · target · **done** · From HIST-006 · Cites BASE-INPUT-001, BASE-ACCESS
 2. Invalid multiples are marked invalid and preserve the stored value; the invalid edit survives tab changes.
 3. At 1440 and 390, acknowledged choices autosave serially and survive reload without overflow or hydration errors, under the Base accessibility bar.
 
-**Evidence.** `tests/e2e/update-reminders.test.mjs` (HIST-006 — independent public readership produces private traffic alerts and recoverable owner actions), loading `tests/e2e/helpers/traffic-alerts-flow.mjs` (trafficAlertsFlow): acceptance 1 checks the native default of three, a saved six-times threshold suppressing a five-times burst, and a saved three-times threshold allowing that burst; acceptance 2 checks rejected native and browser multiples leave the saved setting unchanged and the invalid browser edit survives Settings tab changes; acceptance 3 runs at 1440 and 390, holds the first native settings PUT at four while the owner enters six, checks no later PUT or acknowledgement occurs before release and native readback remains three, then checks ordered successful acknowledgements for four and six, exact final native readback of six and six after reload, with serious and critical axe, overflow and hydration assertions. The threshold, invalid-edit, private alert and recovery controls remain in the same active journey. No new test registration.
-**Gap.** None.
+**Evidence.** `src/core/features/traffic-alerts/`, `tests/e2e/helpers/traffic-alerts-flow.mjs`, `tests/e2e/helpers/traffic-resolution-flow.mjs` and `tests/e2e/helpers/traffic-alerts-runtime.mjs`, extended inside the existing INCIDENT-010 registration in `tests/e2e/update-reminders.test.mjs` (200/200 registrations before and after). The built production Worker receives 840 controlled public page requests across seven uneven same-hour baselines: a 5× minute stores exactly one native operator alert for that surface and minute, whose one provider request carries the minute's 10 requests, the 2-per-minute same-hour mean and the app link; repeated Cron and consecutive burst minutes add none. An identical fresh burst during a native unresolved incident adds no alert. A separate feed fixture proves a zero-traffic historical hour contributes zero after collection coverage; a cold-start surface stays unknown and sends no alert. Concurrent requests persist aggregate R2 shard rows containing only surface, minute and count, with no address, agent, cookie, query or raw path. Coalesced writes respect R2's same-object rate limit and each request owns its persistence continuation. A production Worker with no D1 binding serves page/feed/widget reads and persists its counter. Settings → Notifications defaults to 3×, marks an out-of-range multiple invalid without changing the stored value, autosaves serially, preserves invalid edits across tab changes and retains acknowledged values after reload at 1440/390, with axe, font-size, overflow and hydration checks. The inherited AGENT-004 recovery door reads current traffic as typed traffic evidence and refuses an unreasoned resolution with 409 while elevated. ct judged HIST-006 DONE-JUSTIFIED at 9e1301e331992add4badf8b5e9ded34bc88d1f26: the INCIDENT-010 journey via traffic-alerts-flow.mjs and traffic-resolution-flow.mjs asserts that surfaces without a same-hour baseline are listed as learning and never become evidence rows; elevated traffic refuses a backdated Resolved publication and retains its draft; an immediate override publishes, stays in the private timeline and audit under its operator and never reaches the public incident page; the reopened incident's next unreasoned resolution is refused again; a scheduled resolution that passed when scheduled is held at its due time by elevated traffic with its draft retained, then publishes without an override once traffic is near its usual level. Each of those assertions failed under a named mutation (historical skip, unknown-as-near, public reason, unattributed audit, remembered override, scheduled skip, near-as-elevated) and passed once restored (sd-lamp-hist006-2 evidence).
+**Gap.** The cited journey asserts default and chosen thresholds, invalid-state retention, persisted reload, layout and hydration. It does not explicitly hold competing writes to assert serial autosave ordering.
 
 #### HIST-010 — Traffic evidence at resolution
 

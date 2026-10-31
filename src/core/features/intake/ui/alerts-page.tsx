@@ -12,8 +12,9 @@ import { toolOf, type ComponentOption, type Source, type ToolId } from "./tools"
 
 type Open = { kind: "new"; tool: ToolId } | { kind: "edit"; sourceId: string; created?: Source };
 
-/** Alerts: connected tools as compact rows, then the "Connect a tool" picker or the one open form, then what arrived. */
-export function AlertsPage() {
+/** Settings › Connected tools: connected tools as compact rows, then the "Connect a tool" picker or the one open form,
+ * then what arrived. */
+export function AlertsBody() {
   const sources = useAppData<{ sources: Source[] }>("/api/app/intake/sources");
   const [receiptId,setReceiptId] = useState("");
   useEffect(() => { setReceiptId(new URL(window.location.href).searchParams.get("receipt") ?? ""); },[]);
@@ -42,7 +43,6 @@ export function AlertsPage() {
   const switchTo = async (next: Open | null) => { if (await mayLeave()) setOpen(next); };
 
   return <div className="page-stack alerts-page">
-    <section className="page-title-row"><div><h1>Alerts</h1><p>Alerts create private drafts by default. Saved rules can claim a component or publish prepared updates.</p></div></section>
     {connected.length > 0 && <ConnectedTools sources={connected} components={componentList} editing={editing?.id ?? null} onEdit={source => { if (editing?.id !== source.id) void switchTo({ kind: "edit", sourceId: source.id }); }} onRemoved={source => { if (editing?.id === source.id) setOpen(null); refresh(); }} />}
     {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} names={connected.map(source => source.name)} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={() => void switchTo(null)} />
       : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={() => void switchTo(null)} />

@@ -4,6 +4,7 @@ import { inflateRawSync } from 'node:zlib';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { openStatusJourney } from './helpers/status-journey.mjs';
+import { sorryReceiptFlow } from './helpers/sorry-receipt-flow.mjs';
 import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
 
 const fixture = (source, family) => readdirSync(`tests/fixtures/${source}/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/${source}/${family}/${name}`, 'utf8') }));
@@ -22,6 +23,7 @@ async function custodyHolds(runtime, value) {
 }
 
 test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 — Sorry move-in, Business approval, bounded catch-up, original archive, cutover and erasure remain one recoverable owner flow', { timeout: 600_000 }, async () => {
+  await sorryReceiptFlow();
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   const kid = 'synthetic-business', installationId = randomUUID(), issuer = 'https://business.example.test';
   const trust = { RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify({ [kid]: publicKey.export({ format: 'jwk' }) }), RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId };
@@ -64,6 +66,12 @@ test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 — Sorry move-in, B
     await preview(publicFiles); assert.deepEqual(await snapshot(), initial, 'public saved-response review writes nothing');
     assert.equal((await moveIn.preview({ ...source, files: publicFiles.filter(file => file.name !== 'sorry-notice-100.json') })).status, 400, 'incomplete source history is refused');
     const publicImport = await apply(publicFiles);
+    const verification = await owner(`/api/app/statuspage-import/jobs/${publicImport.job.id}/verification`);
+    assert.equal(verification.status, 200);
+    assert.equal(verification.body.unexplainedDifferences, 0);
+    assert.deepEqual(verification.body.manifests.rows.source, verification.body.manifests.rows.target);
+    assert.deepEqual(verification.body.manifests.provenance.source, verification.body.manifests.provenance.target);
+    assert.equal((await nativeRequest(`/api/app/statuspage-import/jobs/${publicImport.job.id}/verification`)).status, 401, 'receipt evidence requires the current owner session');
     const publicIncident = (await snapshot()).incidents[0];
     const sourceNotice = JSON.parse(publicFiles.find(file => file.name === 'sorry-notice-100.json').text).notice;
     assert.deepEqual(publicIncident.updates.map(row => Date.parse(row.publishedAt)).sort(), sourceNotice.updates.map(row => Date.parse(row.created_at)).sort());
@@ -137,7 +145,7 @@ test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 — Sorry move-in, B
     assert.deepEqual(await snapshot(), baseline, 'Business planning writes nothing native');
     const approval = { fingerprint: reviewed.body.fingerprint, approvalRecordId: randomUUID(), approvedAt: new Date().toISOString() };
     assert.equal((await door('apply', 'statuspage', { planId: reviewed.body.planId, reviewedFingerprint: 'unreviewed' }, approval)).status, 403);
-    await run('apply', reviewed.body, approval);
+    const firstBusiness = await run('apply', reviewed.body, approval);
     const imported = await snapshot(), original = imported.incidents.find(row => row.title === incidents[1].name);
     assert.equal(imported.incidents.length, baseline.incidents.length + incidents.length);
     assert.ok(imported.subscribers.every(row => row.state === 'deactivated'), 'Business never activates subscribers on import');
@@ -162,6 +170,9 @@ test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-006 — Sorry move-in, B
     over.find(file => file.name === 'incidents.json').text = JSON.stringify(overRows);
     assert.equal((await plan(over, standing)).status, 409, 'larger changes need a new proposal');
     assert.equal((await owner(`/api/app/incidents/${original.id}`, { reason: 'Owner edit after import' }, 'DELETE')).status, 200);
+    const editedEvidence = await owner(`/api/app/statuspage-import/jobs/${firstBusiness.job.id}/verification`);
+    assert.equal(editedEvidence.status, 200);
+    assert.ok(editedEvidence.body.unexplainedDifferences > 0, 'receipt evidence detects a native record removed through its real owner door');
     assert.equal((await plan(changedFiles, standing)).status, 409, 'standing approval cannot replace an owner edit');
     await run('undo', reviewed.body);
     const token = grant('uploads', 'statuspage');

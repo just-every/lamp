@@ -231,6 +231,22 @@ async function api(path, method = 'GET', body) {
 const saved = () => page.locator('.autosave-status.is-saved').waitFor();
 const readIncident = async id => (await api(`/api/app/incidents/${id}`)).incident;
 
+const wordingFields = locator => locator.locator('dl > div').evaluateAll(rows => rows.map(row => ({
+  label: row.querySelector('dt').textContent,
+  value: row.querySelector('dd').textContent,
+})));
+
+async function previewScreens(screen, name) {
+  if (!process.env.LAMP_SCREENSHOTS) return;
+  await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+  try {
+    for (const width of [1440, 390]) {
+      await screen.setViewportSize({ width, height: 1000 });
+      await screen.screenshot({ path: join(process.env.LAMP_SCREENSHOTS, `${width}-${name}.png`), fullPage: true });
+    }
+  } finally { await screen.setViewportSize({ width: 1440, height: 1000 }); }
+}
+
 test('TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit', { timeout: 300_000 }, async () => {
   const {actors}=await (await import('./helpers/operator-roles-flow.mjs')).operatorRolesFlow({appFetch,appUrl,persistTo:statePath,configPath});
   await (await import('./helpers/operator-roles-browser-flow.mjs')).operatorRolesBrowserFlow({page,appUrl,appFetch,actor:actors.viewer});
@@ -337,9 +353,9 @@ async function assertAutosaveDuringRefresh({ page, api, openIncident, assertPriv
     await route.fulfill({ response });
   });
   try {
-    await composer.privateActions();
-    await page.getByLabel("Internal note").fill(note);
-    await page.getByRole("button", { name: "Save internal note", exact: true }).click();
+    await composer.row("Notes");
+    await page.getByLabel("Add a note", { exact: true }).fill(note);
+    await page.getByRole("button", { name: "Save note", exact: true }).click();
     await entered;
     await page.getByText("Internal note saved.", { exact: true }).waitFor();
     await field.fill(audience);
@@ -481,13 +497,21 @@ async function assertQueuedAutosaveDeadline({ page, api, openIncident, assertPri
 }
 // One operator day: configure, draft, recover a failed save, resolve a
 // concurrent edit, schedule a publication, communicate recovery, and report.
-test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async t => {
+test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async t => {
   await verifyCompiledEdits();
   await page.goto(`${appUrl}/app`); await operatorHydrated(page);
   await page.getByRole('region', { name: 'Your public page' }).waitFor();
   const { live } = await api('/api/app/overview/live');
   assert.equal(live.sender.state, 'local', 'local mail never claims provider verification');
-  await page.goto(`${appUrl}/app/settings#writing`); await operatorHydrated(page);
+  // Settings takes the rail over: its menu replaces the daily one, and a destination opens its pane.
+  const rail = page.getByRole('complementary', { name: 'Operator navigation', exact: true });
+  await rail.getByRole('navigation', { name: 'Workspace sections', exact: true }).getByRole('link', { name: 'Settings', exact: true }).click();
+  const settingsMenu = rail.getByRole('navigation', { name: 'Settings sections', exact: true });
+  await settingsMenu.getByRole('link', { name: 'Writing', exact: true }).click();
+  await page.getByRole('heading', { level: 1, name: 'Writing', exact: true }).waitFor();
+  assert.equal(new URL(page.url()).hash, '#writing');
+  assert.equal(await settingsMenu.getByRole('link', { name: 'Writing', exact: true }).getAttribute('aria-current'), 'page');
+  assert.equal(await rail.getByRole('navigation', { name: 'Workspace sections', exact: true }).count(), 0, 'the Settings menu replaces the daily menu');
   const tone = 'Lead with customer impact and the next update commitment.';
   await page.getByRole('textbox', { name: 'Tone instructions', exact: true }).fill(tone);
   await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
@@ -502,9 +526,23 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
   await page.getByLabel('Sender display name', { exact: true }).fill('Journey status');
   await page.getByLabel('Reply-to address', { exact: true }).fill('support@journey.example');
   await page.getByLabel('Subject prefix', { exact: true }).fill('[Journey status]');
+  const emailHeader = 'A customer service update from the checkout response team.';
+  const emailFooter = 'Keep this update for the next checkout recovery briefing.';
+  await page.getByRole('textbox', { name: /^Email header/ }).fill(emailHeader);
+  await page.getByRole('textbox', { name: /^Email footer/ }).fill(emailFooter);
   await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
   await page.reload(); await operatorHydrated(page);
   assert.equal(await page.getByLabel('Reply-to address', { exact: true }).inputValue(), 'support@journey.example');
+  await settingsMenu.getByRole('link', { name: 'Overview', exact: true }).click();
+  await page.waitForURL(url => url.pathname === '/app');
+  await rail.getByRole('navigation', { name: 'Workspace sections', exact: true }).waitFor();
+  // The addresses Settings and Subscribers replaced still land where their content went.
+  for (const [old, landing, content] of [['/app/page', '/app/settings#page', 'What Lamp checked'], ['/app/deliveries', '/app/subscribers?view=log', 'Delivery records'], ['/app/alerts', '/app/settings#tools', 'Connect a tool']]) {
+    await page.goto(`${appUrl}${old}`); await operatorHydrated(page);
+    await page.getByRole('region', { name: content, exact: true }).waitFor();
+    const landed = new URL(page.url());
+    assert.equal(`${landed.pathname}${landed.search}${landed.hash}`, landing, `${old} lands on ${landing}`);
+  }
 
 
   await page.goto(`${appUrl}/app/components`); await operatorHydrated(page);
@@ -524,9 +562,9 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
   await form.componentState(component.name, 'Major outage');
   await form.audience.fill('Customers checking out in the US.');
   await form.nextUpdate.fill('2027-09-08T14:00');
-  await form.moreOptions();
+  await form.option('Details');
   await page.getByLabel('Details', { exact: true }).fill('Follow https://support.example.test/checkout for recovery advice.');
-  await page.getByRole('button', { name: 'Save as private draft', exact: true }).click();
+  await form.option('Save as private draft');
   await page.waitForURL(url => /^\/app\/incidents\/[0-9A-Z]{26}$/.test(url.pathname));
   const id = new URL(page.url()).pathname.split('/').at(-1);
   await saved();
@@ -566,24 +604,74 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
     assert.equal(await incidentComposer(stale).publish.isEnabled(), false);
   } finally { await stale.close(); }
 
-  await composer.moreOptions();
-  await page.getByRole('radio', { name: 'Schedule', exact: true }).check();
+  // Schedule… from the + closes the menu and opens its panel; Done closes the panel and the time stays chosen.
+  await composer.option('Schedule…');
   await page.getByLabel('Scheduled publication date and time').fill('2027-09-08T13:30');
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  assert.equal(await page.getByRole('menu').count(), 0, 'choosing an entry closes the menu');
+  assert.equal(await page.getByLabel('Scheduled publication date and time').inputValue(), '2027-09-08T13:30', 'a closed panel keeps its time');
   await page.getByRole('button', { name: 'Schedule update', exact: true }).click();
   await page.getByText('Update scheduled. It stays private until then.', { exact: true }).waitFor();
   await page.reload(); await operatorHydrated(page); await saved();
-  await composer.moreOptions();
+  await composer.option('Schedule…');
   assert.equal(await page.getByLabel('Scheduled publication date and time').inputValue(), '2027-09-08T13:30');
   assert.ok((await readIncident(id)).draft.scheduledPublishAt);
   await composer.impact.fill('Checkout retries can succeed while we restore capacity.'); await saved();
   assert.equal((await readIncident(id)).draft.scheduledPublishAt, null, 'editing revokes a prior schedule');
   await page.getByRole('radio', { name: 'Now', exact: true }).check();
+  await composer.setStatus('Identified');
+  const submitted = {
+    lifecycle: 'Identified',
+    affectedAudience: 'US customers paying by card.',
+    customerImpact: 'Checkout retries can succeed while we restore capacity.',
+    whatStillWorks: 'Existing orders and saved receipts remain available.',
+    details: 'Follow https://support.example.test/checkout for recovery advice.',
+    nextUpdateAt: '2027-09-08T21:00:00.000Z',
+  };
+  await composer.option('What still works');
+  await composer.stillWorks.fill(submitted.whatStillWorks);
+  await saved();
+  const settings = (await api('/api/app/page-settings')).settings;
+  assert.equal(settings.timezone, 'America/Los_Angeles');
+  assert.equal(settings.pageName, 'Atlas Cloud Status');
+  const staged = (await readIncident(id)).draft;
+  for (const [key, value] of Object.entries(submitted)) assert.equal(staged[key], value, `saved ${key}`);
+  const heading = `${incident.reference}: Checkout requests are delayed`;
+  const expectedFields = [
+    { label: 'Who is affected', value: submitted.affectedAudience },
+    { label: 'Customer impact', value: submitted.customerImpact },
+    { label: 'What still works', value: submitted.whatStillWorks },
+    { label: 'Next update by', value: 'Sep 8, 2027, 14:00 UTC-07:00' },
+    { label: 'Additional details', value: submitted.details },
+    { label: 'Component state', value: 'Journey checkout API: Operational → Major outage' },
+  ];
+  const panel = page.locator('.preview-panel');
+  await page.getByRole('button', { name: 'Page', exact: true }).click();
+  await panel.getByText(submitted.whatStillWorks, { exact: true }).waitFor();
+  assert.equal(await panel.locator('.preview-type').textContent(), 'Public page');
+  assert.equal(await panel.locator('h3').textContent(), heading);
+  assert.equal(await panel.locator('.state-pill').textContent(), submitted.lifecycle);
+  const pagePreview = await wordingFields(panel);
+  assert.deepEqual(pagePreview, expectedFields);
+  assert.equal((await readIncident(id)).updates.length, 0, 'preview leaves the draft private');
+  assert.equal((await (await fetch(`${pageUrl}/`)).text()).includes(submitted.customerImpact), false);
+  await previewScreens(page, 'page-preview');
   await page.getByRole('button', { name: 'Email', exact: true }).click();
   await page.waitForFunction(({ impact, replyTo }) => {
     const panel = document.querySelector('.preview-panel');
     return panel?.textContent.includes(impact) && panel.textContent.includes(replyTo);
   }, { impact: 'Checkout retries can succeed while we restore capacity.', replyTo: 'support@journey.example' });
   assert.ok((await page.locator('.preview-panel h3').textContent()).startsWith('[Journey status]'));
+  assert.equal(await panel.locator('.preview-type').textContent(), 'Notification email');
+  assert.equal(await panel.locator('h3').textContent(), `[Journey status] Atlas Cloud Status: [${incident.reference}] Checkout requests are delayed`);
+  const emailBody = ['Atlas Cloud Status', emailHeader, heading, 'Status: Identified',
+    ...expectedFields.map(field => `${field.label}: ${field.value}`), 'Incident impact: Critical', emailFooter];
+  assert.deepEqual(await wordingFields(panel), [
+    { label: 'From', value: `"Journey status" <${settings.mailFromAddress}>` },
+    { label: 'Reply-To', value: settings.emailBranding.replyTo },
+    ...emailBody.map(value => ({ label: 'Message', value })),
+  ]);
+  await previewScreens(page, 'email-preview');
   await page.getByRole('button', { name: 'Suggest update', exact: true }).click();
   await page.locator('.ai-suggestion [role=status]').filter({ hasText: /503|intentionally unavailable/i }).waitFor();
   assert.equal(await composer.publish.isEnabled(), true, 'a failed suggestion leaves ordinary publication usable');
@@ -593,12 +681,23 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
   const first = incident.updates[0];
   assert.equal(first.customerImpact, 'Checkout retries can succeed while we restore capacity.');
   await waitForPublicIncident(incident.reference, first.customerImpact);
+  for (const [key, value] of Object.entries(submitted)) assert.equal(first[key], value, `published ${key}`);
+  const publicPage = await browserContext.newPage();
+  try {
+    await publicPage.goto(`${pageUrl}/incidents/${incident.reference}`);
+    assert.equal(await publicPage.locator('article.incident h1').textContent(), 'Checkout requests are delayed');
+    const update = publicPage.locator('article.update').filter({ hasText: submitted.customerImpact });
+    assert.equal(await update.locator('.update-head > strong').textContent(), submitted.lifecycle);
+    assert.deepEqual(await wordingFields(update), pagePreview, 'publication retains the previewed fields');
+    assert.equal(await update.locator('dl time').getAttribute('datetime'), submitted.nextUpdateAt);
+    await previewScreens(publicPage, 'published-preview');
+  } finally { await publicPage.close(); }
   assert.equal(await composer.impact.inputValue(), '', 'the next update begins with a fresh draft');
 
-  await composer.privateActions();
+  await composer.row('Notes');
   const note = 'The database team is privately investigating a connection pool.';
-  await page.getByLabel('Internal note', { exact: true }).fill(note);
-  await page.getByRole('button', { name: 'Save internal note', exact: true }).click();
+  await page.getByLabel('Add a note', { exact: true }).fill(note);
+  await page.getByRole('button', { name: 'Save note', exact: true }).click();
   await page.getByText('Internal note saved.', { exact: true }).waitFor();
   assert.ok((await readIncident(id)).internalNotes.some(row => row.body === note));
   assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes(note), false);
@@ -606,7 +705,7 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
   await composer.setStatus('Resolved');
   await composer.audience.fill('US customers paying by card.');
   await composer.impact.fill('Checkout authorizations are working normally.');
-  await composer.moreOptions();
+  await composer.option('Details');
   await composer.details.fill('Follow https://support.example.test/checkout for any remaining questions.');
   await saved();
   assert.equal(await composer.nextUpdate.count(), 0, 'resolution needs no further update promise');
@@ -621,11 +720,12 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDA
   // The same operator finishes the private report and publishes it deliberately.
   await page.goto(`${appUrl}/app/incidents/${id}`); await operatorHydrated(page);
   const report = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Post-incident report', exact: true }) });
+  await composer.row('Post-incident report');
   await page.getByRole('button', { name: 'Draft report', exact: true }).click();
   for (const [name, value] of Object.entries({ Summary: 'Checkout delays have been resolved.', Timeline: 'Requests failed before the database pool was restored.', Cause: 'The checkout connection pool exhausted its capacity.', Remediation: 'We restored capacity and added pool saturation alerts.' })) await report.getByLabel(name, { exact: true }).fill(value);
   const saving = page.waitForResponse(response => response.url().endsWith(`/incidents/${id}/report`) && response.request().method() === 'PUT');
   await report.getByRole('button', { name: 'Save report', exact: true }).click(); assert.equal((await saving).status(), 200);
-  await page.reload(); await operatorHydrated(page);
+  await page.reload(); await operatorHydrated(page); await composer.row('Post-incident report');
   assert.equal(await report.getByRole('textbox', { name: 'Cause', exact: true }).inputValue(), 'The checkout connection pool exhausted its capacity.');
   assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes('Checkout delays have been resolved.'), false, 'a saved report stays private');
   const publishing = page.waitForResponse(response => response.url().endsWith(`/incidents/${id}/report/publish`) && response.request().method() === 'POST');

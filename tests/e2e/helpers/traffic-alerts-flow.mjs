@@ -212,8 +212,10 @@ export async function trafficAlertsFlow(t) {
       await expect(field).toHaveAttribute('aria-invalid', 'true');
       await expect(page.getByRole('region', { name: 'Traffic alerts', exact: true }).getByRole('alert')).toBeVisible();
       assert.equal((await api('/api/app/traffic-alerts')).body.settings.multiple, 3, 'invalid UI input leaves persisted settings unchanged');
-      await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Page', exact: true }).click();
-      await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Notifications', exact: true }).click();
+      for (const name of ['Page', 'Notifications']) {
+        if (width === 390) await page.getByRole('button', { name: /^Settings:/ }).click();
+        await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name, exact: true }).click();
+      }
       await expect(field).toHaveValue('1');
       const settingsUrl = `${origin}/api/app/traffic-alerts`;
       const writes = [], acknowledgements = [];

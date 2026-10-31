@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "type": "runeditrun.importer-verification-receipt",
+  "keyId": "lamp-test-20261030",
+  "algorithm": "Ed25519",
+  "payload": {
+    "incumbent": "Sorry",
+    "product": "Lamp",
+    "synthetic": false,
+    "source": {
+      "classification": "authorized-real-export",
+      "origin": "https://status.chargedesk.com",
+      "exportedAt": "2026-10-30T02:24:16.948Z",
+      "format": "sorry-public-v1-saved-responses",
+      "version": "1",
+      "sha256": "5fa468f3b500e690b3213c1d3ed1fbbe149c9f8222e4a94088341803e5e86a50",
+      "size": 135579
+    },
+    "candidate": {
+      "repository": "https://github.com/just-every/run-lamp",
+      "revision": "c2e267833ef8febd13bfec9c01c2dd70d12a1334"
+    },
+    "adapter": {
+      "repository": "https://github.com/just-every/run-lamp",
+      "revision": "c2e267833ef8febd13bfec9c01c2dd70d12a1334"
+    },
+    "mapping": {
+      "version": "1",
+      "policy": "Lamp Move in mapping v1: Sorry groups and components retain order and source identity; notice messages and publication times map to native incident or maintenance history. Source lifecycle and field transformations are named by the reviewed accounting report. Public captures have no subscribers. Every mapped source entity is one atomic native target with retained source/artifact provenance; import sends no notifications.",
+      "policySha256": "1e96bfa73c60ad8ed2b5afad3e5184cd979094c961ff7ad79165b545bef64d04"
+    },
+    "command": "pnpm sorry:receipt --capture CAPTURE --key-file PRIVATE_FILE --out NEW_OUTPUT",
+    "runs": {
+      "dryRun": {
+        "input": 49,
+        "unique": 49,
+        "duplicates": 0,
+        "mapped": 49,
+        "unmapped": 2,
+        "rejected": 0,
+        "effects": 49,
+        "byKind": {
+          "component": 16,
+          "group": 2,
+          "incident": 28,
+          "maintenance": 2,
+          "metadata": 1
+        }
+      },
+      "apply": {
+        "byKind": {
+          "component": 16,
+          "group": 2,
+          "incident": 28,
+          "maintenance": 2,
+          "metadata": 1
+        },
+        "duplicates": 0,
+        "effects": 49,
+        "input": 49,
+        "mapped": 49,
+        "rejected": 0,
+        "unique": 49,
+        "unmapped": 2
+      }
+    },
+    "reconciliation": {
+      "rows": {
+        "sourceCount": 49,
+        "targetCount": 49,
+        "sourceManifestSha256": "44f1c6ec1bfa3ba9473ffdff4014e6b7e4409b4ff5cf11feb0a5c3946f8899b6",
+        "targetManifestSha256": "44f1c6ec1bfa3ba9473ffdff4014e6b7e4409b4ff5cf11feb0a5c3946f8899b6"
+      },
+      "provenance": {
+        "sourceCount": 49,
+        "targetCount": 49,
+        "sourceManifestSha256": "b929e90b0d0e1061bbe347511a702b739359eacda7a3d0fcd0957a1170cfe131",
+        "targetManifestSha256": "b929e90b0d0e1061bbe347511a702b739359eacda7a3d0fcd0957a1170cfe131"
+      },
+      "attachments": {
+        "sourceCount": 0,
+        "targetCount": 0,
+        "sourceManifestSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "targetManifestSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "unmapped": {
+      "count": 2,
+      "itemManifestSha256": "f9a4e9d07396d9b037e33478f674c6e1c0858a4a21719df37726dccc61df49f4",
+      "items": [
+        {
+          "sourceIdentitySha256": "6bdf45f01fab955eaa4d5a1a9a0a7f837344c9934a3fb76cc5a86d5febd13ea1",
+          "sourceKind": "group",
+          "fields": [
+            "group"
+          ]
+        },
+        {
+          "sourceIdentitySha256": "707ea252d521df8cc357feeecc577ec8eaf296e1f38cac127dd8f214128774bc",
+          "sourceKind": "group",
+          "fields": [
+            "group"
+          ]
+        }
+      ]
+    },
+    "research": {
+      "state": "finished",
+      "sha256": "dba46bdb7dcc49c33dea482e52c0755cf74fdfd2f31cf14ae3456708ee672223"
+    },
+    "review": {
+      "reviewer": "lamp-test-receipt-command",
+      "reviewedAt": "2026-10-30T02:30:45.088Z",
+      "result": "passed"
+    }
+  },
+  "signature": "MPvS2Vn+FeNXhe7QrSQ9nP9AngE2afLPrWQT+yQHuMEx0fOUbS0Hj/IYf0NarUlPttTS2Gx5QL4Nu537sJevBA=="
+}

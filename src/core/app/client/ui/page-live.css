@@ -1,8 +1,8 @@
-/* The page as Lamp draws it (onboarding, Your page, Settings), the Overview's one-line live strip, and Your page. */
+/* The page as Lamp draws it (onboarding and Settings › Page), the Overview's one-line live strip, and the page's facts. */
 .page-preview { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); }
 .page-preview-frame { display: flex; align-items: center; gap: 6px; height: 28px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 0 12px; }
 .page-preview-frame > span { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--line-strong); }
-.page-preview-frame small { min-width: 0; margin-left: 8px; overflow: hidden; color: var(--ink-3); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.page-preview-frame small { min-width: 0; margin-left: 8px; overflow: hidden; color: var(--ink-3); font-size: var(--text-small); text-overflow: ellipsis; white-space: nowrap; }
 .page-preview-bar { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 14px 16px; font-size: 17px; letter-spacing: -.01em; }
 .page-preview-bar strong { min-width: 0; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .page-preview-bar img, .page-preview-letter { width: 28px; height: 28px; flex: none; border-radius: 6px; object-fit: contain; }
@@ -11,7 +11,7 @@
 .page-preview-state { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
 .page-preview-state > span:last-child { display: grid; }
 .page-preview-state strong { font-size: 15px; font-weight: 600; }
-.page-preview-state small { color: var(--ink-3); font-size: 12px; }
+.page-preview-state small { color: var(--ink-3); font-size: var(--text-small); }
 .page-preview-check { display: grid; width: 24px; height: 24px; flex: none; place-items: center; border-radius: 50%; background: var(--ok); color: var(--on-ink); }
 .page-preview .state-degraded-performance, .page-preview .state-partially-unavailable { --preview-state: var(--degraded); }
 .page-preview .state-major-outage { --preview-state: var(--down); }
@@ -20,16 +20,16 @@
 .page-preview-state strong { color: var(--preview-state, var(--ok)); }
 .page-preview-heading { margin: 12px 0 6px; font-size: 13px; font-weight: 600; }
 .page-preview ul { display: grid; margin: 0; padding: 0; list-style: none; }
-.page-preview li { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding: 6px 0; font-size: 12px; }
+.page-preview li { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding: 6px 0; font-size: var(--text-small); }
 .page-preview li > span { display: flex; min-width: 0; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.page-preview li small { flex: none; color: var(--preview-state, var(--ok)); font-size: 11px; }
-.page-preview li.page-preview-group { padding-top: 10px; color: var(--ink-2); font-size: 11px; font-weight: 600; }
+.page-preview li small { flex: none; color: var(--preview-state, var(--ok)); font-size: var(--text-small); }
+.page-preview li.page-preview-group { padding-top: 10px; color: var(--ink-2); font-size: var(--text-small); font-weight: 600; }
 .page-preview-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--ok); }
 .page-preview-dot.state-degraded-performance { background: var(--degraded); }
 .page-preview-dot.state-partially-unavailable { background: var(--degraded); }
 .page-preview-dot.state-major-outage { background: var(--down); }
 .page-preview-dot.state-under-maintenance { background: var(--maint); }
-.page-preview-empty { margin: 12px 0 0; color: var(--ink-3); font-size: 12px; }
+.page-preview-empty { margin: 12px 0 0; color: var(--ink-3); font-size: var(--text-small); }
 .page-preview-large .page-preview-bar { gap: 14px; padding: 22px 28px; font-size: 24px; }
 .page-preview-large .page-preview-bar img, .page-preview-large .page-preview-letter { width: 40px; height: 40px; border-radius: 9px; }
 .page-preview-large .page-preview-body { padding: 24px 28px 28px; }
@@ -43,7 +43,7 @@
 /* Overview: setup reduced to one line, amber only when a check fails. */
 .live-strip { border: 1px solid color-mix(in srgb, var(--ok) 22%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--ok) 7%, var(--card)); padding: 12px 18px; color: var(--ink-2); font-size: 14px; }
 .live-strip p { margin: 0; line-height: 1.7; }
-.live-strip.is-failing { border-color: var(--line); background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); }
+.live-strip.is-failing { border-color: var(--amber); background: var(--amber-wash); }
 .live-dot { display: inline-block; width: 8px; height: 8px; flex: none; margin-right: 10px; border-radius: 50%; background: var(--ok); }
 .live-dot.is-failing, .is-failing > .live-dot { background: var(--degraded); }
 .live-dot.is-pending { background: var(--quiet); }
@@ -53,8 +53,7 @@
 .live-address:hover, .live-link:hover { text-decoration-color: var(--ink); }
 .live-strip .live-problem { margin-top: 6px; color: var(--amber-ink); font-weight: 500; }
 
-/* Your page: Lamp's drawing of the page, what Lamp checked, and ways to try it. */
-.your-page-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Settings › Page: Lamp's drawing of the page, what Lamp checked, and ways to try it. */
 .your-page-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); align-items: start; gap: 20px; }
 .your-page-preview { background: var(--stage); padding: 28px; }
 .your-page-side { display: grid; gap: 20px; }

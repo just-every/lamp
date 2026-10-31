@@ -61,7 +61,7 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     const component = created.body.component;
     await page.goto(`${origin}/app/incidents/new`); await operatorHydrated(page);
     const newForm = newIncidentForm(page);
-    await newForm.moreOptions();
+    await newForm.option('Notify…');
     const social = page.getByRole('checkbox', { name: 'Social accounts', exact: true });
     await expect(social).toBeChecked();
     await social.uncheck();
@@ -80,7 +80,7 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     await page.getByRole('button', { name: 'Publish update', exact: true }).waitFor();
     const incidentUrl = page.url();
     const composer = incidentComposer(page);
-    await composer.moreOptions();
+    await composer.option('Notify…');
     await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).toBeChecked();
     const incidentId = new URL(incidentUrl).pathname.split('/').at(-1);
     const afterFirst = await api(`/api/app/incidents/${incidentId}`);
@@ -90,7 +90,7 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     panel = await settings();
     await panel.getByRole('checkbox', { name: 'Post by default', exact: true }).uncheck();
     await expect(panel.getByText('Social posting default saved.', { exact: true })).toBeVisible();
-    await page.goto(incidentUrl); await operatorHydrated(page); await composer.moreOptions();
+    await page.goto(incidentUrl); await operatorHydrated(page); await composer.option('Notify…');
     const nextSocial = page.getByRole('checkbox', { name: 'Social accounts', exact: true });
     await expect(nextSocial).not.toBeChecked();
     // A manual opt-in belongs to this update and cannot carry over to the next.
@@ -112,10 +112,10 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     await expect(panel.getByRole('listitem').filter({ hasText: accountName })).toBeVisible();
     await inspect('390px Settings social accounts');
     await page.goto(`${origin}/app/incidents/new`); await operatorHydrated(page);
-    await newIncidentForm(page).moreOptions();
+    await newIncidentForm(page).option('Notify…');
     await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
     await inspect('390px new incident social selector');
-    await page.goto(incidentUrl); await operatorHydrated(page); await composer.moreOptions();
+    await page.goto(incidentUrl); await operatorHydrated(page); await composer.option('Notify…');
     await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
     await inspect('390px composer social selector');
     await maintenanceChoice(390);

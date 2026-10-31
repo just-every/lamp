@@ -306,11 +306,12 @@ baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, operator,
     ["/app/components", "Operator components"],
     ["/app/maintenance", "Operator maintenance", { noHorizontalOverflow: true, viewport: { width: 1440, height: 900 } }],
     ["/app/subscribers", "Operator subscribers", { noHorizontalOverflow: true, viewport: { width: 1440, height: 900 } }],
-    ["/app/deliveries", "Operator deliveries"],
-    ["/app/settings", "Operator settings", { footerCreditToggle: true }],
-    ["/app/alerts", "Operator alerts"],
+    ["/app/subscribers?view=log", "Operator delivery log"],
+    ["/app/settings", "Operator settings"],
+    ["/app/settings#look", "Operator settings look", { footerCreditToggle: true, ready: 'main.operator-main h1:text-is("Look")' }],
+    ["/app/settings#tools", "Operator connected tools", { ready: 'main.operator-main h1:text-is("Connected tools")' }],
   ]) {
-    await auditRoute(appUrl, path, surface, "main.operator-main h1", options);
+    await auditRoute(appUrl, path, surface, options?.ready ?? "main.operator-main h1", options);
   }
 
   await scriptFreeSubscriptionJourney();
