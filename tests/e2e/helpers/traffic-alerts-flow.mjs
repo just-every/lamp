@@ -195,7 +195,7 @@ export async function trafficAlertsFlow(t) {
     const page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     if (process.env.LAMP_BROWSER_EVIDENCE) await mkdir(process.env.LAMP_BROWSER_EVIDENCE, { recursive: true });
-    for (const width of [1440]) {
+    for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.goto(`${origin}/app/incidents/${incident.id}`); await operatorHydrated(page);
       await expect(page.getByRole('heading', { name: 'Recovery check', exact: true })).toBeVisible();
@@ -212,13 +212,53 @@ export async function trafficAlertsFlow(t) {
       await expect(field).toHaveAttribute('aria-invalid', 'true');
       await expect(page.getByRole('region', { name: 'Traffic alerts', exact: true }).getByRole('alert')).toBeVisible();
       assert.equal((await api('/api/app/traffic-alerts')).body.settings.multiple, 3, 'invalid UI input leaves persisted settings unchanged');
-      await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Page', exact: true }).click();
-      await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Notifications', exact: true }).click();
+      for (const name of ['Page', 'Notifications']) {
+        if (width === 390) await page.getByRole('button', { name: /^Settings:/ }).click();
+        await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name, exact: true }).click();
+      }
       await expect(field).toHaveValue('1');
-      const acknowledged = page.waitForResponse(response => response.url() === `${origin}/api/app/traffic-alerts` && response.request().method() === 'PUT');
-      await field.fill('4'); await field.blur();
-      assert.equal((await acknowledged).status(), 200);
-      await page.reload(); await operatorHydrated(page); await expect(field).toHaveValue('4');
+      const settingsUrl = `${origin}/api/app/traffic-alerts`;
+      const writes = [], acknowledgements = [];
+      let releaseFirst;
+      const held = new Promise(resolve => { releaseFirst = resolve; });
+      const holdFirst = async route => {
+        if (route.request().method() !== 'PUT') return route.continue();
+        writes.push(route.request().postDataJSON().multiple);
+        if (writes.length === 1) await held;
+        await route.continue();
+      };
+      const recordAcknowledgement = response => {
+        if (response.url() === settingsUrl && response.request().method() === 'PUT') {
+          acknowledgements.push({ multiple: response.request().postDataJSON().multiple, status: response.status() });
+        }
+      };
+      await page.route(settingsUrl, holdFirst);
+      page.on('response', recordAcknowledgement);
+      try {
+        await field.press('ControlOrMeta+A'); await field.press('4'); await field.press('Tab');
+        await expect.poll(() => writes).toEqual([4]);
+        await field.press('ControlOrMeta+A'); await field.press('6'); await field.press('Tab');
+        // The later blur and its debounce both run while the first native PUT
+        // is held. Neither may send the later choice before acknowledgement.
+        await page.waitForTimeout(750);
+        assert.deepEqual(writes, [4], `${width}px the later PUT waits for the first acknowledgement`);
+        assert.deepEqual(acknowledgements, [], 'the first native request is still unacknowledged');
+        assert.equal((await api('/api/app/traffic-alerts')).body.settings.multiple, 3, 'a held edit has not changed the native saved setting');
+        await expect(field).toHaveValue('6');
+        const finalAcknowledgement = page.waitForResponse(response => response.url() === settingsUrl && response.request().method() === 'PUT' && response.request().postDataJSON().multiple === 6);
+        releaseFirst();
+        assert.equal((await finalAcknowledgement).status(), 200);
+        assert.deepEqual(writes, [4, 6], 'the two valid choices are submitted in edit order');
+        assert.deepEqual(acknowledgements, [{ multiple: 4, status: 200 }, { multiple: 6, status: 200 }]);
+        await expect.poll(async () => (await api('/api/app/traffic-alerts')).body.settings.multiple).toBe(6);
+        await expect(field).toHaveValue('6');
+      } finally {
+        releaseFirst();
+        await page.unrouteAll({ behavior: 'wait' });
+        page.off('response', recordAcknowledgement);
+      }
+      await page.reload(); await operatorHydrated(page); await expect(field).toHaveValue('6');
+      assert.equal((await api('/api/app/traffic-alerts')).body.settings.multiple, 6, 'reload and independent native readback retain the exact final choice');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px traffic Settings fits`);
       assert.deepEqual((await new AxeBuilder({ page }).analyze()).violations.filter(row => ['serious', 'critical'].includes(row.impact)), []);
       assert.deepEqual(errors, [], `${width}px traffic Settings has no hydration errors`);
@@ -226,7 +266,7 @@ export async function trafficAlertsFlow(t) {
       const reset = page.waitForResponse(response => response.url() === `${origin}/api/app/traffic-alerts` && response.request().method() === 'PUT');
       await field.fill('3'); await field.blur(); assert.equal((await reset).status(), 200);
       await expect.poll(async () => (await api('/api/app/traffic-alerts')).body.settings.multiple).toBe(3);
-      t?.diagnostic(`HIST-006 ${width}px Settings owner multiple autosaves, survives reload, fits and passes axe/hydration`);
+      t?.diagnostic(`HIST-009 ${width}px Settings holds the first PUT, serializes the later choice after acknowledgement, reconciles 6 through native readback and reload, retains invalid edits, fits and passes axe and hydration`);
     }
     await context.close();
     const owner = (await api('/api/app/session')).body.operator;
