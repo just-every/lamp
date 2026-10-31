@@ -28,7 +28,12 @@ function brisbaneTime(instant) {
 }
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
-  const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' } });
+  const emailRequests = [];
+  const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' }, providerEdge: async request => {
+    if (request.url === 'https://api.resend.com/emails') emailRequests.push({
+      deliveryKey: request.headers.get('Idempotency-Key'), payload: await request.clone().json(),
+    });
+  } });
   const reviewer = 'synthetic-lamp-reviewer@example.test';
   const owner = () => j.signIn();
   const review = async id => {
@@ -53,14 +58,18 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const endpoint = `/api/app/incidents/${incident.id}`;
     assert.equal(incident.lifecycle, 'Investigating');
     assert.ok(incident.reference);
-    await j.json(`${endpoint}/internal-notes`, 'POST', { body: 'PRIVATE investigation note' }, 201);
+    const internalNote = 'PRIVATE investigation note';
+    await j.json(`${endpoint}/internal-notes`, 'POST', { body: internalNote }, 201);
+    const savedNotes = (await j.read(incident.id)).internalNotes;
+    assert.equal(savedNotes.length, 1, 'the signed-in operator independently reads the saved internal note');
+    assert.equal(savedNotes[0].body, internalNote);
     await j.publish(incident.id, {}, 400);
     await j.json(`${endpoint}/templates/${template.id}/apply`, 'POST', {});
     const privateDraft = (await j.read(incident.id)).draft;
     assert.equal(privateDraft.customerImpact, wording.customerImpact);
     for (const path of ['/', '/history', '/feed.atom', '/api/public/status']) {
       const body = await j.publicText(path);
-      assert.ok(!body.includes(incident.title) && !body.includes('PRIVATE investigation note'));
+      assert.ok(!body.includes(incident.title) && !body.includes(savedNotes[0].body));
     }
     await j.json(`${endpoint}/draft/review`, 'POST', {}, 409);
     await j.publish(incident.id, {}, 409);
@@ -76,7 +85,20 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     await j.tick(Date.now());
     const reached = await eventually(() => j.json(`${endpoint}/reach?updateId=${first.id}`), body => body.updates[0].channels.some(row => row.channel === 'email' && row.providerAccepted === 1), 'the frozen publication reaches its committed subscriber');
     assert.equal(reached.updates[0].channels.find(row => row.channel === 'email').committed, 1);
-    const customerMail = j.messages.find(mail => mail.to.includes(subscriber) && !mail.text.includes('/confirm-subscription/'));
+    const deliveries = (await j.json(`/api/app/deliveries?incidentUpdateId=${first.id}&channel=email`)).deliveries;
+    assert.equal(deliveries.length, 1, 'the committed update has one email delivery');
+    assert.equal(deliveries[0].incidentUpdateId, first.id);
+    assert.equal(deliveries[0].destination, subscriber);
+    const captured = emailRequests.filter(request => request.deliveryKey === `notification/${deliveries[0].id}`);
+    assert.equal(captured.length, 1, 'the provider receives the exact committed delivery once');
+    const customerMail = captured[0].payload;
+    assert.deepEqual(customerMail.to, [subscriber]);
+    assert.ok(customerMail.text.includes(incident.reference), 'the text identifies the published incident');
+    assert.equal(typeof customerMail.html, 'string');
+    assert.ok(visibleText(customerMail.html).includes(wording.customerImpact), 'the populated HTML contains the customer update');
+    for (const [part, payload] of [['text', customerMail.text], ['HTML', customerMail.html], ['envelope', JSON.stringify(customerMail)]]) {
+      assert.ok(!payload.includes(savedNotes[0].body), `the complete customer email ${part} excludes the saved internal note`);
+    }
     for (const value of Object.values(wording).filter(value => value !== 'Identified')) assert.ok(customerMail.text.includes(value));
     assert.equal(customerMail.subject, preview.preview.email.subject, 'notification subject matches the preview');
     assert.equal(customerMail.text.split('\n\nManage this subscription:')[0], preview.preview.email.plainText, 'the complete customer message matches the preview before personal subscription links');
@@ -85,7 +107,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
       const body = await j.publicText(path);
       assert.ok(body.includes(incident.title), path);
       if (path !== '/feed.atom') assert.ok(visibleText(body).includes(wording.customerImpact), path);
-      assert.ok(!body.includes('PRIVATE investigation note') && !body.includes(hidden.name), path);
+      assert.ok(!body.includes(savedNotes[0].body) && !body.includes(hidden.name), path);
     }
     const firstBody = await j.publicText(`/incidents/${incident.reference}`);
     assertLinkedUpdateHtml(firstBody, 'public incident');
