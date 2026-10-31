@@ -36,7 +36,7 @@ export function ComponentsPage() {
     {error ? <FormError>{error}</FormError> : null}
     <ComponentGroups groups={data.groups} components={data.components} openId={open?.id ?? null} onOpen={(component) => setPanel({ kind: "component", id: component.id })} />
     {editAllOpen && <CatalogueDrawer onClose={() => setEditAllOpen(false)} onSaved={() => { setEditAllOpen(false); refresh(); }} />}
-    {panel?.kind === "create" && <ComponentDrawer key="create" component={null} groups={data.groups} defaultDisplayOrder={nextComponentOrder} onClose={() => setPanel(null)} onSaved={closeAndRefresh} />}
-    {open && <ComponentDrawer key={open.id} component={open} groups={data.groups} defaultDisplayOrder={nextComponentOrder} onClose={() => setPanel(null)} onSaved={closeAndRefresh} />}
+    {panel?.kind === "create" && <ComponentDrawer key="create" component={null} groups={data.groups} defaultDisplayOrder={nextComponentOrder} onClose={() => setPanel(null)} onSaved={closeAndRefresh} onRefresh={refresh} />}
+    {open && <ComponentDrawer key={open.id} component={open} groups={data.groups} defaultDisplayOrder={nextComponentOrder} onClose={() => setPanel(null)} onSaved={closeAndRefresh} onRefresh={refresh} />}
   </div>;
 }
