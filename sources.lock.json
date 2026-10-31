@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "89e9d5e7736df7eaf0e65412abebef382e8a08a4461f3c4d1168360904535237",
+      "sha256": "b5aedf127a6b5f4ae01f29b5b42a26e690a594e45c549296e977738be961fcfd",
       "executable": false
     },
     "DEMO.md": {
@@ -6784,7 +6784,7 @@
       "executable": false
     },
     "tests/e2e/helpers/component-notification-flow.mjs": {
-      "sha256": "2ecc7c71c692e3653b7731656112a9d70657856d9a60d3dd0bf510fcfb091e63",
+      "sha256": "8edf31a7fd61f3e93f7dacb565a0234fd7681f785a88cf89676e00567cdb5335",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-flow.mjs": {
@@ -6980,7 +6980,7 @@
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-flow.mjs": {
-      "sha256": "e89767072801a16dbf657972c7b82b34c02e32819c8c609034af2efd58f40801",
+      "sha256": "d57a9d00437f6ab8a18f791ba06e9258c918138e0cfdef0eeffe30589925dc94",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-maintenance.mjs": {
