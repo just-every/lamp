@@ -6,6 +6,7 @@ import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
 import { assertEmptyCalendar, validateMaintenanceCalendar } from './helpers/calendar-assertions.mjs';
 import { maintenanceReminderFlow } from './helpers/maintenance-reminder-flow.mjs';
+import { maintenanceAudienceFlow } from './helpers/maintenance-audience-flow.mjs';
 
 function descendants(node) {
   return (node.childNodes ?? []).flatMap(child => [child, ...descendants(child)]);
@@ -345,5 +346,7 @@ test('MAINT-001 MAINT-002 MAINT-003 MAINT-004 MAINT-005 MAINT-006 MAINT-007 MAIN
 });
 
 test('MAINT-005 — subscribers receive scheduling, the exact twenty-four-hour reminder, start and completion once', { timeout: 120_000 }, maintenanceReminderFlow);
+
+test('MAINT-006 — rescheduling and cancellation retain the notified audience and cancelled public history', { timeout: 120_000 }, maintenanceAudienceFlow);
 
 test('INCIDENT-012 — linked operators run a whole private incident draft, preview and explicit publication through signed Slack and Teams', chatDeskNativeFlow);
