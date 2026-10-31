@@ -64,7 +64,8 @@ export function assertLinkedFeed(xml, surface, update) {
   const entries = [...xml.matchAll(/<(entry|item)>([\s\S]*?)<\/\1>/g)].map(match => match[2]);
   const linked = entries.filter(entry => entry.includes(`:event:update-${update.id}</`));
   assert.equal(linked.length, 1, `${surface}: the exact published update has one feed entry`);
-  assert.ok(linked[0].includes(update.publishedAt), `${surface}: the entry retains its publication instant`);
+  const published = surface.endsWith('.rss') ? new Date(update.publishedAt).toUTCString() : update.publishedAt;
+  assert.ok(linked[0].includes(published), `${surface}: the entry retains its publication instant`);
   const contents = [...linked[0].matchAll(/<(?:content type="html"|summary type="html"|description)>([^<]*)<\/(?:content|summary|description)>/g)];
   assert.ok(contents.length, `${surface}: the identified entry has rendered content`);
   for (const content of contents) {
