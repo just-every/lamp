@@ -174,7 +174,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     assert.ok(afterUndo.undoneAt&&afterUndo.undoneByOperatorId);
     assert.equal(await undoButton.count(),0,"the ended change is no longer offered for Undo");
     await page.goto(`${origin}/app/incidents/${undoRun.incidentId}`);await operatorHydrated(page);
-    await page.getByRole("button",{name:"Private actions",exact:true}).click();
+    await page.getByRole("button",{name:"Notes",exact:true}).click();
     await page.getByLabel("Saved internal notes").getByText(/Automatic change undone/).waitFor();
     await audit("retained automatic change history");
     if(proof)await captureBoth("automatic-change-history",()=>page.screenshot.bind(page));
