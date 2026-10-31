@@ -3126,9 +3126,9 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3168,7 +3168,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `COMP-001` | States and their order | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational. |
 | `COMP-002` | Grouping and order | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded. |
 | `COMP-003` | Append-only state history | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present. |
-| `COMP-004` | State note | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty. |
+| `COMP-004` | State note | published | done | `tests/e2e/public-contract.test.mjs` — owner maintains a complete catalogue and customers read, refresh, embed and retain its public story: omitted-note creation returns HTTP 201 with an empty note, independently read back from the native catalogue; a populated note and the full 250-character plain-text note render beside the state; overlength creation and edit requests are refused without changing the catalogue; an omitted edit note is still refused. | |
 | `COMP-005` | Internal components | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Internal components are absent from every uptime figure; An internal severe claim leaves the public overall state unchanged. |
 | `COMP-006` | Component state is claimed, not set | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: In-progress maintenance contributes its chosen claim; No claims gives Operational; Incident resolution recomputes public state within ten seconds; Maintenance completion recomputes public state within ten seconds; Component attachment recomputes public state within ten seconds; Component detachment recomputes public state within ten seconds; Setting a standing claim recomputes public state within ten seconds; Clearing a standing claim recomputes public state within ten seconds. |
 | `COMP-007` | Deletion | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Component and uptime disappearance is observed on the public page within ten seconds; Published maintenance history retains the deleted name. |

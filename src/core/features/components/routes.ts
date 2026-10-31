@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
-import { componentGroupSchema, componentHistoryCorrectionSchema, componentSchema, componentStandingClaimSchema, componentUpdateSchema, componentGroupUpdateSchema } from "../../shared/schemas";
+import { componentGroupSchema, componentHistoryCorrectionSchema, componentCreateSchema, componentStandingClaimSchema, componentUpdateSchema, componentGroupUpdateSchema } from "../../shared/schemas";
 import { ulidSchema } from "../../shared/ids";
 import type { ComponentsService } from "./service";
 
@@ -33,7 +33,7 @@ export function registerComponentRoutes(app: Hono<AppEnv>, service: ComponentsSe
   });
 
   app.post("/api/app/components", async (context) => {
-    const parsed = componentSchema.safeParse(await context.req.json().catch(() => null));
+    const parsed = componentCreateSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid component.", issues: parsed.error.issues }, 400);
     const component = await service.create(parsed.data, context.get("operator").id);
     return context.json({ component }, 201);
