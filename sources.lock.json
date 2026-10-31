@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b55fff9df1bbc9d949dbf050deab159f6b45ba7e4161d70fb5654bd60418d1d8",
+      "sha256": "bd48a93261437ce83a24ff08d91de6713cacf7ae644c9d46797d04ee22221bbb",
       "executable": false
     },
     "DEMO.md": {
@@ -6936,7 +6936,7 @@
       "executable": false
     },
     "tests/e2e/helpers/preset-recovery-flow.mjs": {
-      "sha256": "e0127bec2092b6709f33d190c112a3d4f97b0f045435029ad531098fcaa4b342",
+      "sha256": "e4d7b54d78b55734758ef722c154fec1b091c276d59e6629165c48fd7e2ff7c8",
       "executable": false
     },
     "tests/e2e/helpers/public-capacity-journey.mjs": {
