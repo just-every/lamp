@@ -45,7 +45,7 @@ export function assertLinkedUpdateHtml(html, surface) {
   assert.ok(html.includes(`See ${anchor(LINKED_URL)}.`), `${surface}: the named URL is its own link text with the period outside`);
   assert.ok(html.includes(`at ${anchor(LINKED_URL)}, and the guide (${anchor(LINKED_URL)}) explains`), `${surface}: a comma and a closing parenthesis stay outside the link`);
   for (const internal of ["https://db-prod-3.internal/x", "https://10.0.0.5/x"]) assert.ok(html.includes(anchor(internal)), `${surface}: ${internal} is a bare HTTPS link`);
-  assert.ok(html.includes("&lt;a href=&quot;https://x.test&quot;&gt;x&lt;/a&gt;"), `${surface}: markup is escaped literal text`);
+  assert.ok(nodeText(parse(html)).includes('<a href="https://x.test">x</a>'), `${surface}: markup is escaped literal text`);
   for (const literal of LITERALS) assert.ok(html.includes(literal), `${surface}: ${literal} stays literal`);
   assert.doesNotMatch(html, /href="(?:https:\/\/x\.test|javascript:|http:\/\/example\.com|data:)/, `${surface}: no other scheme or markup becomes a link`);
   for (const [, href, text] of html.matchAll(/<a href="([^"]*)" rel="nofollow noopener ugc">([^<]*)<\/a>/g)) assert.equal(text, href, `${surface}: every update link shows its own URL`);

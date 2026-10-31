@@ -7016,7 +7016,11 @@
       "executable": false
     },
     "tests/e2e/helpers/update-link-evidence.mjs": {
-      "sha256": "269c8b4630e0d93ef4518cd32a2d585631b609b3c8a11c86689dae5f3e048307",
+      "sha256": "7659a6679cb39a48935943ac8731b072015f76d5038a90e7725a8d538e87b04e",
+      "executable": false
+    },
+    "tests/e2e/helpers/update-link-surfaces.mjs": {
+      "sha256": "373b4a7db2151f8f3b6c043d8618046d66d45991633084ae57409a388345a03e",
       "executable": false
     },
     "tests/e2e/helpers/uptime-pairing-flow.mjs": {
