@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { appApi, useAppData } from "../../app/client/ui/api";
+import { Button } from "../../app/client/ui/button";
 import { FormError } from "../../app/client/ui/states";
 import { INCIDENT_IMPACTS, impactLabel, type IncidentImpact } from "../../shared/incident-impact";
 import type { IncidentImpactView } from "./repository";
@@ -16,7 +17,8 @@ export function impactSummary(impact: IncidentImpactView | null, error: string |
   return impact.impactOverride === null ? `${impactLabel(impact.effectiveImpact)} · from components` : `${impactLabel(impact.impactOverride)} · set by an operator`;
 }
 
-/** The set impact: one select that saves as it changes, with its history inside. */
+/** The set impact: one select that saves as it changes, with its history inside. A refused save keeps the chosen value
+ * in the select with one line and Retry. */
 export function IncidentImpactChoice({ incidentId, impact, error, onSaved }: { incidentId: string; impact: IncidentImpactView | null; error: string | null; onSaved: () => void }) {
   const [choice, setChoice] = useState<IncidentImpact | "derived" | null>(null);
   const [saving, setSaving] = useState(false);
@@ -28,9 +30,9 @@ export function IncidentImpactChoice({ incidentId, impact, error, onSaved }: { i
     setChoice(next); setSaving(true); setSaveError(null); setSaved(false);
     try {
       await appApi(`/api/app/incidents/${incidentId}/impact`, { method: "PUT", body: JSON.stringify({ impactOverride: next === "derived" ? null : next }) });
-      setSaved(true); onSaved();
+      setSaved(true); setChoice(null); onSaved();
     } catch (cause) { setSaveError(cause instanceof Error ? cause.message : "Impact could not be saved."); }
-    finally { setChoice(null); setSaving(false); }
+    finally { setSaving(false); }
   };
   return <div className="incident-impact">
     <label className="field-label" htmlFor={`impact-${incidentId}`}>Set public impact</label>
@@ -39,5 +41,6 @@ export function IncidentImpactChoice({ incidentId, impact, error, onSaved }: { i
     <details><summary>Impact history ({impact.history.length})</summary>{impact.history.length ? <ol>{impact.history.map(change => <li key={change.id}>{change.operatorName}: {change.previousOverride === null ? "Components" : impactLabel(change.previousOverride)} → {change.impactOverride === null ? "Components" : impactLabel(change.impactOverride)} · <time dateTime={change.createdAt}>{new Date(change.createdAt).toLocaleString()}</time></li>)}</ol> : <p>No operator changes.</p>}</details>
     {saving ? <p role="status">Saving impact…</p> : saved ? <p role="status">Impact saved.</p> : null}
     {saveError || error ? <FormError>{saveError ?? error}</FormError> : null}
+    {saveError && !saving ? <Button type="button" variant="secondary" onClick={() => void save(selected)}>Retry</Button> : null}
   </div>;
 }

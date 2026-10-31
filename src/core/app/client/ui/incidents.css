@@ -3,7 +3,7 @@
 .incident-list-row { grid-template-columns: 72px minmax(0, 1fr) auto auto; }
 .incident-row-content { display: grid; gap: 2px; min-width: 0; }
 .incident-row-state { display: grid; justify-items: end; gap: 4px; }
-.incident-row-state small { font-size: 12px; }
+.incident-row-state small { font-size: var(--text-small); }
 
 /* Notes in the incident panel: each note a tinted row, then add one. */
 .note-list { display: grid; gap: 8px; }
