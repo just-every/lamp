@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAppData } from "../../../app/client/ui/api";
 import { mayLeave } from "../../../app/client/ui/leave-guard";
@@ -19,6 +19,13 @@ export function AlertsBody() {
   const [receiptId,setReceiptId] = useState("");
   useEffect(() => { setReceiptId(new URL(window.location.href).searchParams.get("receipt") ?? ""); },[]);
   const receipts = useAppData<{ receipts: Receipt[] }>(`/api/app/intake/receipts?limit=100${receiptId ? `&receipt=${encodeURIComponent(receiptId)}` : ""}`);
+  // A link from an incident's timeline lands on its receipt: the row is brought into view once, when it first shows.
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (!receiptId || jumped.current) return;
+    const row = document.getElementById(`receipt-${receiptId}`);
+    if (row) { jumped.current = true; row.scrollIntoView({ block: "center" }); }
+  }, [receiptId, receipts.data]);
   const components = useAppData<{ components: ComponentOption[] }>("/api/app/components");
   const [open, setOpen] = useState<Open | null>(null);
   const { refresh: refreshSources } = sources;
@@ -48,6 +55,6 @@ export function AlertsBody() {
       : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={() => void switchTo(null)} />
       : <ToolPicker onPick={tool => setOpen({ kind: "new", tool })} />}
     <p><a className="text-link" href="/app/settings#alerts">Manage alert rules in Settings</a></p>
-    {arrived.length > 0 && <ReceiptsCard receipts={arrived} />}
+    {arrived.length > 0 && <ReceiptsCard receipts={arrived} linked={receiptId} />}
   </div>;
 }

@@ -2,18 +2,21 @@ import { useEffect, useRef } from "react";
 import { createBrowserHistory, useBlocker, type RouterHistory } from "@tanstack/react-router";
 
 // A page holding unsaved work answers before the operator leaves it or signs out; false keeps them where they are.
-const guards = new Set<{ current: () => Promise<boolean> }>();
+const guards = new Set<{ current: (move: Move) => Promise<boolean> }>();
+
+/** What the operator is moving between: another page (or signing out), or another pane of the page they are on. */
+export type Move = "page" | "pane";
 
 /** Links and Back away from this page, signing out and closing what holds the work (`mayLeave`) wait for `leave`;
  * reloading or closing the tab warns while `unsaved()`. */
-export function useLeaveGuard(leave: () => Promise<boolean>, unsaved: () => boolean) {
+export function useLeaveGuard(leave: (move: Move) => Promise<boolean>, unsaved: () => boolean) {
   const latest = useRef(leave);
   latest.current = leave;
   useEffect(() => {
     guards.add(latest);
     return () => { guards.delete(latest); };
   }, []);
-  useBlocker({ shouldBlockFn: async ({ current, next }) => next.pathname !== current.pathname && !await leave(), enableBeforeUnload: unsaved });
+  useBlocker({ shouldBlockFn: async ({ current, next }) => next.pathname !== current.pathname && !await leave("page"), enableBeforeUnload: unsaved });
 }
 
 /** The browser history the router hears, told only when the page moves to another entry. A Back held by the guard above
@@ -33,8 +36,8 @@ export function leaveGuardHistory(): RouterHistory {
   return history;
 }
 
-export async function mayLeave() {
-  for (const guard of guards) if (!await guard.current()) return false;
+export async function mayLeave(move: Move = "page") {
+  for (const guard of guards) if (!await guard.current(move)) return false;
   return true;
 }
 

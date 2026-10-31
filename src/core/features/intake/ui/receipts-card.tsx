@@ -15,13 +15,13 @@ function receiptClass(state: Receipt["state"]) {
 }
 
 /** What arrived through the connected tools, newest first. The page shows it only once something has arrived. */
-export function ReceiptsCard({ receipts }: { receipts: Receipt[] }) {
+export function ReceiptsCard({ receipts, linked = "" }: { receipts: Receipt[]; linked?: string }) {
   const formatOperatorTime = useOperatorTime();
   return <section className="data-card receipt-card" aria-labelledby="receipts-title">
     <div className="card-heading"><h2 id="receipts-title">Recent alerts</h2><span className="count-label">{receipts.length} shown</span></div>
     <div className="table-scroll" tabIndex={0} role="region" aria-label="Recent alerts"><table>
       <thead><tr><th scope="col">Received</th><th scope="col">From</th><th scope="col">Result</th><th scope="col">Incident</th><th scope="col">Reason</th></tr></thead>
-      <tbody>{receipts.map(receipt => <tr id={`receipt-${receipt.id}`} key={receipt.id}>
+      <tbody>{receipts.map(receipt => <tr id={`receipt-${receipt.id}`} key={receipt.id} className={receipt.id === linked ? "is-linked" : undefined}>
         <td data-label="Received">{formatOperatorTime(receipt.receivedAt)}</td>
         <td data-label="From"><strong>{receipt.sourceName}</strong></td>
         <td data-label="Result"><span className={`state-pill ${receiptClass(receipt.state)}`}>{receiptLabel(receipt)}</span></td>

@@ -12,7 +12,7 @@
 .record-row, .incident-list-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 16px; border-bottom: 1px solid var(--line); border-radius: 0; padding: 16px 12px; }
 .record-row:last-child, .incident-list-row:last-child { border-bottom: 0; }
 .record-row:hover, .incident-list-row:hover { background: var(--card-tint); }
-.record-row.live-block, .incident-list-row.live-block { border: 1px solid var(--amber); border-radius: 8px; }
+.record-row.live-block, .incident-list-row.live-block { border: 1px solid var(--amber); border-radius: 8px; background: var(--amber-wash); }
 .record-row span:not(.state-pill):not(.overdue-note) { display: grid; min-width: 0; }
 .record-row strong, .incident-row-content strong { color: var(--ink); font-size: 15px; }
 .record-row small, .incident-row-content small, table small { display: block; color: var(--ink-3); font-size: 13px; }
