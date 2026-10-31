@@ -7,9 +7,10 @@ import { subscriberTeamsUrl, prepareTeamsSubscription,verifyTeamsPublication } f
 /** Complete public and authenticated application doors, with only the Slack
  * OAuth/webhook and Teams Workflows network edges replaced by synthetic replies. */
 export async function selfServeChatFlow(t){
-  const received=[],signingSecret=recordedSlackEvents.signingSecret;
+  const received=[],outboundDestinations=[],signingSecret=recordedSlackEvents.signingSecret;
   let slackReply={status:200,body:'ok'},teamsStatus=202;
   const runtime=await openFollowUpsRuntime({pageHost:'localhost',extraBindings:{SLACK_CLIENT_ID:recordedSlackExchange.request.client_id,SLACK_CLIENT_SECRET:recordedSlackExchange.request.client_secret,SLACK_SIGNING_SECRET:signingSecret},providerEdge:async request=>{
+    outboundDestinations.push(request.url);
     if(request.url===recordedSlackExchange.request.url){
       assert.equal(request.method,recordedSlackExchange.request.method);
       assert.equal(request.headers.get('content-type'),'application/x-www-form-urlencoded');
@@ -34,7 +35,7 @@ export async function selfServeChatFlow(t){
     assert.equal(unrelated.status,201,unrelated.text);
     let slackManageUrl,teamsManageUrl;
     const id=await prepareSlackSubscription({componentId:component.id,componentIds:[component.id,secondComponent.body.component.id],excludedComponentId:unrelated.body.component.id,publicOrigin,sql,onManage:url=>{slackManageUrl=url;}});
-    await prepareTeamsSubscription({componentId:component.id,publicOrigin,received,sql,onManage:url=>{teamsManageUrl=url;}});
+    await prepareTeamsSubscription({componentId:component.id,publicOrigin,received,outboundDestinations,sql,onManage:url=>{teamsManageUrl=url;}});
     const incident=await runtime.post('/api/app/incidents',{title:'Self-serve channel incident',components:[{componentId:component.id,state:'Partially unavailable',relationship:'Primary'}]});
     assert.equal(incident.status,201,incident.text);
     const incidentId=incident.body.incident.id;
@@ -49,7 +50,7 @@ export async function selfServeChatFlow(t){
     await publish(draft.details);
     await eventuallyFollowUp(()=>received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,n=>n===1,'active Slack receives the next publication');
     verifySlackPublication({received});verifyTeamsPublication({received});
-    await chatPreferencesFlow({runtime,publicOrigin,received,publish,component,manageUrls:[slackManageUrl,teamsManageUrl]});
+    await chatPreferencesFlow({runtime,publicOrigin,received,publish,component,other:unrelated.body.component,manageUrls:[slackManageUrl,teamsManageUrl]});
     await removeSlackSubscription({publicOrigin,signingSecret,id,sql});
     const before=received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length;
     await publish('Second publish after app uninstall.');

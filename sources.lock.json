@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b55fff9df1bbc9d949dbf050deab159f6b45ba7e4161d70fb5654bd60418d1d8",
+      "sha256": "3a782416ba3b2b99d59781dbe16a9f61b6038535c3ead7a002fdbb1ddea51144",
       "executable": false
     },
     "DEMO.md": {
@@ -6780,7 +6780,7 @@
       "executable": false
     },
     "tests/e2e/helpers/chat-preferences-flow.mjs": {
-      "sha256": "64817e863119d3fdf862bc45f8d3ef1f123a129f2279c96a5cf914729ad54cf1",
+      "sha256": "eddc208766cb8deec5f198b704ca4b58a2534e1e7af8a36fbc3878f46e05c7ed",
       "executable": false
     },
     "tests/e2e/helpers/component-notification-flow.mjs": {
@@ -6944,7 +6944,7 @@
       "executable": false
     },
     "tests/e2e/helpers/self-serve-chat-flow.mjs": {
-      "sha256": "2672a34832178ed85bae9c1093f6e8fd514801328212411456206975f95311d5",
+      "sha256": "3bec57194a964512b6d0145b7a300b422ffda0b824bb544f1167fecdf3e885b1",
       "executable": false
     },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
@@ -7164,7 +7164,7 @@
       "executable": false
     },
     "tests/e2e/teams-subscriptions-helper.mjs": {
-      "sha256": "1ee3f077003bb63094dd34a8ea1fd0c095b4dffc121020a16be31bceaa3804b3",
+      "sha256": "c9e37a024ec311798aca78dab17b2c0fc579188d1ea991efd0222310f97266cd",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
