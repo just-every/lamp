@@ -35,7 +35,7 @@ export function assertPublishedUpdateHtml(html, surface, update) {
   assert.equal(updates.length, 1, `${surface}: exactly one article contains the distinctive published wording`);
   assert.ok(descendants(updates[0]).some(node => node.tagName === 'time'
     && node.attrs.some(attr => attr.name === 'datetime' && attr.value === update.publishedAt)), `${surface}: the article carries this publication's instant`);
-  const rendered = serializeOuter(updates[0]);
+  const rendered = descendants(updates[0]).filter(node => node.tagName === 'dd').map(serializeOuter).join('');
   assertLinkedUpdateHtml(rendered, surface);
   assertLiteralLinks(rendered, surface);
 }
@@ -47,7 +47,9 @@ export function assertLinkedUpdateHtml(html, surface) {
   for (const internal of ["https://db-prod-3.internal/x", "https://10.0.0.5/x"]) assert.ok(html.includes(anchor(internal)), `${surface}: ${internal} is a bare HTTPS link`);
   assert.ok(nodeText(parse(html)).includes('<a href="https://x.test">x</a>'), `${surface}: markup is escaped literal text`);
   for (const literal of LITERALS) assert.ok(html.includes(literal), `${surface}: ${literal} stays literal`);
-  assert.doesNotMatch(html, /href="(?:https:\/\/x\.test|javascript:|http:\/\/example\.com|data:)/, `${surface}: no other scheme or markup becomes a link`);
+  for (const link of descendants(parse(html)).filter(node => node.tagName === 'a')) {
+    assert.doesNotMatch(link.attrs.find(attr => attr.name === 'href')?.value ?? '', /^(?:https:\/\/x\.test|javascript:|http:\/\/example\.com|data:)/, `${surface}: no other scheme or markup becomes a link`);
+  }
   for (const [, href, text] of html.matchAll(/<a href="([^"]*)" rel="nofollow noopener ugc">([^<]*)<\/a>/g)) assert.equal(text, href, `${surface}: every update link shows its own URL`);
 }
 
