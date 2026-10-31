@@ -353,9 +353,9 @@ async function assertAutosaveDuringRefresh({ page, api, openIncident, assertPriv
     await route.fulfill({ response });
   });
   try {
-    await composer.privateActions();
-    await page.getByLabel("Internal note").fill(note);
-    await page.getByRole("button", { name: "Save internal note", exact: true }).click();
+    await composer.row("Notes");
+    await page.getByLabel("Add a note", { exact: true }).fill(note);
+    await page.getByRole("button", { name: "Save note", exact: true }).click();
     await entered;
     await page.getByText("Internal note saved.", { exact: true }).waitFor();
     await field.fill(audience);
@@ -562,9 +562,9 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   await form.componentState(component.name, 'Major outage');
   await form.audience.fill('Customers checking out in the US.');
   await form.nextUpdate.fill('2027-09-08T14:00');
-  await form.moreOptions();
+  await form.option('Details');
   await page.getByLabel('Details', { exact: true }).fill('Follow https://support.example.test/checkout for recovery advice.');
-  await page.getByRole('button', { name: 'Save as private draft', exact: true }).click();
+  await form.option('Save as private draft');
   await page.waitForURL(url => /^\/app\/incidents\/[0-9A-Z]{26}$/.test(url.pathname));
   const id = new URL(page.url()).pathname.split('/').at(-1);
   await saved();
@@ -604,13 +604,16 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
     assert.equal(await incidentComposer(stale).publish.isEnabled(), false);
   } finally { await stale.close(); }
 
-  await composer.moreOptions();
-  await page.getByRole('radio', { name: 'Schedule', exact: true }).check();
+  // Schedule… from the + closes the menu and opens its panel; Done closes the panel and the time stays chosen.
+  await composer.option('Schedule…');
   await page.getByLabel('Scheduled publication date and time').fill('2027-09-08T13:30');
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  assert.equal(await page.getByRole('menu').count(), 0, 'choosing an entry closes the menu');
+  assert.equal(await page.getByLabel('Scheduled publication date and time').inputValue(), '2027-09-08T13:30', 'a closed panel keeps its time');
   await page.getByRole('button', { name: 'Schedule update', exact: true }).click();
   await page.getByText('Update scheduled. It stays private until then.', { exact: true }).waitFor();
   await page.reload(); await operatorHydrated(page); await saved();
-  await composer.moreOptions();
+  await composer.option('Schedule…');
   assert.equal(await page.getByLabel('Scheduled publication date and time').inputValue(), '2027-09-08T13:30');
   assert.ok((await readIncident(id)).draft.scheduledPublishAt);
   await composer.impact.fill('Checkout retries can succeed while we restore capacity.'); await saved();
@@ -625,6 +628,7 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
     details: 'Follow https://support.example.test/checkout for recovery advice.',
     nextUpdateAt: '2027-09-08T21:00:00.000Z',
   };
+  await composer.option('What still works');
   await composer.stillWorks.fill(submitted.whatStillWorks);
   await saved();
   const settings = (await api('/api/app/page-settings')).settings;
@@ -690,10 +694,10 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   } finally { await publicPage.close(); }
   assert.equal(await composer.impact.inputValue(), '', 'the next update begins with a fresh draft');
 
-  await composer.privateActions();
+  await composer.row('Notes');
   const note = 'The database team is privately investigating a connection pool.';
-  await page.getByLabel('Internal note', { exact: true }).fill(note);
-  await page.getByRole('button', { name: 'Save internal note', exact: true }).click();
+  await page.getByLabel('Add a note', { exact: true }).fill(note);
+  await page.getByRole('button', { name: 'Save note', exact: true }).click();
   await page.getByText('Internal note saved.', { exact: true }).waitFor();
   assert.ok((await readIncident(id)).internalNotes.some(row => row.body === note));
   assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes(note), false);
@@ -701,7 +705,7 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   await composer.setStatus('Resolved');
   await composer.audience.fill('US customers paying by card.');
   await composer.impact.fill('Checkout authorizations are working normally.');
-  await composer.moreOptions();
+  await composer.option('Details');
   await composer.details.fill('Follow https://support.example.test/checkout for any remaining questions.');
   await saved();
   assert.equal(await composer.nextUpdate.count(), 0, 'resolution needs no further update promise');
@@ -716,11 +720,12 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   // The same operator finishes the private report and publishes it deliberately.
   await page.goto(`${appUrl}/app/incidents/${id}`); await operatorHydrated(page);
   const report = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Post-incident report', exact: true }) });
+  await composer.row('Post-incident report');
   await page.getByRole('button', { name: 'Draft report', exact: true }).click();
   for (const [name, value] of Object.entries({ Summary: 'Checkout delays have been resolved.', Timeline: 'Requests failed before the database pool was restored.', Cause: 'The checkout connection pool exhausted its capacity.', Remediation: 'We restored capacity and added pool saturation alerts.' })) await report.getByLabel(name, { exact: true }).fill(value);
   const saving = page.waitForResponse(response => response.url().endsWith(`/incidents/${id}/report`) && response.request().method() === 'PUT');
   await report.getByRole('button', { name: 'Save report', exact: true }).click(); assert.equal((await saving).status(), 200);
-  await page.reload(); await operatorHydrated(page);
+  await page.reload(); await operatorHydrated(page); await composer.row('Post-incident report');
   assert.equal(await report.getByRole('textbox', { name: 'Cause', exact: true }).inputValue(), 'The checkout connection pool exhausted its capacity.');
   assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes('Checkout delays have been resolved.'), false, 'a saved report stays private');
   const publishing = page.waitForResponse(response => response.url().endsWith(`/incidents/${id}/report/publish`) && response.request().method() === 'POST');

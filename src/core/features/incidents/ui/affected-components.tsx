@@ -79,11 +79,14 @@ export function DraftComponentChips({ incident, draft, onChange }: { incident: I
   </div>;
 }
 
-/** Primary or Dependent per component, under More options. */
+/** The relationship entry's summary: one word when every component shares it. */
+export const relationshipSummary = (rows: Array<{ relationship: Relationship }>) => [...new Set(rows.map(row => row.relationship))].join(", ");
+
+/** Primary or Dependent per component, in the Relationship panel under the Publish row. */
 export function ComponentRelationships({ rows, onChange }: { rows: Array<{ componentId: string; name: string; relationship: Relationship }>; onChange: (componentId: string, relationship: Relationship) => void }) {
   if (!rows.length) return null;
   return <fieldset className="option-group">
-    <legend>Relationship</legend>
+    <legend className="sr-only">Relationship</legend>
     <div className="relationship-rows">{rows.map(row => <label key={row.componentId} className="form-label">{row.name}<select aria-label={`${row.name} relationship with this update`} value={row.relationship} onChange={(event) => onChange(row.componentId, event.target.value as Relationship)}><option>Primary</option><option>Dependent</option></select></label>)}</div>
   </fieldset>;
 }
