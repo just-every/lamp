@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "7ecc0ca01a71e0570c52d9d056d1cf6bd479e09c9dc1d0bde7f4c34d900eaed7",
+      "sha256": "79dbeafd19de73fe74294acb0fe8f8d11379809b8ba11c4af66ab895d0d03b78",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5537375b50aa2331c49cf1821a7cce409d0b7dfb64aa10c9b10da8fb66bf4109",
+      "sha256": "bd1f37d063f610f9db8318e6f1c255146074be1c7aa9dac4b5a0bd5c96ed8405",
       "executable": false
     },
     "DEMO.md": {
@@ -6880,7 +6880,7 @@
       "executable": false
     },
     "tests/e2e/helpers/self-serve-chat-flow.mjs": {
-      "sha256": "452ca8e9dedf12e38001153104e50ac5749bc67eaee3ff78cb95ac9c7a37ff60",
+      "sha256": "2672a34832178ed85bae9c1093f6e8fd514801328212411456206975f95311d5",
       "executable": false
     },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
@@ -7060,7 +7060,7 @@
       "executable": false
     },
     "tests/e2e/slack-subscriptions-helper.mjs": {
-      "sha256": "f5999b34fb388bfe82e647ff043309eba92ba1b189a6ccb9ae3dbec977628cf4",
+      "sha256": "5a5d6752eda5272a675ec9b30febdb5cfa35bb3a9d1652ad0a895155a8f22e40",
       "executable": false
     },
     "tests/e2e/snapshot-cache-runtime.mjs": {
