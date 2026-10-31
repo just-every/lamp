@@ -51,7 +51,7 @@
     "test:demo": "node --test --test-concurrency=1 tests/demo/journey.test.mjs",
     "test:portability": "node --test --test-concurrency=1 tests/auth-adoption/portability.test.mjs tests/e2e/page-data.test.mjs tests/e2e/prior-backup.test.mjs",
     "test:imports": "node --test --test-concurrency=1 tests/e2e/statuspage-import.test.mjs tests/e2e/cutover-browser.test.mjs tests/e2e/sorry-import.test.mjs",
-    "test:composer": "node --test --test-concurrency=1 tests/e2e/publishing-browser.test.mjs tests/e2e/maintenance-timezone.test.mjs",
+    "test:composer": "node --test --test-concurrency=1 tests/e2e/publishing-browser.test.mjs tests/e2e/maintenance-timezone.test.mjs tests/e2e/unsaved-work-browser.test.mjs",
     "test:delivery": "node --test --test-concurrency=1 tests/e2e/delivery-contract.test.mjs",
     "test:publishing": "node --test --test-concurrency=1 tests/e2e/publishing-contract.test.mjs tests/e2e/incident-brief.test.mjs tests/e2e/update-reminders.test.mjs",
     "test:public": "node --test --test-concurrency=1 tests/e2e/public-contract.test.mjs tests/e2e/snapshot-retained.test.mjs",
