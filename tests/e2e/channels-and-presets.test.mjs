@@ -11,6 +11,7 @@ import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { channelsBrowserFlow } from "./helpers/channels-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
+import { intakeAuthenticationFlow, intakeInventory } from "./helpers/intake-byte-flow.mjs";
 import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { pagerDutyFlow } from "./helpers/pagerduty-flow.mjs";
@@ -285,8 +286,13 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008
     const listed = await api("/api/app/intake/sources");
     assert.doesNotMatch(listed.text, new RegExp(token), "the token is shown once");
     const send = (body, init = {}) => fetch(init.path ?? endpointUrl, { method: "POST", headers: { "Content-Type": "application/json", ...init.headers }, body: JSON.stringify(body) });
-    assert.equal((await send(payloads[preset].down)).status, 401, `${preset}: no credential`);
-    assert.equal((await send(payloads[preset].down, { headers: { Authorization: "Bearer wrong-token-wrong-token" } })).status, 401, `${preset}: wrong credential`);
+    for (const [label, authorization] of [['no credential', undefined], ['wrong credential', 'Bearer wrong-token-wrong-token'], ['malformed credential', `Basic ${token}`]]) {
+      const before = await intakeInventory(sql);
+      const refused = await send(payloads[preset].down, { headers: authorization === undefined ? {} : { Authorization: authorization } });
+      assert.equal(refused.status, 401, `${preset}: ${label}`);
+      await refused.body?.cancel();
+      assert.deepEqual(await intakeInventory(sql), before, `${preset}: ${label} preserves complete persisted records`);
+    }
     const other = Object.keys(payloads).find((candidate) => candidate !== preset);
     assert.equal((await send(payloads[other].down, { headers: { Authorization: `Bearer ${token}` } })).status, 400, `${preset}: another tool's payload`);
     // Header for tools that send one, path segment for those that cannot.
@@ -319,7 +325,8 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008
   assert.equal(recovered.incidentId, fired.incidentId);
   assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
   assert.ok(shop.id);
-  await uptimePresetFlow({ api, post, component, publicOrigin });
+  await intakeAuthenticationFlow({ t });
+  await uptimePresetFlow({ api, post, component, publicOrigin, sql });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
   await monitorSetupJourney({ api, component, origin, publicOrigin, cookie });
   await metricSetupJourney({ api, post, component, origin, cookie });
