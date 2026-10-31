@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "54dbeb50530cf72b8ad9130dd13ba5ccab04257dfce2524e07f032d747c14189",
+      "sha256": "a50239e4b07f45ef485d04b9dd25848b61fe231f62e1e437ed1fe3f515023940",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b55fff9df1bbc9d949dbf050deab159f6b45ba7e4161d70fb5654bd60418d1d8",
+      "sha256": "e8ba6503fc1cc4fdecc1c20555afe0fb209b503f342a14d346592e4341170574",
       "executable": false
     },
     "DEMO.md": {
@@ -6716,7 +6716,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "164ca8f406d11df897c3afb32f305bcfa49c41ab7ea791f76599950e013b0c94",
+      "sha256": "f308041013f2d8cddd0df8943584b7bbfd38d775f96b15662c0cf70c7fbb2cc2",
       "executable": false
     },
     "tests/e2e/draft-version-helper.mjs": {
@@ -7065,6 +7065,10 @@
     },
     "tests/e2e/helpers/uptime-preset-flow.mjs": {
       "sha256": "b9363666f323368ccd8b3a66519644e415d1987d8274b16ba4c90bc2327bafe2",
+      "executable": false
+    },
+    "tests/e2e/helpers/webhook-at-most-once-flow.mjs": {
+      "sha256": "7e8a1f14ffa211d50fd996ea9fbe8d64d637d56921efed99146e4f74e8121799",
       "executable": false
     },
     "tests/e2e/helpers/webhook-format-browser-flow.mjs": {
