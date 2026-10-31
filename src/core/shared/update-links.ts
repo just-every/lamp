@@ -25,6 +25,21 @@ function literalTagEnd(text: string, start: number) {
   return text.length;
 }
 
+/** A labelled Markdown link is literal as a whole, including its destination. */
+function literalLabelledLinkEnd(text: string, start: number) {
+  const label = /^\[[^\]\r\n]*\]\(/u.exec(text.slice(start));
+  if (!label) return start;
+  let depth = 1;
+  for (let index = start + label[0].length; index < text.length; index += 1) {
+    const character = text[index]!;
+    if (character === "\n" || character === "\r") return start;
+    if (character === "\\") { index += 1; continue; }
+    if (character === "(") depth += 1;
+    if (character === ")" && --depth === 0) return index + 1;
+  }
+  return start;
+}
+
 function trimPunctuation(candidate: string) {
   let value = candidate;
   for (;;) {
@@ -42,6 +57,10 @@ export function tokenizeUpdateLinks(text: string): UpdateTextToken[] {
   const tokens: UpdateTextToken[] = [];
   let literalStart = 0;
   for (let index = 0; index < text.length;) {
+    if (text[index] === "[") {
+      const end = literalLabelledLinkEnd(text, index);
+      if (end > index) { index = end; continue; }
+    }
     if (text[index] === "<") {
       const end = literalTagEnd(text, index);
       if (end > index) { index = end; continue; }

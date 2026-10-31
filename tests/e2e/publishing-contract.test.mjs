@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parse } from 'parse5';
 import { chatDeskNativeFlow } from '../chat-desk/flow.mjs';
-import { assertLinkedUpdateHtml, assertLinkedFeed } from './helpers/update-link-evidence.mjs';
+import { literalLinkFields } from './helpers/update-link-evidence.mjs';
+import { assertUpdateLinkSurfaces } from './helpers/update-link-surfaces.mjs';
 import { openStatusJourney, eventually, wording, visibleText } from './helpers/status-journey.mjs';
 import { assertEmptyCalendar, validateMaintenanceCalendar } from './helpers/calendar-assertions.mjs';
 
@@ -29,6 +30,7 @@ function brisbaneTime(instant) {
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
   const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' } });
+  const linkedWording = literalLinkFields(wording);
   const reviewer = 'synthetic-lamp-reviewer@example.test';
   const owner = () => j.signIn();
   const review = async id => {
@@ -46,7 +48,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const component = await j.component('Payments API');
     const hidden = await j.component('PRIVATE internal queue', { internal: true });
     const template = (await j.json('/api/app/incident-templates', 'POST', {
-      name: 'Customer API recovery', ...wording, nextUpdateOffsetMinutes: 60,
+      name: 'Customer API recovery', ...linkedWording, nextUpdateOffsetMinutes: 60,
       components: [{ componentId: component.id, state: 'Major outage', relationship: 'Primary' }],
     }, 201)).template;
     const incident = await j.incident('Payment requests delayed', [component, hidden]);
@@ -57,14 +59,14 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     await j.publish(incident.id, {}, 400);
     await j.json(`${endpoint}/templates/${template.id}/apply`, 'POST', {});
     const privateDraft = (await j.read(incident.id)).draft;
-    assert.equal(privateDraft.customerImpact, wording.customerImpact);
+    assert.equal(privateDraft.customerImpact, linkedWording.customerImpact);
     for (const path of ['/', '/history', '/feed.atom', '/api/public/status']) {
       const body = await j.publicText(path);
       assert.ok(!body.includes(incident.title) && !body.includes('PRIVATE investigation note'));
     }
     await j.json(`${endpoint}/draft/review`, 'POST', {}, 409);
     await j.publish(incident.id, {}, 409);
-    const preview = await j.json(`${endpoint}/draft/preview`, 'POST', { ...wording, nextUpdateAt: privateDraft.nextUpdateAt });
+    const preview = await j.json(`${endpoint}/draft/preview`, 'POST', { ...linkedWording, nextUpdateAt: privateDraft.nextUpdateAt });
     assert.ok(JSON.stringify(preview.preview).includes(wording.customerImpact));
     await review(incident.id);
     const subscriber = 'reviewed-publication-reader@example.test';
@@ -77,7 +79,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     const reached = await eventually(() => j.json(`${endpoint}/reach?updateId=${first.id}`), body => body.updates[0].channels.some(row => row.channel === 'email' && row.providerAccepted === 1), 'the frozen publication reaches its committed subscriber');
     assert.equal(reached.updates[0].channels.find(row => row.channel === 'email').committed, 1);
     const customerMail = j.messages.find(mail => mail.to.includes(subscriber) && !mail.text.includes('/confirm-subscription/'));
-    for (const value of Object.values(wording).filter(value => value !== 'Identified')) assert.ok(customerMail.text.includes(value));
+    for (const value of Object.values(linkedWording).filter(value => value !== 'Identified')) assert.ok(customerMail.text.includes(value));
     assert.equal(customerMail.subject, preview.preview.email.subject, 'notification subject matches the preview');
     assert.equal(customerMail.text.split('\n\nManage this subscription:')[0], preview.preview.email.plainText, 'the complete customer message matches the preview before personal subscription links');
     await j.visible(`/incidents/${incident.reference}`, wording.customerImpact);
@@ -87,11 +89,8 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
       if (path !== '/feed.atom') assert.ok(visibleText(body).includes(wording.customerImpact), path);
       assert.ok(!body.includes('PRIVATE investigation note') && !body.includes(hidden.name), path);
     }
-    const firstBody = await j.publicText(`/incidents/${incident.reference}`);
-    assertLinkedUpdateHtml(firstBody, 'public incident');
-    assertLinkedUpdateHtml(await j.publicText('/'), 'public root');
-    assertLinkedFeed(await j.publicText('/feed.atom'), 'public Atom');
-    for (const value of Object.values(wording).filter(value => value !== 'Identified')) {
+    await assertUpdateLinkSurfaces(j, incident, component, first);
+    for (const value of Object.values(linkedWording).filter(value => value !== 'Identified')) {
       assert.ok(preview.preview.public.fields.some(field => field.value === value));
       assert.ok(preview.preview.email.plainText.includes(value));
     }
@@ -147,6 +146,7 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal((await j.read(incident.id)).draft, null);
     assert.equal((await j.json('/api/app/components')).components.find(row => row.id === component.id).publicState, 'Operational');
     await j.visible('/history', incident.title);
+    await assertUpdateLinkSurfaces(j, incident, component, first, { history: true });
     const reportPath = `${endpoint}/report`;
     const generated = (await j.json(`${reportPath}/draft`, 'POST', {})).report;
     assert.equal(generated.publishedAt, null);

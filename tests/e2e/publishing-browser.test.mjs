@@ -573,6 +573,15 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   const composer = incidentComposer(page);
   await page.reload(); await operatorHydrated(page); await saved();
   assert.equal(await composer.impact.inputValue(), incident.draft.customerImpact);
+  await composer.option('Details');
+  const internalWording = 'Internal https://db-prod-3.internal/x and https://10.0.0.5/x need operator review.';
+  await composer.details.fill(internalWording); await saved();
+  const findings = page.getByRole('status', { name: 'Wording findings', exact: true });
+  await findings.getByText('db-prod-3.internal', { exact: true }).waitFor();
+  await findings.getByText('10.0.0.5', { exact: true }).waitFor();
+  assert.equal((await readIncident(id)).draft.details, internalWording, 'internal-address advice preserves the saved wording');
+  assert.equal(await composer.publish.isEnabled(), true, 'internal-address findings remain advisory');
+  await composer.details.fill(incident.draft.details); await saved();
   await assertAutosaveIntegrity(component, t);
   await page.goto(`${appUrl}/app/incidents/${id}`); await operatorHydrated(page); await saved();
 
