@@ -3126,9 +3126,9 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 96 | 0 | 107 |
+| Published | 12 | 95 | 0 | 107 |
 | Target and push further | 9 | 73 | 54 | 136 |
-| All | 20 | 169 | 54 | 243 |
+| All | 21 | 168 | 54 | 243 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3165,7 +3165,7 @@ INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14c
 | `I18N-001` | Pages in several languages | target | missing |  | Multi-language publication and templates are absent. This scope replaces the old manifest exclusion of multi-language pages. |
 | `I18N-003` | Subscriber language choice and reporting | target | missing |  | Subscriber language selection, management, reporting and language-aware CSV preview are absent. |
 | `I18N-002` | Translated updates | target | missing |  | Not built. |
-| `COMP-001` | States and their order | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational. |
+| `COMP-001` | States and their order | published | done | `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story): acceptance 1 exercises all five native standing states, refuses an unknown state without mutation and reconciles the exact allowed vocabulary; acceptance 2 reconciles literal operator and public component states for every adjacent severity comparison and Degraded performance over Operational, with reversed competing incident claims, standing claims, active maintenance and recovery controls. |  |
 | `COMP-002` | Grouping and order | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: Multiple group membership is refused or excluded. |
 | `COMP-003` | Append-only state history | published | partial | `tests/e2e/public-contract.test.mjs` | Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present. |
 | `COMP-004` | State note | published | partial | `tests/e2e/public-contract.test.mjs` | The cited evidence asserts the other audited outcomes; unasserted: A new component’s omitted note defaults to empty. |
