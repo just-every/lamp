@@ -347,7 +347,7 @@ Core · published · **partial**
 **Acceptance.**
 1. The supplied weights count Major outage and Partially unavailable as one downtime minute per minute, Degraded performance as one half, and Under maintenance as zero.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs` Supplemental candidate evidence (the inherited partial judgment and audit gap remain unchanged pending rejudgment): `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story), loading `tests/e2e/helpers/public-capacity-journey.mjs` (publicCapacityJourney): isolated native closed history corrections of thirty minutes produce literal public daily-record and native availability-report totals of 30 for Major outage, 30 for Partially unavailable, 15 for Degraded performance and 0 for Under maintenance; existing Major outage boundary and one-minute rounding controls remain active.
+**Evidence.** `tests/e2e/public-contract.test.mjs`; `tests/e2e/helpers/public-capacity-journey.mjs`; existing Major outage boundary and one-minute rounding controls remain active.
 **Gap.** The cited evidence asserts the other audited outcomes; unasserted: The supplied policy’s Major outage weight is asserted; The supplied policy’s Partially unavailable weight is asserted.
 
 #### UPTIME-003 — Short history
