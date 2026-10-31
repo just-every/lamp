@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b55fff9df1bbc9d949dbf050deab159f6b45ba7e4161d70fb5654bd60418d1d8",
+      "sha256": "bd48a93261437ce83a24ff08d91de6713cacf7ae644c9d46797d04ee22221bbb",
       "executable": false
     },
     "DEMO.md": {
@@ -6708,7 +6708,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "616058eda3444ad40dfe4ae56478a0925c7ed6e051b9a2d0b43f33e676a115e4",
+      "sha256": "22cf7a8c100a9f88dbf8c5f469de477fa1dbeaa75bd5a46115f39218ea24f373",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -6933,6 +6933,10 @@
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {
       "sha256": "a408259db40f8b6b456386b7f80495ea556a592deb04d338272248f3d01c0593",
+      "executable": false
+    },
+    "tests/e2e/helpers/preset-recovery-flow.mjs": {
+      "sha256": "e4d7b54d78b55734758ef722c154fec1b091c276d59e6629165c48fd7e2ff7c8",
       "executable": false
     },
     "tests/e2e/helpers/public-capacity-journey.mjs": {
