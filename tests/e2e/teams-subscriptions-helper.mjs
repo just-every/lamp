@@ -7,18 +7,19 @@ const path = new URL(subscriberTeamsUrl).pathname;
 
 /** Follow the public form and the channel's real verification card. A GET is
  * a preview; the channel visitor must explicitly submit consent before delivery. */
-export async function prepareTeamsSubscription({ componentId, publicOrigin, received, sql, onManage }) {
+export async function prepareTeamsSubscription({ componentId, publicOrigin, received, outboundDestinations, sql, onManage }) {
   const page = await fetch(publicOrigin);
   assert.equal(page.status, 200);
   assert.match(await page.text(), /<form[^>]+action="\/subscribe\/teams"/);
   assert.equal(page.headers.get('set-cookie'), null);
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded', accept: 'text/html', 'CF-Connecting-IP': '192.0.2.15' };
+  const rejectedUrl = 'https://help.example.com/teams-webhook';
   const refused = await fetch(`${publicOrigin}/subscribe/teams`, {
     method: 'POST', headers,
-    body: new URLSearchParams({ url: 'https://help.example.com/teams-webhook', componentId }),
+    body: new URLSearchParams({ url: rejectedUrl, componentId }),
   });
   assert.equal(refused.status, 400, 'a non-Microsoft webhook host is refused');
-  assert.equal(received.filter(entry => entry.path.startsWith(path)).length, 0, 'the refused host receives no card');
+  assert.equal(outboundDestinations.filter(url => url === rejectedUrl).length, 0, 'the refused destination receives no outbound request');
   const requested = await fetch(`${publicOrigin}/subscribe/teams`, {
     method: 'POST', headers, body: new URLSearchParams({ url: subscriberTeamsUrl, componentId }),
   });
