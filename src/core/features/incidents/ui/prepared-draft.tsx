@@ -1,11 +1,8 @@
 import type { PublishingDraft } from "../repository";
+import { revealInPanel } from "./incident-panel";
 
-function revealSource(ref: string) {
-  const item = document.getElementById(`brief-${ref}`);
-  item?.closest("details.incident-brief")?.setAttribute("open", "");
-  item?.querySelector("details")?.setAttribute("open", "");
-  item?.scrollIntoView({ block: "center" });
-}
+// A cited item opens the brief's row and the item there.
+const revealSource = (ref: string) => revealInPanel(`brief-${ref}`);
 
 /** Agent provenance is private composer context, separate from public update
  * wording. An operator reviews the draft and chooses whether to publish. */

@@ -5,28 +5,27 @@
 .incident-row-state { display: grid; justify-items: end; gap: 4px; }
 .incident-row-state small { font-size: 12px; }
 
-/* Private actions, closed at the end of the incident page: each a label with its pill. */
-.incident-operator-controls { display: grid; gap: 14px; }
+/* Notes in the incident panel: each note a tinted row, then add one. */
+.note-list { display: grid; gap: 8px; }
+.note-list article { display: grid; gap: 4px; border-radius: 10px; background: var(--chip); padding: 10px 12px; }
+.note-list p { margin: 0; color: var(--ink-2); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-list small { color: var(--ink-3); font-size: 13px; }
+.note-form { display: grid; gap: 8px; }
+.note-form textarea { min-height: 88px; }
+.note-form .button { justify-self: end; }
+
+/* Small private forms and actions other screens share (Settings SMS, subscribers, follow-ups, the owner row). */
 .incident-note-form { display: grid; gap: 10px; }
 .incident-note-form textarea { min-height: 76px; }
 .incident-note-form .button { justify-self: end; }
-.incident-note-list { display: grid; gap: 8px; }
-.incident-note-list article { border-left: 2px solid var(--line-strong); padding-left: 10px; }
-.incident-note-list p { margin: 0; color: var(--ink-2); font-size: 13px; white-space: pre-wrap; }
-.incident-note-list small { color: var(--ink-3); font-size: 12px; }
-.incident-operator-action, .incident-delete-action { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
-.incident-operator-action strong, .incident-delete-action strong { color: var(--ink); font-size: 14px; font-weight: 500; }
-.incident-operator-action p, .incident-delete-action p { margin: 2px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.45; }
-.incident-operator-action > .button, .incident-delete-action > .button { justify-self: end; }
-.incident-correction-controls { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: end; gap: 8px; }
-.incident-correction-controls select { min-height: 40px; font-size: 14px; }
-.incident-correction-controls select, .incident-delete-form { justify-self: stretch; }
+.incident-operator-action { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.incident-operator-action strong { color: var(--ink); font-size: 14px; font-weight: 500; }
+.incident-operator-action p { margin: 2px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.45; }
+.incident-operator-action > .button { justify-self: end; }
 .incident-delete-form { display: grid; gap: 10px; }
 .incident-delete-form > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.incident-action-message { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 500; }
 
 @media (max-width: 760px) {
-  .incident-correction-controls { grid-template-columns: minmax(0, 1fr); }
-  .incident-correction-controls .button, .incident-delete-form .button { width: 100%; }
+  .incident-delete-form .button { width: 100%; }
   .incident-delete-form > div { display: grid; grid-template-columns: minmax(0, 1fr); }
 }

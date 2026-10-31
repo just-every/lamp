@@ -115,7 +115,7 @@ test("MAINT-009 PAGE-020 — operator schedules, reschedules and publishes maint
     await page.getByLabel("Add component", { exact: true }).selectOption(component.id);
     await form.audience.fill("Configured-zone customers.");
     await form.nextUpdate.fill("2027-07-15T09:00");
-    await form.moreOptions();
+    await form.option("Opened at");
     await page.getByLabel("Opened at", { exact: true }).fill("2020-07-15T09:00");
     const opened = page.waitForResponse(response => response.url().endsWith("/api/app/incidents") && response.request().method() === "POST");
     await form.publish.click();
