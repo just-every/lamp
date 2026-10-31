@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import type { PageSettingsInput } from "../../../shared/schemas";
 import type { PageSettingsService } from "../../page-settings/service";
@@ -13,6 +13,7 @@ import { FoundCard, type FoundPage } from "./found-card";
 import { foundLayout } from "./found-components";
 import { bringHistory } from "./bring-history";
 import { useSetupDraft } from "./setup-draft";
+import { acceptedZone } from "./time-zone";
 
 type SettingsResponse = { settings: Awaited<ReturnType<PageSettingsService["get"]>> };
 
@@ -23,15 +24,13 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
   const { draft, setDraft, ready, storageError, clear } = useSetupDraft(ownerId);
   const { website, found, review } = draft;
   const [reading, setReading] = useState(false);
-  const [browserZone, setBrowserZone] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState<"publishing" | "history" | "checking" | "opening" | null>(null);
   const saving = progress !== null;
-  useEffect(() => { setBrowserZone(Intl.DateTimeFormat().resolvedOptions().timeZone || null); }, []);
   if ((loading && !data) || !ready) return <LoadingState />;
   if (error || !data?.settings) return <ErrorState onRetry={() => window.location.reload()}>{error ?? "Your page settings could not be loaded."}</ErrorState>;
   const settings = data.settings;
-  const plain = (): FoundPage => ({ pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor.toUpperCase(), timezone: browserZone ?? settings.timezone, mark: null, components: [], groups: [], statusPage: null, existing: null, history: false });
+  const plain = (): FoundPage => ({ pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor.toUpperCase(), mark: null, components: [], groups: [], statusPage: null, existing: null, history: false });
   const address = new URL(publicPageOrigin).host;
 
   async function read(event: FormEvent) {
@@ -63,7 +62,9 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
     if (!found) return;
     setProgress("publishing"); setMessage(null);
     try {
-      const { pageName, tagline, accentColor, timezone } = found;
+      const { pageName, tagline, accentColor } = found;
+      // Setup does not ask for the time zone: the page takes this browser's, and Settings → Page changes it.
+      const timezone = acceptedZone(Intl.DateTimeFormat().resolvedOptions().timeZone, settings.timezone);
       const { hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength } = settings;
       const next: Required<PageSettingsInput> = { theme: settings.theme, template: settings.template, widgetAppearance: settings.widgetAppearance, pageName: pageName.trim(), tagline: tagline.trim(), accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength };
       await appApi<SettingsResponse>("/api/app/page-settings", { method: "PUT", body: JSON.stringify(next) });
@@ -102,11 +103,11 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
     </form>
     {storageError && <p className="website-note website-warning" role="alert">{storageError}</p>}
     {review && found ? <>
-      <fieldset className="first-run-details" aria-label="Your page details" disabled={saving || reading}><FoundCard page={found} browserZone={browserZone} address={address} onChange={(next) => setDraft((current) => ({ ...current, found: current.found ? { ...current.found, ...next } : null }))} /></fieldset>
+      <fieldset className="first-run-details" aria-label="Your page details" disabled={saving || reading}><FoundCard page={found} address={address} onChange={(next) => setDraft((current) => ({ ...current, found: current.found ? { ...current.found, ...next } : null }))} /></fieldset>
       {message && <p className="save-message" role="alert">{message}</p>}
       <div className="first-run-finish">
         <Button type="button" onClick={finish} disabled={saving || reading || !found.pageName.trim() || !found.tagline.trim() || !/^#[0-9a-f]{6}$/i.test(found.accentColor)}>{saving ? "Opening Lamp…" : review.kind === "read" ? "Looks right, open Lamp" : "Open Lamp"}</Button>
-        {progress ? <ol className="first-run-progress" role="status" aria-label="Opening your page"><li>{progress === "publishing" ? "Publishing your page…" : "Page published"}</li>{found.existing && found.history ? <li>{progress === "publishing" ? "Then bringing in its incident history" : progress === "history" ? "Bringing in its incident history…" : "Incident history brought in"}</li> : null}<li>{progress === "publishing" || progress === "history" ? "Then checking the subscribe form" : progress === "checking" ? "Checking the subscribe form…" : "Opening your workspace…"}</li></ol> : <p>Your public page publishes as soon as you open Lamp.</p>}
+        {progress ? <ol className="first-run-progress" role="status" aria-label="Opening your page"><li>{progress === "publishing" ? "Publishing your page…" : "Page published"}</li>{found.existing && found.history ? <li>{progress === "publishing" ? "Then bringing in its incident history" : progress === "history" ? "Bringing in its incident history…" : "Incident history brought in"}</li> : null}<li>{progress === "publishing" || progress === "history" ? "Then checking the subscribe form" : progress === "checking" ? "Checking the subscribe form…" : "Opening your workspace…"}</li></ol> : null}
       </div>
     </> : null}
   </div></LitPage>;
