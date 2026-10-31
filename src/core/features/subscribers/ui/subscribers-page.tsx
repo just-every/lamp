@@ -9,10 +9,10 @@ import { Icon } from "../../../app/client/ui/icon";
 import { ListPagination } from "../../../app/client/ui/pagination";
 import { LoadingState, useOperatorTime, FormError } from "../../../app/client/ui/states";
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
-import { SubscriberReporting } from "../../subscriber-reporting/ui/subscriber-reporting";
 import { AddSubscriber } from "./add-subscriber";
 import { SubscriberImportExport } from "./subscriber-import-export";
 import { WebhookFormatLabel } from "./webhook-format";
+import { SubscribersViews } from "./subscribers-views";
 
 type SubscribersResponse = { capacity:SubscriberCapacity[]; subscribers: Awaited<ReturnType<SubscribersService["list"]>>; limit: number; offset: number; hasMore: boolean };
 
@@ -22,14 +22,11 @@ export function SubscribersPage() {
   const { data, error, loading, refresh } = useAppData<SubscribersResponse>(`/api/app/subscribers?limit=100&offset=${offset}`);
   const [saving, setSaving] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
-  const [reportRefreshKey, setReportRefreshKey] = useState(0);
-
-  function changed() { refresh(); setReportRefreshKey(current => current + 1); }
 
   async function removeSubscriber(id: string, destination: string) {
     if (!window.confirm(`Remove ${destination}? This permanently deletes their destination and contact details. Only non-identifying delivery history is kept.`)) return;
     setSaving(true); setMutationError(null);
-    try { await appApi(`/api/app/subscribers/${id}`, { method: "DELETE" }); refresh(); setReportRefreshKey(current => current + 1); }
+    try { await appApi(`/api/app/subscribers/${id}`, { method: "DELETE" }); refresh(); }
     catch (cause) { setMutationError(cause instanceof Error ? cause.message : "The subscriber could not be removed."); }
     finally { setSaving(false); }
   }
@@ -38,10 +35,10 @@ export function SubscribersPage() {
   if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
   if (!data) return null;
   return <div className="page-stack">
-    <section className="page-title-row"><div><h1>Subscribers</h1><p>People and services that get your updates.</p></div></section>
+    <section className="page-title-row"><div><h1>Subscribers</h1><p>People and services that get your updates.</p></div><SubscribersViews /></section>
     <section className="data-card" aria-label="Subscriber capacity"><h2>Capacity</h2><dl className="context-facts subscriber-capacity">{data.capacity.map(item=><div key={item.channel}><dt>{item.channel === "all" ? "All channels" : item.channel === "slack-and-teams" ? "Slack and Teams together" : item.channel === "slack" ? "Slack" : item.channel === "teams" ? "Teams" : item.channel === "email" ? "Email" : item.channel === "sms" ? "SMS" : "Webhooks"}</dt><dd>{item.count.toLocaleString()} / {item.limit.toLocaleString()}{item.count>=item.limit ? " · Full" : ""}</dd></div>)}</dl><p>Pending and active subscriptions count. Email, SMS, webhooks, Slack and Teams share the all-channel limit; Slack and Teams also share their channel limit.</p></section>
     {mutationError && <FormError>{mutationError}</FormError>}
-    <AddSubscriber onChanged={changed} />
+    <AddSubscriber onChanged={refresh} />
     <section className="data-card subscriber-table-card subscriber-directory-card">
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Subscriber records">
         <table role="table">
@@ -60,7 +57,6 @@ export function SubscribersPage() {
     </section>
     <section className="limit-note"><Icon name="warning" width={17} height={17} />Every subscriber is available through these pages. Removing a subscriber deletes their destination and keeps only non-identifying delivery history.</section>
     <section className="data-card"><h2>Email unsubscribe requests</h2><p>Monitor your From mailbox. When someone emails an unsubscribe request, find their destination above and choose Remove. One-click unsubscribe from a notification is processed automatically.</p><p><a href="/docs/subscribers-and-notifications#process-email-unsubscribe-requests">Unsubscribe guide</a></p></section>
-    <SubscriberImportExport onChanged={changed} />
-    <details className="data-card subscriber-reporting-disclosure"><summary>Subscriber reporting</summary><SubscriberReporting refreshKey={reportRefreshKey} /></details>
+    <SubscriberImportExport onChanged={refresh} />
   </div>;
 }

@@ -1,6 +1,6 @@
-import { withVisualEdits } from '../editor/VisualEditBoundary';
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { DeliveriesPage } from "../core/features/deliveries/ui/deliveries-page";
-
-export const Route = createFileRoute("/app/deliveries")({ component: withVisualEdits(DeliveriesPage) });
+// Deliveries is the Subscribers delivery log now (L19). Old links land there for one release.
+export const Route = createFileRoute("/app/deliveries")({
+  beforeLoad: () => { throw redirect({ to: "/app/subscribers", search: { view: "log" } }); },
+});

@@ -22,6 +22,7 @@ import type { StatusFeedVendor } from "../../platform/status-feeds/index.ts";
 import { attributedStatuspageTargets } from "./targets";
 import { doorMapping, moveInPlan, readDoorExport } from './door-plan';
 import { approvalCaption } from '../../../../modules/import-kit/src/door/failures';
+import { readImportVerification } from './verification.repository';
 
 const DESTINATION = "lamp";
 const INVITES_PER_REQUEST = 50;
@@ -218,6 +219,15 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   }
 
   return {
+    /** Hash-only persisted evidence for a receipt, under the same current
+     * session and retained-job authority as Move in's normal job read. */
+    async verification(id: string, actor: MoveInActor) {
+      const context = await contextForJob(id, actor);
+      await assertAuthority(context);
+      const evidence = await readImportVerification(id, context);
+      await assertAuthority(context);
+      return evidence;
+    },
     /** One door upload, planned as Move in has always planned a source, for the
      * door's own plan: the records it reads and the mapping it applies. Read-only;
      * the door admitted the session or grant first. */

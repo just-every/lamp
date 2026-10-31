@@ -25,7 +25,7 @@ Every change republishes your public page. Lamp checks the page and its
 subscribe form after each publish and every minute, and a hosted sender with
 your mail provider when it changes and daily. Overview shows one line: where the
 page is live, when it was published and checked. It turns amber with the fix
-when a check fails. **Review page** opens Your page; your deployment address is
+when a check fails. **Review page** opens Settings → Page; your deployment address is
 the public address unless you add a custom domain.
 
 A verified sender does not mean a message reached an inbox. Local mail is

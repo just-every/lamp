@@ -1647,3 +1647,18 @@ requirements; it needs no new capability for this schema.
 ## Public footer operator entry — 28 October 2026
 
 The public page keeps its operator sign-in entry usable beside the customer resource links, including when the optional credit is hidden. The entry has a full touch target rather than relying on surrounding whitespace; the public customer journey retains its WCAG 2.2 accessibility check.
+
+## Lamp's sections follow the owner's jobs; configuration under Settings — owner L19
+
+The owner approved L19 option C on 23 October 2026. On the incident page and New incident, a round + ("Update
+options") at the left of the Publish row replaces More options: What still works and Details (and a new incident's
+Opened at) join the fields under "Who's affected?"; Notify, Schedule, Backdate, Relationship and the two template
+entries each open one panel under the Publish row; Mark draft reviewed acts at once and Publish as a correction first
+asks which update. New incident keeps its starting status pills in that menu and adds Save as private draft. Above
+620 px the + opens a menu; at 620 px and under a bottom sheet. Every panel and field stays mounted while closed, so a
+refused publication still keeps every choice, and the hint beside Publish says what the options changed. Under the
+timeline, one list of named rows replaces Private actions and the blocks under the page: Brief, Reach (once something
+was sent), Notes, Impact, the post-incident report once Resolved (with its waiver), the communication owner, the
+incident's subscribers (a row once someone follows it), extension rows, then Delete incident. This replaces where the
+L12 record put these controls; UPDATE-001, -004, -005, -006, -007, -009, NOTIFY-007, INCIDENT-001, -009, DRAFT-001
+and DRAFT-004 are unchanged.

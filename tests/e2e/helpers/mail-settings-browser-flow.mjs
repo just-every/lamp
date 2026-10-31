@@ -104,7 +104,7 @@ export async function mailSettingsBrowserFlow(t){
     await expect.poll(async()=>{const log=await api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}`);assert.equal(log.status,200,log.text);return log.body.deliveries.find(row=>row.destination===address)?.acceptingProvider;}).toBe('resend');
     for(const width of [1440]){
       await page.setViewportSize({width,height:width===390?844:1000});
-      await page.goto(`${origin}/app/deliveries`);await operatorHydrated(page);
+      await page.goto(`${origin}/app/subscribers?view=log`);await operatorHydrated(page);
       const row=page.getByRole('region',{name:'Delivery records',exact:true}).getByRole('row').filter({hasText:address});await expect(row).toBeVisible();await expect(row).toContainText('Resend accepted');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width}px Deliveries has no overflow`);
       assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(row=>['serious','critical'].includes(row.impact)),[]);

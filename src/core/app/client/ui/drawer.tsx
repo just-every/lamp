@@ -10,7 +10,8 @@ export function Drawer({ title, eyebrow, children, onClose, className = "" }: { 
     const overflow = document.body.style.overflow;
     panel?.showModal();
     document.body.style.overflow = "hidden";
-    panel?.querySelector<HTMLElement>("input, select, textarea")?.focus();
+    // A drawer may mark where focus starts (a part switch); otherwise its first field takes it.
+    (panel?.querySelector<HTMLElement>("[data-autofocus]") ?? panel?.querySelector<HTMLElement>("input, select, textarea"))?.focus();
     return () => { panel?.close(); document.body.style.overflow = overflow; trigger?.focus(); };
   }, []);
   return <dialog ref={dialog} className={`claim-drawer component-drawer ${className}`} aria-labelledby={titleId} onKeyDown={(event) => {
@@ -23,7 +24,7 @@ export function Drawer({ title, eyebrow, children, onClose, className = "" }: { 
     const bounds = event.currentTarget.getBoundingClientRect();
     if (event.target === event.currentTarget && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) onClose();
   }}>
-    <div className="drawer-heading"><div><p className="eyebrow">{eyebrow}</p><h2 id={titleId}>{title}</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close component panel"><Icon name="close" width={19} height={19} /></button></div>
+    <div className="drawer-heading"><div><p className="eyebrow">{eyebrow}</p><h2 id={titleId}>{title}</h2></div><button className="icon-button drawer-close" type="button" onClick={onClose} aria-label="Close panel"><Icon name="close" width={19} height={19} /></button></div>
     {children}
   </dialog>;
 }

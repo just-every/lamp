@@ -137,7 +137,7 @@ setup. If Workflows is unavailable, ask the Teams administrator to enable it.
 
 ### Save the channel in Lamp and check a post
 
-In **Settings → Team channels**, choose Slack or Microsoft Teams, enter a name
+In **Settings → Connected tools**, choose Slack or Microsoft Teams, enter a name
 and paste that service's incoming webhook URL. Select the components it follows.
 Leave every component unchecked to follow all visible components. The URL is encrypted and is not shown again after you
 save it. Select **Slack and Teams** when publishing an update to post to the
@@ -193,7 +193,7 @@ measurement definitions.
 
 ## Review communication performance
 
-On **Overview**, use **Communication performance** to choose the calendar month
+In **Settings → Reports**, use **Communication performance** to choose the calendar month
 in the page's configured timezone. The cohort contains incidents opened from
 the first instant of that local month, inclusive, to the next month's first
 instant, exclusive. Their later publications and current delivery outcomes stay
@@ -243,9 +243,9 @@ wording remain available. SendGrid and Resend support all these branding setting
 
 ## Subscriber reporting
 
-Open **Subscribers** for current counts by channel and state. Expand **Counts by component** or **Deactivation reasons** for detail. A subscription following every component appears in each component's count, so component counts overlap. Erased destinations are excluded.
+Open **Settings → Reports** for current counts by channel and state. Expand **Counts by component** or **Deactivation reasons** for detail. A subscription following every component appears in each component's count, so component counts overlap. Erased destinations are excluded.
 
-Choose a growth month and channel, then **Download CSV** to export the same figures. The month filters the growth record; current counts always describe the present. Adding or removing a subscriber refreshes the figures while keeping the report's filters.
+Choose a growth month and channel, then **Download CSV** to export the same figures. The month filters the growth record; current counts always describe the present. Reports reads the figures again each time you open it.
 
 Daily growth measures pending plus active subscriptions: a new pending subscription joins inventory, confirmation does not add it again, and deactivation or erasure leaves inventory. Dates use UTC. Tracking starts with the first subscriber change or report read, from the baseline displayed on the report; earlier daily changes are unknown. The first tracked day and the current day are incomplete. Technical backups retain this anonymous history; restoring an older archive starts a new baseline. Audience and language reporting are not yet available.
 

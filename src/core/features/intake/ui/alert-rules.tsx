@@ -21,10 +21,7 @@ export function AlertRulesSettings() {
   const components = useAppData<{ components: ComponentOption[] }>("/api/app/components");
   if ((sources.loading && !sources.data) || (components.loading && !components.data)) return <LoadingState>Loading alert rules…</LoadingState>;
   if (!sources.data || !components.data) return <ErrorState onRetry={() => { sources.refresh(); components.refresh(); }}>{sources.error ?? components.error ?? "Alert rule settings could not be loaded."}</ErrorState>;
-  return <>
-    <p><a className="text-link" href="/app/alerts">Manage alert sources</a></p>
-    <AlertRules sources={sources.data.sources} components={components.data.components} />
-  </>;
+  return <AlertRules sources={sources.data.sources} components={components.data.components} />;
 }
 
 /** AUTO-001: one owner-approved rule for one component and source. A new pair remains draft-only until saved. */

@@ -227,12 +227,12 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       await binding.batch([...native, audit].map((statement) => binding.prepare(statement.sql).bind(...statement.params ?? [])));
     },
     async deleteExpiredPending(cutoff, custodyErasures) {
-      const expired = (await binding.prepare("SELECT id, destination, contact_email FROM subscriber_directory AS subscribers WHERE state = 'pending' AND created_at < ?").bind(cutoff).all<{ id: string; destination: string; contact_email: string | null }>()).results;
+      const expired = (await binding.prepare("SELECT id, destination, contact_email FROM subscriber_directory AS subscribers WHERE state = 'pending' AND created_at <= ?").bind(cutoff).all<{ id: string; destination: string; contact_email: string | null }>()).results;
       if (!expired.length) return;
       // An unconfirmed subscriber an import holds leaves import custody with
       // its row; the rest are ordinary deletions.
       const held = await subjectsInCustody(binding, expired.map((row) => ({ id: row.id, values: [row.destination, row.contact_email ?? ""].filter(Boolean) })));
-      const predicate = { sql: "state = 'pending' AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))", params: [cutoff, JSON.stringify(held.map((subject) => subject.id))] };
+      const predicate = { sql: "state = 'pending' AND created_at <= ? AND id NOT IN (SELECT value FROM json_each(?))", params: [cutoff, JSON.stringify(held.map((subject) => subject.id))] };
       const at = new Date().toISOString();
       const audit = subscriberExpiryAudit(predicate, at);
       await binding.batch([
@@ -240,10 +240,10 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         binding.prepare(`DELETE FROM subscribers WHERE ${predicate.sql}`).bind(...predicate.params),
       ]);
       for (const subject of held.slice(0, custodyErasures)) {
-        const deletion: D1Sql = { sql: "DELETE FROM subscribers WHERE id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] };
+        const deletion: D1Sql = { sql: "DELETE FROM subscribers WHERE id = ? AND state = 'pending' AND created_at <= ?", params: [subject.id, cutoff] };
         // Admitted while the row is still expired and unconfirmed, and after its deletion.
         const marker: D1Sql = { sql: "DELETE FROM statuspage_import_targets WHERE kind = 'subscriber' AND id = ?", params: [subject.id] };
-        await retireSubscriberCustody(binding, subject, [marker], [subscriberExpiryAudit({ sql: "id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] }, at), deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscriber_directory AS subscribers WHERE id = ? AND (state <> 'pending' OR created_at >= ?))", params: [subject.id, cutoff] } });
+        await retireSubscriberCustody(binding, subject, [marker], [subscriberExpiryAudit({ sql: "id = ? AND state = 'pending' AND created_at <= ?", params: [subject.id, cutoff] }, at), deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscriber_directory AS subscribers WHERE id = ? AND (state <> 'pending' OR created_at > ?))", params: [subject.id, cutoff] } });
       }
     },
     async recordConfirmationSendIfAllowed(emailHash, cutoff, now) {
