@@ -12,8 +12,10 @@ const PARTS = ["Details", "Status", "History"] as const;
 type Part = (typeof PARTS)[number];
 
 /** One drawer per component, opened on Details. A part stays mounted once shown, so switching keeps what was typed;
- * a new component has only Details until it exists. */
-export function ComponentDrawer({ component, groups, defaultDisplayOrder, onClose, onSaved }: { component: ComponentView | null; groups: ComponentGroup[]; defaultDisplayOrder: number; onClose: () => void; onSaved: () => void }) {
+ * a new component has only Details until it exists. Saving Details closes the drawer once the leave check passes
+ * (`onSaved`); a Status or History save refreshes the page beneath it and stays open (`onRefresh`), so what Details and
+ * its metrics hold is kept. */
+export function ComponentDrawer({ component, groups, defaultDisplayOrder, onClose, onSaved, onRefresh }: { component: ComponentView | null; groups: ComponentGroup[]; defaultDisplayOrder: number; onClose: () => void; onSaved: () => void; onRefresh: () => void }) {
   const [part, setPart] = useState<Part>("Details");
   const [shown, setShown] = useState<ReadonlySet<Part>>(() => new Set<Part>(["Details"]));
   const close = async () => { if (await mayLeave()) onClose(); };
@@ -23,7 +25,7 @@ export function ComponentDrawer({ component, groups, defaultDisplayOrder, onClos
   return <Drawer eyebrow="Component" title={component.name} onClose={() => void close()}>
     <div className="preview-switch component-part-switch" role="group" aria-label="Show">{PARTS.map((name) => <button key={name} type="button" aria-pressed={part === name} data-autofocus={part === name ? "" : undefined} onClick={() => choose(name)}>{name}</button>)}</div>
     <div className="component-part" hidden={part !== "Details"}>{details}</div>
-    {shown.has("Status") && <div className="component-part" hidden={part !== "Status"}><ComponentStatus component={component} onSaved={onSaved} /></div>}
-    {shown.has("History") && <div className="component-part" hidden={part !== "History"}><ComponentHistory component={component} onSaved={onSaved} /></div>}
+    {shown.has("Status") && <div className="component-part" hidden={part !== "Status"}><ComponentStatus component={component} onSaved={onRefresh} /></div>}
+    {shown.has("History") && <div className="component-part" hidden={part !== "History"}><ComponentHistory component={component} onSaved={onRefresh} /></div>}
   </Drawer>;
 }
