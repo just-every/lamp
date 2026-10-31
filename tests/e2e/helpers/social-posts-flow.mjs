@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { savedInternalNote } from './internal-note-flow.mjs';
 import { readFile } from 'node:fs/promises';
 import { openFollowUpsRuntime, eventuallyFollowUp } from './follow-ups-runtime.mjs';
 
@@ -117,6 +118,7 @@ export async function socialPostsFlow(t) {
     }
     const affected = await component('Synthetic Lamp social API');
     const incident = await createIncident(affected.id);
+    const privateNote = await savedInternalNote(fixtureRuntime, incident.id, 'synthetic-lamp-private-social-008');
     const first = await publish(incident);
     const firstLog = await settle(first.update.id);
     const permalink = `${publicOrigin}/incidents/${incident.reference}`;
@@ -134,6 +136,7 @@ export async function socialPostsFlow(t) {
       if (impactPart !== impact) assert.ok(/\s/.test(impact[impactPart.length] ?? ''), `${network}: shortening ends at a word boundary`);
       assert.ok(!body.reply && !body.in_reply_to_id && !body.record?.reply, `${network}: first post starts a thread`);
       const row = firstLog.find(value => value.network === network);
+      assert.ok(!JSON.stringify(body).includes(privateNote), `${network}: the complete populated provider payload excludes the saved private note`);
       assert.equal(row.state, 'delivered'); assert.equal(row.attempts, 1); assert.ok(row.postId, `${network}: delivery log retains provider post id`);
       assert.ok(Number.isFinite(Date.parse(row.outcomeAt)), `${network}: successful receipt records an outcome time`);
       assert.equal(row.attemptLog.length, 1); assert.ok(row.attemptLog[0].finishedAt >= row.attemptLog[0].startedAt, `${network}: every successful attempt has a completion time`);

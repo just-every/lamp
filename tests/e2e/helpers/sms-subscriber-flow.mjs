@@ -1,6 +1,7 @@
 import { incidentFollowSmsFlow } from './incident-follow-sms-flow.mjs';
 import { smsDeliveryReceiptsFlow } from './sms-delivery-receipts-flow.mjs';
 import assert from 'node:assert/strict';
+import { savedInternalNote } from './internal-note-flow.mjs';
 import { createHmac } from 'node:crypto';
 import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin, subscriberCsv, subscriberCsvRows } from './subscriber-management-fixture.mjs';
 
@@ -54,10 +55,11 @@ export async function smsSubscriberFlow() {
     const result = await (await fixture.runtime.getWorker()).scheduled({ cron: '* * * * *' });
     assert.equal(result.outcome, 'ok', 'ordinary scheduled entry point dispatches committed SMS');
   };
-  const publish = async (component, impact, details = '') => {
+  const publish = async (component, impact, details = '', withNote = false) => {
     const created = await post('/api/app/incidents', { title: 'synthetic-lamp-301', components: [{ componentId: component.id, state: 'Partially unavailable', relationship: 'Primary' }] });
     assert.equal(created.status, 201, created.text);
     const incident = created.body.incident;
+    const privateNote = withNote ? await savedInternalNote(fixture, incident.id, 'synthetic-lamp-private-sms-008') : null;
     const draft = await api(`/api/app/incidents/${incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle: 'Identified', affectedAudience: 'Synthetic Lamp readers', customerImpact: impact, whatStillWorks: '', details, nextUpdateAt: new Date(Date.now() + 3600000).toISOString() }) });
     assert.equal(draft.status, 200, draft.text);
     const result = await post(`/api/app/incidents/${incident.id}/publish`, { channels: ['sms'] });
@@ -68,7 +70,7 @@ export async function smsSubscriberFlow() {
       assert.equal(response.status, 200);
       return response.text();
     }, html => html.replace(/<[^>]*>/g, '').includes(impact), 'the exact incident update text is present on its permanent public page');
-    return { incident, update: result.body.update };
+    return { incident, update: result.body.update, privateNote };
   };
   try {
     const component = await fixture.createComponent('synthetic-lamp-302');
@@ -138,10 +140,20 @@ export async function smsSubscriberFlow() {
     assert.ok(messagesFor(phone).at(-1).Body.includes('Synthetic Lamp follow-ups'));
     assert.ok(messagesFor(phone).at(-1).Body.includes('https://help.example.com'));
     const beforePublish = messagesFor(phone).length;
-    const first = await publish(component, 'See https://help.example.com/kb/123.');
+    const first = await publish(component, 'See https://help.example.com/kb/123.', '', true);
     assert.equal(messagesFor(phone).length, beforePublish + 1, 'one active selected number receives one publish');
     assert.ok(messagesFor(phone).at(-1).Body.includes('See https://help.example.com/kb/123.'));
     assert.ok(messagesFor(phone).at(-1).Body.includes(`/incidents/${first.incident.reference}`), 'SMS always carries the permanent update link');
+    const smsDeliveries = await api(`/api/app/sms/deliveries?incidentUpdateId=${first.update.id}`);
+    assert.equal(smsDeliveries.status, 200, smsDeliveries.text);
+    const committedSms = smsDeliveries.body.deliveries.find(row => row.subscriberId === subscriber.id);
+    assert.ok(committedSms, 'the confirmed reader belongs to this committed update');
+    assert.equal(committedSms.incidentUpdateId, first.update.id);
+    const capturedSms = messages.filter(message => message.sid === committedSms.providerMessageId);
+    assert.equal(capturedSms.length, 1, 'the provider receipt identifies the exact committed SMS');
+    assert.equal(capturedSms[0].To, phone);
+    assert.ok(capturedSms[0].Body.includes(`/incidents/${first.incident.reference}`));
+    assert.ok(!JSON.stringify(capturedSms[0]).includes(first.privateNote), 'the complete populated SMS form excludes the saved private note');
     assert.equal(messagesFor(pendingPhone).length, 1, 'number without YES gets only its opt-in');
     const beforeOther = messagesFor(phone).length;
     await publish(other, 'synthetic-lamp-304');
