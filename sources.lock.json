@@ -3660,7 +3660,7 @@
       "executable": false
     },
     "src/core/features/components/routes.ts": {
-      "sha256": "0947ff715c80e7999e7fa3421a71ab72c144fcfa1b3c9c41579a1b2eaaf5bfc2",
+      "sha256": "d8de9000bf922a599b1e3c85c51f6385d2e58c9b4d881a409146bc24ce764173",
       "executable": false
     },
     "src/core/features/components/service.ts": {
@@ -5776,7 +5776,7 @@
       "executable": false
     },
     "src/core/shared/schemas.ts": {
-      "sha256": "84f030a383ab7c9186733cd637b3ae7a457e436957123e0a0eef08c2ef51f9fc",
+      "sha256": "fac67ab3b045037c2159d3370a2c7936c561b111e21ad550db19c0ca8d2c9184",
       "executable": false
     },
     "src/core/shared/statuspage-mapping.ts": {
@@ -7056,7 +7056,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1f7ece2c05daa5fb2ea4d5b0683465ad92df9f35abc246559dfbaeb9b7d6c710",
+      "sha256": "86061ba570593de3b5d5a0d29455f75e97383998435ed17453360e6435a61d75",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
