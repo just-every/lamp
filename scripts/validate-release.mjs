@@ -4,7 +4,10 @@ import { readFile } from "node:fs/promises";
 import { assertReleaseMigrationInventory, assertReleaseContractInventory, coreMigrationIds, readReleaseHistory } from "./release-metadata.mjs";
 import { checkSchema, validate } from "../schema/json-schema.mjs";
 
+import { validateVendorCatalog } from "./validate-vendor-catalog.mjs";
+
 async function main() {
+  await validateVendorCatalog();
   const [release, seed, packageJson, releaseSchema, seedSchema, migrationIds, contract] = await Promise.all([
     readFile("RELEASE.json", "utf8").then(JSON.parse),
     readFile("seed.json", "utf8").then(JSON.parse),

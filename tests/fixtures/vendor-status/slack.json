@@ -1,0 +1,26 @@
+{
+  "source": "https://status.slack.com/api/v2.0.0/current",
+  "recording": "Public response structure with synthetic records and state variations; not a live delivery or availability receipt.",
+  "cases": [
+    {
+      "sourceState": "ok",
+      "expected": "Operational",
+      "body": "{\"status\": \"ok\", \"date_created\": \"2026-10-01T00:00:00-07:00\", \"date_updated\": \"2026-10-01T00:00:00-07:00\", \"active_incidents\": []}"
+    },
+    {
+      "sourceState": "notice",
+      "expected": "Degraded performance",
+      "body": "{\"status\": \"notice\", \"date_created\": \"2026-10-01T00:00:00-07:00\", \"date_updated\": \"2026-10-01T00:00:00-07:00\", \"active_incidents\": [{\"id\": 1, \"title\": \"synthetic-lamp-1\", \"type\": \"notice\", \"status\": \"Active\"}]}"
+    },
+    {
+      "sourceState": "incident",
+      "expected": "Partially unavailable",
+      "body": "{\"status\": \"incident\", \"date_created\": \"2026-10-01T00:00:00-07:00\", \"date_updated\": \"2026-10-01T00:00:00-07:00\", \"active_incidents\": [{\"id\": 1, \"title\": \"synthetic-lamp-1\", \"type\": \"incident\", \"status\": \"Active\"}]}"
+    },
+    {
+      "sourceState": "outage",
+      "expected": "Major outage",
+      "body": "{\"status\": \"outage\", \"date_created\": \"2026-10-01T00:00:00-07:00\", \"date_updated\": \"2026-10-01T00:00:00-07:00\", \"active_incidents\": [{\"id\": 1, \"title\": \"synthetic-lamp-1\", \"type\": \"outage\", \"status\": \"Active\"}]}"
+    }
+  ]
+}

@@ -271,5 +271,6 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/assets/favicon.svg", serve(() => "assets/favicon.svg"));
   app.get("/assets/mark.svg", serve(() => "assets/mark.svg"));
   app.get("/assets/og.svg", serve(() => "assets/og.svg"));
+  app.get("/api/public/dependencies", serve(() => "api/public/dependencies"));
   app.get("/api/public/status", serve(() => "status.json"));
 }

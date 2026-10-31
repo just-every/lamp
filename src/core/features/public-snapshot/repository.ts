@@ -1,3 +1,4 @@
+import { createDependencyRepository } from "../dependencies/repository";
 import { createIncidentFollowSettingsRepository } from "../subscribers/incident-follow-settings.repository";
 import { createMetricsRepository } from "../metrics/repository";
 import type { PublicMetric } from "../metrics/types";
@@ -38,6 +39,7 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  dependencies?: Awaited<ReturnType<ReturnType<typeof createDependencyRepository>["publicRows"]>>;
   smsEnabled?: boolean;
   incidentIncludeReport?:boolean;
   metrics?: PublicMetric[];
@@ -152,6 +154,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
       ]);
 
       const website = await createWebsiteRepository(binding).get();
+      const vendorIds = new Set((await createDependencyRepository(binding).list()).map(row => row.componentId));
       return {
         websiteUrl: website?.url ?? null,
         smsEnabled,
@@ -160,7 +163,8 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
         publicApiIds, incidentImpacts: Object.fromEntries(incidentImpactRows.filter(row => row.impact !== null).map(row => [row.id, row.impact!])),
         importedPublicRecords, importedNamespaces,
         settings,
-        components: componentRows,
+        dependencies: await createDependencyRepository(binding).publicRows(),
+        components: componentRows.filter(component => !vendorIds.has(component.id)),
         claims: [...standingClaims, ...incidentClaims, ...maintenanceClaims]
           .filter((claim): claim is { componentId: string; state: typeof componentStandingClaims.$inferSelect.state } => claim.componentId !== null),
         history,

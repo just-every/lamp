@@ -1,0 +1,386 @@
+[
+  {
+    "id": "aws",
+    "name": "AWS",
+    "origin": "https://status.aws.amazon.com",
+    "statusPageUrl": "https://status.aws.amazon.com/",
+    "path": "/rss/ec2-us-east-1.rss",
+    "format": "rss",
+    "mapping": {
+      "operational": "Operational",
+      "degraded": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/aws.json",
+    "selectionNote": "The default is EC2 in us-east-1. Choose the AWS Health RSS path for the service and region to follow."
+  },
+  {
+    "id": "google-cloud",
+    "name": "Google Cloud",
+    "origin": "https://status.cloud.google.com",
+    "statusPageUrl": "https://status.cloud.google.com/",
+    "path": "/incidents.json",
+    "format": "google-cloud",
+    "mapping": {
+      "AVAILABLE": "Operational",
+      "SERVICE_INFORMATION": "Degraded performance",
+      "SERVICE_DISRUPTION": "Partially unavailable",
+      "SERVICE_OUTAGE": "Major outage"
+    },
+    "fixture": "tests/fixtures/vendor-status/google-cloud.json"
+  },
+  {
+    "id": "azure",
+    "name": "Microsoft Azure",
+    "origin": "https://azure.status.microsoft",
+    "statusPageUrl": "https://azure.status.microsoft/",
+    "path": "/status/feed/",
+    "format": "rss",
+    "mapping": {
+      "operational": "Operational",
+      "degraded": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/azure.json"
+  },
+  {
+    "id": "cloudflare",
+    "name": "Cloudflare",
+    "origin": "https://www.cloudflarestatus.com",
+    "statusPageUrl": "https://www.cloudflarestatus.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/cloudflare.json"
+  },
+  {
+    "id": "fastly",
+    "name": "Fastly",
+    "origin": "https://status.fastly.com",
+    "statusPageUrl": "https://status.fastly.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/fastly.json"
+  },
+  {
+    "id": "vercel",
+    "name": "Vercel",
+    "origin": "https://www.vercel-status.com",
+    "statusPageUrl": "https://www.vercel-status.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/vercel.json"
+  },
+  {
+    "id": "stripe",
+    "name": "Stripe",
+    "origin": "https://status.stripe.com",
+    "statusPageUrl": "https://status.stripe.com/",
+    "path": "/current/full",
+    "format": "stripe",
+    "mapping": {
+      "up": "Operational",
+      "degraded": "Degraded performance",
+      "down": "Major outage"
+    },
+    "fixture": "tests/fixtures/vendor-status/stripe.json"
+  },
+  {
+    "id": "github",
+    "name": "GitHub",
+    "origin": "https://www.githubstatus.com",
+    "statusPageUrl": "https://www.githubstatus.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/github.json"
+  },
+  {
+    "id": "twilio",
+    "name": "Twilio",
+    "origin": "https://status.twilio.com",
+    "statusPageUrl": "https://status.twilio.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/twilio.json"
+  },
+  {
+    "id": "sendgrid",
+    "name": "SendGrid",
+    "origin": "https://status.sendgrid.com",
+    "statusPageUrl": "https://status.sendgrid.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/sendgrid.json"
+  },
+  {
+    "id": "okta",
+    "name": "Okta",
+    "origin": "https://status.okta.com",
+    "statusPageUrl": "https://status.okta.com/",
+    "path": "/",
+    "format": "okta",
+    "mapping": {
+      "operational": "Operational",
+      "Feature Disruption": "Partially unavailable",
+      "Major Service Disruption": "Major outage",
+      "Minor Service Disruption": "Degraded performance",
+      "Performance Issue": "Degraded performance",
+      "Service Degradation": "Degraded performance",
+      "Service Disruption": "Partially unavailable"
+    },
+    "fixture": "tests/fixtures/vendor-status/okta.json"
+  },
+  {
+    "id": "auth0",
+    "name": "Auth0",
+    "origin": "https://auth0.statuspage.io",
+    "statusPageUrl": "https://auth0.statuspage.io/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/auth0.json"
+  },
+  {
+    "id": "atlassian",
+    "name": "Atlassian",
+    "origin": "https://status.atlassian.com",
+    "statusPageUrl": "https://status.atlassian.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/atlassian.json"
+  },
+  {
+    "id": "slack",
+    "name": "Slack",
+    "origin": "https://status.slack.com",
+    "statusPageUrl": "https://status.slack.com/",
+    "path": "/api/v2.0.0/current",
+    "format": "slack",
+    "mapping": {
+      "ok": "Operational",
+      "notice": "Degraded performance",
+      "incident": "Partially unavailable",
+      "outage": "Major outage"
+    },
+    "fixture": "tests/fixtures/vendor-status/slack.json"
+  },
+  {
+    "id": "zoom",
+    "name": "Zoom",
+    "origin": "https://status.zoom.us",
+    "statusPageUrl": "https://status.zoom.us/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/zoom.json"
+  },
+  {
+    "id": "shopify",
+    "name": "Shopify",
+    "origin": "https://www.shopifystatus.com",
+    "statusPageUrl": "https://www.shopifystatus.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/shopify.json"
+  },
+  {
+    "id": "datadog",
+    "name": "Datadog",
+    "origin": "https://status.datadoghq.com",
+    "statusPageUrl": "https://status.datadoghq.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/datadog.json"
+  },
+  {
+    "id": "pagerduty",
+    "name": "PagerDuty",
+    "origin": "https://status.pagerduty.com",
+    "statusPageUrl": "https://status.pagerduty.com/",
+    "path": "/api/impacted_services",
+    "format": "pagerduty",
+    "mapping": {
+      "operational": "Operational",
+      "partial outage": "Partially unavailable",
+      "outage": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/pagerduty.json",
+    "supplementalPath": "/api/post_enums"
+  },
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "origin": "https://status.openai.com",
+    "statusPageUrl": "https://status.openai.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/openai.json"
+  },
+  {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "origin": "https://status.anthropic.com",
+    "statusPageUrl": "https://status.anthropic.com/",
+    "path": "/api/v2/summary.json",
+    "format": "statuspage",
+    "mapping": {
+      "operational": "Operational",
+      "degraded_performance": "Degraded performance",
+      "partial_outage": "Partially unavailable",
+      "major_outage": "Major outage",
+      "under_maintenance": "Under maintenance",
+      "none": "Operational",
+      "minor": "Degraded performance",
+      "major": "Partially unavailable",
+      "critical": "Major outage",
+      "maintenance": "Under maintenance"
+    },
+    "fixture": "tests/fixtures/vendor-status/anthropic.json"
+  }
+]
