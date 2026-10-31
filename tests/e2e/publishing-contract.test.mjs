@@ -26,6 +26,9 @@ function brisbaneTime(instant) {
   const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][local.getUTCMonth()];
   return `${month} ${local.getUTCDate()}, ${local.getUTCFullYear()}, ${local.toISOString().slice(11, 16)} UTC+10:00`;
 }
+function brisbaneMonth(instant) {
+  return new Date(Date.parse(instant) + 10 * 3600_000).toISOString().slice(0, 7);
+}
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
   const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' } });
@@ -223,10 +226,11 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal(historicalReach.updates.length, 3);
     assert.ok(historicalReach.updates.every(update => update.channels.every(channel => channel.committed === 0)), 'historical and later current-time updates create no subscriber delivery');
     assert.ok(!j.messages.some(mail => mail.text.includes(historical.title)), 'no historical incident notification reaches the provider');
-    const performance = await j.json(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}`);
+    const performanceMonth = brisbaneMonth((await j.read(incident.id)).openedAt);
+    const performance = await j.json(`/api/app/communication-performance?month=${performanceMonth}`);
     assert.ok(performance.incidents.some(row => row.incidentId === incident.id));
     assert.ok(performance.summary.commitments.evaluated > 0);
-    const performanceCsv = await j.request(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}&format=csv`);
+    const performanceCsv = await j.request(`/api/app/communication-performance?month=${performanceMonth}&format=csv`);
     assert.equal(performanceCsv.status, 200); assert.ok((await performanceCsv.text()).includes(incident.reference));
     for (const format of ['csv', 'pdf']) {
       const response = await j.request(`/api/app/availability-report?component=${component.id}&month=${month}&format=${format}`);
