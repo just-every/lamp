@@ -10,6 +10,7 @@ import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
 import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { channelsBrowserFlow } from "./helpers/channels-browser-flow.mjs";
+import { presetRecoveryFlow } from "./helpers/preset-recovery-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
@@ -292,7 +293,9 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008
     // Header for tools that send one, path segment for those that cannot.
     const accepted = await send(payloads[preset].down, preset === "datadog" || preset === "uptimerobot" ? { headers: { Authorization: `Bearer ${token}` } } : { path: `${endpointUrl}/${token}` });
     assert.equal(accepted.status, 202, `${preset}: documented alert`);
-    const incident = (await api(`/api/app/incidents/${(await accepted.json()).incidentId}`)).body.incident;
+    const firing = await accepted.json();
+    const incident = (await api(`/api/app/incidents/${firing.incidentId}`)).body.incident;
+    Object.assign(sources[preset], { firing, incident });
     assert.equal(incident.updates.length, 0, "never published");
     assert.deepEqual(incident.components.map((row) => row.componentId), [target.id]);
     assert.equal(incident.components[0].publishedAt ?? null, null);
@@ -301,24 +304,7 @@ test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-016 INTAKE-010 INTAKE-009 INTAKE-008
   assert.equal(receipts.filter((receipt) => receipt.state === "invalid").length, 4, "refused payloads are recorded against their source");
   const page = await (await fetch(`${publicOrigin}/api/public/status`)).text();
   assert.doesNotMatch(page, /Checkout latency|Shop \(/, "no public surface changes");
-  for (const preset of Object.keys(payloads)) {
-    const { token, endpointUrl } = sources[preset];
-    const recovered = await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloads[preset].up) });
-    assert.equal(recovered.status, 202, preset);
-    const incident = (await api(`/api/app/incidents/${(await recovered.json()).incidentId}`)).body.incident;
-    assert.equal(incident.lifecycle, "Resolved", `${preset}: draft resolved`);
-    assert.equal(incident.updates.length, 0, `${preset}: still nothing public`);
-  }
-  // A published preset incident keeps its lifecycle; only the recovery is recorded.
-  const { token, endpointUrl, component: shop } = sources.pingdom;
-  const fired = await (await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payloads.pingdom.down, state_changed_timestamp: 1791700500 }) })).json();
-  const draft = { lifecycle: "Investigating", affectedAudience: "Shoppers.", customerImpact: "The shop is down.", whatStillWorks: "", details: "", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
-  assert.equal((await api(`/api/app/incidents/${fired.incidentId}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
-  assert.equal((await post(`/api/app/incidents/${fired.incidentId}/publish`, { channels: [] })).status, 200);
-  const recovered = await (await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payloads.pingdom.up, state_changed_timestamp: 1791700600 }) })).json();
-  assert.equal(recovered.incidentId, fired.incidentId);
-  assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
-  assert.ok(shop.id);
+  await presetRecoveryFlow({ api, post, runtime, publicOrigin, sql, sources, payloads, t });
   await uptimePresetFlow({ api, post, component, publicOrigin });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
   await monitorSetupJourney({ api, component, origin, publicOrigin, cookie });
