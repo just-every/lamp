@@ -3124,6 +3124,8 @@ INCIDENT-006 and INCIDENT-009 retain current-main partial judgments and recorded
 
 INTAKE-019 proof is from the code and tests at commit `3e8eddbd01b6569201bb2c14cd4cf187fc959ac6` (29 October 2026); the candidate retains those source and journey bytes. Other clause judgments remain inherited.
 
+INTAKE-007 retains current-main's partial judgment and recorded gap. The replay of candidate `cbf311b56735924c82663239c758c7482a794197` adds `tests/e2e/helpers/preset-recovery-flow.mjs`, loaded by `tests/e2e/channels-and-presets.test.mjs`, to compare the settled public artifact inventory and response bytes, private permalink absence, request-bounded recovery receipts and original firing evidence for Datadog, UptimeRobot, Better Stack and Pingdom, and unchanged published lifecycle and complete update records. These additional assertions do not change the newer clause judgment.
+
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 11 | 96 | 0 | 107 |

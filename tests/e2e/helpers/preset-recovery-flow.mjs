@@ -7,7 +7,8 @@ import { readFile } from 'node:fs/promises';
 async function publicSnapshot({ runtime, publicOrigin, sql, privateIncidents }) {
   const deadline = Date.now() + 30_000;
   while (true) {
-    await fetch(`${publicOrigin}/`);
+    const root = await fetch(`${publicOrigin}/`);
+    await root.arrayBuffer();
     const [work] = sql('SELECT requested_revision, completed_revision FROM public_snapshot_work');
     const building = sql("SELECT id FROM snapshot_builds WHERE status = 'building'");
     if (work && work.requested_revision === work.completed_revision && building.length === 0) break;
@@ -40,15 +41,19 @@ async function publicSnapshot({ runtime, publicOrigin, sql, privateIncidents }) 
     else if (artifact.key === 'history.html') path = '/history';
     else if (artifact.key === 'status.json') path = '/api/public/status';
     else if (artifact.key === 'not-found.html') path = '/incidents/synthetic-lamp-missing';
+    else if (artifact.key.startsWith('aliases/')) path = decodeURIComponent(artifact.key.slice('aliases/'.length, -5));
     else if (/^(?:incidents|maintenance|history)\/.+\.html$/.test(artifact.key)) path = path.slice(0, -5);
     else {
       const collection = /^api\/public\/v1\/(components|incidents|maintenance)(?:\/(.+))?\.json$/.exec(artifact.key);
       if (collection) path = `/api/public/v1/${collection[1]}${collection[2] ? `?cursor=${collection[2]}` : ''}`;
     }
-    const response = await fetch(`${publicOrigin}${path}`);
-    assert.equal(response.status, artifact.key === 'not-found.html' ? 404 : 200, path);
-    assert.equal(response.headers.get('x-lamp-snapshot-version'), pointer.version, path);
-    responses.push({ key: artifact.key, path, status: response.status, version: response.headers.get('x-lamp-snapshot-version'), generatedAt: response.headers.get('x-lamp-snapshot-generated-at'), bytes: Buffer.from(await response.arrayBuffer()).toString('base64') });
+    const response = await fetch(`${publicOrigin}${path}`, { redirect: 'manual' });
+    const bytes = Buffer.from(await response.arrayBuffer()).toString('base64');
+    const expectedStatus = artifact.key === 'not-found.html' ? 404 : artifact.contentType === 'application/vnd.lamp.redirect+json' ? 301 : 200;
+    assert.equal(response.status, expectedStatus, path);
+    if (response.status !== 404) assert.equal(response.headers.get('x-lamp-snapshot-version'), pointer.version, path);
+    assert.equal(response.headers.get('x-lamp-snapshot-generated-at'), pointer.generatedAt, path);
+    responses.push({ key: artifact.key, path, status: response.status, location: response.headers.get('location'), version: response.headers.get('x-lamp-snapshot-version'), generatedAt: response.headers.get('x-lamp-snapshot-generated-at'), bytes });
   }
   const absent = [];
   for (const incident of privateIncidents) {
@@ -130,6 +135,9 @@ export async function presetRecoveryFlow({ api, post, runtime, publicOrigin, sql
     assert.equal(incidentBefore.lifecycle, 'Investigating');
     assert.equal(incidentBefore.updates.length, 1, 'published control has a real committed update');
     const before = await snapshot();
+    const publicIncident = before.responses.find(row => row.key === `incidents/${incidentBefore.reference}.html`);
+    assert.ok(publicIncident, 'the published control has a served public permalink');
+    assert.ok(Buffer.from(publicIncident.bytes, 'base64').toString('utf8').includes(draft.customerImpact), 'the public control contains the submitted update');
     const beforeUpdates = updates();
     await recover(preset, source, payload.up, firing, payload.key);
     const incidentAfter = (await api(`/api/app/incidents/${firing.incidentId}`)).body.incident;
