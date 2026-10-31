@@ -376,7 +376,7 @@ Core · published · **partial** · Cites BASE-AUDIT-001
 3. Every affected uptime figure is recomputed within sixty seconds.
 4. The audit records operator, interval and reason.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`
+**Evidence.** `tests/e2e/public-contract.test.mjs`; `tests/e2e/helpers/uptime-correction-journey.mjs`; empty-reason and unauthenticated refusal without history changes; one superseding fact with all original values retained; one measured sixty-second deadline per correction for all four warmed public layouts, their daily minutes and the overall uptime figure, native component collection, component uptime badge and both affected monthly and quarterly JSON, CSV and PDF reports; searchable and exported operator audit plus persisted interval and reason. The controlled Worker clock isolates a two-hour outage across a month and quarter boundary..
 **Gap.** Old cited evidence asserts The corrected state is retained; The stored correction retains the exact interval start; The stored correction retains the exact interval end; The reason is retained. Unasserted: Every affected figure is observed within sixty seconds.
 
 #### UPTIME-005 — Stated method
