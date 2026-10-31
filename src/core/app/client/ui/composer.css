@@ -1,6 +1,6 @@
-/* The incident page, new or open: a short heading, then one plate with the update being written (the amber block)
-   beside its preview, and the record of what already happened under the preview. Preview and record stay white.
-   Reading order is fields, preview, Publish, record (UPDATE-004: the preview comes before Publish). */
+/* The incident page, new or open: a short heading, then one white plate. The update being written is the amber block,
+   ending with its Publish row; beside it the preview, the published timeline and, under them, the incident panel's
+   named rows. Reading order is fields, preview and timeline, Publish, panel (UPDATE-004: the preview comes before Publish). */
 .incident-page { display: grid; gap: 20px; min-width: 0; }
 .incident-heading { display: grid; min-width: 0; }
 .incident-heading h1 { margin: 0; font-size: 32px; overflow-wrap: anywhere; }
@@ -12,14 +12,16 @@
 .incident-facts strong { color: var(--ink); font-weight: 600; }
 .incident-facts .overdue-note { color: var(--down); font-weight: 500; }
 
-.incident-compose { display: grid; min-width: 0; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "composer side" "publish side"; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); overflow: hidden; }
-.composer-panel, .composer-publish { min-width: 0; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); }
-.composer-panel { grid-area: composer; padding: 24px 28px 4px; }
-.composer-publish { grid-area: publish; padding: 0 28px 24px; }
+/* The plate does not clip: the + menu drops past its edge. The amber block rounds the plate's corner itself. When the
+   preview and timeline are taller than the update, the flexible Publish row takes the difference, so the amber stays
+   snug and white shows below it; the panel follows the timeline either way. */
+.incident-compose { display: grid; min-width: 0; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); grid-template-rows: auto 1fr auto; grid-template-areas: "composer side" "publish side" ". panel"; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); }
+.composer-panel, .composer-publish { min-width: 0; background: var(--amber-wash); }
+.composer-panel { grid-area: composer; border-top-left-radius: 11px; padding: 24px 28px 4px; }
+.composer-publish { grid-area: publish; align-self: start; padding: 0 28px 24px; }
 .incident-side { grid-area: side; min-width: 0; border-left: 1px solid var(--line); }
 .preview-panel { min-width: 0; padding: 24px; }
 .incident-record { min-width: 0; margin: 0; border-top: 1px solid var(--line); padding: 20px 24px 24px; }
-.incident-extras { display: grid; gap: 16px; min-width: 0; }
 
 /* The update: plain questions over their fields. */
 .composer-heading, .preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -54,6 +56,13 @@
 .choice-pill:has(input:focus-visible) { outline: 3px solid var(--ink); outline-offset: 2px; }
 .next-update-choices input[type="datetime-local"] { width: auto; flex: 1 1 200px; max-width: 240px; min-height: 36px; padding-block: 6px; }
 
+/* Every field on the incident pages has one border, and keyboard focus sits on it: the border turns ink and thickens,
+   with no ring floating apart from it, including on a date field's own picker button. A chip's state select shows its
+   focus on the chip's own border. */
+.incident-page :is(input:not([type="checkbox"], [type="radio"]), select, textarea):is(:focus-visible, :focus-within) { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink), var(--focus-ring); }
+.incident-page select.add-component:focus-visible { border-style: solid; }
+.incident-page input[type="checkbox"]:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
+
 /* Affected components: one chip each, the claimed state chosen inside it; "+ Add component" beside them. */
 .component-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .component-chip { display: inline-flex; max-width: 100%; min-height: 38px; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); padding: 0 6px 0 12px; }
@@ -61,32 +70,62 @@
 .component-chip-now { flex: none; color: var(--ink-3); font-size: 13px; white-space: nowrap; }
 .component-chip-name { min-width: 0; flex: 0 1 auto; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .component-chip select { width: auto; min-width: 0; flex: 0 1 auto; min-height: 30px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background-color: transparent; color: var(--ink-2); padding: 4px 32px 4px 10px; font-size: 14px; background-position: right 16px center, right 10px center; }
-.component-chip select:focus { box-shadow: none; }
-.component-chip select:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.component-chip select:focus, .incident-page .component-chip select:focus-visible { outline: 0; box-shadow: none; }
+.component-chip:has(select:focus-visible) { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 .chip-remove { display: inline-grid; flex: none; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--ink-3); font-size: 18px; line-height: 1; }
 .chip-remove:hover { background: var(--stage); color: var(--ink); }
 select.add-component { width: auto; min-height: 38px; border-style: dashed; border-radius: 999px; background-color: transparent; color: var(--ink-2); padding: 6px 38px 6px 14px; font-size: 14px; font-weight: 500; }
 .component-chips-empty { margin: 0; color: var(--ink-2); font-size: 14px; }
 
-/* Publish row: More options on the left, who hears about it and the button on the right. */
+/* Publish row: the + (Update options) on the left, what the options change and the button on the right. */
 .composer-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 16px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px; }
-.more-options-toggle { display: inline-flex; min-height: 40px; align-items: center; gap: 6px; margin-right: auto; border: 0; background: none; color: var(--ink-2); padding: 0; font-size: 14px; font-weight: 500; }
-.more-options-toggle::after { content: ''; width: 6px; height: 6px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
-.more-options-toggle[aria-expanded="true"]::after { margin-top: 3px; transform: rotate(-135deg); }
-.more-options-toggle:hover { color: var(--ink); }
+.update-options { position: relative; margin-right: auto; }
+.update-options-toggle { display: inline-grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); color: var(--ink); padding: 0; cursor: pointer; }
+.update-options-toggle:hover { border-color: var(--ink-3); }
+.update-options-toggle[aria-expanded="true"] { border-color: var(--pill); background: var(--pill); color: var(--on-ink); }
 .publish-hint { color: var(--ink-3); font-size: 13px; }
-.more-options { display: grid; gap: 20px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 20px; }
-.more-options[hidden] { display: none; }
-.option-group > legend, .template-controls h3 { margin-bottom: 8px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 600; }
+.option-message { margin: 12px 0 0; color: var(--ink-2); font-size: 14px; font-weight: 500; }
+.composer-publish > .form-note { margin-top: 12px; }
+
+/* The + menu drops down from the button: four captioned groups of entries, each with its glyph and what it holds now. */
+.update-options-menu { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; width: 320px; max-width: calc(100vw - 32px); border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-raised); padding: 6px; }
+.option-menu-group + .option-menu-group { margin-top: 4px; border-top: 1px solid var(--line); padding-top: 4px; }
+.option-caption { padding: 10px 12px 4px; color: var(--ink-3); font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.option-entry { display: flex; width: 100%; min-height: 38px; align-items: center; gap: 12px; border: 0; border-radius: 8px; background: none; color: var(--ink); padding: 8px 12px; font-size: 15px; text-align: left; cursor: pointer; }
+.option-entry:hover, .option-entry:focus { background: var(--chip); }
+.option-entry[aria-disabled="true"] { color: var(--ink-3); cursor: not-allowed; }
+.option-glyph { flex: none; color: var(--ink-3); }
+.option-label { min-width: 0; flex: 1 1 auto; white-space: nowrap; }
+.option-value { min-width: 0; color: var(--ink-3); font-size: 13px; text-align: right; overflow-wrap: anywhere; }
+.option-choice { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 12px 10px; }
+.option-choice .choice-pill[aria-checked="true"] { border-color: var(--pill); background: var(--pill); color: var(--on-ink); }
+
+/* At 620 px and under the menu is a bottom sheet: a grabber, its title and a close button over 48 px rows. */
+.update-options-sheet { position: fixed; inset: auto 0 0; width: 100%; max-width: none; max-height: 88vh; margin: 0; overflow-y: auto; border: 0; border-radius: 20px 20px 0 0; background: var(--card); color: var(--ink); padding: 10px 12px 24px; }
+.update-options-sheet::backdrop { background: var(--backdrop); }
+.sheet-grabber { width: 40px; height: 4px; margin: 2px auto 10px; border-radius: 2px; background: var(--line-strong); }
+.sheet-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 6px 6px; }
+.sheet-heading h2 { margin: 0; font-size: 20px; }
+.sheet-close { display: inline-grid; width: 44px; height: 44px; flex: none; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); color: var(--ink); padding: 0; }
+.update-options-sheet .option-menu .option-entry { min-height: 48px; }
+.update-options-sheet .option-menu .choice-pill { min-height: 44px; }
+
+/* One option panel at a time opens under the Publish row; closed, it stays mounted. */
+.option-panel { display: grid; gap: 14px; min-width: 0; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px; }
+.option-panel[hidden] { display: none; }
+.option-panel-title { margin: 0; color: var(--ink); font-size: 15px; font-weight: 600; }
+.option-panel-actions { display: flex; justify-content: flex-end; }
+.option-group > legend { margin-bottom: 8px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 600; }
 .option-text { gap: 8px; }
+.option-text[hidden] { display: none; }
 .option-text textarea { min-height: 68px; }
-.publication-controls { display: grid; gap: 20px; min-width: 0; }
-.channel-checks { display: flex; flex-wrap: wrap; gap: 8px; }
-.channel-checks .checkbox-label { min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 8px 12px; }
+.correction-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.correction-choice select { width: auto; min-width: 0; flex: 1 1 220px; min-height: 40px; font-size: 14px; }
+.channel-checks { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.channel-checks .checkbox-label { min-height: 40px; }
 .publish-timing .form-label { max-width: 320px; }
 .relationship-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .template-controls { display: grid; gap: 10px; }
-.template-controls h3 { margin: 0; }
 .template-controls p { margin: 0; color: var(--ink-3); font-size: 13px; }
 .template-form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
 .template-form .form-label { min-width: 0; flex: 1 1 150px; font-size: 13px; }
@@ -117,47 +156,77 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
 .timeline li { position: relative; color: var(--ink); }
 .timeline li::before { content: ''; position: absolute; top: 5px; left: -22px; width: 7px; height: 7px; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--card); }
 .timeline li strong { font-weight: 600; }
-.timeline li span { display: block; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.timeline li span { display: block; color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
 .timeline li p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
-.reach-line { margin: 12px 0 0; color: var(--ink-3); font-size: 13px; }
 
-/* The incident brief (DRAFT-004): closed to a line unless alerts brought facts, on a tinted plate. */
-.incident-brief { border: 1px solid var(--line); border-radius: 12px; background: var(--card-tint); padding: 4px 16px; }
-.incident-brief[open] { padding-bottom: 16px; }
-.incident-brief > summary { display: flex; min-height: 44px; align-items: center; gap: 10px; cursor: pointer; }
-.incident-brief > summary h2 { margin: 0; font-size: 15px; }
-.incident-brief > summary span { color: var(--ink-3); font-size: 13px; }
-.incident-brief h3 { margin: 0 0 6px; color: var(--ink); font-size: 13px; font-weight: 600; }
+/* The incident brief (DRAFT-004), inside the panel's Brief row: what we know beside what we do not know yet. */
+.incident-brief { display: grid; gap: 12px; min-width: 0; }
+.incident-brief h4 { margin: 0 0 6px; color: var(--ink); font-size: 13px; font-weight: 600; }
 .incident-brief p { margin: 0; color: var(--ink-3); font-size: 13px; }
 .brief-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .brief-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--ink); font-size: 13px; }
 .brief-list b { margin-right: 4px; color: var(--ink-3); font-weight: 600; }
 .brief-list summary { cursor: pointer; }
-.brief-list pre, .brief-disclosure pre { overflow-x: auto; max-height: 260px; margin: 6px 0 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 8px; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.brief-list pre, .brief-disclosure pre { overflow-x: auto; max-height: 260px; margin: 6px 0 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 8px; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .brief-list dl { display: grid; gap: 2px; margin: 6px 0 0; }
-.brief-list dt { color: var(--ink-3); font-size: 11px; }
+.brief-list dt { color: var(--ink-3); font-size: 13px; }
 .brief-list dd { margin: 0 0 4px; }
-.brief-questions li { border-left: 2px solid var(--line-strong); padding-left: 8px; }
+.brief-questions li { border-radius: 8px; background: var(--chip); padding: 8px 10px; }
 .brief-disclosure { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
 .brief-disclosure summary { cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 500; }
 /* Under a suggested field: the brief items it cites; text with no source is flagged for checking. */
 .field-sources { margin: -12px 0 0; color: var(--ink-3); font-size: 13px; }
 .field-sources a { color: var(--ink); text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 3px; }
 .field-sources b { font-weight: 600; }
-.field-sources.is-unsourced { border-left: 2px solid var(--amber); padding-left: 8px; color: var(--amber-ink); }
+.field-sources.is-unsourced { display: flex; align-items: flex-start; gap: 6px; color: var(--amber-ink); font-weight: 500; }
+.field-sources.is-unsourced svg { flex: none; margin-top: 2px; }
 
-/* The incident's own tools close the page: notes, review, correction, public impact, deletion. */
-.incident-actions { display: grid; gap: 12px; }
-.incident-actions .more-options-toggle { justify-self: start; }
-.incident-actions-panel { display: grid; gap: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 20px 24px; }
-.incident-actions-panel[hidden] { display: none; }
+/* The incident panel, under the timeline: one list of named rows, each a disclosure with its glyph, name, one-line
+   summary and chevron; an open row is tinted and its content sits under the name. Delete incident ends it, quiet red. */
+.incident-panel { grid-area: panel; display: grid; align-content: start; gap: 2px; min-width: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); padding: 12px 12px 20px; }
+.panel-row { min-width: 0; border-radius: 10px; }
+.panel-row-heading { margin: 0; font-size: inherit; }
+.panel-line { display: flex; min-height: 56px; align-items: center; gap: 14px; margin: 0; padding: 8px 12px; }
+.incident-panel .panel-row-toggle { display: flex; width: 100%; min-height: 56px; align-items: center; gap: 14px; border: 0; border-radius: 10px; background: none; color: var(--ink); padding: 8px 12px; font-weight: 400; text-align: left; cursor: pointer; }
+.panel-row-toggle:hover, .panel-row.is-open .panel-row-toggle { background: var(--chip); }
+.panel-row-icon, .panel-row-chevron { flex: none; color: var(--ink-3); }
+.panel-row-chevron { width: 16px; height: 16px; transition: transform .15s; }
+.panel-row-toggle[aria-expanded="true"] .panel-row-chevron { transform: rotate(90deg); }
+.panel-row-text { display: grid; min-width: 0; flex: 1 1 auto; gap: 2px; }
+.panel-row-name { color: var(--ink); font-size: 15px; font-weight: 600; line-height: 1.3; }
+.panel-row-summary { color: var(--ink-3); font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.panel-row-body { display: grid; gap: 12px; min-width: 0; padding: 10px 12px 14px 44px; }
+.panel-row-body[hidden] { display: none; }
+.panel-row-body .field-label { color: var(--ink); font-size: 14px; font-weight: 500; }
+.panel-row-body > p, .panel-row-body .report-editor > p, .incident-impact > p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.panel-note { display: grid; gap: 8px; padding: 8px 12px; }
+.panel-message { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.incident-impact, .communication-owner, .report-editor { display: grid; gap: 10px; min-width: 0; }
+.incident-impact details, .report-waiver { font-size: 14px; }
+.report-waiver { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.report-waiver h4 { margin: 0; font-size: 14px; }
+.report-waiver form { display: grid; gap: 8px; }
+.panel-row-body .communication-panel { padding: 0; }
+.panel-row-body .communication-panel h4 { margin: 16px 0 10px; font-size: 15px; }
+.panel-row-body .communication-metrics { margin: 0; }
+/* The incident's subscribers keep their own table; inside the row the row's name heads it. */
+.panel-row-body > .incident-subscribers-card { border: 0; background: none; box-shadow: none; padding: 0; }
+.panel-row-body > .incident-subscribers-card > h2 { display: none; }
+.panel-row-body > .incident-subscribers-card > p { padding: 0; }
+.delete-incident { display: inline-flex; width: fit-content; min-height: 44px; align-items: center; gap: 10px; border: 0; background: none; color: var(--down); padding: 8px 12px; font-size: 15px; font-weight: 500; cursor: pointer; }
+.delete-incident:hover { text-decoration: underline 1.5px; text-underline-offset: 4px; }
+.incident-delete { display: grid; gap: 10px; margin-top: 6px; }
+.incident-delete-form { padding: 4px 12px 0; }
+.incident-delete-form p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.danger-fill { background: var(--down); color: var(--on-ink); }
 
 @media (max-width: 1180px) {
-  .incident-compose { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "composer" "side" "publish"; }
+  .incident-compose { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "composer" "side" "publish" "panel"; }
   .incident-side { border-top: 1px solid var(--line); border-left: 0; }
-  .composer-panel { padding-bottom: 24px; }
-  .composer-publish { background: var(--card); box-shadow: none; }
+  .composer-panel { border-top-right-radius: 11px; padding-bottom: 24px; }
+  .composer-publish { align-self: stretch; background: var(--card); }
   .composer-publish .composer-footer { margin-top: 0; }
+  .incident-panel { border-left: 0; }
 }
 
 @media (max-width: 620px) {
@@ -175,8 +244,11 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
   .component-chip select { order: 4; flex: 1 1 140px; min-height: 44px; border-left: 0; padding-left: 0; }
   .composer-footer { justify-content: space-between; }
   .composer-footer .button { width: 100%; }
-  .more-options-toggle { margin-right: 0; }
+  .update-options { margin-right: 0; }
+  .update-options-toggle { width: 44px; height: 44px; }
   .publish-hint { margin-left: auto; }
+  .incident-panel { padding: 8px 4px 16px; }
+  .panel-row-body { padding-left: 12px; }
   .next-update-choices input[type="datetime-local"] { max-width: none; min-height: 44px; flex-basis: 100%; }
   .template-form { flex-direction: column; align-items: stretch; }
   .template-form .form-label { flex-basis: auto; }
