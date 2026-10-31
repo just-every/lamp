@@ -22,7 +22,27 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const firstGroup = (await j.json('/api/app/component-groups', 'POST', { name: 'Customer services', displayOrder: 0 }, 201)).group;
     const secondGroup = (await j.json('/api/app/component-groups', 'POST', { name: 'Platform services', displayOrder: 1 }, 201)).group;
     const main = await j.component('Public API', { groupId: firstGroup.id, note: 'Requests remain safe to retry.', displayOrder: 0 });
-    const other = await j.component('Dashboard', { groupId: firstGroup.id, displayOrder: 1, onlyShowIfDegraded: true });
+    const other = (await j.json('/api/app/components', 'POST', {
+      name: 'Dashboard', groupId: firstGroup.id, description: '', internal: false, displayOrder: 1, onlyShowIfDegraded: true,
+    }, 201)).component;
+    assert.equal(other.note, '', 'omitting the note at creation returns an empty note');
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === other.id).note, '', 'the empty default persists through an independent native read');
+    const noteInput = { name: main.name, groupId: firstGroup.id, description: '', internal: false, displayOrder: 0 };
+    const beforeInvalidNotes = await j.json('/api/app/components');
+    await j.json('/api/app/components', 'POST', { ...noteInput, name: 'synthetic-lamp-overlength', note: 'n'.repeat(251) }, 400);
+    await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: 'n'.repeat(251) }, 400);
+    await j.json(`/api/app/components/${main.id}`, 'PUT', noteInput, 400);
+    assert.deepEqual(await j.json('/api/app/components'), beforeInvalidNotes, 'invalid notes and omitted edit notes leave the catalogue unchanged');
+    const boundaryNote = '<state>&' + 'n'.repeat(242);
+    const updated = (await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: boundaryNote })).component;
+    assert.equal(updated.note, boundaryNote);
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).note, boundaryNote);
+    const boundaryHtml = await j.visible('/', boundaryNote);
+    assert.ok(boundaryHtml.includes(`<p class="component-note">&lt;state&gt;&amp;${'n'.repeat(242)}</p>`), 'the full 250-character note is displayed as plain text beside the state');
+    const cleared = (await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: '' })).component;
+    assert.equal(cleared.note, '', 'an explicit empty note still clears an existing note');
+    assert.equal((await j.json('/api/app/components')).components.find(row => row.id === main.id).note, '');
+    await j.json(`/api/app/components/${main.id}`, 'PUT', { ...noteInput, note: main.note });
     const hidden = await j.component('PRIVATE database replica', { groupId: secondGroup.id, internal: true, note: 'PRIVATE topology' });
     const limits = JSON.parse(await readFile('seed.json', 'utf8')).limits;
     const beforeCatalogue = await j.json('/api/app/components/bulk');

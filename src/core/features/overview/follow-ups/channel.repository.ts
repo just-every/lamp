@@ -8,7 +8,7 @@ SELECT 'channel-notification:' || p.id AS id,'channel-notification' AS kind,
   CASE WHEN x.state IN ('rejected','uncertain') OR (x.state='queued' AND x.attempts>0) THEN 'Channel notification delivery failed or needs confirmation.' END AS failure_message,
   CASE WHEN x.state IN ('rejected','uncertain') OR (x.state='queued' AND x.attempts>0) THEN
     strftime('%Y-%m-%dT%H:%M:%fZ',COALESCE((SELECT MAX(a.finished_at) FROM integration_attempts a WHERE a.namespace=x.namespace AND a.delivery_id=x.id),x.next_at)/1000.0,'unixepoch') END AS failure_at,
-  '/app/deliveries' AS link,
+  '/app/subscribers?view=log' AS link,
   json_array(p.id,x.state,x.attempts,x.next_at) AS occurrence
 FROM delivery_channel_posts p JOIN delivery_channel_destinations d ON d.id=p.destination_id
 JOIN incident_updates u ON u.id=p.incident_update_id JOIN incidents i ON i.id=u.incident_id

@@ -48,9 +48,7 @@ export function recordHead(kicker: string, title: string, heading: TitleHeading,
 }
 
 export function updateMarkup(incident: PublicIncident, update: PublicIncident["updates"][number], timezone: string) {
-  const rendered = renderedUpdate(incident, { ...update, componentChanges: [] }, timezone);
-  const changes = (update.componentChanges ?? []).filter(change => !change.internal && change.previousState !== change.newState);
-  rendered.public.fields.push(...changes.map(change => ({ label: "Component", value: `${change.name}: ${change.newState}` })));
+  const rendered = renderedUpdate(incident, update, timezone);
   const fields = rendered.public.fields.map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${field.instant ? timestamp(field.instant, timezone) : renderUpdateHtml(field.value)}</dd></div>`).join("");
   const isResolutionTime = incident.lifecycle === "Resolved" && update.lifecycle === "Resolved" && update.publishedAt === incident.resolvedAt;
   const published = isResolutionTime ? `Resolved at ${timestamp(update.publishedAt, timezone)}` : timestamp(update.publishedAt, timezone);

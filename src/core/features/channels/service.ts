@@ -106,7 +106,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       // Provider failures can contain a destination, subscriber id or arbitrary provider text.
       // Keep that detail only in the private delivery log, never in a channel message.
       const text = failure ? "A subscriber notification could not be delivered. Review the private delivery log." : input.text;
-      const path = input.eventId.startsWith("subscriber-limit/") ? "/app/subscribers" : failure ? "/app/deliveries" : "/app";
+      const path = input.eventId.startsWith("subscriber-limit/") ? "/app/subscribers" : failure ? "/app/subscribers?view=log" : "/app";
       const link = new URL(path,input.appOrigin).href;
       const fields = [input.title,text,link];
       for (const destination of await repository.operatorDestinations()) {

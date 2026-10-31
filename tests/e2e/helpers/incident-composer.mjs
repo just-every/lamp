@@ -1,10 +1,16 @@
 // The incident page's composer and the new-incident screen, by their accessible names.
-// What still works, Details, Notify, Publish timing, Relationship and Templates sit
-// behind "More options"; notes, review, correction, impact and deletion behind
-// "Private actions". Open either before using what is inside.
-async function expand(page, name) {
-  const toggle = page.getByRole("button", { name, exact: true });
-  if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
+// What still works, Details (and a new incident's Opened at) join the fields from the + ("Update options");
+// Notify, Schedule, Backdate, Relationship, the templates and a correction open their panel under the Publish
+// row. Notes, impact, the report, the communication owner and the incident's subscribers are rows of the
+// incident panel. Choose the entry, or open the row, before using what is inside.
+async function choose(page, entry) {
+  const plus = page.getByRole("button", { name: "Update options", exact: true });
+  if (await plus.getAttribute("aria-expanded") !== "true") await plus.click();
+  await page.getByRole("menuitem", { name: new RegExp(`^${entry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }).click();
+}
+async function openRow(page, name) {
+  const row = page.getByRole("button", { name, exact: true });
+  if (await row.getAttribute("aria-expanded") !== "true") await row.click();
 }
 
 export function incidentComposer(page) {
@@ -17,8 +23,8 @@ export function incidentComposer(page) {
     publish: page.getByRole("button", { name: "Publish update", exact: true }),
     status: () => page.locator('input[name="lifecycle"]:checked').inputValue(),
     setStatus: (lifecycle) => page.getByRole("radio", { name: lifecycle, exact: true }).check(),
-    moreOptions: () => expand(page, "More options"),
-    privateActions: () => expand(page, "Private actions"),
+    option: (entry) => choose(page, entry),
+    row: (name) => openRow(page, name),
   };
 }
 
@@ -32,6 +38,6 @@ export function newIncidentForm(page) {
     componentState: (name, state) => page.getByLabel(`${name} state with this update`, { exact: true }).selectOption(state),
     nextUpdate: page.getByLabel("Next update date and time", { exact: true }),
     publish: page.getByRole("button", { name: "Publish", exact: true }),
-    moreOptions: () => expand(page, "More options"),
+    option: (entry) => choose(page, entry),
   };
 }

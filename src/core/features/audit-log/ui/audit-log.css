@@ -6,6 +6,6 @@
   #audit-log tbody, #audit-log tr { display: block; }
   #audit-log tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
   #audit-log td { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; border: 0; padding: 6px 0; }
-  #audit-log td::before { content: attr(data-label); color: var(--ink-3); font-size: 12px; }
+  #audit-log td::before { content: attr(data-label); color: var(--ink-3); font-size: var(--text-small); }
   #audit-log td small { grid-column: 2; }
 }

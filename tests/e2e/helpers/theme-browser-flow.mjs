@@ -23,7 +23,7 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
       if (response.status() >= 400 && ["script", "stylesheet"].includes(response.request().resourceType())) clientErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
     });
     try {
-      await page.goto(`${appUrl}/app/settings`, { waitUntil: "domcontentloaded", timeout: 90_000 });
+      await page.goto(`${appUrl}/app/settings#look`, { waitUntil: "domcontentloaded", timeout: 90_000 });
     } catch (cause) {
       await page.screenshot({ path: `${directory}/settings-navigation-failed.png`, fullPage: true }).catch(() => {});
       throw cause;

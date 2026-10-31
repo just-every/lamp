@@ -19,7 +19,7 @@ export const Route = createFileRoute("/app")({
   // reads its own data and says what failed.
   beforeLoad: shownSession,
   shouldReload: ({ context, location }) => context.shown?.path !== location.pathname,
-  loader: ({ context, location }) => loadOperatorSession({ data: { path: location.pathname } }).catch((cause: unknown) => {
+  loader: ({ context, location }) => loadOperatorSession({ data: { path: location.pathname, view: new URLSearchParams(location.searchStr).get("view") ?? undefined } }).catch((cause: unknown) => {
     if (!context.shown || isRedirect(cause) || isNotFound(cause)) throw cause;
     return context.shown;
   }),
