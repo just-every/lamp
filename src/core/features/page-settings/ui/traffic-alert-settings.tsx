@@ -1,25 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError, appApi, useAppData } from '../../../app/client/ui/api';
+import { appApi, useAppData } from '../../../app/client/ui/api';
 import { Button } from '../../../app/client/ui/button';
 import { leaveWhenSaved, useLeaveGuard } from '../../../app/client/ui/leave-guard';
+import { saveFailureReason, useReportPhase, type SavePhase } from './settings-save-state';
 
 type Settings = { settings: { multiple: number } };
-export type TrafficSavePhase = 'saved' | 'waiting' | 'saving' | 'error';
 const outOfRange = 'Choose a multiple from 1.1 to 100.';
 const valid = (value: string) => value !== '' && Number(value) >= 1.1 && Number(value) <= 100;
-// A refusal from the server already reads plainly; a lost connection or a server fault does not.
-const reason = (cause: unknown) => cause instanceof ApiError ? cause.status >= 500 ? 'The server had a problem saving it.' : cause.message : 'The server could not be reached.';
 
 /** The multiple saves on its own, so its state joins the tab's one save note through `onPhase`. */
-export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: TrafficSavePhase) => void }) {
+export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: SavePhase) => void }) {
   const data = useAppData<Settings>('/api/app/traffic-alerts');
   const [value, setValue] = useState<string | null>(null);
-  const [phase, setPhase] = useState<TrafficSavePhase>('saved');
+  const [phase, setPhase] = useState<SavePhase>('saved');
   const [error, setError] = useState<string | null>(null);
   const queue = useRef({ value: '', revision: 0, completed: 0, stopped: -1, leaving: 0, released: false, answered: new Set<() => void>(), sending: false, sentOnUnload: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined });
-  const report = useRef(onPhase);
-  report.current = onPhase;
-  useEffect(() => report.current(phase), [phase]);
+  useReportPhase(onPhase, phase);
   async function flush(unloading = false) {
     const q = queue.current;
     clearTimeout(q.timer);
@@ -37,7 +33,7 @@ export function TrafficAlertSettings({ onPhase }: { onPhase: (phase: TrafficSave
           if (q.revision === revision) { setPhase('saved'); data.refresh(); }
         } catch (cause) {
           q.stopped = revision;
-          if (q.revision === revision) { setPhase('error'); setError(`Traffic alerts could not be saved: ${cause instanceof Error && cause.message === outOfRange ? outOfRange : reason(cause)} Your change is kept here.`); }
+          if (q.revision === revision) { setPhase('error'); setError(`Traffic alerts could not be saved: ${cause instanceof Error && cause.message === outOfRange ? outOfRange : saveFailureReason(cause)} Your change is kept here.`); }
         }
         for (const answer of [...q.answered]) answer();
       }

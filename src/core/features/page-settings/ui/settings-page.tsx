@@ -16,13 +16,12 @@ import { PublicResources } from "./public-resources";
 import { PageSettingsTab } from "./page-settings-tab";
 import { LookSettingsTab } from "./look-settings-tab";
 import { NotificationSettingsTab } from "./notification-settings-tab";
-import type { TrafficSavePhase } from "./traffic-alert-settings";
 import { WritingSettingsTab } from "./writing-settings-tab";
 import { TemplatesSettingsTab } from "./templates-settings-tab";
 import { ConnectedToolsTab } from "./connected-tools-tab";
 import { ReportsSettingsTab } from "./reports-settings-tab";
 import { ExportSettingsTab } from "./export-settings-tab";
-import { SettingsSaveState } from "./settings-save-state";
+import { SettingsSaveState, type SavePhase } from "./settings-save-state";
 import { useSettingsAutosave } from "./use-settings-autosave";
 
 const operatorRoute = getRouteApi("/app");
@@ -53,9 +52,11 @@ export function SettingsPage() {
   const [brandStatus, setBrandStatus] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
-  const [trafficPhase, setTrafficPhase] = useState<TrafficSavePhase>("saved");
-  // The pane's one save note reads "Saved · live" only once every write on it has landed.
-  const phases = tab === "notifications" ? [autosave.phase, trafficPhase] : [autosave.phase];
+  // Notifications' cards that save on their own report here: the pane's one save note reads "Saved · live" only once every write on it has landed.
+  const [trafficPhase, setTrafficPhase] = useState<SavePhase>("saved");
+  const [mailPhase, setMailPhase] = useState<SavePhase>("saved");
+  const [smsPhase, setSmsPhase] = useState<SavePhase>("saved");
+  const phases = tab === "notifications" ? [autosave.phase, trafficPhase, mailPhase, smsPhase] : [autosave.phase];
   const phase = (["error", "saving", "waiting"] as const).find(candidate => phases.includes(candidate)) ?? "saved";
   // Leaving Settings, another pane or signing out waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
   useLeaveGuard(autosave.leave, autosave.unsaved);
@@ -77,7 +78,7 @@ export function SettingsPage() {
         <PageSettingsTab settings={settings} live={live} markSrc={markSrc} update={update} />
       </>}
       {tab === "look" && <LookSettingsTab settings={settings} saved={saved} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} status={brandStatus} setStatus={setBrandStatus} />}
-      {tab === "notifications" && <NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} onTrafficPhase={setTrafficPhase} />}
+      {tab === "notifications" && <NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} onTrafficPhase={setTrafficPhase} onMailPhase={setMailPhase} onSmsPhase={setSmsPhase} />}
       {tab === "writing" && <WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} />}
       {tab === "templates" && <TemplatesSettingsTab />}
       {tab === "tools" && <ConnectedToolsTab />}

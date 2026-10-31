@@ -1,4 +1,4 @@
-import { TrafficAlertSettings, type TrafficSavePhase } from "./traffic-alert-settings";
+import { TrafficAlertSettings } from "./traffic-alert-settings";
 import type { LiveStatus } from "../../overview/live-status";
 import type { SettingsForm } from "./settings-form";
 import { Button } from "../../../app/client/ui/button";
@@ -8,11 +8,13 @@ import { EmailBrandingSettings } from "./email-branding-settings";
 import { SmsSettings } from "./sms-settings";
 import { IncidentFollowSettings } from "./incident-follow-settings";
 import { MaintenanceAutomationCard } from "../../maintenance/ui/automation-default-card";
+import type { SavePhase } from "./settings-save-state";
 
-export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficPhase }: {
+export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm, onTrafficPhase, onMailPhase, onSmsPhase }: {
   settings: SettingsForm; live: LiveStatus | null; identityEditable: boolean;
   update: <K extends keyof SettingsForm>(field: K, value: SettingsForm[K], immediate?: boolean) => void;
-  needsConfirm: boolean; confirm: () => void; onTrafficPhase: (phase: TrafficSavePhase) => void;
+  needsConfirm: boolean; confirm: () => void;
+  onTrafficPhase: (phase: SavePhase) => void; onMailPhase: (phase: SavePhase) => void; onSmsPhase: (phase: SavePhase) => void;
 }) {
   return <>
     <section className="data-card" aria-labelledby="sender-title">
@@ -22,8 +24,8 @@ export function NotificationSettingsTab({ settings, live, identityEditable, upda
       <SenderStatusLine sender={live?.sender ?? null} />
     </section>
     <TrafficAlertSettings onPhase={onTrafficPhase} />
-    <MailDeliverySettings />
-    <SmsSettings />
+    <MailDeliverySettings onPhase={onMailPhase} />
+    <SmsSettings onPhase={onSmsPhase} />
     <IncidentFollowSettings />
     <EmailBrandingSettings value={settings.emailBranding} onChange={(value, immediate) => update("emailBranding", value, immediate)} identityEditable={identityEditable} />
     <MaintenanceAutomationCard />
