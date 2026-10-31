@@ -1,5 +1,6 @@
 import { chatPreferencesFlow } from './chat-preferences-flow.mjs';
 import assert from 'node:assert/strict';
+import { savedInternalNote } from './internal-note-flow.mjs';
 import { openFollowUpsRuntime, eventuallyFollowUp } from './follow-ups-runtime.mjs';
 import { recordedSlackExchange, recordedSlackEvents, recordedSlackOAuth, RECORDED_SLACK_WEBHOOK, prepareSlackSubscription,verifySlackPublication,removeSlackSubscription } from '../slack-subscriptions-helper.mjs';
 import { subscriberTeamsUrl, prepareTeamsSubscription,verifyTeamsPublication } from '../teams-subscriptions-helper.mjs';
@@ -38,17 +39,27 @@ export async function selfServeChatFlow(t){
     const incident=await runtime.post('/api/app/incidents',{title:'Self-serve channel incident',components:[{componentId:component.id,state:'Partially unavailable',relationship:'Primary'}]});
     assert.equal(incident.status,201,incident.text);
     const incidentId=incident.body.incident.id;
+    const privateNote = await savedInternalNote(runtime, incidentId, 'synthetic-lamp-private-chat-008');
     const draft={lifecycle:'Investigating',affectedAudience:'Channel subscribers.',customerImpact:'Requests are delayed.',whatStillWorks:'Reads continue.',details:'See https://help.example.com/kb/123.',nextUpdateAt:new Date(Date.now()+3600000).toISOString()};
     const publish=async details=>{
       const written=await runtime.api(`/api/app/incidents/${incidentId}/draft`,{method:'PUT',body:JSON.stringify({...draft,details})});assert.equal(written.status,200,written.text);
       const published=await runtime.post(`/api/app/incidents/${incidentId}/publish`,{channels:['chat']});assert.equal(published.status,200,published.text);
       const updateId=published.body.update.id;
       await eventuallyFollowUp(async()=> (await sql(`SELECT count(*) AS n FROM delivery_channel_posts p LEFT JOIN integration_deliveries d ON d.id=p.id AND d.namespace='lamp-channels' WHERE p.incident_update_id='${updateId}' AND (d.state IS NULL OR d.state IN ('queued','sending'))`))[0].n,n=>n===0,'committed chat recipients have terminal provider receipts');
-
+      return updateId;
     };
-    await publish(draft.details);
+    const firstUpdateId = await publish(draft.details);
     await eventuallyFollowUp(()=>received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,n=>n===1,'active Slack receives the next publication');
     verifySlackPublication({received});verifyTeamsPublication({received});
+    const committedPosts = await sql(`SELECT id,destination_id,incident_update_id FROM delivery_channel_posts WHERE incident_update_id='${firstUpdateId}'`);
+    assert.equal(committedPosts.length, 2, 'both confirmed chat subscriptions have a committed post');
+    for (const url of [RECORDED_SLACK_WEBHOOK, subscriberTeamsUrl]) {
+      const path = new URL(url).pathname + new URL(url).search;
+      const delivered = received.filter(request => request.path === path && request.body.includes(incident.body.incident.reference));
+      assert.equal(delivered.length, 1, 'the confirmed subscription receives the first publication once');
+      assert.ok(delivered[0].body.includes(incident.body.incident.reference), 'the populated chat payload identifies this incident');
+      assert.ok(!delivered[0].body.includes(privateNote), 'the complete subscriber chat payload excludes the saved private note');
+    }
     await chatPreferencesFlow({runtime,publicOrigin,received,publish,component,manageUrls:[slackManageUrl,teamsManageUrl]});
     await removeSlackSubscription({publicOrigin,signingSecret,id,sql});
     const before=received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length;

@@ -696,6 +696,7 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
   await page.getByRole('button', { name: 'Save internal note', exact: true }).click();
   await page.getByText('Internal note saved.', { exact: true }).waitFor();
   assert.ok((await readIncident(id)).internalNotes.some(row => row.body === note));
+  await previewScreens(page, 'internal-note');
   assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes(note), false);
 
   await composer.setStatus('Resolved');

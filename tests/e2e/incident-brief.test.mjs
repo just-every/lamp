@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
+import { savedInternalNote } from './helpers/internal-note-flow.mjs';
 import { openStatusJourney } from './helpers/status-journey.mjs';
 
 const aiEndpoint = 'https://ai.example.test/v1/chat/completions';
@@ -60,7 +61,7 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     assert.deepEqual(afterDistinct.alert_receipts.map(row => row.id).sort(), [original.receiptId, distinct.receiptId].sort());
     assert.equal((await alert({ alert: { title: 'Missing deduplication key', state: 'firing' } })).status, 400);
     await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: component.id, state: 'Major outage', relationship: 'Primary' }, 201);
-    await j.json(`/api/app/incidents/${id}/internal-notes`, 'POST', { body: 'PRIVATE responder investigation' }, 201);
+    const internalNote = await savedInternalNote(j, id, 'PRIVATE responder investigation');
     await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: hidden.id, state: 'Major outage', relationship: 'Dependent' }, 201);
     const brief = async () => (await j.json(`/api/app/incidents/${id}/brief`)).brief;
     const privateBrief = await brief();
@@ -80,7 +81,7 @@ test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002
     }) } }] });
     const suggested = await j.json(`/api/app/incidents/${id}/ai-suggestion`, 'POST', {});
     assert.deepEqual(JSON.parse(requests.at(-1).messages.find(row => row.role === 'user').content), suggested.brief);
-    assert.ok(!JSON.stringify(requests.at(-1)).includes('PRIVATE responder investigation'));
+    assert.ok(!JSON.stringify(requests.at(-1)).includes(internalNote));
     assert.ok(!JSON.stringify(requests.at(-1)).includes(hidden.name));
     assert.equal(suggested.suggestion.affectedAudience.text, 'Checkout customers');
     assert.deepEqual(suggested.suggestion.customerImpact.sources, []);

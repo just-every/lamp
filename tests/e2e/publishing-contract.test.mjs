@@ -28,8 +28,12 @@ function brisbaneTime(instant) {
 }
 
 test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 INCIDENT-013 HIST-005 HIST-008 NOTIFY-015 UPDATE-001 UPDATE-002 UPDATE-003 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-007 UPDATE-008 UPDATE-009 UPDATE-011 UPDATE-012 UPDATE-013 COMP-006 HIST-001 HIST-002 HIST-003 AGENT-005 AUTO-004 UPTIME-009 — reviewed incident from private template to immutable updates, recovery, report and audited deletion', async () => {
-  const emailRequests = [];
+  const emailRequests = [], notificationRequests = [];
   const j = await openStatusJourney({ extraBindings: { LAMP_TEST_REQUIRE_REVIEW: 'true' }, providerEdge: async request => {
+    if (['receiver.example.test', 'hooks.slack.com'].includes(new URL(request.url).hostname)) {
+      notificationRequests.push({ destination: request.url, deliveryId: request.headers.get('webhook-id'), body: await request.clone().text() });
+      return new URL(request.url).hostname === 'hooks.slack.com' ? new Response('ok') : new Response(null, { status: 204 });
+    }
     if (request.url === 'https://api.resend.com/emails') emailRequests.push({
       deliveryKey: request.headers.get('Idempotency-Key'), payload: await request.clone().json(),
     });
@@ -81,7 +85,19 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal(subscription.status, 202);
     const confirmation = await eventually(() => j.messages.find(mail => mail.to.includes(subscriber)), Boolean, 'subscriber confirmation mail');
     assert.equal((await j.raw(confirmation.text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/)[0])).status, 200);
-    const first = (await j.publish(incident.id, { channels: ['email'] })).update;
+    const webhookDestinations = [
+      ['lamp', 'https://receiver.example.test/synthetic-lamp-1'],
+      ['statuspage', 'https://receiver.example.test/synthetic-lamp-components'],
+      ['lamp', 'https://hooks.slack.com/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-3'],
+    ];
+    const webhookSubscribers = [];
+    for (const [webhookFormat, destination] of webhookDestinations) {
+      webhookSubscribers.push((await j.json('/api/app/subscribers/webhook', 'POST', {
+        destination, contactEmail: subscriber, componentIds: [component.id], webhookFormat,
+      }, 201)).subscriber);
+    }
+    j.recoverWebhook();
+    const first = (await j.publish(incident.id, { channels: ['email', 'webhook'] })).update;
     await j.tick(Date.now());
     const reached = await eventually(() => j.json(`${endpoint}/reach?updateId=${first.id}`), body => body.updates[0].channels.some(row => row.channel === 'email' && row.providerAccepted === 1), 'the frozen publication reaches its committed subscriber');
     assert.equal(reached.updates[0].channels.find(row => row.channel === 'email').committed, 1);
@@ -108,6 +124,19 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
       assert.ok(body.includes(incident.title), path);
       if (path !== '/feed.atom') assert.ok(visibleText(body).includes(wording.customerImpact), path);
       assert.ok(!body.includes(savedNotes[0].body) && !body.includes(hidden.name), path);
+    }
+    const webhookDeliveries = await eventually(() => j.json(`/api/app/deliveries?incidentUpdateId=${first.id}&channel=webhook`),
+      result => result.deliveries.length === 3 && result.deliveries.every(row => row.outcome === 'delivered'), 'each committed webhook format reaches its receiver');
+    assert.deepEqual(webhookDeliveries.deliveries.map(row => row.subscriberId).sort(), webhookSubscribers.map(row => row.id).sort());
+    for (const delivery of webhookDeliveries.deliveries) {
+      const requests = notificationRequests.filter(request => request.deliveryId === delivery.id);
+      assert.equal(requests.length, 1, 'the exact committed webhook delivery is captured once');
+      assert.equal(requests[0].destination, delivery.destination);
+      const payload = JSON.parse(requests[0].body);
+      if (payload.event) assert.equal(payload.updates[0].id, first.id, 'Lamp payload identifies the committed update');
+      else if (payload.incident) assert.ok(payload.incident.incident_updates.some(update => update.body.includes(wording.customerImpact)), 'Statuspage payload carries the committed customer wording');
+      else assert.ok(payload.text.includes(incident.reference), 'subscriber Slack payload identifies the published incident');
+      assert.ok(!requests[0].body.includes(savedNotes[0].body), 'the complete populated webhook payload excludes the saved private note');
     }
     const firstBody = await j.publicText(`/incidents/${incident.reference}`);
     assertLinkedUpdateHtml(firstBody, 'public incident');

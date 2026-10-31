@@ -1,3 +1,4 @@
+import { savedInternalNote } from "./helpers/internal-note-flow.mjs";
 import { automationFlapFlow } from "./helpers/automation-flap-flow.mjs";
 import { automationRulesBrowserFlow } from "./helpers/automation-rules-browser-flow.mjs";
 import { automationRulesFlow } from "./helpers/automation-rules-flow.mjs";
@@ -176,6 +177,7 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(incident.status, 201, incident.text);
   const id = incident.body.incident.id;
+  const privateNote = await savedInternalNote({ api, raw: path => fetch(new URL(path, origin), { redirect: "manual" }), publicOrigin }, id, "synthetic-lamp-private-channel-008");
   const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, details: `${UPDATE_LINK_FIELDS.details} See https://help.example.com/kb/123.`, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
   assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
   assert.equal((await api(`/api/app/incidents/${id}/impact`, { method: "PUT", body: JSON.stringify({ impactOverride: "major" }) })).status, 200);
@@ -194,6 +196,10 @@ test("INTEG-002 SUB-014 SUB-015 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private cha
   assert.equal(received.filter((entry) => entry.path === new URL(SLACK_B).pathname).length, 0, "a channel for another component receives nothing");
   assert.match(JSON.parse(slack[0].body).text, /INC-\d+ Investigating: Card payments failing/);
   assert.equal(JSON.parse(teams[0].body).attachments[0].contentType, "application/vnd.microsoft.card.adaptive");
+  for (const request of [slack[0], teams[0]]) {
+    assert.ok(request.body.includes(incident.body.incident.reference), "each populated channel payload identifies the published incident");
+    assert.ok(!request.body.includes(privateNote), "the complete operator channel payload excludes the saved private note");
+  }
   const slackMessage = JSON.parse(slack[0].body);
   assert.match(slackMessage.text, /Incident impact: Major/);
   assert.deepEqual(sql("SELECT incident_impact AS impact FROM channel_posts").map(row => row.impact), ["major", "major"], "committed channel impact survives a later clear");
