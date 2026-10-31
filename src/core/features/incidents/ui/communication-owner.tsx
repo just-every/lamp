@@ -5,6 +5,9 @@ import { FormError } from "../../../app/client/ui/states";
 
 export type CommunicationOwner = { id: string; displayName: string } | null;
 
+/** The owner row's one line: who answers for the incident's communication. */
+export const ownerSummary = (owner: CommunicationOwner, unowned: boolean) => unowned || !owner ? "Unowned: an operator needs to take over" : owner.displayName;
+
 /** Private operator control; the public renderer never imports this view. */
 export function CommunicationOwnerControl({ incidentId, lifecycle, owner, unowned, captureVisit, onChanged }: {
   incidentId: string;
@@ -33,8 +36,7 @@ export function CommunicationOwnerControl({ incidentId, lifecycle, owner, unowne
     } finally { if (isCurrent()) setPending(false); }
   }
   function reassign(event: FormEvent) { event.preventDefault(); if (operatorId) void change(false); }
-  return <section className="data-card incident-operator-controls" aria-label="Communication owner">
-    <h2>Communication owner</h2>
+  return <div className="communication-owner">
     <p>{unowned ? <strong>Unowned — an active operator needs to take over.</strong> : <span>Owned by <strong>{owner?.displayName}</strong></span>}</p>
     {lifecycle !== "Resolved" ? <>
       <Button type="button" variant="secondary" disabled={pending} onClick={() => void change(true)}>Take over communication</Button>
@@ -50,5 +52,5 @@ export function CommunicationOwnerControl({ incidentId, lifecycle, owner, unowne
     </> : null}
     {error && <FormError>{error}</FormError>}
     {message && <p role="status">{message}</p>}
-  </section>;
+  </div>;
 }

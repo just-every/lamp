@@ -15,5 +15,3 @@ export function AiSuggestionButton({ incidentId, onSuggestion, captureUpdate }: 
   const suggest = async () => { const isCurrent = captureUpdate(); setMessage("Drafting suggestion…"); try { const response = await appApi<CheckedSuggestion>(`/api/app/incidents/${incidentId}/ai-suggestion`, { method: "POST" }); if (!isCurrent()) return; onSuggestion(response); setMessage("Suggestion filled the editable text. Check each field against its source before you publish."); } catch (cause) { if (!isCurrent()) return; setMessage(cause instanceof Error ? cause.message : "Suggestion failed."); } };
   return <div className="ai-suggestion"><Button type="button" variant="secondary" onClick={suggest}>Suggest update</Button>{message ? <span role="status">{message}</span> : null}</div>;
 }
-
-export { ReportEditor } from "../../reports/ui/report-editor";

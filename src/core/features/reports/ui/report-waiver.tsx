@@ -13,8 +13,8 @@ export function ReportWaiver({ incidentId, waiver, onChanged }: { incidentId: st
     catch(cause) { setError(cause instanceof Error?cause.message:"The report could not be waived."); }
     finally { setPending(false); }
   }
-  return <section aria-label="Report follow-up" id="post-incident-report">
-    <h3>Report follow-up</h3>
+  return <section aria-label="Report follow-up" className="report-waiver">
+    <h4>Report follow-up</h4>
     {waiver ? <p role="status">Report reminder waived: {waiver.reason}. You can still write and publish a report.</p> : <form onSubmit={submit}>
       <label className="form-label" htmlFor={id}>Reason to waive the report</label>
       <textarea id={id} value={reason} onChange={event=>setReason(event.target.value)} maxLength={1000} required disabled={pending}/>
