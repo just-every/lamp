@@ -975,6 +975,10 @@
     {
       "id": "0074_alert_rule_guards.sql",
       "buyerSteps": "Apply after 0073. Adds per-rule firing delay and recovery hold, durable scheduled windows and attributed Undo receipts. Rules default to a two-minute firing delay and five-minute recovery hold; existing active claims are retained. Review these values in Settings before relying on immediate automation. Undo releases only its automatic claim and retains earlier public updates, component history and internal attribution. No account or credential is required."
+    },
+    {
+      "id": "0075_sign_in_providers.sql",
+      "buyerSteps": "Apply after 0074. Adds the Google and Okta sign-in registrations the owner makes in Settings › Team › Sign-in: each client ID with its client secret sealed, and Okta's pairings of an Okta user ID to an operator. Nothing changes until the owner sets a provider up; email sign-in links and any AUTH_PROVIDERS deploy entry keep working, and a deploy entry wins for its ID. Native archives keep the rows and pairings but never the sealed secret, so a restored registration asks the owner to paste it again. No provider account or key is needed to apply it."
     }
   ],
   "breaking": false,
