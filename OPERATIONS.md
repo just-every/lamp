@@ -576,7 +576,32 @@ notes and components.
 
 ## Identity provider configuration
 
-### Direct Google, Microsoft and Okta registration
+### Google and Okta set up in Settings
+
+The owner sets up Google and Okta in **Settings → Team → Sign-in**; see the
+[steps](docs/operators-and-sign-in.md#set-up-google-or-okta-in-lamp). Lamp stores
+each registration in its own D1 (`sign_in_providers`, with Okta's `sign_in_people`
+pairings of Okta user ID to operator). The client secret is sealed with AES-GCM,
+keyed from `WEBHOOK_SIGNING_SECRET` and bound to `sign-in:<provider>`, and is never
+returned by an API, page or audit row. On every auth request Lamp composes the
+usable stored registrations into Base's providers before Base is built, so a
+change is live on the next request. A row with no secret, a ciphertext the current
+key cannot open (after a key change that dropped the old one) or values Base would
+refuse is skipped, and `/signin` and email links keep working. Keep the previous
+`WEBHOOK_SIGNING_SECRET` as a later entry when rotating, as for channels.
+
+A deploy-file `AUTH_PROVIDERS` entry with the same ID wins; Settings shows it as
+set in deploy settings and refuses Save for it. Every change needs the current
+owner and a fresh email confirmation. Save re-pins the provider through Base's
+relink, and **Working** comes only from Base reporting a healthy pin after a
+verified exchange. Archives (`rer export`, the technical archive) carry the rows
+and People but write the sealed secret as NULL; after a restore the row reads
+**Needs its client secret** and is not offered until the owner pastes it again.
+Managed hosting (`MAIL_PROVIDER=rer`) has no outbound connection, so the pane
+says so and Save is refused. Microsoft Entra and Run Edit Run Auth stay on
+`/auth/settings/identity`.
+
+### Direct Google, Microsoft and Okta registration in the deploy file
 
 Follow the [owner registration and configuration steps](docs/operators-and-sign-in.md#optional-single-sign-on).
 `AUTH_PROVIDERS` is a JSON array uploaded as a Worker secret, alongside a separate
@@ -596,7 +621,7 @@ email. Provider email alone is insufficient for these presets.
 On first use, discovery pins the provider's issuer, client ID and endpoints.
 Changing configuration records a pending re-link and keeps the previous pin.
 For a change or a provider explicitly unlinked earlier, sign in as the setup
-owner, choose **Settings → Operators → Confirm my identity**, complete the
+owner, choose **Confirm my identity** on **Settings → Team → Sign-in**, complete the
 emailed confirmation in that browser, then use the authenticated public API:
 
 - `GET /auth/providers` lists provider pins and pending re-links.

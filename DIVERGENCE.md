@@ -1662,3 +1662,18 @@ was sent), Notes, Impact, the post-incident report once Resolved (with its waive
 incident's subscribers (a row once someone follows it), extension rows, then Delete incident. This replaces where the
 L12 record put these controls; UPDATE-001, -004, -005, -006, -007, -009, NOTIFY-007, INCIDENT-001, -009, DRAFT-001
 and DRAFT-004 are unchanged.
+
+## Google and Okta sign-in are set up in Settings › Sign-in — owner L14, 1 November 2026
+
+The owner asked that provider setup stop being a developer runbook outside the app (stop rer, edit `.dev.vars`,
+paste JSON). The owner sets Google and Okta up in Settings › Team › Sign-in, which extends the L19 design that
+reserved that pane: the client ID and secret go into fields, Lamp stores them, and they work on the next request. A
+Test sign-in runs the provider's real flow and reports a truthful result; Working comes only from Base reporting
+a healthy pin after a verified exchange. Lamp keeps each registration in its own D1 with the client secret sealed
+(AES-GCM from `WEBHOOK_SIGNING_SECRET`, bound to the provider), never shows it again, and writes it as NULL in every
+archive, so a restore asks for it again. It is not deploy-secret authority: the Worker holds none (only the owner's
+`rer deploy --set-secret` and RER's delivery service do), so the app cannot write the deploy file or redeploy, and the
+deploy-file `AUTH_PROVIDERS` path stays and wins per ID. Every change needs the current owner and fresh email proof.
+Okta signs in only the people paired explicitly by Okta user ID, never by a reported email. Microsoft Entra and Run
+Edit Run Auth stay on `/auth/settings/identity`; Managed hosting has no outbound connection, so Save is refused there.
+ACCESS-002 and PORT-001 are unchanged; `tests/auth-adoption/sign-in-providers.test.mjs` exercises them for Google and Okta.

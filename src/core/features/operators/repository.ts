@@ -49,6 +49,7 @@ export function createOperatorRepository(db: D1Database) {
         db.prepare("UPDATE oc_owner_claims SET email='deleted-' || lower(operator_id) || '@operator.invalid' WHERE operator_id=? AND " + witnessed).bind(id, ...witness),
         db.prepare("UPDATE oc_idp_grants SET subject='erased:' || ? WHERE jti IN (SELECT jti FROM oc_owner_claims WHERE operator_id=?) AND EXISTS(SELECT 1 FROM oa_external_identities identity WHERE identity.operator_id=? AND identity.issuer=oc_idp_grants.issuer AND identity.subject=oc_idp_grants.subject) AND " + witnessed).bind(id, id, id, ...witness),
         db.prepare('DELETE FROM oa_external_identities WHERE operator_id=? AND ' + witnessed).bind(id, ...witness),
+        db.prepare('DELETE FROM sign_in_people WHERE operator_id=? AND ' + witnessed).bind(id, ...witness),
         db.prepare('DELETE FROM oa_provider_sessions WHERE session_id IN (SELECT id FROM oa_sessions WHERE operator_id=?) AND ' + witnessed).bind(id, ...witness),
         db.prepare('DELETE FROM oa_provider_session_pins WHERE session_id IN (SELECT id FROM oa_sessions WHERE operator_id=?) AND ' + witnessed).bind(id, ...witness),
         db.prepare('UPDATE oa_tokens SET revoked_at=COALESCE(revoked_at,?) WHERE (operator_id=? OR issuer_id=?) AND ' + witnessed).bind(revokedAt, id, id, ...witness),
