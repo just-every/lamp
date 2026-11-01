@@ -247,6 +247,99 @@ async function previewScreens(screen, name) {
   } finally { await screen.setViewportSize({ width: 1440, height: 1000 }); }
 }
 
+async function applyTemplateJourney(id) {
+  const createComponent = async name => (await api('/api/app/components', 'POST', {
+    name, groupId: null, description: '', internal: false, displayOrder: 0, note: '',
+  })).component;
+  const added = await createComponent('Template recovery dashboard');
+  const omitted = await createComponent('Template unselected control');
+  const before = await readIncident(id);
+  assert.equal(before.draft, null, 'publication consumed the previous draft');
+  const attached = before.components[0];
+  const templateInput = {
+    name: 'Synthetic Lamp recovery wording', lifecycle: 'Monitoring',
+    affectedAudience: 'Template audience: card customers in the northern region.',
+    customerImpact: 'Template impact: new authorizations may need another attempt.',
+    whatStillWorks: 'Template continuity: existing receipts remain available.',
+    details: 'Template details: capacity is recovering while the team checks retries.',
+    nextUpdateOffsetMinutes: 47,
+    components: [
+      { componentId: attached.componentId, state: 'Partially unavailable', relationship: 'Dependent' },
+      { componentId: added.id, state: 'Degraded performance', relationship: 'Primary' },
+    ],
+  };
+  const { template } = await api('/api/app/incident-templates', 'POST', templateInput);
+  // Wait for the component-creation snapshot before measuring application silence.
+  for (let attempt = 0; ; attempt++) {
+    if ((await (await fetch(`${pageUrl}/`)).text()).includes(omitted.name)) break;
+    assert.ok(attempt < 100, 'the control component reaches the public snapshot');
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  const paths = ['/', `/incidents/${before.reference}`, '/history', '/feed.atom', '/api/public/status', '/api/v2/incidents.json', '/api/public/v1/incidents'];
+  const publicBodies = async () => Promise.all(paths.map(async path => {
+    const response = await fetch(`${pageUrl}${path}`);
+    assert.equal(response.status, 200, path);
+    return [path, await response.text()];
+  }));
+  const publicBefore = await publicBodies();
+  const componentsBefore = (await api('/api/app/components')).components;
+  await page.goto(`${appUrl}/app/incidents/${id}`); await operatorHydrated(page);
+  const composer = incidentComposer(page);
+  await composer.option('Use a template');
+  await page.getByLabel('Saved update template', { exact: true }).selectOption(template.id);
+  const applying = page.waitForResponse(response => response.url().endsWith(`/templates/${template.id}/apply`) && response.request().method() === 'POST');
+  const started = Date.now();
+  await page.getByRole('button', { name: 'Apply template', exact: true }).click();
+  assert.equal((await applying).status(), 200);
+  const finished = Date.now();
+  await page.getByRole('status').filter({ hasText: /^Template filled the private draft\.$/ }).waitFor();
+  await saved();
+  const applied = await readIncident(id);
+  const fields = ['lifecycle', 'affectedAudience', 'customerImpact', 'whatStillWorks', 'details'];
+  for (const field of fields) assert.equal(applied.draft[field], templateInput[field], `saved template draft ${field}`);
+  const commitment = applied.draft.nextUpdateAt;
+  assert.ok(Date.parse(commitment) >= started + 47 * 60_000);
+  assert.ok(Date.parse(commitment) <= finished + 47 * 60_000);
+  const choices = rows => rows.map(({ componentId, state, relationship }) => ({ componentId, state, relationship })).sort((a, b) => a.componentId.localeCompare(b.componentId));
+  assert.deepEqual(choices(applied.draft.componentChanges), choices(templateInput.components), 'only the template components and exact claimed states are staged');
+  const timezone = (await api('/api/app/page-settings')).settings.timezone;
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(commitment));
+  const part = kind => parts.find(value => value.type === kind).value;
+  const localCommitment = `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
+  const assertComposer = async () => {
+    assert.equal(await composer.status(), 'Monitoring');
+    assert.equal(await composer.audience.inputValue(), templateInput.affectedAudience);
+    assert.equal(await composer.impact.inputValue(), templateInput.customerImpact);
+    assert.equal(await composer.stillWorks.inputValue(), templateInput.whatStillWorks);
+    assert.equal(await composer.details.inputValue(), templateInput.details);
+    assert.equal(await composer.nextUpdate.inputValue(), localCommitment);
+    assert.deepEqual(await page.locator('.component-chips select[aria-label$="state with this update"]').evaluateAll(elements => elements.map(element => [element.getAttribute('aria-label'), element.value]).sort()), [
+      [`${attached.componentName} state with this update`, 'Partially unavailable'],
+      [`${added.name} state with this update`, 'Degraded performance'],
+    ].sort());
+    assert.equal(await page.getByLabel(`${attached.componentName} relationship with this update`, { exact: true }).inputValue(), 'Dependent');
+    assert.equal(await page.getByLabel(`${added.name} relationship with this update`, { exact: true }).inputValue(), 'Primary');
+  };
+  await assertComposer();
+  await page.reload(); await operatorHydrated(page); await saved();
+  await assertComposer();
+  assert.deepEqual((await readIncident(id)).draft, applied.draft, 'reload restores the complete acknowledged draft');
+  assert.deepEqual((await readIncident(id)).updates, before.updates, 'the nonempty published-update inventory is unchanged');
+  assert.deepEqual((await readIncident(id)).components, before.components, 'live incident attachments and claims are unchanged');
+  assert.equal((await readIncident(id)).lifecycle, before.lifecycle, 'the published lifecycle remains unchanged');
+  assert.deepEqual((await api('/api/app/components')).components, componentsBefore, 'every live component remains unchanged');
+  assert.deepEqual(await publicBodies(), publicBefore, 'all captured public wording and generation bytes remain unchanged');
+  if (process.env.LAMP_SCREENSHOTS) {
+    await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.screenshot({ path: join(process.env.LAMP_SCREENSHOTS, `${width}-apply-template.png`), fullPage: true });
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+  }
+  console.log('PROBE UPDATE-009 2: Apply template control and reload -> every composer field and exact staged choice retained; published updates, live claims and public bytes unchanged');
+}
+
 test('TEAM-001 TEAM-004 TEAM-007 — operator role changes, server permissions and audit', { timeout: 300_000 }, async () => {
   const {actors}=await (await import('./helpers/operator-roles-flow.mjs')).operatorRolesFlow({appFetch,appUrl,persistTo:statePath,configPath});
   await (await import('./helpers/operator-roles-browser-flow.mjs')).operatorRolesBrowserFlow({page,appUrl,appFetch,actor:actors.viewer});
@@ -497,7 +590,7 @@ async function assertQueuedAutosaveDeadline({ page, api, openIncident, assertPri
 }
 // One operator day: configure, draft, recover a failed save, resolve a
 // concurrent edit, schedule a publication, communicate recovery, and report.
-test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async t => {
+test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDATE-009 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async t => {
   await verifyCompiledEdits();
   await page.goto(`${appUrl}/app`); await operatorHydrated(page);
   await page.getByRole('region', { name: 'Your public page' }).waitFor();
@@ -693,6 +786,8 @@ test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-004 UPDATE-005 UPDATE-006 UPDA
     await previewScreens(publicPage, 'published-preview');
   } finally { await publicPage.close(); }
   assert.equal(await composer.impact.inputValue(), '', 'the next update begins with a fresh draft');
+
+  await applyTemplateJourney(id);
 
   await composer.row('Notes');
   const note = 'The database team is privately investigating a connection pool.';

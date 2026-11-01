@@ -45,18 +45,52 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     await j.json('/api/app/operators/invite', 'POST', { email: reviewer, displayName: 'Incident reviewer' }, 202);
     const component = await j.component('Payments API');
     const hidden = await j.component('PRIVATE internal queue', { internal: true });
+    const dependent = await j.component('Recovery dashboard');
+    const templateChoices = [
+      { componentId: component.id, state: 'Major outage', relationship: 'Primary' },
+      { componentId: dependent.id, state: 'Degraded performance', relationship: 'Dependent' },
+    ];
+    const templateInput = {
+      name: 'Customer API recovery', ...wording, nextUpdateOffsetMinutes: 47,
+      components: templateChoices,
+    };
     const template = (await j.json('/api/app/incident-templates', 'POST', {
-      name: 'Customer API recovery', ...wording, nextUpdateOffsetMinutes: 60,
-      components: [{ componentId: component.id, state: 'Major outage', relationship: 'Primary' }],
+      ...templateInput,
     }, 201)).template;
-    const incident = await j.incident('Payment requests delayed', [component, hidden]);
+    const retained = (await j.json('/api/app/incident-templates')).templates.find(row => row.id === template.id);
+    for (const field of ['name', 'lifecycle', 'affectedAudience', 'customerImpact', 'whatStillWorks', 'details', 'nextUpdateOffsetMinutes']) {
+      assert.equal(retained[field], templateInput[field], `native template readback retains ${field}`);
+    }
+    const choices = rows => rows.map(({ componentId, state, relationship }) => ({ componentId, state, relationship })).sort((a, b) => a.componentId.localeCompare(b.componentId));
+    assert.deepEqual(choices(retained.components), choices(templateChoices), 'the complete template component set retains each claim and relationship');
+    const incident = await j.incident('Payment requests delayed', [component, hidden], { components: [
+      { componentId: component.id, state: 'Partially unavailable', relationship: 'Primary' },
+      { componentId: hidden.id, state: 'Major outage', relationship: 'Primary' },
+    ] });
     const endpoint = `/api/app/incidents/${incident.id}`;
     assert.equal(incident.lifecycle, 'Investigating');
     assert.ok(incident.reference);
     await j.json(`${endpoint}/internal-notes`, 'POST', { body: 'PRIVATE investigation note' }, 201);
     await j.publish(incident.id, {}, 400);
+    const beforeApply = await j.read(incident.id);
+    const liveBeforeApply = (await j.json('/api/app/components')).components;
+    const applyStarted = Date.now();
     await j.json(`${endpoint}/templates/${template.id}/apply`, 'POST', {});
-    const privateDraft = (await j.read(incident.id)).draft;
+    const applyFinished = Date.now();
+    const appliedIncident = await j.read(incident.id);
+    const privateDraft = appliedIncident.draft;
+    for (const field of ['lifecycle', 'affectedAudience', 'customerImpact', 'whatStillWorks', 'details']) {
+      assert.equal(privateDraft[field], templateInput[field], `independent saved-draft readback retains ${field}`);
+    }
+    assert.ok(Date.parse(privateDraft.nextUpdateAt) >= applyStarted + 47 * 60_000);
+    assert.ok(Date.parse(privateDraft.nextUpdateAt) <= applyFinished + 47 * 60_000, 'the saved commitment uses the retained relative offset');
+    assert.deepEqual(choices(privateDraft.componentChanges), choices([
+      ...templateChoices, { componentId: hidden.id, state: 'Major outage', relationship: 'Primary' },
+    ]), 'applying stages exactly the saved template choices and existing attachment');
+    assert.deepEqual(appliedIncident.components, beforeApply.components, 'template application does not change live incident claims');
+    assert.deepEqual(appliedIncident.updates, beforeApply.updates, 'template application changes no published update');
+    assert.deepEqual((await j.json('/api/app/components')).components, liveBeforeApply, 'template application leaves every live component unchanged');
+    console.log('PROBE UPDATE-009 1: native template create, list and independent incident read -> complete wording, lifecycle, 47-minute commitment and exact component claims retained');
     assert.equal(privateDraft.customerImpact, wording.customerImpact);
     for (const path of ['/', '/history', '/feed.atom', '/api/public/status']) {
       const body = await j.publicText(path);
