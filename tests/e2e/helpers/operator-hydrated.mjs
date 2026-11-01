@@ -1,7 +1,20 @@
 // Wait for React handlers before editing server-rendered controls.
 // Sign out is a native form and works before hydration too.
-export function operatorHydrated(page) {
-  return page.locator(".operator-shell[data-hydrated]").waitFor({ timeout: 60_000 });
+export async function operatorHydrated(page) {
+  try { await page.locator(".operator-shell[data-hydrated]").waitFor({ timeout: 60_000 }); }
+  catch (error) {
+    // TEMPORARY DIAGNOSTIC (L14): say what the page is doing, then reload once with listeners attached.
+    const seen = [];
+    page.on("pageerror", e => seen.push(`pageerror: ${e.message.slice(0, 300)}`));
+    page.on("console", m => { if (m.type() === "error") seen.push(`console: ${m.text().slice(0, 300)}`); });
+    page.on("requestfailed", r => seen.push(`requestfailed: ${r.url().slice(0, 160)} ${r.failure()?.errorText}`));
+    page.on("response", r => { if (r.status() >= 400) seen.push(`http ${r.status()}: ${r.url().slice(0, 160)}`); });
+    const before = (await page.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300);
+    await page.reload().catch(() => {});
+    await page.locator(".operator-shell[data-hydrated]").waitFor({ timeout: 20_000 }).catch(() => seen.push("still not hydrated after reload"));
+    console.log("HYDRATION-DIAG", page.url(), JSON.stringify({ before, seen }));
+    throw error;
+  }
 }
 
 // Open a screen as a new visit. Settings' panes share one address, and going to the address already shown (its hash
