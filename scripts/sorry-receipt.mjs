@@ -18,7 +18,8 @@ const help = `Verify a public Sorry capture in an empty disposable Lamp test ins
 
   pnpm sorry:receipt --capture /unchanged/capture --key-file /private/test.pem --out /new/output
 
-Build this candidate first with pnpm build. Both directories and the Ed25519
+The capture's request metadata is read from /unchanged/capture.metadata.json,
+beside the folder. Build this candidate first with pnpm build. Both directories and the Ed25519
 PKCS8 PEM private key must be outside the checkout; the key must be an owned,
 regular 0600 file. No key value is accepted in arguments or environment.
 Only test-environment receipts are issued. Keep its public key in the consumer's
@@ -50,7 +51,7 @@ async function signingKey(path) {
 }
 async function capture(path) {
   const directory = outside(await realpath(path));
-  const metadata = JSON.parse(await readFile(resolve(directory, 'capture-metadata.json'), 'utf8'));
+  const metadata = JSON.parse(await readFile(`${directory}.metadata.json`, 'utf8'));
   assert.equal(metadata.schemaVersion, 1);
   assert.equal(metadata.mode, 'public');
   assert.equal(metadata.format, 'sorry-public-v1-saved-responses');
@@ -59,7 +60,7 @@ async function capture(path) {
   assert.ok(origin.protocol === 'https:' && origin.origin === metadata.origin && !origin.username && !origin.password);
   assert.ok(Array.isArray(metadata.files) && metadata.files.length > 0 && metadata.files.length <= 200);
   const names = metadata.files.map(file => file.name).sort();
-  assert.deepEqual((await readdir(directory)).sort(), [...names, 'capture-metadata.json'].sort(), 'Capture files are incomplete or unexpected.');
+  assert.deepEqual((await readdir(directory)).sort(), names, 'Capture files are incomplete or unexpected.');
   assert.equal(new Set(names).size, names.length);
   const files = [];
   let size = 0;
