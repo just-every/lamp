@@ -6664,7 +6664,7 @@
       "executable": false
     },
     "tests/chat-desk/flow.mjs": {
-      "sha256": "10b910101b992b1c05f55a04ffd4597246dc61d3d1ef7977d57047e388ac1b29",
+      "sha256": "5b15ceef0b0009b9ef644445f67f454a9b8535b3df8a95a5262f93281002f3a5",
       "executable": false
     },
     "tests/chat-desk/roles.mjs": {
@@ -6672,7 +6672,11 @@
       "executable": false
     },
     "tests/chat-desk/runtime.mjs": {
-      "sha256": "67422dc843b3d69182fd5cdc04bf6187e361bba80ec0cb405f9cd638831d1a46",
+      "sha256": "fd34447e287da392d0db63fc2f3adc494b62f5963bafebb313a805e3f6ba1912",
+      "executable": false
+    },
+    "tests/chat-desk/settings-browser-flow.mjs": {
+      "sha256": "3f9658802adaf24b51fe8a661c250dd1580eb5a514d9ce28926c70eaa974047b",
       "executable": false
     },
     "tests/contract.mjs": {
@@ -7116,7 +7120,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "f06bed89c6f8e03c888d569bf0334f80b87437245e5bf83e77e3984ab2e83f71",
+      "sha256": "880549335862a60d2c3bfdd8fdd46ab7ead2a6633c7a115d5b861b99c0fc72f6",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
