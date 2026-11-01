@@ -6676,7 +6676,7 @@
       "executable": false
     },
     "tests/chat-desk/settings-browser-flow.mjs": {
-      "sha256": "3f9658802adaf24b51fe8a661c250dd1580eb5a514d9ce28926c70eaa974047b",
+      "sha256": "8c8b1ad4e051160103d3ae2b7d5bcb42243e416c00384f2e7738466216702bb3",
       "executable": false
     },
     "tests/contract.mjs": {
