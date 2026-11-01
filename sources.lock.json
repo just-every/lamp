@@ -6916,7 +6916,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
-      "sha256": "9342fd62737d3be5ce1b68dabaa42c2f7b30ce08d07d26f5f124864613474cf5",
+      "sha256": "f1e601318abfec4892e22e923787a2e91d4c9f1eea26fda9c4cffa9552bd5d10",
       "executable": false
     },
     "tests/e2e/helpers/operator-role-actors.mjs": {
