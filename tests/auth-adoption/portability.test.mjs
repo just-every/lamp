@@ -69,6 +69,11 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
     const pagerDutySealed = await sealUrl(JSON.stringify({ apiKey: pagerDutyApiKey, fromEmail: pagerDutyFromEmail }), 'portable-pagerduty', ['synthetic-lamp-18']);
     await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,signing_secret,deduplication_path,title_path,state_path,created_by_operator_id,responder_preset,responder_sealed_credentials,responder_connected,created_at,updated_at) VALUES('portable-pagerduty','Portable PagerDuty','hmac-sha256','portable-signing-secret','event.data.id','event.data.title','event.event_type',?,'pagerduty',?,1,?,?)").bind(actor.operator.id, pagerDutySealed, now, now).run();
     for (const preset of ['jsm','opsgenie']) await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve,created_at,updated_at) VALUES(?,?,'bearer-token','synthetic-lamp-token-hash','preset:operations','preset:operations','preset:operations',?,?,?,1,1,?,?)").bind(`synthetic-lamp-${preset}`,`synthetic-lamp-${preset}`,actor.operator.id,preset,`synthetic-lamp-${preset}-sealed-key`,now,now).run();
+    // A sign-in registration: its client secret is sealed, and neither the plaintext nor the ciphertext may travel.
+    const { sealSecret } = await load('src/core/features/sign-in-providers/sealing.ts');
+    const signInSecret = 'synthetic-lamp-150020', signInSealed = await sealSecret(signInSecret, 'google', 'synthetic-lamp-19');
+    await db.prepare("INSERT INTO sign_in_providers(provider_id,client_id,issuer,sealed_secret,created_at,updated_at) VALUES('google','synthetic-lamp-150019',NULL,?,?,?),('okta','synthetic-lamp-150021','https://synthetic-lamp-okta.example.test','v1.synthetic-lamp-okta-ciphertext',?,?)").bind(signInSealed, now, now, now, now).run();
+    await db.prepare("INSERT INTO sign_in_people(provider_id,subject,operator_id,created_at) VALUES('okta','synthetic-lamp-150022',?,?)").bind(actor.operator.id, now).run();
     const portableIncidentSubscribers=await preparePortableIncidentSubscribers({db,codec,now});
     const portableMetrics=await preparePortableMetrics({env:current.env,native,cookie:oldCookie});
     const portableRules = await preparePortableAlertRules({ env: current.env, native, cookie: oldCookie });
@@ -84,6 +89,13 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
     for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100',portableMetrics.management.token,portableMetrics.hash]) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
     const nativeArchive = await readFile(join(directory, 'installation.rer'));
     for (const [kind, privateValue] of Object.entries({ key: pagerDutyApiKey, author: pagerDutyFromEmail, ciphertext: pagerDutySealed })) assert.ok(!nativeArchive.includes(privateValue), `native archives exclude the PagerDuty ${kind}`);
+    for (const [kind, privateValue] of Object.entries({ secret: signInSecret, ciphertext: signInSealed, 'Okta ciphertext': 'v1.synthetic-lamp-okta-ciphertext' })) assert.ok(!nativeArchive.includes(privateValue), `native archives exclude the sign-in ${kind}`);
+    let archivedSignIn;
+    for await (const record of fileRecords(join(directory, 'installation.rer'))) {
+      if (record.kind !== 'part') continue;
+      archivedSignIn ??= record.items.find(item => item.kind === 'row' && item.table === 'sign_in_providers' && item.row.provider_id === 'google');
+    }
+    assert.ok(archivedSignIn, 'the registration travels'); assert.equal(archivedSignIn.row.sealed_secret, null, 'its secret does not');
     let archivedPagerDuty;
     for await (const record of fileRecords(join(directory, 'installation.rer'))) {
       if (record.kind !== 'part') continue;
@@ -155,6 +167,10 @@ test('SUB-019 AUTO-001 HIST-004 PORT-001 ACCESS-001 ACCESS-002 INTAKE-009 INTAKE
       assert.equal(source.closeAlertOnResolve, true);
       assert.ok(!JSON.stringify(source).includes('sealed-key'));
     }
+    assert.deepEqual({ ...await restored.prepare("SELECT client_id,sealed_secret FROM sign_in_providers WHERE provider_id='google'").first() }, { client_id: 'synthetic-lamp-150019', sealed_secret: null }, 'the restored registration asks for its secret again');
+    assert.equal((await restored.prepare('SELECT COUNT(*) n FROM sign_in_people').first()).n, 1, 'the Okta pairing travels');
+    const signIn = await (await transferredApp.app.fetch(new Request(fresh.origin + '/api/app/sign-in', { headers: { Cookie: cookie } }), transferredBindings)).json();
+    assert.deepEqual(signIn.providers.map(row => [row.id, row.status]), [['google', 'needs-secret'], ['okta', 'needs-secret']], 'a restored registration is never offered until its secret is pasted again');
     await assertPortableMetrics({expected:portableMetrics,app:transferredApp.app,bindings:transferredBindings,origin:fresh.origin,cookie,db:restored});
     await assertPortableAlertRules({ expected: portableRules, app: transferredApp.app, bindings: transferredBindings, origin: fresh.origin, cookie, oldCookie, db: restored });
     const restoredApp = new Hono();

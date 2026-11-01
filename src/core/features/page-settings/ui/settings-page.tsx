@@ -6,6 +6,8 @@ import type { OverviewService } from "../../overview/service";
 import { AuditLog } from "../../audit-log/ui/audit-log";
 import { YourPageFacts } from "../../overview/ui/your-page";
 import { OperatorsPanel } from "../../operators/ui/operators-panel";
+import { SignInPane } from "../../sign-in-providers/ui/sign-in-pane";
+import { PANE_LINE } from "../../sign-in-providers/ui/wording";
 import { useAppData } from "../../../app/client/ui/api";
 import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { FormError, LoadingState } from "../../../app/client/ui/states";
@@ -36,6 +38,7 @@ const SAVES = new Set<SettingsTab>([...FORMS, "operators"]);
 // A pane's title says what it is; a line under it only where it adds something.
 const LINES: Partial<Record<SettingsTab, string>> = {
   tools: "Alerts from your tools open private drafts. Nothing is public until you publish, or a rule you saved does.",
+  "sign-in": PANE_LINE,
 };
 
 export function SettingsPage() {
@@ -83,6 +86,7 @@ export function SettingsPage() {
       {tab === "tools" && <ConnectedToolsTab />}
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "operators" && <OperatorsPanel />}
+      {tab === "sign-in" && <SignInPane />}
       {tab === "reports" && <ReportsSettingsTab />}
       {tab === "export" && <ExportSettingsTab />}
       {tab === "audit" && <AuditLog />}

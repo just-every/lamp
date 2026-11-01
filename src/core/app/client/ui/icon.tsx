@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 export type IconName = "plus" | "overview" | "page" | "incident" | "components" | "maintenance" | "subscribers" | "settings" | "external" | "arrow" | "back" | "chevron" | "check" | "warning" | "clock" | "close"
-  | "bell" | "pen" | "brush" | "code" | "person" | "chart" | "arrow-in" | "refresh" | "shield" | "link" | "template";
+  | "bell" | "pen" | "brush" | "code" | "person" | "chart" | "arrow-in" | "refresh" | "shield" | "link" | "template" | "key";
 
 const paths: Record<IconName, string> = {
   plus: "M12 5v14M5 12h14",
@@ -31,6 +31,7 @@ const paths: Record<IconName, string> = {
   shield: "M12 3 4.5 6v5.5c0 4.6 3.1 8.1 7.5 9.5 4.4-1.4 7.5-4.9 7.5-9.5V6L12 3Z",
   link: "M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.8 5.2M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7",
   template: "M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6",
+  key: "M15.5 3a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Zm-4.4 9.4L3 20.5M6 17.5l2.5 2.5M9 14.5l2 2",
 };
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {

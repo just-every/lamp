@@ -310,6 +310,7 @@ baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, operator,
     ["/app/settings", "Operator settings"],
     ["/app/settings#look", "Operator settings look", { footerCreditToggle: true, ready: 'main.operator-main h1:text-is("Look")' }],
     ["/app/settings#tools", "Operator connected tools", { ready: 'main.operator-main h1:text-is("Connected tools")' }],
+    ["/app/settings#sign-in", "Operator sign-in settings", { ready: 'main.operator-main h1:text-is("Sign-in")' }],
   ]) {
     await auditRoute(appUrl, path, surface, options?.ready ?? "main.operator-main h1", options);
   }
