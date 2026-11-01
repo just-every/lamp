@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "22da2db4f6d20a77d13e846add90d27537f2845d1f15f0c28861535ec318e106",
+      "sha256": "ffb2b35b416e913242b7f24ce0ff857818e143608f8c3fdea326fd77b3a3caf3",
       "executable": false
     },
     "DEMO.md": {
@@ -7124,7 +7124,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "b1b6d2635f2e0cf8ec9c7398c002320632541c1a649cae1a9a887a5eb42c993a",
+      "sha256": "fbe67bd8df43e6748d14af0f830561ae8958aa89e5ab07bd5ab5e7e7e740224b",
       "executable": false
     },
     "tests/e2e/queue-outage.worker.ts": {
