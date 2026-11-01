@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0383f20fb622a334dd3fc98b7c4209064e36e4ece73768890a4b59ffe87cd692",
+      "sha256": "722d710de5719d70a9b35e29ff9e1a70b01cc8c6d6d71c66f77846a2793797ff",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "dd59bf10b5bbab789f5b252adda06dfceba09c294d40177b5c1fa24967da0ca3",
+      "sha256": "22da2db4f6d20a77d13e846add90d27537f2845d1f15f0c28861535ec318e106",
       "executable": false
     },
     "DEMO.md": {
@@ -6959,6 +6959,10 @@
       "sha256": "2672a34832178ed85bae9c1093f6e8fd514801328212411456206975f95311d5",
       "executable": false
     },
+    "tests/e2e/helpers/short-history-flow.mjs": {
+      "sha256": "419f9268b105803457959a279cdfa7720ef0ab6a0f58dfa597dc1fdc5e460dd3",
+      "executable": false
+    },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
       "sha256": "2b81e25d9e688a30430d314d3394f074a5861bd442c38008760eccfaafd8d020",
       "executable": false
@@ -7112,7 +7116,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "820e6838948f1e363d9be9d5540e76887239d617dcb337d31c35cc3fa2060e4d",
+      "sha256": "fcb679b6b6d4b17118d408e115d11fa3f2f2d6ddc4f662052871f9814b9edfd0",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
