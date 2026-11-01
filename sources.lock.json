@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "22da2db4f6d20a77d13e846add90d27537f2845d1f15f0c28861535ec318e106",
+      "sha256": "8a31e10adda1106eac3ec372fc41b8999e95e130acc567f0330c26064c0f05ca",
       "executable": false
     },
     "DEMO.md": {
@@ -4800,7 +4800,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history-led.ts": {
-      "sha256": "7139c9f67970927ff6d06f4335d1f6c61a0249c3225ceb73eba7e627c77b5361",
+      "sha256": "5be0f567119afdf247cf676e1cea7938bdfd74195759227c1b1f8326e678e12c",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history.ts": {
@@ -4820,7 +4820,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/parts.ts": {
-      "sha256": "0368ef5deb015332017f9178adc43f21f26156728facb15d81e2f5ee01881fd0",
+      "sha256": "dbf8e5f7314c437e263f5f6b52585a03cdfe941c09e1d1eedf56c36f3cfb2b50",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/places.ts": {
@@ -6948,7 +6948,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-capacity-journey.mjs": {
-      "sha256": "cc9b1956d7d653fdece11dd88d67b866967ace36730dc7b24e474765513cbe00",
+      "sha256": "33085df6d1c750a5ec7b28481e3a7f8bdc6dd041712a5c798dbb25778285c367",
       "executable": false
     },
     "tests/e2e/helpers/report-reminders-flow.mjs": {
@@ -7116,7 +7116,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "fcb679b6b6d4b17118d408e115d11fa3f2f2d6ddc4f662052871f9814b9edfd0",
+      "sha256": "460c20e45d08eee2ebcfcc7285861fa838953e67debf2f8592113cb03ac06d8e",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
