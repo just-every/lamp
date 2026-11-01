@@ -31,7 +31,7 @@ export async function chatLinksSettingsFlow({ browser, t, width = 1440 }) {
     assert.equal(session.body.operator.id, r.operator, 'the browser session belongs to the seeded operator');
     await page.goto(`${r.origin}/app/settings`);
     await operatorHydrated(page);
-    await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Slack and Teams', exact: true }).click();
+    await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Connected tools', exact: true }).click();
     const panel = page.getByRole('region', { name: 'Chat links', exact: true });
     await expect(panel.getByText('No chat identities linked.', { exact: true })).toBeVisible();
     assert.deepEqual(await apiLinks(), []);
