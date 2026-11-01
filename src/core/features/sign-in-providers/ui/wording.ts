@@ -1,8 +1,6 @@
 import type { SignInProviderId, SignInStatus } from "../types";
 
 /** The words on the Sign-in pane. Tests never assert them. */
-export const PANE_LINE = "Invited people can sign in with Google or Okta. Email sign-in links keep working.";
-
 export const PROVIDER_COPY: Record<SignInProviderId, { name: string; does: string; step: string; redirect: string; link?: { label: string; href: string }; replaceNote: string; test: string }> = {
   google: {
     name: "Google",
