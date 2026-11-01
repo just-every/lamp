@@ -2,6 +2,118 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
+import { openStatusJourney } from './status-journey.mjs';
+
+// A frozen business calendar crosses midnight and the spring clock change.
+// Corrections go through the same native door an owner uses to repair history.
+export async function publicDailyRecordJourney(t) {
+  const j = await openStatusJourney({ pageHost: 'localhost', workerEntry: 'tests/e2e/helpers/automation-clock-worker.ts' });
+  const now = Date.parse('2030-03-20T19:00:00.000Z'), day = 86_400_000, minute = 60_000;
+  const windowStart = now - 90 * day, timezone = ['America', 'Los_Angeles'].join('/');
+  const calendar = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const dateOf = at => calendar.format(new Date(at));
+  const dates = [];
+  for (let at = Date.parse(`${dateOf(windowStart)}T12:00:00Z`); at <= Date.parse(`${dateOf(now)}T12:00:00Z`); at += day) dates.push(new Date(at).toISOString().slice(0, 10));
+  let browser;
+  try {
+    assert.equal((await j.raw(j.appOrigin + '/test/clock', { method: 'PUT', body: JSON.stringify({ now }) })).status, 204);
+    await j.signIn(undefined, { fresh: true });
+    const settings = (await j.json('/api/app/page-settings')).settings;
+    const saved = Object.fromEntries(['pageName', 'tagline', 'accentColor', 'hostname', 'mailFromAddress', 'footerCreditEnabled', 'widgetAllowedOrigins'].map(key => [key, settings[key]]));
+    const full = await j.component('Synthetic Lamp full daily history', { region: 'Europe' });
+    const recent = await j.component('Synthetic Lamp recent daily history', { region: 'North America' });
+    const healthy = await j.component('Synthetic Lamp healthy daily history', { region: 'Europe' });
+    const untracked = await j.component('Synthetic Lamp not yet tracked', { region: 'North America' });
+    const cases = [
+      { component: full, since: windowStart - day, intervals: [
+        { from: windowStart - day, to: windowStart - day + minute, state: 'Operational', weight: 0 },
+        { from: windowStart - 15 * minute, to: windowStart + 90 * minute, state: 'Major outage', weight: 1 },
+      ] },
+      { component: recent, since: Date.parse('2030-03-09T07:45:00Z'), intervals: [
+        { from: Date.parse('2030-03-09T07:45:00Z'), to: Date.parse('2030-03-09T08:15:00Z'), state: 'Degraded performance', weight: 0.5 },
+        { from: Date.parse('2030-03-09T18:00:00Z'), to: Date.parse('2030-03-09T18:20:00Z'), state: 'Partially unavailable', weight: 1 },
+        { from: Date.parse('2030-03-10T09:30:00Z'), to: Date.parse('2030-03-10T10:30:00Z'), state: 'Major outage', weight: 1 },
+      ] },
+      { component: healthy, since: Date.parse('2030-03-15T19:00:00Z'), intervals: [
+        { from: Date.parse('2030-03-15T19:00:00Z'), to: Date.parse('2030-03-15T19:01:00Z'), state: 'Operational', weight: 0 },
+      ] },
+      { component: untracked, since: now, intervals: [] },
+    ];
+    for (const { component, intervals } of cases) for (const interval of intervals) {
+      await j.json(`/api/app/components/${component.id}/history-corrections`, 'POST', {
+        state: interval.state, startsAt: new Date(interval.from).toISOString(), endsAt: new Date(interval.to).toISOString(), reason: 'Synthetic Lamp independently verified daily history',
+      }, 204);
+    }
+    // Enumerate real elapsed minutes independently of the product's segment
+    // calculation. A repeated or skipped local hour never invents minutes.
+    const expected = new Map(cases.map(({ component, since, intervals }) => {
+      const marks = dates.map(date => ({ day: date, downtimeMinutes: since >= now || date < dateOf(since) ? null : 0 }));
+      for (const interval of intervals) for (let at = Math.max(windowStart, interval.from); at < Math.min(now, interval.to); at += minute) {
+        const mark = marks.find(mark => mark.day === dateOf(at));
+        mark.downtimeMinutes += interval.weight;
+      }
+      return [component.id, marks];
+    }));
+    browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    for (const template of ['default', 'calm', 'uptime', 'regions']) {
+      await j.json('/api/app/page-settings', 'PUT', { ...saved, timezone, template });
+      const response = await j.publicResponse('/api/public/v1/components');
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('x-lamp-snapshot-generated-at'), new Date(now).toISOString());
+      const { data, nextCursor } = await response.json();
+      assert.equal(nextCursor, null);
+      assert.deepEqual(data.map(row => row.id).sort(), cases.map(row => row.component.id).sort(), `${template}: reconcile the complete public component inventory`);
+      for (const row of data) {
+        assert.deepEqual(row.uptime.marks.map(({ day, downtimeMinutes }) => ({ day, downtimeMinutes })), expected.get(row.id), `${template}: ${row.name} has every independently expected date and minute`);
+      }
+      const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(j.publicOrigin, { waitUntil: 'networkidle' });
+        if (template === 'regions') for (const detail of await page.locator('details.rg-row').all()) await detail.locator('summary').click();
+        const records = page.locator('[role="list"][aria-label*="-day uptime record for "]');
+        assert.equal(await records.count(), cases.length, `${template}: every component has its own rendered daily record`);
+        for (const row of data) {
+          const record = page.getByRole('list', { name: `90-day uptime record for ${row.name}`, exact: true });
+          assert.equal(await record.count(), 1, `${template}: associate the rendered record with public component ${row.id}`);
+          const rendered = await record.getByRole('listitem').evaluateAll(marks => marks.map(mark => ({ label: mark.getAttribute('aria-label'), title: mark.getAttribute('title') })));
+          const marks = expected.get(row.id);
+          assert.deepEqual(rendered.map(mark => mark.label.slice(0, 10)), dates, `${template}: ${row.name} retains the complete date inventory`);
+          for (let index = 0; index < marks.length; index++) {
+            const { day, downtimeMinutes } = marks[index], { label, title } = rendered[index];
+            const expectedLabel = downtimeMinutes === null ? `${day}: no data` : downtimeMinutes === 0 ? `${day}: no downtime` : `${day}: Downtime ${downtimeMinutes} minutes (weighted)`;
+            assert.equal(label.split(';')[0], expectedLabel, `${template}: exact daily label for ${row.name}`);
+            assert.equal(title, label, `${template}: the visible hover label agrees with the accessible label`);
+          }
+        }
+        const noData = page.getByRole('list', { name: `90-day uptime record for ${recent.name}`, exact: true }).getByRole('listitem', { name: `${dates[0]}: no data`, exact: true });
+        const zero = page.getByRole('list', { name: `90-day uptime record for ${recent.name}`, exact: true }).getByRole('listitem', { name: '2030-03-19: no downtime', exact: true });
+        const appearance = mark => mark.evaluate(element => {
+          const style = getComputedStyle(element), rect = element.getBoundingClientRect();
+          return { background: style.backgroundColor, opacity: style.opacity, width: rect.width, height: rect.height };
+        });
+        const [none, good] = await Promise.all([appearance(noData), appearance(zero)]);
+        assert.ok(none.width > 0 && none.height > 0 && good.width > 0 && good.height > 0, `${template}: both day states are displayed`);
+        assert.notDeepEqual([none.background, none.opacity], [good.background, good.opacity], `${template}: no data is visibly different from healthy zero downtime`);
+        const fullRecord = page.getByRole('list', { name: `90-day uptime record for ${full.name}`, exact: true });
+        const tops = await fullRecord.getByRole('listitem').evaluateAll(marks => marks.map(mark => mark.getBoundingClientRect().y));
+        assert.ok(tops.every(y => Math.abs(y - tops[0]) < 1), `${template}: all daily marks remain on their component's row`);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${template}: the record fits the page`);
+        // Assertions run at one width; capture both viewport proofs and their
+        // existing computed styles without duplicating the browser journey.
+        for (const width of [1440, 390]) {
+          await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+          const [none, good] = await Promise.all([appearance(noData), appearance(zero)]);
+          if (process.env.LAMP_SCREENSHOTS) {
+            await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+            await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-daily-record-${template}.png`, fullPage: true });
+          }
+          t.diagnostic(`UPTIME-006 ${template} at ${width}: four associated daily records; ${dates.length} dates each; exact 90, 7.5, 27.5 and 60 weighted-minute labels; no-data and healthy computed backgrounds ${none.background} and ${good.background}.`);
+        }
+      } finally { await context.close(); }
+    }
+  } finally { await browser?.close(); await j.close(); }
+}
 
 // Historical observations are fixture prerequisites. Catalogue edits, metric
 // ingestion, history corrections and every observed result use public doors.

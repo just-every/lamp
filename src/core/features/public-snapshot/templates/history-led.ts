@@ -33,10 +33,11 @@ function heatmapDays(model: PublicSnapshotModel) {
 /** Grid columns for the axis and callouts, each callout's reach down to its component's row, and the dates the axis
  *  keeps at each width of the track. */
 export function historyLedStyles(model: PublicSnapshotModel) {
-  const columns = Array.from({ length: REPORTING_DAYS }, (_, index) => `.hm-track .d${index + 1}{grid-column-start:${index + 1};--column:${index}}`).join("");
-  const reach = Array.from({ length: MAX_REACH + 1 }, (_, index) => `.reach-${index}{--reach:${index}}`).join("");
   const days = heatmapDays(model);
-  return `${columns}${reach}${days ? axisStyles(days) : ""}${model.theme.historyDays === REPORTING_DAYS ? "" : `body.lamp-public .hm-cells,body.lamp-public .hm-callouts,body.lamp-public .hm-axis{grid-template-columns:repeat(${days?.length ?? model.theme.historyDays},minmax(0,1fr))}`}`;
+  const count = days?.length ?? model.theme.historyDays;
+  const columns = Array.from({ length: count }, (_, index) => `.hm-track .d${index + 1}{grid-column-start:${index + 1};--column:${index}}`).join("");
+  const reach = Array.from({ length: MAX_REACH + 1 }, (_, index) => `.reach-${index}{--reach:${index}}`).join("");
+  return `${columns}${reach}${days ? axisStyles(days) : ""}${count === REPORTING_DAYS ? "" : `body.lamp-public .hm-cells,body.lamp-public .hm-callouts,body.lamp-public .hm-axis{grid-template-columns:repeat(${count},minmax(0,1fr))}`}`;
 }
 
 function overallUptime(components: Component[]) {
