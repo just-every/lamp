@@ -12,7 +12,9 @@ export async function operatorHydrated(page) {
     const before = (await page.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300);
     await page.reload().catch(() => {});
     await page.locator(".operator-shell[data-hydrated]").waitFor({ timeout: 20_000 }).catch(() => seen.push("still not hydrated after reload"));
-    console.log("HYDRATION-DIAG", page.url(), JSON.stringify({ before, seen }));
+    const cookies = (await page.context().cookies().catch(() => [])).map(c => `${c.name.replace(/[A-Za-z0-9]{12,}/g, "…")}:${c.expires > 0 ? Math.round(c.expires - Date.now() / 1000) : c.expires}`);
+    const tail = String(globalThis.__lampDiag?.() ?? "").replace(/(rer-dev=|x-rer-dev-key[=:]\s*)[A-Za-z0-9_-]+/g, "$1…").slice(-3500);
+    console.log("HYDRATION-DIAG", page.url(), JSON.stringify({ before, seen, cookies, tail }));
     throw error;
   }
 }
