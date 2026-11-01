@@ -6776,7 +6776,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "616058eda3444ad40dfe4ae56478a0925c7ed6e051b9a2d0b43f33e676a115e4",
+      "sha256": "74ec0f474a8f216005272b67f784ae2c52cffc94ebcd9ad60e4ac7ac7b16843c",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -6976,7 +6976,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
-      "sha256": "f1e601318abfec4892e22e923787a2e91d4c9f1eea26fda9c4cffa9552bd5d10",
+      "sha256": "380b69652199ac1e67f02bc71ce06ea81a82c5e3150e24d0572534e01c2c9704",
       "executable": false
     },
     "tests/e2e/helpers/operator-role-actors.mjs": {
