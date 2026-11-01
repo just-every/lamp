@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 
 import type { PageSettingsService } from "../service";
@@ -6,8 +6,6 @@ import type { OverviewService } from "../../overview/service";
 import { AuditLog } from "../../audit-log/ui/audit-log";
 import { YourPageFacts } from "../../overview/ui/your-page";
 import { OperatorsPanel } from "../../operators/ui/operators-panel";
-import { SignInPane } from "../../sign-in-providers/ui/sign-in-pane";
-import { PANE_LINE } from "../../sign-in-providers/ui/wording";
 import { useAppData } from "../../../app/client/ui/api";
 import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { FormError, LoadingState } from "../../../app/client/ui/states";
@@ -28,6 +26,8 @@ import { SettingsSaveState } from "./settings-save-state";
 import { useSettingsAutosave } from "./use-settings-autosave";
 
 const operatorRoute = getRouteApi("/app");
+// Sign-in is one pane among many; its modules load only when it is opened, so no other Settings pane pays for them.
+const SignInPane = lazy(() => import("../../sign-in-providers/ui/sign-in-pane").then(module => ({ default: module.SignInPane })));
 type SettingsResponse = { settings: Awaited<ReturnType<PageSettingsService["get"]>> };
 type OverviewResponse = { overview: Awaited<ReturnType<OverviewService["get"]>> };
 
@@ -38,7 +38,7 @@ const SAVES = new Set<SettingsTab>([...FORMS, "operators"]);
 // A pane's title says what it is; a line under it only where it adds something.
 const LINES: Partial<Record<SettingsTab, string>> = {
   tools: "Alerts from your tools open private drafts. Nothing is public until you publish, or a rule you saved does.",
-  "sign-in": PANE_LINE,
+  "sign-in": "Invited people can sign in with Google or Okta. Email sign-in links keep working.",
 };
 
 export function SettingsPage() {
@@ -86,7 +86,7 @@ export function SettingsPage() {
       {tab === "tools" && <ConnectedToolsTab />}
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "operators" && <OperatorsPanel />}
-      {tab === "sign-in" && <SignInPane />}
+      {tab === "sign-in" && <Suspense fallback={<LoadingState>Loading sign-in…</LoadingState>}><SignInPane /></Suspense>}
       {tab === "reports" && <ReportsSettingsTab />}
       {tab === "export" && <ExportSettingsTab />}
       {tab === "audit" && <AuditLog />}
