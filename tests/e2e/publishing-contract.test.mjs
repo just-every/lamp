@@ -223,10 +223,12 @@ test('INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
     assert.equal(historicalReach.updates.length, 3);
     assert.ok(historicalReach.updates.every(update => update.channels.every(channel => channel.committed === 0)), 'historical and later current-time updates create no subscriber delivery');
     assert.ok(!j.messages.some(mail => mail.text.includes(historical.title)), 'no historical incident notification reaches the provider');
-    const performance = await j.json(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}`);
+    // The report month follows the page's fixed Brisbane offset.
+    const performanceMonth = new Date(Date.now() + 10 * 3600_000).toISOString().slice(0, 7);
+    const performance = await j.json(`/api/app/communication-performance?month=${performanceMonth}`);
     assert.ok(performance.incidents.some(row => row.incidentId === incident.id));
     assert.ok(performance.summary.commitments.evaluated > 0);
-    const performanceCsv = await j.request(`/api/app/communication-performance?month=${new Date().toISOString().slice(0, 7)}&format=csv`);
+    const performanceCsv = await j.request(`/api/app/communication-performance?month=${performanceMonth}&format=csv`);
     assert.equal(performanceCsv.status, 200); assert.ok((await performanceCsv.text()).includes(incident.reference));
     for (const format of ['csv', 'pdf']) {
       const response = await j.request(`/api/app/availability-report?component=${component.id}&month=${month}&format=${format}`);

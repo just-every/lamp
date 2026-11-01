@@ -167,7 +167,10 @@ test('SUB-019 PAGE-001 PAGE-002 PAGE-003 PAGE-004 PAGE-007 PAGE-008 PAGE-009 PAG
     const history = await j.json(`/api/app/components/${main.id}/history`);
     for (const row of originalHistory) assert.ok(history.history.some(entry => entry.id === row.id));
     assert.ok(history.corrections.some(row => row.reason === correction.reason));
-    const month = startsAt.slice(0, 7);
+    const monthParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit',
+    }).formatToParts(new Date(startsAt));
+    const month = `${monthParts.find(part => part.type === 'year').value}-${monthParts.find(part => part.type === 'month').value}`;
     const report = await j.json(`/api/app/availability-report?component=${main.id}&month=${month}&format=json`);
     assert.ok(Number(report.downtimeMinutes) >= 60, 'partial degradation is charged rather than rounded away');
     assert.ok(parseFloat(report.uptime) < 100);
