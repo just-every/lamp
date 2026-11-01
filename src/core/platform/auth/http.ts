@@ -18,7 +18,8 @@ export async function authResponse(request:Request,env:AppBindings,services:AppS
 }
 async function authResponseInternal(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
   try {
-    const auth=services.auth(),config=authConfig(env),url=new URL(request.url);
+    // Google and Okta set up in Settings are composed in before Base builds its providers.
+    const stored=await services.signIn.composed(),auth=await services.signInAuth(request),config=authConfig(env,stored),url=new URL(request.url);
     const signedIn = await signedInOwnerRedirect(request, auth);
     if (signedIn) return signedIn;
     // A host-configured key set selects native signed claims. Claims never choose their own authority.
@@ -50,6 +51,8 @@ async function authResponseInternal(request:Request,env:AppBindings,services:App
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
     if (url.pathname === '/auth/owner-signin' && response.status >= 400) return ownerSignInRefused(response);
+    const test = await testFailureOnPane(request, response, auth, config.origin);
+    if (test) return test;
     return request.method === 'GET' && url.pathname === '/auth/settings/identity'
       ? await identitySettingsPage(response, { origin: config.origin, providers: config.providers, identityProvider: env.IDENTITY_PROVIDER || undefined, local: Boolean(import.meta.env?.DEV), saved: url.searchParams.get('saved') === '1' })
       : response;
@@ -57,6 +60,19 @@ async function authResponseInternal(request:Request,env:AppBindings,services:App
     const response=Response.json({error:error instanceof AuthError?error.code:'auth_unavailable'},{status:error instanceof AuthError?error.status:503,headers:securityHeaders()});
     return new URL(request.url).pathname === '/auth/owner-signin' ? ownerSignInRefused(response) : response;
   }
+}
+
+// The owner's Test sign-in on Settings › Sign-in: a refusal Base sends to /signin?notice=… (which a signed-in person
+// never sees) comes back to the pane instead, with its code. Every other header, the cookies included, stays.
+async function testFailureOnPane(request:Request,response:Response,auth:Awaited<ReturnType<AppServices['signInAuth']>>,origin:string):Promise<Response|null> {
+  const test=/^\/auth\/oidc\/(google|okta)\/(start|callback)$/.exec(new URL(request.url).pathname);
+  const location=response.headers.get('location');
+  if (!test||response.status!==303||!location?.startsWith('/signin?notice=')) return null;
+  if (!await auth.identitySettings(request).then(()=>true,()=>false)) return null;
+  const notice=new URL(location,origin).searchParams.get('notice')??'';
+  const headers=new Headers(response.headers);
+  headers.set('Location',`/app/settings?test=${test[1]}&result=${/^[a-z_]+$/.test(notice)?notice:'oidc_unavailable'}#sign-in`);
+  return new Response(response.body,{status:303,statusText:response.statusText,headers});
 }
 
 // A missing, used or expired owner grant sends the person to /signin; the grant route never shows them raw JSON.

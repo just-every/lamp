@@ -92,7 +92,6 @@ export function OperatorsPanel() {
       <h2 id="operators-title">Operators</h2>
       <p>Roles control what each operator can do. Removing access signs them out. Erasing personal data removes their name and email for good.</p>
     </div>
-    <a className="text-link" href="/auth/settings/identity">Identity provider settings</a>
     {needsConfirmation && <form className="page-stack" action="/auth/step-up" method="post">
       <input type="hidden" name="action" value="owner:transfer" />
       <input type="hidden" name="returnTo" value="/app/settings#operators" />

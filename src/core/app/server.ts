@@ -52,6 +52,7 @@ import { registerRerCutoverStatus } from '../features/statuspage-import/rer-cuto
 import { registerSocialRoutes } from "../features/social/routes";
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
+import { registerSignInRoutes } from "../features/sign-in-providers/routes";
 
 export type { AppBindings } from "./types";
 
@@ -118,6 +119,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerRerCutoverStatus(app, bindings);
   registerChannelRoutes(app, services.channels);
   registerSocialRoutes(app, services.social);
+  registerSignInRoutes(app, services.signIn);
   registerChatDeskRoutes(app, services.chatDesk, services.components);
 
   async function readOperator(path: string, source: Request, authority: OperatorReadSession) {

@@ -28,7 +28,7 @@ import { createCatalogueRepository } from "../features/components/catalogue.repo
 import { createCatalogueService } from "../features/components/catalogue-service";
 import { createDeliveriesService, createDeliveryRepository, notificationPublicationStatements, incidentCatchupStatements } from "../features/deliveries";
 import { createIncidentRepository, createIncidentsService, createUpdateReminders } from "../features/incidents";
-import { authOrigin } from "../platform/auth/config";
+import { authOrigin, deployProviders } from "../platform/auth/config";
 import { createIntakeRepository, createIntakeService } from "../features/intake";
 import { createMaintenanceRepository, createMaintenanceService } from "../features/maintenance";
 import { createOverviewRepository } from "../features/overview/repository";
@@ -40,6 +40,7 @@ import { createOverviewService } from "../features/overview";
 import { createPageSettingsRepository, createPageSettingsService } from "../features/page-settings";
 import { createLampAuth } from "../platform/auth";
 import { createOperatorRepository } from "../features/operators/repository";
+import { createSignInService } from "../features/sign-in-providers/service";
 import { createSubscriberRepository, createSubscribersService } from "../features/subscribers";
 import { createPublicSnapshotService, createSnapshotRepository, formatTime } from "../features/public-snapshot";
 import { createReportRepository, createReportsService } from "../features/reports";
@@ -75,6 +76,20 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const operators = createOperatorRepository(bindings.DB);
   let authority: ReturnType<typeof createLampAuth> | undefined;
   const auth = () => authority ??= createLampAuth(bindings, mail);
+  // Google and Okta set up in Settings join the deploy file's providers. Base builds its providers once, when it is
+  // constructed, so the auth that serves sign-in is composed first and constructed after, once per request (a runtime
+  // that keeps these services across requests still composes anew for each); a change takes effect on the next request.
+  // Session checks keep the plain auth() above.
+  const composedAuth = new WeakMap<Request, Promise<ReturnType<typeof createLampAuth>>>();
+  const signInAuth = (request: Request) => {
+    let composed = composedAuth.get(request);
+    if (!composed) composedAuth.set(request, composed = signIn.composed().then(stored => createLampAuth(bindings, mail, stored)));
+    return composed;
+  };
+  const signIn = createSignInService(bindings.DB, {
+    webhookSecret: bindings.WEBHOOK_SIGNING_SECRET, origin: authOrigin(bindings), unavailable: outboundUnavailable(bindings, "Google and Okta sign-in"),
+    deploy: deployProviders(bindings), auth: signInAuth, authWith: stored => createLampAuth(bindings, mail, stored),
+  });
   const components = createComponentsService(createComponentRepository(bindings.DB), publicSnapshots.rebuild, extensions.componentEvents);
   const componentCatalogue = createCatalogueService(createCatalogueRepository(bindings.DB), publicSnapshots.rebuild);
   // Slack and Teams channels: webhook URLs sealed with WEBHOOK_SIGNING_SECRET; local dev may name a loopback receiver.
@@ -260,7 +275,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { alertRules, social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { alertRules, social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, signInAuth, signIn, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;
