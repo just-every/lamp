@@ -138,6 +138,23 @@ test('SETUP-002 ACCESS-001 TEAM-002 native rer setup, owner sign-in, invitations
      await cancelledRow.waitFor({state:'detached'});
      await accessible(page);
      assert.equal((await page.request.get(origin+'/api/app/operators/invited')).status(),200);
+
+     // Settings › Team › Sign-in: Google and Okta are set up here, not through a runbook.
+     await page.goto(origin+'/app/settings#sign-in');
+     await operatorHydrated(page);
+     await page.locator('main.operator-main h1',{hasText:'Sign-in'}).waitFor({state:'visible'});
+     assert.equal(await page.getByRole('link',{name:'Sign-in',exact:true}).first().getAttribute('aria-current'),'page','the rail marks Sign-in');
+     for(const id of ['google','okta'])assert.equal(await page.locator(`[data-provider="${id}"]`).getAttribute('data-status'),'not-set-up');
+     await page.getByRole('button',{name:'Set up Google',exact:true}).click();
+     assert.equal(await page.getByLabel('Client secret',{exact:true}).getAttribute('type'),'password','the secret is only ever typed into a password field');
+     await page.getByLabel('Client ID',{exact:true}).waitFor({state:'visible'});
+     assert.equal(await page.getByLabel('Redirect URI',{exact:true}).inputValue(),origin+'/auth/oidc/google/callback');
+     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'the pane fits the viewport');
+     await accessible(page);await capture(page,'sign-in-'+width);
+     await page.goto(origin+'/app/settings#operators');
+     await operatorHydrated(page);
+     await page.getByRole('region',{name:'Operators',exact:true}).waitFor({state:'visible'});
+     assert.equal(await page.locator('a[href="/auth/settings/identity"]').count(),0,'Operators no longer links to the identity runbook');
     }
     {
      const location=new URL(page.url()).pathname;

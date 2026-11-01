@@ -43,20 +43,55 @@ your own Resend or SendGrid account with `MAIL_FROM_ADDRESS`,
 
 Single sign-on lets an already invited operator use a supported identity
 provider. Linking a provider does not invite people or give them Lamp access.
-Email sign-in stays available. The **Identity provider settings** checkbox
-only enables provider sign-in; register and configure the provider first.
-SCIM and role synchronization are not supported.
+Email sign-in stays available. SCIM and role synchronization are not supported.
 
-**Settings → Operators → Identity provider settings** says whether a provider
-is set up and walks you through Google, Okta and a Run Edit Run Auth link on the
-page itself: the exact redirect URI or addresses, the settings lines (with a fresh
-random secret), where each value is in the provider's console, the deploy step and
-a sign-in test, each with a copy button. Microsoft Entra cannot be finished there:
-Lamp links each Microsoft person by the subject Microsoft issues to the app, which
-the Entra admin center does not show. Use the steps below only if your identity
-administrator can give you each operator's subject.
+### Set up Google or Okta in Lamp
 
-### Register Google, Microsoft or Okta
+Google and Okta are set up in the app, with no file to edit and no redeploy.
+Only the owner can do it, with fresh email confirmation.
+
+1. In the provider, create the application. For Google, create an OAuth client
+   ID for a web application in Google Cloud. For Okta, create an OIDC web app,
+   keep **Client authentication** as **Client secret** and assign the people who
+   will use Lamp.
+2. Open **Settings → Team → Sign-in**. If it shows **Confirm my identity**, choose
+   it, open the emailed link in the same browser, then return to the tab.
+3. Choose **Set up Google** or **Set up Okta**. Copy the redirect URI Lamp shows
+   into the provider. Paste the client ID and secret (and, for Okta, your Okta
+   domain such as `acme.okta.com`) and choose **Save**. Lamp checks that the
+   provider answers and pins it. The row then reads **Saved, not tested**.
+4. For Okta, list each person: choose them beside their Okta user ID, which you
+   find in Okta under **Directory → People** and which starts with `00u`. Okta
+   signs in only the people listed. Each ID and each person can be listed once.
+5. Turn on **Let invited people sign in with Google or Okta**, then choose **Test
+   sign-in**. The provider's real flow runs and you return to the pane with one
+   plain result. **Working** appears only after the provider accepted Lamp's
+   client secret. An account that is not invited, or an Okta user who is not
+   listed, still proves the credentials: it reads *Google accepted Lamp, but that
+   account isn't invited here*.
+
+Lamp keeps the client secret sealed in its own database and never shows it again,
+exports it or returns it in a page. **Replace secret** and a changed client ID or
+domain pin the provider again, so people signed in with it sign in again.
+**Disconnect** signs them out, lifts any sign-in rule for an email domain that named
+the provider, and deletes the registration; email sign-in links keep working. A
+backup omits the secret: after a restore the row reads **Needs its client secret**
+and is not offered until you paste it again. Managed hosting has no outbound
+connection yet, so Settings says so and Save is refused there.
+
+Microsoft Entra and Run Edit Run Auth are still set up on the identity settings
+page (`/auth/settings/identity`, linked at the foot of the Sign-in pane) and as
+described below. Microsoft Entra cannot be finished from that page: Lamp links each Microsoft
+person by the subject Microsoft issues to the app, which the Entra admin center
+does not show. Use the steps below only if your identity administrator can give you
+each operator's subject.
+
+### Register Google, Microsoft or Okta in the deploy file
+
+The deploy-file path below still works for Microsoft and for anyone who prefers
+it. A provider set in the deploy file **wins per ID**: Settings then shows it as set
+in your deploy settings, reads its state and offers only the redirect URI and
+**Test sign-in**; Save is refused for that ID until you remove it from the file.
 
 The person deploying Lamp needs permission to create an application in the
 identity provider and change Lamp's private deployment inputs.
@@ -120,8 +155,8 @@ rer deploy --environment production --env-file "$HOME/.config/lamp/production.en
    it to the file on such a page, deploy with
    `--rotate-secret OIDC_TRANSACTION_SECRET` so the Worker takes your value.
 
-4. As the setup owner, open **Settings → Operators → Identity provider settings**.
-   Enable **Allow provider sign-in** and save. This permits the configured
+4. As the setup owner, open **Settings → Team → Sign-in**.
+   Turn on **Let invited people sign in with Google or Okta**. This permits the configured
    providers; the checkbox alone does not establish a connection.
 5. Keep your current owner session open. In a separate private browser window,
    open Lamp's sign-in page and choose the provider. Complete sign-in as an

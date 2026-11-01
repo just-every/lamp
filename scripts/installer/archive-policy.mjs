@@ -35,5 +35,5 @@ export default {
   // A PagerDuty source's sealed REST key never travels, as in the hosted archive
   // (scripts/export.mjs): the column stays, so earlier archives still restore, and
   // the restored source asks the owner to reconnect.
-  exportRow: (table, row) => table === 'public_metrics' ? { ...row, sealed_credentials: null, pull_lease_until: null, pull_after: 0 } : table === 'alert_sources' && row.responder_sealed_credentials != null ? { ...row, responder_sealed_credentials: null } : row,
+  exportRow: (table, row) => table === 'public_metrics' ? { ...row, sealed_credentials: null, pull_lease_until: null, pull_after: 0 } : table === 'alert_sources' && row.responder_sealed_credentials != null ? { ...row, responder_sealed_credentials: null } : table === 'sign_in_providers' ? { ...row, sealed_secret: null } : row,
 };

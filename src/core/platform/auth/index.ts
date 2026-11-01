@@ -1,4 +1,4 @@
-import { AuthError, createOperatorAuth, normalizeEmail } from '@runeditrun/rer/modules/operator-auth';
+import { AuthError, createOperatorAuth, normalizeEmail, type AuthConfig } from '@runeditrun/rer/modules/operator-auth';
 import type { AppBindings } from '../../app/types';
 import type { MailSender } from '../mail';
 import { createOperatorRepository } from '../../features/operators/repository';
@@ -6,9 +6,9 @@ import { createOperatorRolesRepository } from '../../features/operators/roles.re
 import { OPERATOR_ROLES, type OperatorRole } from '../../features/operators/permissions';
 import { authConfig } from './config';
 
-export function createLampAuth(env: AppBindings, mail?: MailSender) {
+export function createLampAuth(env: AppBindings, mail?: MailSender, stored?: AuthConfig['providers']) {
   const repository = createOperatorRepository(env.DB);
-  const config = authConfig(env);
+  const config = authConfig(env, stored);
   const auth = createOperatorAuth({ db: env.DB, config,
     clientIp: request => config.local ? 'loopback' : request.headers.get('CF-Connecting-IP') ?? '',
     rolePolicy: async input => {
