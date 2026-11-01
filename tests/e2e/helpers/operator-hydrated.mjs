@@ -14,7 +14,13 @@ export async function operatorHydrated(page) {
     await page.locator(".operator-shell[data-hydrated]").waitFor({ timeout: 20_000 }).catch(() => seen.push("still not hydrated after reload"));
     const cookies = (await page.context().cookies().catch(() => [])).map(c => `${c.name.replace(/[A-Za-z0-9]{12,}/g, "…")}:${c.expires > 0 ? Math.round(c.expires - Date.now() / 1000) : c.expires}`);
     const tail = String(globalThis.__lampDiag?.() ?? "").replace(/(rer-dev=|x-rer-dev-key[=:]\s*)[A-Za-z0-9_-]+/g, "$1…").slice(-3500);
-    console.log("HYDRATION-DIAG", page.url(), JSON.stringify({ before, seen, cookies, tail }));
+    const probe = async path => { try { const r = await globalThis.__lampProbe?.(path); return r ? `${r.status} ${(await r.text()).replace(/\s+/g, " ").slice(0, 500)}` : "no probe"; } catch (e) { return `probe failed: ${e.message}`; } };
+    const path = new URL(page.url()).pathname;
+    const id = path.split("/").pop();
+    const doc = await probe(path);
+    const api = await probe(`/api/app/incidents/${id}`);
+    const health = await probe("/health?format=json");
+    console.log("HYDRATION-DIAG", page.url(), JSON.stringify({ before, seen, cookies, doc, api, health, tail: tail.slice(-1200) }));
     throw error;
   }
 }
