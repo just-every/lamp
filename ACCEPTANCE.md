@@ -1007,7 +1007,7 @@ Core · published · **partial** · Cites BASE-OPS-003 · Rules D-1
 **Acceptance.**
 1. Retrying publication or redelivering the queue job never sends that subscriber the update twice on one channel.
 
-**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
+**Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/delivery-contract.test.mjs`; `tests/e2e/helpers/webhook-at-most-once-flow.mjs`; `tests/e2e/channels-and-presets.test`; `tests/e2e/helpers/automation-rules-flow.mjs`
 **Gap.** Old cited evidence asserts repeated capture leaves one recipient record; repeated capture leaves one dispatcher job; two intended healthy-delivery scenarios produce two healthy-host requests in aggregate. Unasserted: the concurrently dispatched delivery alone produces exactly one request; email queue redelivery never resends.
 
 #### NOTIFY-006 — Operator alerts
