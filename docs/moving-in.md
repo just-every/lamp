@@ -3,7 +3,7 @@
 Lamp can bring components, incident history, scheduled maintenance and eligible
 email subscribers into your page.
 
-After building the candidate, `pnpm sorry:receipt --capture /unchanged/capture --key-file /private/test.pem --out /new/output` verifies a public capture in a disposable test installation and signs its receipt; reviewed receipts live in `docs/receipts/` and their public keys belong only in the consumer's test trust store.
+After building the candidate, `pnpm sorry:receipt --capture /unchanged/capture --key-file /private/test.pem --out /new/output` (reading the request metadata from `/unchanged/capture.metadata.json`) verifies a public capture in a disposable test installation and signs its receipt; reviewed receipts live in `docs/receipts/` and their public keys belong only in the consumer's test trust store.
 
 ## Common workflow
 
@@ -362,7 +362,10 @@ incomplete. Pagination stays on the selected HTTPS origin and collection.
 Public capture uses `sorry-status.json` instead of `sorry-page.json`, numbered
 collection files such as `sorry-notices-2.json`, and the same detail filenames.
 Public JSON provides no subscribers. Every notice's detail is read; a capture
-missing one is refused. See the [public Status API](https://status.sorryapp.com/api).
+missing one is refused. The capture records its requests in
+`sorry-public.metadata.json` beside the folder (`<out>.metadata.json`), not
+inside it, so in Move in you can select every `.json` file in the folder at once.
+See the [public Status API](https://status.sorryapp.com/api).
 
 Sorry documents no native RSS/Atom feed. If the source HTML advertises an
 alternate feed, discover its actual `rel="alternate"` link; a feed is a
