@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/settings-page.tsx": {
-      "sha256": "e594b4ee68177297a3fe4e250ca5d4b600962b476d97edb4883515a090e522ef",
+      "sha256": "5058cd85dee6e3d28b1758fdb2e5a4c53e4d6c9995ece45d1d064036ad3423c8",
       "executable": false
     },
     "src/core/features/page-settings/ui/settings-save-state.tsx": {
@@ -5000,7 +5000,7 @@
       "executable": false
     },
     "src/core/features/sign-in-providers/ui/wording.ts": {
-      "sha256": "1e483c141454b6cdaac42b84f069f575f2467c02dd70bb3aab39160c19321711",
+      "sha256": "473e1383d1dc9ee8e8195ff27a56ae991974e6e49dc446446d77f2a709468e71",
       "executable": false
     },
     "src/core/features/sign-in-providers/validate.ts": {
@@ -6776,7 +6776,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "f15d9e94abfc15757a8f2443a9e1431dd2ce197f5b626c7a0fa9a44ea3121bf2",
+      "sha256": "616058eda3444ad40dfe4ae56478a0925c7ed6e051b9a2d0b43f33e676a115e4",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
@@ -6976,7 +6976,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
-      "sha256": "9add57eaf54a9ac446b575c5d2e80d62bf777b39c624b50733bc07b9dc941a75",
+      "sha256": "9342fd62737d3be5ce1b68dabaa42c2f7b30ce08d07d26f5f124864613474cf5",
       "executable": false
     },
     "tests/e2e/helpers/operator-role-actors.mjs": {

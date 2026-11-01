@@ -93,8 +93,6 @@ before(async () => {
   });
   await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
   runtime = await openNativeRuntime();
-  globalThis.__lampDiag = () => runtime.output; // TEMPORARY DIAGNOSTIC (L14)
-  globalThis.__lampProbe = async path => nativeRequest(path, { cookie, headers: { Accept: "text/html" } }); // TEMPORARY DIAGNOSTIC (L14)
   runtime.env.LAMP_DEV_CHANNEL_RECEIVER = `http://127.0.0.1:${receiver.address().port}`;
   const configPath = join(runtime.directory, "wrangler.json");
   await writeFile(configPath, localWranglerConfig(config => ({
