@@ -14,8 +14,10 @@ const command = args => execute(process.execPath, ['--experimental-strip-types',
 });
 
 /** Folded into the Sorry owner journey: both new commands cross their public
- * command doors, and all Lamp application behavior runs in its native runtime. */
-export async function sorryReceiptFlow() {
+ * command doors, and all Lamp application behavior runs in its native runtime.
+ * `reviewFolder` is Move in's review of every `.json` file the operator selects
+ * from a freshly captured folder. */
+export async function sorryReceiptFlow(reviewFolder) {
   // This is also the main-FAIL signal when the folded assertions run on main.
   await access('scripts/sorry-receipt.mjs');
   const directory = await mkdtemp(join(tmpdir(), 'lamp-sorry-receipt-test-'));
@@ -26,6 +28,8 @@ export async function sorryReceiptFlow() {
     await writeFile(keyFile, privateKey.export({ format: 'pem', type: 'pkcs8' }), { mode: 0o600 });
     await command(['--import', resolve('tests/e2e/helpers/sorry-public-edge.mjs'),
       'scripts/sorry-capture.mjs', '--public-url', 'https://status.example.test', '--out', capture]);
+    const selected = (await readdir(capture)).filter(name => name.endsWith('.json')).sort();
+    await reviewFolder(await Promise.all(selected.map(async name => ({ name, text: await readFile(join(capture, name), 'utf8') }))));
     const original = new Map();
     for (const name of await readdir('tests/fixtures/sorry/public')) {
       const expected = await readFile(join('tests/fixtures/sorry/public', name));
