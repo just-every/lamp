@@ -87,7 +87,7 @@ Core · published · **partial**
 2. The result appears as one labeled state at the top of the page.
 3. With all visible components Operational and no unresolved incident, the label is operational.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs`. Additional candidate evidence: `tests/e2e/public-contract.test.mjs` (owner maintains a complete catalogue and customers read, refresh, embed and retain its public story) now asserts adjacent COMP-001 severity comparisons in both catalogue orders through native standing claims, the public status API and the single top-of-page label, with an internal Major outage excluded through full visible recovery. Main’s partial judgment and recorded gap are retained pending clause review.
+**Evidence.** `tests/e2e/public-contract.test.mjs`
 **Gap.** The cited evidence asserts the other audited outcomes; unasserted: The supplied rollup selects the most severe visible component state.
 
 #### PAGE-005 — Snapshot read path
